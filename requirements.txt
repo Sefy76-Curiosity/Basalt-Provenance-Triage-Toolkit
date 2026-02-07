@@ -1,0 +1,22 @@
+# Visualization & Plotting
+matplotlib
+mpltern
+pillow
+
+# Statistics & Data
+numpy
+pandas
+scipy
+scikit-learn
+statsmodels
+
+# Geospatial & GIS
+folium
+geopandas
+shapely
+pyvista
+simplekml
+
+# Reporting & APIs
+python-docx
+earthengine-api
