@@ -1,0 +1,14 @@
+{
+  "advanced_export": true,
+  "advanced_filter": true,
+  "data_validation": true,
+  "discrimination_diagrams": true,
+  "google_earth": true,
+  "literature_comparison": true,
+  "photo_manager": true,
+  "report_generator": true,
+  "spider_diagrams": true,
+  "advanced_statistics": true,
+  "statistical_analysis": true,
+  "ternary_diagrams": true
+}
