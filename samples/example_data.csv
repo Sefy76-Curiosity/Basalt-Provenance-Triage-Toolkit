@@ -1,0 +1,5 @@
+Sample_ID,Museum_Code,Context,Zr_ppm,Nb_ppm,Cr_ppm,Ni_ppm,Ti_ppm,V_ppm,Y_ppm,Lat,Lon,Wall_Thickness_mm
+HAZOR-M-001,HAZ-2010-M-BV-001,Hazor Workshop,95,10.5,130,96,12000,210,25,33.01,35.56,3.4
+HAZOR-A-001,HAZ-1990-A-BV-047,Hazor Antiquities,285,11.5,145,92,11500,205,26,33.01,35.56,2.9
+EGY-BUTO-01,BUTO-P102,Lower Egypt,98,8,3100,1420,15000,250,22,31.36,30.73,8.5
+SINAI-OPH-01,SIN-OPH-24,Sinai Ophiolite,112,11.6,187,69,14500,245,20,29.12,33.91,12.0
