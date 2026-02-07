@@ -1,22 +1,25 @@
-# Visualization & Plotting
+# Core dependencies
+numpy
 matplotlib
-mpltern
 pillow
 
-# Statistics & Data
-numpy
+# Statistical Analysis & Advanced Stats
 pandas
 scipy
 scikit-learn
 statsmodels
 
-# Geospatial & GIS
+# Specialized Visualization
+mpltern
+pyvista
 folium
 geopandas
 shapely
-pyvista
-simplekml
 
-# Reporting & APIs
+# Export & Reporting
 python-docx
+reportlab
+
+# GIS & Google Earth
+simplekml
 earthengine-api
