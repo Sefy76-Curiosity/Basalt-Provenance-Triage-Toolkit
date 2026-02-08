@@ -564,64 +564,7 @@ def classify_row(row: Dict[str, Any]) -> Tuple[Optional[float], Optional[float],
     return zrnb, crni, barb, classification, confidence, flag
 
 # ────────────────────────────────────────────────
-# Batch / CLI mode
-# ────────────────────────────────────────────────
-def run_batch(input_path: str, output_path: str):
-    samples = []
-    imported = 0
-    skipped = 0
-
-    try:
-        with open(input_path, newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for r in reader:
-                row = {k.strip(): v.strip() for k, v in r.items() if v.strip()}
-                if not row.get("Sample_ID"):
-                    skipped += 1
-                    continue
-
-                valid = True
-                numeric_fields = ["Wall_Thickness_mm", "Zr_ppm", "Nb_ppm", "Ba_ppm", "Rb_ppm", "Cr_ppm", "Ni_ppm"]
-                for field in numeric_fields:
-                    if row.get(field) and safe_float(row[field]) is None:
-                        valid = False
-                        break
-
-                if valid:
-                    zrnb, crni, barb, auto_cls, conf, flag = classify_row(row)
-                    row.update({
-                        "Zr_Nb_Ratio": f"{zrnb:.3f}" if zrnb is not None else "",
-                        "Cr_Ni_Ratio": f"{crni:.3f}" if crni is not None else "",
-                        "Ba_Rb_Ratio": f"{barb:.3f}" if barb is not None else "",
-                        "Auto_Classification": auto_cls,
-                        "Auto_Confidence": conf,
-                        "Flag_For_Review": flag,
-                    })
-                    if not row.get("Final_Classification"):
-                        row["Final_Classification"] = auto_cls
-                        row["Confidence_1_to_5"] = conf
-                    samples.append(row)
-                    imported += 1
-                else:
-                    skipped += 1
-
-        if not samples:
-            print("No valid rows imported.")
-            return
-
-        with open(output_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=DISPLAY_COLUMNS, extrasaction="ignore")
-            writer.writeheader()
-            writer.writerows(samples)
-
-        print(f"Batch complete: {imported} rows processed, {skipped} skipped.")
-        print(f"Output saved to: {output_path}")
-
-    except Exception as e:
-        print(f"Batch failed: {str(e)}")
-
-# ────────────────────────────────────────────────
-# Museum API Integration
+# Batch Processing for CSV Files
 # ────────────────────────────────────────────────
 def batch_process_csv(input_path: str, output_path: str):
     """Single-file batch processor used by batch_process_directory"""
@@ -691,7 +634,7 @@ class BasaltTriageApp:
                     SHOW_DEPENDENCY_WARNING = settings.get("show_dependency_warning", True)
         except:
             pass
-        self.root.title("Basalt Provenance Triage Toolkit v10.1")
+        self.root.title("Basalt Provenance Triage Toolkit")
         self.root.geometry("1350x780")
 
         self.samples: List[Dict[str, Any]] = []
@@ -727,6 +670,10 @@ class BasaltTriageApp:
         self._pillow_image = None
         self.backend_status_label = None
         self.preferred_backend = tk.StringVar(value="Auto")  # User can choose backend
+        
+        # Track current classification scheme for dynamic plotting
+        self.current_classification_scheme_id = 'regional_triage'  # Default
+        self.current_classification_scheme_info = None
 
         # Search/filter
         self.search_var = tk.StringVar()
@@ -937,7 +884,6 @@ class BasaltTriageApp:
         menubar.add_cascade(label="Tools", menu=tools_menu)
         tools_menu.add_command(label="Generate Demo Data (Ctrl+G)", command=self._call_demo_generator)
         tools_menu.add_separator()
-        tools_menu.add_command(label="Import from Museum Database...", command=self._call_museum_import)
         tools_menu.add_command(label="Load Reference Dataset", command=self._load_reference_dataset)
         tools_menu.add_separator()
         tools_menu.add_command(label="Export Classification Summary", command=self._export_classification_summary)
@@ -1426,8 +1372,9 @@ class BasaltTriageApp:
 
     def _insert_row(self, row: Dict[str, Any]):
         tag = row.get("Final_Classification") or row.get("Auto_Classification") or "REVIEW REQUIRED"
-        row_idx = self.samples.index(row) if row in self.samples else -1
-        self.tree.insert("", "end", iid=str(row_idx), values=self._get_row_values(row), tags=(tag,))
+        sample_id = row.get("Sample_ID", "")
+        self.tree.insert("", "end", iid=sample_id, values=self._get_row_values(row), tags=(tag,))
+
 
     def add_sample_from_form(self):
         row = {field: var.get().strip() for field, var in self.entry_vars.items()}
@@ -1865,22 +1812,33 @@ class BasaltTriageApp:
         if not self.samples:
             messagebox.showinfo("Info", "No samples to classify.")
             return
-        
+
         if not HAS_CLASSIFICATION_ENGINE:
             messagebox.showerror("Error", "Classification engine not available!")
             return
-        
+
         try:
             # Initialize classification engine
             engine = ClassificationEngine()
-            
+
+            # FIX: Convert DataFrame → list of dicts
+            if HAS_PANDAS and isinstance(self.samples, pd.DataFrame):
+                samples_list = self.samples.to_dict(orient="records")
+            else:
+                samples_list = self.samples
+
             # Get scheme info
             scheme_info = engine.get_scheme_info(scheme_id)
             scheme_name = scheme_info.get('name', scheme_id)
-            
-            # Classify all samples
-            self.samples = engine.classify_all_samples(self.samples, scheme_id)
-            
+
+            # Classify all samples (engine-safe)
+            classified = engine.classify_all_samples(samples_list, scheme_id)
+            self.samples = classified
+
+            # Store current scheme for dynamic plotting
+            self.current_classification_scheme_id = scheme_id
+            self.current_classification_scheme_info = scheme_info
+
             # Compute ratios for plotting (if not already present)
             for row in self.samples:
                 if not row.get("Zr_Nb_Ratio"):
@@ -1888,40 +1846,49 @@ class BasaltTriageApp:
                     nb = safe_float(row.get("Nb_ppm"))
                     zrnb = safe_ratio(zr, nb)
                     row["Zr_Nb_Ratio"] = f"{zrnb:.3f}" if zrnb is not None else ""
-                
+
                 if not row.get("Cr_Ni_Ratio"):
                     cr = safe_float(row.get("Cr_ppm"))
                     ni = safe_float(row.get("Ni_ppm"))
                     crni = safe_ratio(cr, ni)
                     row["Cr_Ni_Ratio"] = f"{crni:.3f}" if crni is not None else ""
-                
+
                 if not row.get("Ba_Rb_Ratio"):
                     ba = safe_float(row.get("Ba_ppm"))
                     rb = safe_float(row.get("Rb_ppm"))
                     barb = safe_ratio(ba, rb)
                     row["Ba_Rb_Ratio"] = f"{barb:.3f}" if barb is not None else ""
-            
+
             # Refresh display AND plot
             self.refresh_tree()
             self.refresh_plot()
             self._mark_unsaved_changes()
-            
+
             # Show success message
-            classified_count = sum(1 for s in self.samples 
-                                 if s.get(scheme_info.get('output_column', 'Classification')) 
-                                 not in ['INSUFFICIENT_DATA', 'UNCLASSIFIED', None])
-            
-            messagebox.showinfo("Classification Complete", 
-                f"✅ Classification Complete!\n\n"
+            output_col = scheme_info.get('output_column', 'Classification')
+            classified_count = sum(
+                1 for s in self.samples
+                if s.get(output_col) not in ['INSUFFICIENT_DATA', 'UNCLASSIFIED', None]
+            )
+
+            messagebox.showinfo(
+                "Classification Complete",
+                f"✓ Classification Complete!\n\n"
                 f"Scheme: {scheme_name}\n"
                 f"Classified: {classified_count}/{len(self.samples)} samples\n\n"
-                f"Output column: {scheme_info.get('output_column', 'Classification')}")
-            
-            self._update_status(f"Classified {classified_count}/{len(self.samples)} samples using '{scheme_name}'")
-            
+                f"Output column: {output_col}"
+            )
+
+            self._update_status(
+                f"Classified {classified_count}/{len(self.samples)} samples using '{scheme_name}'"
+            )
+
         except Exception as e:
-            messagebox.showerror("Classification Error", 
-                f"Error during classification:\n{str(e)}")
+            messagebox.showerror(
+                "Classification Error",
+                f"Error during classification:\n{str(e)}"
+            )
+
 
     def export_csv(self):
         if not self.samples:
@@ -2045,7 +2012,39 @@ class BasaltTriageApp:
 
             # Extract data
             xs, ys, colors, labels = [], [], [], []
-            color_map = SCATTER_COLORS
+            
+            # Determine which classification column to use based on current scheme
+            if self.current_classification_scheme_info:
+                class_column = self.current_classification_scheme_info.get(
+                    'output_column',
+                    'Auto_Classification'
+                )
+
+                # Clean corrupted classification entries
+                raw_classes = self.current_classification_scheme_info.get('classifications', [])
+                clean_classes = []
+                for cls in raw_classes:
+                    if isinstance(cls, dict):
+                        clean_classes.append(cls)
+                    else:
+                        print("[CORRUPTED CLASS REMOVED]", cls)
+
+                # Replace with cleaned list
+                self.current_classification_scheme_info['classifications'] = clean_classes
+
+                # Build color map
+                color_map = {}
+                for cls in clean_classes:
+                    cls_name = cls.get('name', '')
+                    cls_color = cls.get('color', 'gray')
+                    if cls_name:
+                        color_map[cls_name] = cls_color
+
+            else:
+                class_column = "Auto_Classification"
+                color_map = SCATTER_COLORS
+
+
 
             for row in self.samples:
                 zrnb = safe_float(row.get("Zr_Nb_Ratio", ""))
@@ -2053,8 +2052,13 @@ class BasaltTriageApp:
                 if zrnb is None or crni is None:
                     continue
 
-                final_cls = row.get("Final_Classification") or row.get("Auto_Classification") or "REVIEW REQUIRED"
-                c = color_map.get(final_cls, "black")
+                # Get classification from current scheme's output column
+                classification = row.get(class_column, "")
+                # Fallback to old columns if scheme column is empty
+                if not classification:
+                    classification = row.get("Final_Classification") or row.get("Auto_Classification") or "REVIEW REQUIRED"
+                
+                c = color_map.get(classification, "gray")
 
                 xs.append(zrnb)
                 ys.append(crni)
@@ -2347,7 +2351,7 @@ KEYBOARD SHORTCUTS:
         main.pack(fill=tk.BOTH, expand=True)
 
         # Title block — no waste
-        tk.Label(main, text="Basalt Provenance Triage Toolkit v10.1",
+        tk.Label(main, text="Basalt Provenance Triage Toolkit v10.2",
                  font=("TkDefaultFont", 15, "bold")).pack(pady=(0,3))
         tk.Label(main, text="© 2026 Sefy Levy  •  All Rights Reserved",
                  font=("TkDefaultFont", 9)).pack(pady=0)
@@ -2446,7 +2450,7 @@ KEYBOARD SHORTCUTS:
         ttk.Label(main, text="Support the Project",
                  font=("TkDefaultFont", 16, "bold")).pack(pady=(0, 8))
 
-        ttk.Label(main, text="Basalt Provenance Triage Toolkit v10.1",
+        ttk.Label(main, text="Basalt Provenance Triage Toolkit v10.2",
                  font=("TkDefaultFont", 11)).pack()
 
         ttk.Label(main, text="Created by Sefy Levy • 2026",
@@ -2856,12 +2860,12 @@ KEYBOARD SHORTCUTS:
             messagebox.showinfo("Info", "Please select a sample to duplicate.")
             return
 
-        # Get the selected item's index
         item = selection[0]
         values = self.tree.item(item, "values")
 
-        # Find the original row
-        sample_id = values[1]  # Index 1 (checkbox at 0)
+        # Correct: Sample_ID is always column 0
+        sample_id = values[0]
+
         original = None
         for row in self.samples:
             if row.get("Sample_ID") == sample_id:
@@ -2871,7 +2875,6 @@ KEYBOARD SHORTCUTS:
         if not original:
             return
 
-        # Create duplicate with new ID
         duplicate = copy.deepcopy(original)
         duplicate["Sample_ID"] = f"{duplicate['Sample_ID']}_copy"
 
@@ -3360,15 +3363,23 @@ KEYBOARD SHORTCUTS:
             try:
                 with open(path, 'r') as f:
                     project_data = json.load(f)
-                self.samples = project_data.get("samples", [])
+                raw = project_data.get("samples", [])
+                # Hard validation: keep only dicts, log the rest
+                cleaned = []
+                for i, row in enumerate(raw):
+                    if isinstance(row, dict):
+                        cleaned.append(row)
+                    else:
+                        print(f"[CORRUPTED ROW REMOVED] index={i}, type={type(row)}, value={row}")
+                self.samples = cleaned
+
                 self._clear_filter()
-                self._update_status(f"Loaded {len(self.samples)} samples")
+                self._update_status(f"Loaded {len(self.samples)} samples (corrupted rows removed)")
+
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load:\n{str(e)}")
+
         else:
-            # It's a CSV file - use regular import
-            # We'll just set the path and call import
-            # (This is a simplified version)
             messagebox.showinfo("Info", "Please use Import pXRF for data files")
 
     # ═══════════════════════════════════
@@ -4965,16 +4976,28 @@ limitations and will use the results appropriately.
         ttk.Button(dialog, text="Close", command=dialog.destroy).pack(pady=10)
 
     def _show_threshold_table(self):
-        """Show threshold visualization table"""
-        dialog = tk.Toplevel(self.root)
-        dialog.title("Classification Thresholds")
-        dialog.geometry("900x600")
+        """Show threshold visualization table inline in the table area"""
+        # Switch to the Data Table tab first
+        self.notebook.select(self.table_tab)
 
-        ttk.Label(dialog, text="Classification Threshold Reference",
-                 font=("Arial", 14, "bold")).pack(pady=10)
+        # Switch to report view
+        self._show_report_view()
+
+        # Clear any existing content in report view
+        for widget in self.report_view.winfo_children():
+            widget.destroy()
+
+        # Create header with back button
+        header = ttk.Frame(self.report_view)
+        header.pack(fill=tk.X, pady=(0, 10), padx=10)
+
+        ttk.Button(header, text="← Back to Table", command=self._hide_report_view,
+                  style="Accent.TButton").pack(side=tk.LEFT)
+        ttk.Label(header, text="Classification Threshold Reference",
+                 font=("Arial", 14, "bold")).pack(side=tk.LEFT, padx=20)
 
         # Create text widget with thresholds
-        text_frame = ttk.Frame(dialog)
+        text_frame = ttk.Frame(self.report_view)
         text_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
 
         text = tk.Text(text_frame, wrap="word", font=("Courier", 10), padx=10, pady=10)
@@ -5020,8 +5043,6 @@ limitations and will use the results appropriately.
         text.insert("end", f"  Wall Thickness:   > {THICK_WALL_THRESHOLD_MM:.1f} mm\n\n")
 
         text.config(state="disabled")
-
-        ttk.Button(dialog, text="Close", command=dialog.destroy).pack(pady=10)
 
     def _export_classification_summary(self):
         """Export classification summary to text file"""
@@ -5610,7 +5631,7 @@ geochemical constraints or isotopic data.
         ttk.Button(dialog, text="Close", command=save_and_close, width=15).pack(pady=10)
     
     # ═══════════════════════════════════════════════════════════════════════════════
-    # CORE PROFESSIONAL FEATURES - v10.1 PROFESSIONAL EDITION
+    # CORE PROFESSIONAL FEATURES - v10.2 PROFESSIONAL EDITION
     # ═══════════════════════════════════════════════════════════════════════════════
     
     def _show_tas_diagram(self):
@@ -6670,10 +6691,19 @@ most commonly accepted method in geochemistry.
                     # 1. Try show() method (new add-ons)
                     if hasattr(plugin_instance, 'show'):
                         open_method = plugin_instance.show
-                    # 2. Try open_XXX_window (old plugins)
+                    # 2. Try show_interface() method (hardware plugins)
+                    elif hasattr(plugin_instance, 'show_interface'):
+                        open_method = plugin_instance.show_interface
+                    # 3. Try open_XXX_window (old plugins)
                     elif hasattr(plugin_instance, f"open_{info['id']}_window"):
                         open_method = getattr(plugin_instance, f"open_{info['id']}_window")
-                    # 3. Try any open_*_window method
+                    # 4. Try any show_* method
+                    elif any(m.startswith('show_') for m in dir(plugin_instance)):
+                        for method_name in dir(plugin_instance):
+                            if method_name.startswith('show_') and not method_name.startswith('show__'):
+                                open_method = getattr(plugin_instance, method_name)
+                                break
+                    # 5. Try any open_*_window method
                     else:
                         for method_name in dir(plugin_instance):
                             if method_name.startswith('open_') and method_name.endswith('_window'):
@@ -6685,6 +6715,7 @@ most commonly accepted method in geochemistry.
                         print(f"✓ Loaded plugin: {info['name']}")
                     else:
                         print(f"⚠ Plugin {info['name']} loaded but no show/open method found")
+                        print(f"  Available methods: {[m for m in dir(plugin_instance) if not m.startswith('_')]}")
                 else:
                     print(f"✓ Loaded add-on: {info['name']} (not added to Advanced menu)")
                 
@@ -6698,15 +6729,6 @@ most commonly accepted method in geochemistry.
         else:
             messagebox.showinfo("Add-on Required",
                 "Demo Data Generator add-on not enabled.\n\n"
-                "Enable it in Tools → Manage Plugins")
-    
-    def _call_museum_import(self):
-        """Call museum import add-on"""
-        if hasattr(self, 'museum_import_plugin'):
-            self.museum_import_plugin.show()
-        else:
-            messagebox.showinfo("Add-on Required",
-                "Museum Import add-on not enabled.\n\n"
                 "Enable it in Tools → Manage Plugins")
     
     def _call_batch_processor(self):

@@ -8,14 +8,15 @@
   "icon": "🏛️",
   "reference": "Nesbitt & Young, 1982",
   "field": "Museum Conservation / Paleoweathering",
-  
+
   "requires_fields": [
     "Al2O3_wt",
     "CaO_wt",
     "Na2O_wt",
-    "K2O_wt"
+    "K2O_wt",
+    "CIA_Value"
   ],
-  
+
   "classifications": [
     {
       "name": "UNWEATHERED (CIA < 50)",
@@ -26,13 +27,11 @@
         {
           "field": "CIA_Value",
           "operator": "<",
-          "value": 50.0,
-          "comment": "CIA = [Al₂O₃/(Al₂O₃+CaO*+Na₂O+K₂O)] × 100"
+          "value": 50.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.90,
-      "notes": "Pristine condition - original mineralogy preserved"
+      "confidence_score": 0.90
     },
     {
       "name": "SLIGHT WEATHERING (50-65)",
@@ -44,13 +43,11 @@
           "field": "CIA_Value",
           "operator": "between",
           "min": 50.0,
-          "max": 65.0,
-          "comment": "Slight alteration"
+          "max": 65.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85,
-      "notes": "Early-stage weathering - most minerals stable"
+      "confidence_score": 0.85
     },
     {
       "name": "MODERATE WEATHERING (65-80)",
@@ -62,13 +59,11 @@
           "field": "CIA_Value",
           "operator": "between",
           "min": 65.0,
-          "max": 80.0,
-          "comment": "Significant alteration"
+          "max": 80.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.80,
-      "notes": "Feldspars partially altered to clay minerals"
+      "confidence_score": 0.80
     },
     {
       "name": "STRONG ALTERATION (CIA > 80)",
@@ -79,13 +74,11 @@
         {
           "field": "CIA_Value",
           "operator": ">",
-          "value": 80.0,
-          "comment": "Extreme alteration"
+          "value": 80.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85,
-      "notes": "Advanced weathering - original composition significantly modified. Handle with care for museum specimens."
+      "confidence_score": 0.85
     },
     {
       "name": "INSUFFICIENT DATA",
@@ -94,12 +87,10 @@
       "priority": 999,
       "rules": [],
       "logic": "DEFAULT",
-      "confidence_score": 0.0,
-      "notes": "Requires Al₂O₃, CaO, Na₂O, K₂O measurements"
+      "confidence_score": 0.0
     }
   ],
-  
+
   "output_column_name": "Weathering_State",
-  "add_confidence_column": true,
-  "notes": "CIA = [Al₂O₃/(Al₂O₃+CaO*+Na₂O+K₂O)] × 100 (molar proportions). CaO* should ideally be corrected to silicate Ca only (excluding carbonates and apatite). CIA > 80 indicates strong chemical alteration. For museum specimens, high CIA may indicate need for special conservation measures."
+  "add_confidence_column": true
 }

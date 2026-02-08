@@ -10,6 +10,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 from typing import Optional, Dict, Any, List
 import time
+import threading
 
 HAS_REQUESTS = False
 try:
@@ -21,7 +22,7 @@ except ImportError:
 PLUGIN_INFO = {
     'id': 'museum_import',
     'name': 'Museum Database Import',
-    'category': 'add-on',
+    'category': 'software',
     'icon': '🏛️',
     'requires': ['requests'],
     'description': 'Import artifacts from 10+ museum APIs (Met, British Museum, V&A, etc.)'
@@ -747,6 +748,12 @@ class MuseumImportDialog(tk.Toplevel):
         self.results = []
         self.selected_items = {}  # object_id -> data dict
 
+        # Control variables for stopping operations
+        self.search_stop_event = threading.Event()
+        self.load_stop_event = threading.Event()
+        self.current_search_thread = None
+        self.current_load_thread = None
+
         # Batch loading for search results
         self.all_object_ids = []  # All IDs from search
         self.current_batch_index = 0  # Current position in batch loading
@@ -756,22 +763,57 @@ class MuseumImportDialog(tk.Toplevel):
         self.title("Import from Museum Database")
         self.geometry("900x700")
 
+        # Configure window to be resizable
+        self.minsize(800, 600)  # Minimum size
+
+        # Make window modal and bring to front
+        self.transient(parent)  # Set to be on top of the parent window
+        self.grab_set()  # Make it modal
+
+        # Bring to front and focus
+        self.lift()
+        self.focus_force()
+
         self._build_ui()
+
+        # Ensure window stays on top initially
+        self.after(100, self._bring_to_front)
+
+    def _bring_to_front(self):
+        """Bring window to front and ensure focus"""
+        self.lift()
+        self.focus_force()
+        if self.winfo_viewable():
+            self.attributes('-topmost', True)
+            self.after(100, lambda: self.attributes('-topmost', False))
 
     def _build_ui(self):
         """Build the dialog UI"""
+        # Main container frame with padding - using grid for better control
+        main_container = ttk.Frame(self)
+        main_container.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+
+        # Configure grid weights for resizing
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=1)
+        main_container.columnconfigure(0, weight=1)
+        main_container.rowconfigure(1, weight=1)  # Results frame should expand
+        main_container.rowconfigure(3, weight=0)  # Button frame should not expand
+
         # Header
-        header = ttk.Frame(self)
-        header.pack(fill=tk.X, padx=10, pady=10)
+        header = ttk.Frame(main_container)
+        header.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
+        header.columnconfigure(0, weight=1)
 
         ttk.Label(header, text="Import from Museum Database",
-                 font=("Arial", 14, "bold")).pack()
+                 font=("Arial", 14, "bold")).grid(row=0, column=0, sticky="w")
         ttk.Label(header, text="Search and import basalt artifacts from museum collections",
-                 font=("Arial", 9)).pack()
+                 font=("Arial", 9)).grid(row=1, column=0, sticky="w", pady=(2, 0))
 
         # Search frame
-        search_frame = ttk.LabelFrame(self, text="Search", padding=10)
-        search_frame.pack(fill=tk.X, padx=10, pady=5)
+        search_frame = ttk.LabelFrame(main_container, text="Search", padding=10)
+        search_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 5))
+        search_frame.columnconfigure(1, weight=1)
 
         # Museum selector
         ttk.Label(search_frame, text="Museum:").grid(row=0, column=0, sticky="w", padx=5)
@@ -807,10 +849,9 @@ class MuseumImportDialog(tk.Toplevel):
         search_entry.grid(row=1, column=1, padx=5, pady=(5,0), sticky="ew")
         search_entry.bind("<Return>", lambda e: self._search())
 
-        ttk.Button(search_frame, text="Search", command=self._search).grid(
-            row=1, column=2, padx=5, pady=(5,0))
-
-        search_frame.columnconfigure(1, weight=1)
+        # Search/Stop button
+        self.search_btn = ttk.Button(search_frame, text="Search", command=self._toggle_search)
+        self.search_btn.grid(row=1, column=2, padx=5, pady=(5,0))
 
         # Info label
         self.info_label = ttk.Label(search_frame, text="✓ Met Museum ready! Search imports metadata only - add geochemistry manually after lab analysis", foreground="blue")
@@ -822,8 +863,10 @@ class MuseumImportDialog(tk.Toplevel):
         self.progress_bar.grid_remove()  # Hide initially
 
         # Results frame with scrollbar
-        results_frame = ttk.LabelFrame(self, text="Results", padding=5)
-        results_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        results_frame = ttk.LabelFrame(main_container, text="Results", padding=5)
+        results_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 5))
+        results_frame.columnconfigure(0, weight=1)
+        results_frame.rowconfigure(0, weight=1)
 
         # Create treeview for results
         columns = ("select", "id", "title", "date", "culture")
@@ -838,9 +881,9 @@ class MuseumImportDialog(tk.Toplevel):
 
         self.results_tree.column("select", width=30, anchor="center")
         self.results_tree.column("id", width=80)
-        self.results_tree.column("title", width=350)
+        self.results_tree.column("title", width=350, minwidth=200)
         self.results_tree.column("date", width=120)
-        self.results_tree.column("culture", width=150)
+        self.results_tree.column("culture", width=150, minwidth=100)
 
         # Scrollbars
         vsb = ttk.Scrollbar(results_frame, orient="vertical", command=self.results_tree.yview)
@@ -857,38 +900,81 @@ class MuseumImportDialog(tk.Toplevel):
         # Bind click event for selection
         self.results_tree.bind("<Button-1>", self._on_tree_click)
 
-        # Button frame
-        button_frame = ttk.Frame(self)
-        button_frame.pack(fill=tk.X, padx=10, pady=10)
+        # Button frame - FIXED: using grid with proper sticky
+        button_frame = ttk.Frame(main_container)
+        button_frame.grid(row=3, column=0, sticky="ew", padx=10, pady=(0, 5))
+        button_frame.columnconfigure(0, weight=1)  # Left side buttons
+        button_frame.columnconfigure(1, weight=1)  # Center labels
+        button_frame.columnconfigure(2, weight=1)  # Right side buttons
 
-        ttk.Button(button_frame, text="Select All",
-                  command=self._select_all).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Deselect All",
-                  command=self._deselect_all).pack(side=tk.LEFT, padx=5)
+        # Left side buttons
+        left_frame = ttk.Frame(button_frame)
+        left_frame.grid(row=0, column=0, sticky="w")
+
+        ttk.Button(left_frame, text="Select All",
+                  command=self._select_all).pack(side=tk.LEFT, padx=2)
+        ttk.Button(left_frame, text="Deselect All",
+                  command=self._deselect_all).pack(side=tk.LEFT, padx=2)
+
+        # Center labels and buttons
+        center_frame = ttk.Frame(button_frame)
+        center_frame.grid(row=0, column=1, sticky="")
 
         # Load More button (hidden initially)
-        self.load_more_btn = ttk.Button(button_frame, text="📥 Load Next 50 Results",
+        self.load_more_btn = ttk.Button(center_frame, text="📥 Load Next 50 Results",
                                         command=self._load_next_batch)
-        self.load_more_btn.pack(side=tk.LEFT, padx=20)
+        self.load_more_btn.pack(side=tk.LEFT, padx=5)
         self.load_more_btn.pack_forget()  # Hide initially
 
         # Batch counter label
-        self.batch_label = ttk.Label(button_frame, text="", font=("Arial", 9))
+        self.batch_label = ttk.Label(center_frame, text="", font=("Arial", 9))
         self.batch_label.pack(side=tk.LEFT, padx=5)
 
-        ttk.Label(button_frame, text="Selected: 0",
-                 font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=20)
-        self.selected_label = button_frame.winfo_children()[-1]
+        # Selected count label
+        self.selected_label = ttk.Label(center_frame, text="Selected: 0", font=("Arial", 10, "bold"))
+        self.selected_label.pack(side=tk.LEFT, padx=10)
 
-        ttk.Button(button_frame, text="Import Selected",
-                  command=self._import_selected).pack(side=tk.RIGHT, padx=5)
-        ttk.Button(button_frame, text="Close",
-                  command=self.destroy).pack(side=tk.RIGHT, padx=5)
+        # Right side buttons
+        right_frame = ttk.Frame(button_frame)
+        right_frame.grid(row=0, column=2, sticky="e")
 
-        # Status bar
+        ttk.Button(right_frame, text="Import Selected",
+                  command=self._import_selected).pack(side=tk.RIGHT, padx=2)
+        ttk.Button(right_frame, text="Close",
+                  command=self.destroy).pack(side=tk.RIGHT, padx=2)
+
+        # Status bar - using grid at the bottom
         self.status_var = tk.StringVar(value="Ready. Select museum and enter search term.")
-        ttk.Label(self, textvariable=self.status_var,
-                 relief=tk.SUNKEN, anchor=tk.W).pack(fill=tk.X, side=tk.BOTTOM)
+        status_bar = ttk.Label(main_container, textvariable=self.status_var,
+                              relief=tk.SUNKEN, anchor=tk.W)
+        status_bar.grid(row=4, column=0, sticky="ew", padx=10, pady=(0, 5))
+
+    def _toggle_search(self):
+        """Toggle between search and stop modes"""
+        if self.search_btn['text'] == "Search":
+            self._search()
+        else:
+            self._stop_search()
+
+    def _stop_search(self):
+        """Stop the current search operation"""
+        if self.current_search_thread and self.current_search_thread.is_alive():
+            self.search_stop_event.set()
+            self.status_var.set("Stopping search...")
+            self.info_label.config(text="🛑 Stopping search...")
+
+            # Try to join thread with timeout
+            self.current_search_thread.join(timeout=2.0)
+
+            # Reset button
+            self.search_btn.config(text="Search")
+
+            # Stop and hide progress bar
+            self.progress_bar.stop()
+            self.progress_bar.grid_remove()
+
+            self.status_var.set("Search stopped by user")
+            self.info_label.config(text="Search stopped. Ready for new search.")
 
     def _on_museum_changed(self, event=None):
         """Handle museum selection change"""
@@ -899,21 +985,27 @@ class MuseumImportDialog(tk.Toplevel):
             self.info_label.config(text="🌐 Universal Web Scraper - Works with ANY museum website!")
             self.status_var.set("Enter a museum's collection/search URL in the search box, then search!")
 
-            # Show instructions
-            messagebox.showinfo(
-                "Universal Web Scraper",
-                "🌐 HOW TO USE:\n\n"
-                "1. Find the museum's online collection or search page\n"
-                "2. Copy the URL (e.g., https://museum.org/collections)\n"
-                "3. Paste it in the 'Search term' box below\n"
-                "4. Add your search term after the URL\n"
-                "   Example: https://museum.org/search basalt\n\n"
-                "The scraper will:\n"
-                "✓ Find all object/artifact links on that page\n"
-                "✓ Extract titles, dates, and metadata\n"
-                "✓ Let you import them into your database\n\n"
-                "💡 WORKS WITH ANY MUSEUM - No API needed!"
-            )
+            # Show instructions with proper focus
+            def show_instructions():
+                messagebox.showinfo(
+                    "Universal Web Scraper",
+                    "🌐 HOW TO USE:\n\n"
+                    "1. Find the museum's online collection or search page\n"
+                    "2. Copy the URL (e.g., https://museum.org/collections)\n"
+                    "3. Paste it in the 'Search term' box below\n"
+                    "4. Add your search term after the URL\n"
+                    "   Example: https://museum.org/search basalt\n\n"
+                    "The scraper will:\n"
+                    "✓ Find all object/artifact links on that page\n"
+                    "✓ Extract titles, dates, and metadata\n"
+                    "✓ Let you import them into your database\n\n"
+                    "💡 WORKS WITH ANY MUSEUM - No API needed!"
+                )
+                # Bring main dialog back to front after messagebox closes
+                self._bring_to_front()
+
+            # Show instructions with slight delay to ensure focus
+            self.after(100, show_instructions)
 
         # All working museums
         elif "Metropolitan Museum" in museum:
@@ -980,28 +1072,60 @@ class MuseumImportDialog(tk.Toplevel):
                 status = "in development"
                 timeline = "Coming soon!"
 
-            messagebox.showinfo(
-                "Museum Not Yet Available",
-                f"{museum.split(' - ')[0]} is {status}.\n\n"
-                f"{timeline}\n\n"
-                "✓ CURRENTLY WORKING:\n"
-                "  • Metropolitan Museum (USA)\n"
-                "  • British Museum (UK)\n"
-                "  • Victoria & Albert Museum (UK)\n"
-                "  • Cleveland Museum (USA)\n"
-                "  • Rijksmuseum (Netherlands)\n"
-                "  • Harvard Art Museums (USA)\n"
-                "  • Cooper Hewitt (USA)\n"
-                "  • Israel Museum (IL)\n"
-                "  • Israel Antiquities Authority (IL)\n\n"
-                "Please select a working museum from the list above."
-            )
+            # Show messagebox with proper focus handling
+            def show_not_available():
+                messagebox.showinfo(
+                    "Museum Not Yet Available",
+                    f"{museum.split(' - ')[0]} is {status}.\n\n"
+                    f"{timeline}\n\n"
+                    "✓ CURRENTLY WORKING:\n"
+                    "  • Metropolitan Museum (USA)\n"
+                    "  • British Museum (UK)\n"
+                    "  • Victoria & Albert Museum (UK)\n"
+                    "  • Cleveland Museum (USA)\n"
+                    "  • Rijksmuseum (Netherlands)\n"
+                    "  • Harvard Art Museums (USA)\n"
+                    "  • Cooper Hewitt (USA)\n"
+                    "  • Israel Museum (IL)\n"
+                    "  • Israel Antiquities Authority (IL)\n\n"
+                    "Please select a working museum from the list above."
+                )
+                # Bring main dialog back to front after messagebox closes
+                self._bring_to_front()
+
+            self.after(100, show_not_available)
             return
 
         query = self.search_var.get().strip()
         if not query:
-            messagebox.showwarning("No Search Term", "Please enter a search term.")
+            # Show warning with proper focus handling
+            def show_warning():
+                messagebox.showwarning("No Search Term", "Please enter a search term.")
+                self._bring_to_front()
+
+            self.after(100, show_warning)
             return
+
+        # Clear previous results and reset batch loading
+        for item in self.results_tree.get_children():
+            self.results_tree.delete(item)
+        self.results = []
+        self.selected_items = {}
+        self._update_selected_count()
+
+        # Reset stop events
+        self.search_stop_event.clear()
+        self.load_stop_event.clear()
+
+        # Reset batch loading state
+        self.all_object_ids = []
+        self.current_batch_index = 0
+        self.total_found = 0
+        self.load_more_btn.pack_forget()  # Hide Load More button
+        self.batch_label.config(text="")
+
+        # Update search button to STOP
+        self.search_btn.config(text="STOP")
 
         # Update museum name in status
         museum_name = museum.split(' (')[0]
@@ -1012,24 +1136,10 @@ class MuseumImportDialog(tk.Toplevel):
         self.progress_bar.grid()
         self.progress_bar.start(10)  # Animate every 10ms
 
-        # Clear previous results and reset batch loading
-        for item in self.results_tree.get_children():
-            self.results_tree.delete(item)
-        self.results = []
-        self.selected_items = {}
-        self._update_selected_count()
-
-        # Reset batch loading state
-        self.all_object_ids = []
-        self.current_batch_index = 0
-        self.total_found = 0
-        self.load_more_btn.pack_forget()  # Hide Load More button
-        self.batch_label.config(text="")
-
         # Search in thread to avoid freezing UI
-        thread = threading.Thread(target=self._search_thread, args=(query, museum))
-        thread.daemon = True
-        thread.start()
+        self.current_search_thread = threading.Thread(target=self._search_thread, args=(query, museum))
+        self.current_search_thread.daemon = True
+        self.current_search_thread.start()
 
     def _search_thread(self, query, museum):
         """Search thread to avoid UI freeze"""
@@ -1070,11 +1180,21 @@ class MuseumImportDialog(tk.Toplevel):
             else:
                 raise Exception("Unsupported museum")
 
+            # Check if search was stopped
+            if self.search_stop_event.is_set():
+                self.after(0, self._search_stopped)
+                return
+
             # Search for object IDs
             object_ids = self.api.search(query)
 
+            # Check if search was stopped
+            if self.search_stop_event.is_set():
+                self.after(0, self._search_stopped)
+                return
+
             if not object_ids:
-                self.after(0, lambda: self._show_no_results())
+                self.after(0, self._show_no_results)
                 return
 
             # Store all IDs for batch loading
@@ -1083,34 +1203,59 @@ class MuseumImportDialog(tk.Toplevel):
             self.current_batch_index = 0
 
             # Load first batch
-            self.after(0, lambda: self._load_batch())
+            self.after(0, self._load_batch)
 
         except Exception as e:
-            self.after(0, lambda: self._show_error(str(e)))
+            if not self.search_stop_event.is_set():
+                # Use a wrapper function to avoid lambda closure issues
+                self.after(0, lambda error_msg=str(e): self._show_error(error_msg))
+
+    def _search_stopped(self):
+        """Handle when search is stopped by user"""
+        self.search_btn.config(text="Search")
+        self.progress_bar.stop()
+        self.progress_bar.grid_remove()
+        self.status_var.set("Search stopped by user")
+        self.info_label.config(text="Search stopped. Ready for new search.")
+        self._bring_to_front()
 
     def _show_no_results(self):
         """Show no results message"""
+        # Reset search button
+        self.search_btn.config(text="Search")
+
         # Stop and hide progress bar
         self.progress_bar.stop()
         self.progress_bar.grid_remove()
 
         self.info_label.config(text="❌ No results found. Try a different search term.")
         self.status_var.set("No results found.")
+        self._bring_to_front()
 
     def _show_error(self, error_msg):
         """Show error message"""
+        # Reset search button
+        self.search_btn.config(text="Search")
+
         # Stop and hide progress bar
         self.progress_bar.stop()
         self.progress_bar.grid_remove()
 
         self.info_label.config(text=f"❌ Error: {error_msg}")
         self.status_var.set("Search failed.")
-        messagebox.showerror("Search Error", f"Failed to search museum:\n{error_msg}")
+
+        # Show error messagebox with focus handling
+        def show_error_box():
+            messagebox.showerror("Search Error", f"Failed to search museum:\n{error_msg}")
+            self._bring_to_front()
+
+        self.after(100, show_error_box)
 
     def _load_batch(self):
         """Load the current batch of results"""
         if self.current_batch_index >= len(self.all_object_ids):
             # No more results to load
+            self.search_btn.config(text="Search")
             return
 
         # Update status
@@ -1122,9 +1267,9 @@ class MuseumImportDialog(tk.Toplevel):
         self.progress_bar.start(10)
 
         # Load batch in thread
-        thread = threading.Thread(target=self._load_batch_thread)
-        thread.daemon = True
-        thread.start()
+        self.current_load_thread = threading.Thread(target=self._load_batch_thread)
+        self.current_load_thread.daemon = True
+        self.current_load_thread.start()
 
     def _load_batch_thread(self):
         """Thread to load a batch of object details"""
@@ -1137,6 +1282,10 @@ class MuseumImportDialog(tk.Toplevel):
             # Fetch details for this batch
             batch_results = []
             for idx, obj_id in enumerate(batch_ids):
+                # Check if loading was stopped
+                if self.load_stop_event.is_set():
+                    break
+
                 obj_data = self.api.get_object(obj_id)
                 if obj_data:
                     batch_results.append(obj_data)
@@ -1144,8 +1293,13 @@ class MuseumImportDialog(tk.Toplevel):
                 # Update progress every 10 items
                 if (idx + 1) % 10 == 0:
                     current = start_idx + idx + 1
-                    self.after(0, lambda c=current:
-                             self.status_var.set(f"Loading {c}/{self.total_found}..."))
+                    # Use a wrapper function to avoid lambda closure issues
+                    self.after(0, lambda c=current: self.status_var.set(f"Loading {c}/{self.total_found}..."))
+
+            # Check if loading was stopped
+            if self.load_stop_event.is_set():
+                self.after(0, self._search_stopped)
+                return
 
             # Add batch results to main results
             self.results.extend(batch_results)
@@ -1154,13 +1308,19 @@ class MuseumImportDialog(tk.Toplevel):
             self.current_batch_index = end_idx
 
             # Display the new results
-            self.after(0, lambda: self._display_batch_results(batch_results))
+            self.after(0, lambda b=batch_results: self._display_batch_results(b))
 
         except Exception as e:
-            self.after(0, lambda: self._show_error(str(e)))
+            if not self.load_stop_event.is_set():
+                # Use a wrapper function to avoid lambda closure issues
+                self.after(0, lambda error_msg=str(e): self._show_error(error_msg))
 
     def _display_batch_results(self, batch_results):
         """Display newly loaded batch results"""
+        # Reset search button when all batches are loaded
+        if self.current_batch_index >= len(self.all_object_ids):
+            self.search_btn.config(text="Search")
+
         # Stop and hide progress bar
         self.progress_bar.stop()
         self.progress_bar.grid_remove()
@@ -1191,17 +1351,19 @@ class MuseumImportDialog(tk.Toplevel):
 
         # Show/hide Load More button
         if self.current_batch_index < len(self.all_object_ids):
-            self.load_more_btn.pack(side=tk.LEFT, padx=20, after=self.batch_label)
+            self.load_more_btn.pack(side=tk.LEFT, padx=5)
             remaining_to_load = min(self.batch_size, len(self.all_object_ids) - self.current_batch_index)
             self.load_more_btn.config(text=f"📥 Load Next {remaining_to_load} Results")
         else:
             self.load_more_btn.pack_forget()
             self.info_label.config(text=f"✅ All {self.total_found} results loaded - Click checkboxes to select")
 
+        # Ensure window stays on top
+        self._bring_to_front()
+
     def _load_next_batch(self):
         """User clicked Load More button"""
         self._load_batch()
-
 
     def _on_tree_click(self, event):
         """Handle tree item click for selection"""
@@ -1251,7 +1413,12 @@ class MuseumImportDialog(tk.Toplevel):
     def _import_selected(self):
         """Import selected items to main app"""
         if not self.selected_items:
-            messagebox.showinfo("No Selection", "Please select at least one item to import.")
+            # Show info message with proper focus
+            def show_no_selection():
+                messagebox.showinfo("No Selection", "Please select at least one item to import.")
+                self._bring_to_front()
+
+            self.after(100, show_no_selection)
             return
 
         imported = 0
@@ -1259,28 +1426,47 @@ class MuseumImportDialog(tk.Toplevel):
         replaced = 0
 
         for obj_id, obj_data in self.selected_items.items():
-            # Map Met data to our format
+            # Map museum object to our sample format
             sample = self._map_object_to_sample(obj_data)
 
-            # Check for duplicates
-            duplicate_idx = self._find_duplicate(sample)
+            # Check for duplicates - simplified version
+            duplicate_idx = None
+            # Try to find duplicate by looking for same Sample_ID in app.samples
+            for idx, existing_sample in enumerate(self.app.samples):
+                if existing_sample.get('Sample_ID') == sample.get('Sample_ID'):
+                    duplicate_idx = idx
+                    break
 
             if duplicate_idx is not None:
-                # Ask user
-                response = messagebox.askyesnocancel(
-                    "Duplicate Found",
-                    f"Item '{sample['Sample_ID']}' already exists.\n\n"
-                    f"Yes = Replace existing\n"
-                    f"No = Skip this item\n"
-                    f"Cancel = Stop import"
-                )
+                # Ask user with proper focus
+                def ask_user(sample_id=sample['Sample_ID'], idx=duplicate_idx):
+                    response = messagebox.askyesnocancel(
+                        "Duplicate Found",
+                        f"Item '{sample_id}' already exists.\n\n"
+                        f"Yes = Replace existing\n"
+                        f"No = Skip this item\n"
+                        f"Cancel = Stop import"
+                    )
 
-                if response is None:  # Cancel
+                    if response is None:  # Cancel
+                        return 'cancel'
+                    elif response:  # Yes - replace
+                        return 'replace'
+                    else:  # No - skip
+                        return 'skip'
+
+                # Show the dialog and wait for response
+                self.grab_release()  # Temporarily release grab for messagebox
+                response = ask_user()
+                self.grab_set()  # Re-grab after messagebox
+                self._bring_to_front()
+
+                if response == 'cancel':
                     break
-                elif response:  # Yes - replace
+                elif response == 'replace':
                     self.app.samples[duplicate_idx] = sample
                     replaced += 1
-                else:  # No - skip
+                else:  # 'skip'
                     skipped += 1
             else:
                 # Add new sample
@@ -1288,49 +1474,105 @@ class MuseumImportDialog(tk.Toplevel):
                 imported += 1
 
         # Refresh the main app table
-        self.app._refresh_table_page()
-        self.app._update_status(f"Museum import: {imported} new, {replaced} replaced, {skipped} skipped")
+        if hasattr(self.app, '_refresh_table_page'):
+            self.app._refresh_table_page()
+        if hasattr(self.app, '_update_status'):
+            self.app._update_status(f"Museum import: {imported} new, {replaced} replaced, {skipped} skipped")
 
-        # Show summary
-        summary = f"✅ Import complete!\n\n"
-        summary += f"📥 New items: {imported}\n"
-        summary += f"🔄 Replaced: {replaced}\n"
-        summary += f"⏭️ Skipped: {skipped}\n\n"
-        summary += f"📋 WHAT WAS IMPORTED:\n"
-        summary += f"✓ Sample ID, Museum Code, Museum URL\n"
-        summary += f"✓ Title, Date, Culture (metadata)\n\n"
-        summary += f"⚠️ WHAT YOU NEED TO ADD:\n"
-        summary += f"✗ Geochemical data (Zr, Nb, Ba, Rb, Cr, Ni)\n"
-        summary += f"✗ Wall thickness measurements\n\n"
-        summary += f"💡 TIP: All imported items are flagged for review.\n"
-        summary += f"After lab analysis, manually enter the geochemical values."
+        # Show summary with proper focus
+        def show_summary():
+            summary = f"✅ Import complete!\n\n"
+            summary += f"📥 New items: {imported}\n"
+            summary += f"🔄 Replaced: {replaced}\n"
+            summary += f"⏭️ Skipped: {skipped}\n\n"
+            summary += f"📋 WHAT WAS IMPORTED:\n"
+            summary += f"✓ Sample ID, Museum Code, Museum URL\n"
+            summary += f"✓ Title, Date, Culture (metadata)\n\n"
+            summary += f"⚠️ WHAT YOU NEED TO ADD:\n"
+            summary += f"✗ Geochemical data (Zr, Nb, Ba, Rb, Cr, Ni)\n"
+            summary += f"✗ Wall thickness measurements\n\n"
+            summary += f"💡 TIP: All imported items are flagged for review.\n"
+            summary += f"After lab analysis, manually enter the geochemical values."
 
-        messagebox.showinfo("Museum Import Complete", summary)
-        self.destroy()
+            messagebox.showinfo("Museum Import Complete", summary)
+            self._bring_to_front()
+            self.destroy()
+
+        self.after(100, show_summary)
 
     def _map_object_to_sample(self, obj_data):
         """Map museum object to our sample format"""
         obj_id = obj_data.get('objectID', '')
         title = obj_data.get('title', 'Untitled')
+        date = obj_data.get('objectDate', 'Unknown')
+        culture = obj_data.get('culture', 'Unknown')
+        object_url = obj_data.get('objectURL', '')
 
         # Determine museum prefix based on current API
         museum_prefix = "MUSEUM"
+        if self.api:
+            api_name = self.api.__class__.__name__
+            if "MetMuseum" in api_name:
+                museum_prefix = "MET"
+            elif "BritishMuseum" in api_name:
+                museum_prefix = "BM"
+            elif "VictoriaAlbert" in api_name:
+                museum_prefix = "V&A"
+            elif "ClevelandMuseum" in api_name:
+                museum_prefix = "CMA"
+            elif "Rijksmuseum" in api_name:
+                museum_prefix = "RJK"
+            elif "HarvardMuseums" in api_name:
+                museum_prefix = "HARVARD"
+            elif "CooperHewitt" in api_name:
+                museum_prefix = "CH"
+            elif "IsraelMuseum" in api_name:
+                museum_prefix = "IMJ"
+            elif "IsraelAntiquities" in api_name:
+                museum_prefix = "IAA"
+            elif "UniversalWebScraper" in api_name:
+                museum_prefix = "WEB"
+
+        # Create sample dictionary
+        sample = {
+            'Sample_ID': f"{museum_prefix}-{obj_id}",
+            'Museum_Code': museum_prefix,
+            'Museum_URL': object_url,
+            'Title': title,
+            'Date': date,
+            'Culture': culture,
+            'Material': 'Basalt',
+            'Needs_Review': True,  # Flag for manual geochemical data entry
+        }
+
+        # Add placeholder geochemical fields
+        geochemical_fields = ['Zr', 'Nb', 'Ba', 'Rb', 'Cr', 'Ni', 'SiO2', 'TiO2', 'Al2O3',
+                             'Fe2O3', 'MnO', 'MgO', 'CaO', 'Na2O', 'K2O', 'P2O5']
+        for field in geochemical_fields:
+            sample[field] = ''  # Empty for manual entry
+
+        return sample
+
 
 class MuseumImportPlugin:
     """Museum import add-on"""
-    
+
     def __init__(self, parent_app):
         self.app = parent_app
-    
+
     def show(self):
         """Show museum import dialog"""
         if not HAS_REQUESTS:
-            messagebox.showerror("Missing Dependency",
-                "Museum import requires 'requests' library.\n\n"
-                "Install with: pip install requests")
+            # Show error with focus
+            def show_dependency_error():
+                messagebox.showerror("Missing Dependency",
+                    "Museum import requires 'requests' library.\n\n"
+                    "Install with: pip install requests")
+
+            self.app.root.after(100, show_dependency_error)
             return
-        
-        dialog = MuseumImportDialog(self.app)
+
+        dialog = MuseumImportDialog(self.app.root, self.app)
 
 def register_plugin(parent_app):
     """Register this add-on"""

@@ -8,11 +8,11 @@
   "icon": "🌍",
   "reference": "Gromet et al. 1984; Taylor & McLennan 1995",
   "field": "Environmental Geochemistry",
-  
+
   "requires_fields": [
     "Pb_ppm"
   ],
-  
+
   "classifications": [
     {
       "name": "BACKGROUND (EF < 2)",
@@ -21,15 +21,13 @@
       "priority": 1,
       "rules": [
         {
-          "field": "Pb_EF",
+          "field": "Pb_ppm/20",
           "operator": "<",
-          "value": 2.0,
-          "comment": "EF = Pb_sample / UCC_Pb (20 ppm)"
+          "value": 2.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.90,
-      "notes": "Natural geochemical background - no pollution concern"
+      "confidence_score": 0.90
     },
     {
       "name": "MINOR ENRICHMENT (EF 2-5)",
@@ -38,16 +36,14 @@
       "priority": 2,
       "rules": [
         {
-          "field": "Pb_EF",
+          "field": "Pb_ppm/20",
           "operator": "between",
           "min": 2.0,
-          "max": 5.0,
-          "comment": "Low enrichment"
+          "max": 5.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.80,
-      "notes": "Could be natural variation or minor human impact"
+      "confidence_score": 0.80
     },
     {
       "name": "MODERATE ENRICHMENT (EF 5-10)",
@@ -56,16 +52,14 @@
       "priority": 3,
       "rules": [
         {
-          "field": "Pb_EF",
+          "field": "Pb_ppm/20",
           "operator": "between",
           "min": 5.0,
-          "max": 10.0,
-          "comment": "Moderate enrichment"
+          "max": 10.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.75,
-      "notes": "Anthropogenic contribution probable - investigate sources"
+      "confidence_score": 0.75
     },
     {
       "name": "EXTREME ENRICHMENT (EF > 10)",
@@ -74,15 +68,13 @@
       "priority": 4,
       "rules": [
         {
-          "field": "Pb_EF",
+          "field": "Pb_ppm/20",
           "operator": ">",
-          "value": 10.0,
-          "comment": "Very high enrichment"
+          "value": 10.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85,
-      "notes": "Strong pollution signal - likely industrial or mining contamination"
+      "confidence_score": 0.85
     },
     {
       "name": "NO DATA",
@@ -91,12 +83,10 @@
       "priority": 999,
       "rules": [],
       "logic": "DEFAULT",
-      "confidence_score": 0.0,
-      "notes": "Requires element measurement for EF calculation"
+      "confidence_score": 0.0
     }
   ],
-  
+
   "output_column_name": "Enrichment_Status",
-  "add_confidence_column": true,
-  "notes": "Simple EF = X_sample / X_UCC. UCC baselines: Pb=20, As=1.5, Cu=25, Zn=71 ppm (Taylor & McLennan 1995). For full EF, normalize to reference element (Al or Fe). This is screening-level assessment - not legal diagnosis. Can be applied to Pb, As, Cu, Zn, and other trace metals."
+  "add_confidence_column": true
 }
