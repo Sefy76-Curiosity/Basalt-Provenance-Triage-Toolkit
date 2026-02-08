@@ -1,5 +1,5 @@
-# These are supported funding model platforms
-github: [Sefy-Levy] # Assuming this is your GitHub username
+github: [Sefy-Levy]
 ko_fi: sefy76
-custom: ['https://www.paypal.me/Sefy76']
-custom: ['https://liberapay.com/Sefy76']
+custom:
+  - https://www.paypal.me/Sefy76
+  - https://liberapay.com/Sefy76
