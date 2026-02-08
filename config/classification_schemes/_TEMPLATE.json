@@ -1,0 +1,52 @@
+{
+  "_comment": "Classification Scheme Template for Basalt Provenance Triage Toolkit",
+  "_instructions": "Copy this file, rename it, and fill in your classification logic",
+  
+  "scheme_name": "Your Scheme Name",
+  "version": "1.0",
+  "author": "Your Name",
+  "date_created": "2025-02-07",
+  "description": "Brief description of what this scheme classifies",
+  "category": "software",
+  "icon": "🎯",
+  "reference": "Optional: Citation or reference paper",
+  
+  "requires_fields": [
+    "Zr_ppm",
+    "Nb_ppm"
+  ],
+  
+  "classifications": [
+    {
+      "name": "CLASSIFICATION NAME",
+      "color": "red",
+      "description": "What this classification represents",
+      "rules": [
+        {
+          "field": "Zr_Nb_Ratio",
+          "operator": ">",
+          "value": 8,
+          "comment": "Optional: explain this rule"
+        },
+        {
+          "field": "Cr_ppm",
+          "operator": "between",
+          "min": 1000,
+          "max": 2000
+        }
+      ],
+      "logic": "AND",
+      "confidence_threshold": 0.75,
+      "notes": "Additional information about this classification"
+    }
+  ],
+  
+  "output_column_name": "Auto_Classification",
+  "add_confidence_column": true,
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.6,
+  
+  "operators_supported": [
+    ">", "<", ">=", "<=", "==", "!=", "between", "in_range"
+  ]
+}

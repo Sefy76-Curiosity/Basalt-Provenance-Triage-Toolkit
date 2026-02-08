@@ -1,0 +1,85 @@
+{
+  "scheme_name": "Analytical Precision Filter (RSD‑Based)",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Identify unreliable pXRF/XRF measurements using relative standard deviation",
+  "category": "software",
+  "icon": "✅",
+  "reference": "Potts & West, 2008 (pXRF QA/QC); NIST uncertainty guidelines",
+  "field": "Field Triage / QA–QC",
+  
+  "requires_fields": [
+    "Zr_ppm",
+    "Zr_error"
+  ],
+  
+  "classifications": [
+    {
+      "name": "RESEARCH GRADE (RSD < 15%)",
+      "color": "#4CAF50",
+      "description": "High-quality data suitable for research publication",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "Zr_RSD",
+          "operator": "<",
+          "value": 0.15,
+          "comment": "RSD = error/value, excellent precision"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95,
+      "notes": "Publication-quality analytical precision"
+    },
+    {
+      "name": "SCREENING GRADE (15-25%)",
+      "color": "#FFC107",
+      "description": "Acceptable for screening and triage, caution for quantitative work",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "Zr_RSD",
+          "operator": "between",
+          "min": 0.15,
+          "max": 0.25,
+          "comment": "Moderate precision"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.70,
+      "notes": "Use for provenance triage but verify critical samples with lab analysis"
+    },
+    {
+      "name": "NON-QUANTIFIABLE (RSD > 25%)",
+      "color": "#F44336",
+      "description": "High uncertainty - not suitable for quantitative interpretation",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "Zr_RSD",
+          "operator": ">",
+          "value": 0.25,
+          "comment": "Unacceptable precision"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.30,
+      "notes": "Flag for re-measurement or exclusion from dataset"
+    },
+    {
+      "name": "NO ERROR DATA",
+      "color": "#9E9E9E",
+      "description": "Error/uncertainty data not available",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0,
+      "notes": "Cannot assess data quality without error measurements"
+    }
+  ],
+  
+  "output_column_name": "Data_Quality",
+  "add_confidence_column": true,
+  "notes": "RSD = Relative Standard Deviation = (error / value). This is a screening-level filter - not absolute law. Can be applied to any element with error measurements. Flag noisy pXRF scans before they enter provenance analysis."
+}

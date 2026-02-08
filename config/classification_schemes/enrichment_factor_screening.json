@@ -1,0 +1,102 @@
+{
+  "scheme_name": "Enrichment Factor (EF) Screening vs UCC",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Detect anthropogenic heavy-metal enrichment using Upper Continental Crust baseline",
+  "category": "software",
+  "icon": "🌍",
+  "reference": "Gromet et al. 1984; Taylor & McLennan 1995",
+  "field": "Environmental Geochemistry",
+  
+  "requires_fields": [
+    "Pb_ppm"
+  ],
+  
+  "classifications": [
+    {
+      "name": "BACKGROUND (EF < 2)",
+      "color": "#4CAF50",
+      "description": "Natural background levels - no enrichment",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "Pb_EF",
+          "operator": "<",
+          "value": 2.0,
+          "comment": "EF = Pb_sample / UCC_Pb (20 ppm)"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90,
+      "notes": "Natural geochemical background - no pollution concern"
+    },
+    {
+      "name": "MINOR ENRICHMENT (EF 2-5)",
+      "color": "#8BC34A",
+      "description": "Slight enrichment - may be natural or minor anthropogenic",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "Pb_EF",
+          "operator": "between",
+          "min": 2.0,
+          "max": 5.0,
+          "comment": "Low enrichment"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.80,
+      "notes": "Could be natural variation or minor human impact"
+    },
+    {
+      "name": "MODERATE ENRICHMENT (EF 5-10)",
+      "color": "#FFC107",
+      "description": "Moderate enrichment - likely anthropogenic contribution",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "Pb_EF",
+          "operator": "between",
+          "min": 5.0,
+          "max": 10.0,
+          "comment": "Moderate enrichment"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.75,
+      "notes": "Anthropogenic contribution probable - investigate sources"
+    },
+    {
+      "name": "EXTREME ENRICHMENT (EF > 10)",
+      "color": "#F44336",
+      "description": "Extremely enriched - likely anthropogenic pollution",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "Pb_EF",
+          "operator": ">",
+          "value": 10.0,
+          "comment": "Very high enrichment"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85,
+      "notes": "Strong pollution signal - likely industrial or mining contamination"
+    },
+    {
+      "name": "NO DATA",
+      "color": "#9E9E9E",
+      "description": "Element not measured",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0,
+      "notes": "Requires element measurement for EF calculation"
+    }
+  ],
+  
+  "output_column_name": "Enrichment_Status",
+  "add_confidence_column": true,
+  "notes": "Simple EF = X_sample / X_UCC. UCC baselines: Pb=20, As=1.5, Cu=25, Zn=71 ppm (Taylor & McLennan 1995). For full EF, normalize to reference element (Al or Fe). This is screening-level assessment - not legal diagnosis. Can be applied to Pb, As, Cu, Zn, and other trace metals."
+}

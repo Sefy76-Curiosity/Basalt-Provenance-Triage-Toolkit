@@ -1,0 +1,105 @@
+{
+  "scheme_name": "Chemical Index of Alteration (CIA)",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Assess chemical weathering and alteration state of samples",
+  "category": "software",
+  "icon": "🏛️",
+  "reference": "Nesbitt & Young, 1982",
+  "field": "Museum Conservation / Paleoweathering",
+  
+  "requires_fields": [
+    "Al2O3_wt",
+    "CaO_wt",
+    "Na2O_wt",
+    "K2O_wt"
+  ],
+  
+  "classifications": [
+    {
+      "name": "UNWEATHERED (CIA < 50)",
+      "color": "#4CAF50",
+      "description": "Fresh, unaltered rock - minimal chemical weathering",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "CIA_Value",
+          "operator": "<",
+          "value": 50.0,
+          "comment": "CIA = [Al₂O₃/(Al₂O₃+CaO*+Na₂O+K₂O)] × 100"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90,
+      "notes": "Pristine condition - original mineralogy preserved"
+    },
+    {
+      "name": "SLIGHT WEATHERING (50-65)",
+      "color": "#8BC34A",
+      "description": "Minor chemical alteration",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "CIA_Value",
+          "operator": "between",
+          "min": 50.0,
+          "max": 65.0,
+          "comment": "Slight alteration"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85,
+      "notes": "Early-stage weathering - most minerals stable"
+    },
+    {
+      "name": "MODERATE WEATHERING (65-80)",
+      "color": "#FFC107",
+      "description": "Moderate chemical alteration",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "CIA_Value",
+          "operator": "between",
+          "min": 65.0,
+          "max": 80.0,
+          "comment": "Significant alteration"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.80,
+      "notes": "Feldspars partially altered to clay minerals"
+    },
+    {
+      "name": "STRONG ALTERATION (CIA > 80)",
+      "color": "#F44336",
+      "description": "Advanced chemical weathering - highly altered",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "CIA_Value",
+          "operator": ">",
+          "value": 80.0,
+          "comment": "Extreme alteration"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85,
+      "notes": "Advanced weathering - original composition significantly modified. Handle with care for museum specimens."
+    },
+    {
+      "name": "INSUFFICIENT DATA",
+      "color": "#9E9E9E",
+      "description": "Missing required oxide data",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0,
+      "notes": "Requires Al₂O₃, CaO, Na₂O, K₂O measurements"
+    }
+  ],
+  
+  "output_column_name": "Weathering_State",
+  "add_confidence_column": true,
+  "notes": "CIA = [Al₂O₃/(Al₂O₃+CaO*+Na₂O+K₂O)] × 100 (molar proportions). CaO* should ideally be corrected to silicate Ca only (excluding carbonates and apatite). CIA > 80 indicates strong chemical alteration. For museum specimens, high CIA may indicate need for special conservation measures."
+}

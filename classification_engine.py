@@ -1,0 +1,329 @@
+"""
+Classification Engine for Basalt Provenance Triage Toolkit v10.2
+Dynamically loads classification schemes from JSON files
+"""
+
+import json
+import os
+from pathlib import Path
+from typing import Dict, List, Any, Tuple, Optional
+
+class ClassificationEngine:
+    """
+    Dynamic classification engine that loads schemes from JSON files
+    """
+    
+    def __init__(self, schemes_dir: str = None):
+        """Initialize classification engine"""
+        if schemes_dir is None:
+            # Default to config/classification_schemes/
+            base_dir = Path(__file__).parent
+            schemes_dir = base_dir / "config" / "classification_schemes"
+        
+        self.schemes_dir = Path(schemes_dir)
+        self.schemes = {}
+        self.load_all_schemes()
+    
+    def load_all_schemes(self):
+        """Auto-discover and load all JSON classification schemes"""
+        self.schemes = {}
+        
+        if not self.schemes_dir.exists():
+            print(f"⚠️ Classification schemes directory not found: {self.schemes_dir}")
+            return
+        
+        # Find all JSON files (except _TEMPLATE.json)
+        json_files = [f for f in self.schemes_dir.glob("*.json") 
+                      if not f.name.startswith('_')]
+        
+        for json_file in json_files:
+            try:
+                scheme = self.load_scheme(json_file)
+                if scheme:
+                    scheme_id = json_file.stem  # filename without .json
+                    self.schemes[scheme_id] = scheme
+                    print(f"✅ Loaded classification scheme: {scheme['scheme_name']}")
+            except Exception as e:
+                print(f"⚠️ Error loading {json_file.name}: {e}")
+        
+        print(f"\n📊 Total schemes loaded: {len(self.schemes)}")
+    
+    def load_scheme(self, filepath: Path) -> Optional[Dict]:
+        """Load and validate a single classification scheme"""
+        with open(filepath, 'r', encoding='utf-8') as f:
+            scheme = json.load(f)
+        
+        # Validate required fields
+        required = ['scheme_name', 'version', 'classifications', 'requires_fields']
+        for field in required:
+            if field not in scheme:
+                raise ValueError(f"Missing required field: {field}")
+        
+        return scheme
+    
+    def get_available_schemes(self) -> List[Dict[str, str]]:
+        """Get list of available classification schemes"""
+        schemes_list = []
+        for scheme_id, scheme in self.schemes.items():
+            schemes_list.append({
+                'id': scheme_id,
+                'name': scheme['scheme_name'],
+                'description': scheme.get('description', ''),
+                'icon': scheme.get('icon', '📊'),
+                'version': scheme.get('version', '1.0')
+            })
+        return schemes_list
+    
+    def classify_sample(self, sample: Dict, scheme_id: str) -> Tuple[str, float, str]:
+        """
+        Classify a single sample using specified scheme
+        
+        Args:
+            sample: Dictionary with sample data (Zr_ppm, Nb_ppm, etc.)
+            scheme_id: ID of classification scheme to use
+        
+        Returns:
+            Tuple of (classification, confidence, color)
+        """
+        if scheme_id not in self.schemes:
+            return ("SCHEME_NOT_FOUND", 0.0, "#808080")
+        
+        scheme = self.schemes[scheme_id]
+        
+        # Check if sample has required fields
+        missing_fields = []
+        for field in scheme['requires_fields']:
+            if field not in sample or sample[field] is None or sample[field] == '':
+                missing_fields.append(field)
+        
+        if missing_fields:
+            return ("INSUFFICIENT_DATA", 0.0, "#808080")
+        
+        # Try each classification in order
+        for classification in scheme['classifications']:
+            if self.matches_classification(sample, classification):
+                return (
+                    classification['name'],
+                    classification.get('confidence_score', 0.85),
+                    classification.get('color', '#4CAF50')
+                )
+        
+        # No classification matched
+        return ("UNCLASSIFIED", 0.0, "#808080")
+    
+    def matches_classification(self, sample: Dict, classification: Dict) -> bool:
+        """
+        Check if sample matches classification rules
+        
+        Rules can be:
+        - Simple: {"field": "Zr_ppm", "operator": ">", "value": 100}
+        - Ratio: {"field": "Zr_ppm/Nb_ppm", "operator": "between", "value": [6, 10]}
+        - Compound: {"logic": "AND", "rules": [...]}
+        """
+        rules = classification.get('rules', [])
+        logic = classification.get('logic', 'AND')
+        
+        if not rules:
+            return False
+        
+        # Evaluate all rules
+        results = []
+        for rule in rules:
+            result = self.evaluate_rule(sample, rule)
+            results.append(result)
+        
+        # Apply logic
+        if logic == 'AND':
+            return all(results)
+        elif logic == 'OR':
+            return any(results)
+        else:
+            return False
+    
+    def evaluate_rule(self, sample: Dict, rule: Dict) -> bool:
+        """Evaluate a single classification rule"""
+        field = rule.get('field', '')
+        operator = rule.get('operator', '')
+        value = rule.get('value')
+        
+        # Handle ratio fields (e.g., "Zr_Nb_Ratio" or "Cr_Ni_Ratio")
+        if '_Ratio' in field:
+            # Convert "Zr_Nb_Ratio" to "Zr_ppm/Nb_ppm"
+            # and "Cr_Ni_Ratio" to "Cr_ppm/Ni_ppm"
+            ratio_name = field.replace('_Ratio', '')
+            elements = ratio_name.split('_')
+            
+            if len(elements) == 2:
+                numerator_field = f"{elements[0]}_ppm"
+                denominator_field = f"{elements[1]}_ppm"
+                
+                numerator = sample.get(numerator_field)
+                denominator = sample.get(denominator_field)
+                
+                if numerator is None or denominator is None or float(denominator) == 0:
+                    return False
+                
+                sample_value = float(numerator) / float(denominator)
+            else:
+                return False
+        
+        # Handle explicit ratio fields (e.g., "Zr_ppm/Nb_ppm")
+        elif '/' in field:
+            numerator_field, denominator_field = field.split('/')
+            numerator = sample.get(numerator_field)
+            denominator = sample.get(denominator_field)
+            
+            if numerator is None or denominator is None or float(denominator) == 0:
+                return False
+            
+            sample_value = float(numerator) / float(denominator)
+        else:
+            # Direct field value
+            sample_value = sample.get(field)
+            if sample_value is None:
+                return False
+            try:
+                sample_value = float(sample_value)
+            except (ValueError, TypeError):
+                return False
+        
+        # Apply operator
+        try:
+            if operator == '>':
+                return sample_value > float(value)
+            elif operator == '<':
+                return sample_value < float(value)
+            elif operator == '>=':
+                return sample_value >= float(value)
+            elif operator == '<=':
+                return sample_value <= float(value)
+            elif operator == '==':
+                return abs(sample_value - float(value)) < 0.0001
+            elif operator == 'between':
+                # Handle both formats: [min, max] or {"min": X, "max": Y}
+                if isinstance(value, list):
+                    min_val, max_val = value[0], value[1]
+                else:
+                    # Check for min/max keys in rule
+                    min_val = rule.get('min', value)
+                    max_val = rule.get('max', value)
+                return float(min_val) <= sample_value <= float(max_val)
+            elif operator == 'not_between':
+                if isinstance(value, list):
+                    min_val, max_val = value[0], value[1]
+                else:
+                    min_val = rule.get('min', value)
+                    max_val = rule.get('max', value)
+                return not (float(min_val) <= sample_value <= float(max_val))
+            else:
+                return False
+        except (ValueError, TypeError, KeyError):
+            return False
+    
+    def classify_all_samples(self, samples: List[Dict], scheme_id: str, 
+                            output_column: str = None) -> List[Dict]:
+        """
+        Classify all samples using specified scheme
+        
+        Args:
+            samples: List of sample dictionaries
+            scheme_id: ID of classification scheme to use
+            output_column: Column name for classification result
+        
+        Returns:
+            Updated samples list with classifications added
+        """
+        if scheme_id not in self.schemes:
+            print(f"⚠️ Classification scheme not found: {scheme_id}")
+            return samples
+        
+        scheme = self.schemes[scheme_id]
+        
+        # Get output column name
+        if output_column is None:
+            output_column = scheme.get('output_column_name', 'Classification')
+        
+        # Classify each sample
+        classified_count = 0
+        for sample in samples:
+            classification, confidence, color = self.classify_sample(sample, scheme_id)
+            
+            # Add classification to sample
+            sample[output_column] = classification
+            sample[f'{output_column}_Confidence'] = confidence
+            sample[f'{output_column}_Color'] = color
+            
+            if classification not in ['INSUFFICIENT_DATA', 'UNCLASSIFIED']:
+                classified_count += 1
+        
+        print(f"✅ Classified {classified_count}/{len(samples)} samples using '{scheme['scheme_name']}'")
+        
+        return samples
+    
+    def get_scheme_info(self, scheme_id: str) -> Dict:
+        """Get detailed information about a classification scheme"""
+        if scheme_id not in self.schemes:
+            return {}
+        
+        scheme = self.schemes[scheme_id]
+        
+        # Count classifications
+        num_classifications = len(scheme.get('classifications', []))
+        
+        # Get field requirements
+        required_fields = scheme.get('requires_fields', [])
+        
+        return {
+            'id': scheme_id,
+            'name': scheme['scheme_name'],
+            'version': scheme.get('version', '1.0'),
+            'author': scheme.get('author', 'Unknown'),
+            'description': scheme.get('description', ''),
+            'icon': scheme.get('icon', '📊'),
+            'num_classifications': num_classifications,
+            'required_fields': required_fields,
+            'output_column': scheme.get('output_column_name', 'Classification'),
+            'classifications': [c['name'] for c in scheme.get('classifications', [])]
+        }
+
+
+# TEST CODE (if run directly)
+if __name__ == '__main__':
+    print("=" * 60)
+    print("CLASSIFICATION ENGINE TEST")
+    print("=" * 60)
+    
+    # Initialize engine
+    engine = ClassificationEngine()
+    
+    # Show available schemes
+    print("\n📋 Available Schemes:")
+    for scheme in engine.get_available_schemes():
+        print(f"   {scheme['icon']} {scheme['name']} (v{scheme['version']})")
+        print(f"      {scheme['description']}")
+    
+    # Test sample
+    test_sample = {
+        'Sample_ID': 'TEST_001',
+        'Zr_ppm': 165,
+        'Nb_ppm': 18,
+        'Ti_ppm': 9500,
+        'Ba_ppm': 260,
+        'Rb_ppm': 15,
+        'Cr_ppm': 1800,
+        'Ni_ppm': 1400,
+        'Wall_Thickness_mm': 3.5
+    }
+    
+    # Test classification with regional_triage
+    print("\n🧪 Testing with sample:", test_sample['Sample_ID'])
+    print(f"   Zr: {test_sample['Zr_ppm']}, Nb: {test_sample['Nb_ppm']}")
+    print(f"   Zr/Nb ratio: {test_sample['Zr_ppm'] / test_sample['Nb_ppm']:.2f}")
+    
+    if 'regional_triage' in engine.schemes:
+        classification, confidence, color = engine.classify_sample(test_sample, 'regional_triage')
+        print(f"\n🎯 Classification: {classification}")
+        print(f"   Confidence: {confidence:.0%}")
+        print(f"   Color: {color}")
+    
+    print("\n" + "=" * 60)

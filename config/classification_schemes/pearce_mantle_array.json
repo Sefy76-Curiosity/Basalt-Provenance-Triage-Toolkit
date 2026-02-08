@@ -1,0 +1,116 @@
+{
+  "scheme_name": "Pearce Nb/Yb–Th/Yb Mantle Array Proxy",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Distinguish MORB, OIB, arc basalts, and crustal contamination using mantle array diagrams",
+  "category": "software",
+  "icon": "🏔️",
+  "reference": "Pearce, 2008 (mantle array diagrams)",
+  "field": "Tectonic Geochemistry",
+  
+  "requires_fields": [
+    "Nb_ppm",
+    "Yb_ppm",
+    "Th_ppm"
+  ],
+  
+  "classifications": [
+    {
+      "name": "PLUME/OIB AFFINITY (Nb/Yb > 10)",
+      "color": "#9C27B0",
+      "description": "Ocean Island Basalt or plume-like source signature",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "Nb_Yb_Ratio",
+          "operator": ">",
+          "value": 10.0,
+          "comment": "High Nb/Yb indicates enriched mantle source"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85,
+      "notes": "Enriched mantle source - typical of intraplate volcanism"
+    },
+    {
+      "name": "CRUSTAL CONTAMINATION (High Th/Yb)",
+      "color": "#FF5722",
+      "description": "Elevated Th/Yb indicates crustal contamination or arc influence",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "Th_Yb_Ratio",
+          "operator": ">",
+          "value": 2.0,
+          "comment": "Th enrichment from crustal input"
+        },
+        {
+          "field": "Nb_Yb_Ratio",
+          "operator": "<=",
+          "value": 10.0,
+          "comment": "Nb/Yb not in plume range"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.80,
+      "notes": "Displacement above mantle array line - crustal assimilation or subduction component"
+    },
+    {
+      "name": "DEPLETED MORB-LIKE",
+      "color": "#2196F3",
+      "description": "Depleted mantle signature typical of mid-ocean ridges",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "Nb_Yb_Ratio",
+          "operator": "between",
+          "min": 0.5,
+          "max": 2.0,
+          "comment": "Low Nb/Yb typical of MORB"
+        },
+        {
+          "field": "Th_Yb_Ratio",
+          "operator": "<",
+          "value": 0.5,
+          "comment": "Low Th/Yb - minimal crustal input"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85,
+      "notes": "Depleted mantle source - extensional tectonic setting"
+    },
+    {
+      "name": "ENRICHED MORB / TRANSITIONAL",
+      "color": "#00BCD4",
+      "description": "Enriched MORB or transitional between MORB and OIB",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "Nb_Yb_Ratio",
+          "operator": "between",
+          "min": 2.0,
+          "max": 10.0,
+          "comment": "Intermediate Nb/Yb enrichment"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.75,
+      "notes": "Transitional between depleted and enriched mantle sources"
+    },
+    {
+      "name": "INSUFFICIENT DATA",
+      "color": "#9E9E9E",
+      "description": "Missing required trace element data",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0,
+      "notes": "Requires Nb, Yb, and Th measurements"
+    }
+  ],
+  
+  "output_column_name": "Tectonic_Setting",
+  "add_confidence_column": true,
+  "notes": "Nb/Yb vs Th/Yb plots in log space. High Nb/Yb indicates enriched (plume) source. Displacement above mantle array indicates crustal contamination. Full interpretation requires plotting both ratios together."
+}
