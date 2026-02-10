@@ -1,6 +1,6 @@
 {
   "scheme_name": "Silica‑Based Eruption Style Proxy",
-  "version": "1.0",
+  "version": "1.1",
   "author": "Sefy Levy",
   "date_created": "2025-02-08",
   "description": "First-order viscosity and eruption style estimate based on silica content",
@@ -8,95 +8,75 @@
   "icon": "🌋",
   "reference": "Mysen, 1988 (NBO/T); general volcanology thresholds",
   "field": "Volcanology",
-  
+
   "requires_fields": [
     "SiO2_wt"
   ],
-  
+
   "classifications": [
     {
       "name": "BASALTIC (SiO₂ < 52%) - EFFUSIVE",
-      "color": "#4CAF50",
-      "description": "Low viscosity, effusive eruption tendency - lava flows dominant",
-      "priority": 1,
+      "color": "green",
       "rules": [
         {
           "field": "SiO2_wt",
           "operator": "<",
-          "value": 52.0,
-          "comment": "Basaltic composition - low viscosity"
+          "value": 52.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85,
-      "notes": "Hawaiian-style, Strombolian eruptions - lava flows, fountains, low explosivity"
+      "confidence_score": 1.0
     },
     {
       "name": "INTERMEDIATE (52-63%) - MIXED STYLE",
-      "color": "#FFC107",
-      "description": "Moderate viscosity - both effusive and explosive activity",
-      "priority": 2,
+      "color": "goldenrod",
       "rules": [
         {
           "field": "SiO2_wt",
           "operator": "between",
           "min": 52.0,
-          "max": 63.0,
-          "comment": "Andesitic composition - moderate viscosity"
+          "max": 63.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.80,
-      "notes": "Vulcanian, sub-Plinian eruptions - lava flows, pyroclastic flows, lahars"
+      "confidence_score": 1.0
     },
     {
       "name": "DACITIC (63-69%) - EXPLOSIVE TENDENCY",
-      "color": "#FF9800",
-      "description": "High viscosity - explosive eruptions common",
-      "priority": 3,
+      "color": "orange",
       "rules": [
         {
           "field": "SiO2_wt",
           "operator": "between",
           "min": 63.0,
-          "max": 69.0,
-          "comment": "Dacitic composition - high viscosity"
+          "max": 69.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85,
-      "notes": "Plinian eruptions - pyroclastic flows, ash columns, limited lava"
+      "confidence_score": 1.0
     },
     {
       "name": "RHYOLITIC (SiO₂ > 69%) - HIGHLY EXPLOSIVE",
-      "color": "#F44336",
-      "description": "Very high viscosity - violent explosive eruptions",
-      "priority": 4,
+      "color": "red",
       "rules": [
         {
           "field": "SiO2_wt",
           "operator": ">",
-          "value": 69.0,
-          "comment": "Rhyolitic composition - very high viscosity"
+          "value": 69.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85,
-      "notes": "Ultra-Plinian, caldera-forming eruptions - ash-flow tuffs, ignimbrites, minimal lava"
+      "confidence_score": 1.0
     },
     {
       "name": "INSUFFICIENT DATA",
-      "color": "#9E9E9E",
-      "description": "Missing SiO₂ data",
-      "priority": 999,
+      "color": "gray",
       "rules": [],
       "logic": "DEFAULT",
-      "confidence_score": 0.0,
-      "notes": "Requires SiO₂ measurement for eruption style proxy"
+      "confidence_score": 0.0
     }
   ],
-  
+
   "output_column_name": "Eruption_Style",
-  "add_confidence_column": true,
-  "notes": "Silica-based proxy for magmatic viscosity and eruption style - NOT full rheology. Higher SiO₂ = higher viscosity = more explosive. Full viscosity modeling requires NBO/T (non-bridging oxygen per tetrahedrally coordinated cation) calculation. This is a first-order screening tool for volcanic hazard assessment."
+  "add_confidence_column": true
 }

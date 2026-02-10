@@ -1,6 +1,6 @@
 {
   "scheme_name": "Chemical Index of Alteration (CIA)",
-  "version": "1.0",
+  "version": "1.1",
   "author": "Sefy Levy",
   "date_created": "2025-02-08",
   "description": "Assess chemical weathering and alteration state of samples",
@@ -13,16 +13,13 @@
     "Al2O3_wt",
     "CaO_wt",
     "Na2O_wt",
-    "K2O_wt",
-    "CIA_Value"
+    "K2O_wt"
   ],
 
   "classifications": [
     {
       "name": "UNWEATHERED (CIA < 50)",
-      "color": "#4CAF50",
-      "description": "Fresh, unaltered rock - minimal chemical weathering",
-      "priority": 1,
+      "color": "green",
       "rules": [
         {
           "field": "CIA_Value",
@@ -31,13 +28,11 @@
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.90
+      "confidence_score": 1.0
     },
     {
       "name": "SLIGHT WEATHERING (50-65)",
-      "color": "#8BC34A",
-      "description": "Minor chemical alteration",
-      "priority": 2,
+      "color": "limegreen",
       "rules": [
         {
           "field": "CIA_Value",
@@ -47,13 +42,11 @@
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85
+      "confidence_score": 1.0
     },
     {
       "name": "MODERATE WEATHERING (65-80)",
-      "color": "#FFC107",
-      "description": "Moderate chemical alteration",
-      "priority": 3,
+      "color": "goldenrod",
       "rules": [
         {
           "field": "CIA_Value",
@@ -63,13 +56,11 @@
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.80
+      "confidence_score": 1.0
     },
     {
       "name": "STRONG ALTERATION (CIA > 80)",
-      "color": "#F44336",
-      "description": "Advanced chemical weathering - highly altered",
-      "priority": 4,
+      "color": "red",
       "rules": [
         {
           "field": "CIA_Value",
@@ -78,13 +69,11 @@
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85
+      "confidence_score": 1.0
     },
     {
       "name": "INSUFFICIENT DATA",
-      "color": "#9E9E9E",
-      "description": "Missing required oxide data",
-      "priority": 999,
+      "color": "gray",
       "rules": [],
       "logic": "DEFAULT",
       "confidence_score": 0.0

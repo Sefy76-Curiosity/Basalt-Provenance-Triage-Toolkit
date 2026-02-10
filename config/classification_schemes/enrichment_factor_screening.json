@@ -1,9 +1,9 @@
 {
   "scheme_name": "Enrichment Factor (EF) Screening vs UCC",
-  "version": "1.0",
+  "version": "1.1",
   "author": "Sefy Levy",
   "date_created": "2025-02-08",
-  "description": "Detect anthropogenic heavy-metal enrichment using Upper Continental Crust baseline",
+  "description": "Detect anthropogenic heavy‑metal enrichment using Upper Continental Crust baseline",
   "category": "software",
   "icon": "🌍",
   "reference": "Gromet et al. 1984; Taylor & McLennan 1995",
@@ -16,71 +16,61 @@
   "classifications": [
     {
       "name": "BACKGROUND (EF < 2)",
-      "color": "#4CAF50",
-      "description": "Natural background levels - no enrichment",
-      "priority": 1,
+      "color": "green",
       "rules": [
         {
-          "field": "Pb_ppm/20",
+          "field": "Pb_EF",
           "operator": "<",
           "value": 2.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.90
+      "confidence_score": 1.0
     },
     {
       "name": "MINOR ENRICHMENT (EF 2-5)",
-      "color": "#8BC34A",
-      "description": "Slight enrichment - may be natural or minor anthropogenic",
-      "priority": 2,
+      "color": "limegreen",
       "rules": [
         {
-          "field": "Pb_ppm/20",
+          "field": "Pb_EF",
           "operator": "between",
           "min": 2.0,
           "max": 5.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.80
+      "confidence_score": 1.0
     },
     {
       "name": "MODERATE ENRICHMENT (EF 5-10)",
-      "color": "#FFC107",
-      "description": "Moderate enrichment - likely anthropogenic contribution",
-      "priority": 3,
+      "color": "goldenrod",
       "rules": [
         {
-          "field": "Pb_ppm/20",
+          "field": "Pb_EF",
           "operator": "between",
           "min": 5.0,
           "max": 10.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.75
+      "confidence_score": 1.0
     },
     {
       "name": "EXTREME ENRICHMENT (EF > 10)",
-      "color": "#F44336",
-      "description": "Extremely enriched - likely anthropogenic pollution",
-      "priority": 4,
+      "color": "red",
       "rules": [
         {
-          "field": "Pb_ppm/20",
+          "field": "Pb_EF",
           "operator": ">",
           "value": 10.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85
+      "confidence_score": 1.0
     },
     {
       "name": "NO DATA",
-      "color": "#9E9E9E",
-      "description": "Element not measured",
-      "priority": 999,
+      "color": "gray",
       "rules": [],
       "logic": "DEFAULT",
       "confidence_score": 0.0

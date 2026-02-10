@@ -1,123 +1,99 @@
 {
-  "scheme_name": "Slag Basicity Index (Binary & Quaternary)",
-  "version": "1.0",
+  "scheme_name": "Slag Basicity Index (V-Ratio)",
+  "version": "1.1",
   "author": "Sefy Levy",
   "date_created": "2025-02-08",
-  "description": "Assess slag chemistry, furnace efficiency, and desulfurization potential",
+  "description": "Evaluate slag fluidity and desulfurization potential using the V-ratio",
   "category": "software",
-  "icon": "🔥",
-  "reference": "Bachmann, 1982; metallurgical slag studies",
-  "field": "Archaeometallurgy / Metallurgy",
-  
+  "icon": "🌋",
+  "reference": "Ternary Phase Diagrams in Metallurgy; Mills, 2011",
+  "field": "Metallurgy & Smelting",
+
   "requires_fields": [
-    "CaO_wt",
-    "SiO2_wt",
-    "MgO_wt",
-    "Al2O3_wt"
+    "CaO_pct",
+    "MgO_pct",
+    "SiO2_pct",
+    "Al2O3_pct"
   ],
-  
+
   "classifications": [
     {
-      "name": "ACIDIC SLAG (Bq < 0.5)",
-      "color": "#FF5722",
-      "description": "Highly acidic, glassy slag - poor desulfurization",
+      "name": "HIGHLY BASIC (V > 1.2)",
+      "color": "#2196F3",
+      "description": "High desulfurization capacity; low viscosity at process temperature",
       "priority": 1,
       "rules": [
         {
-          "field": "Basicity_Quaternary",
-          "operator": "<",
-          "value": 0.5,
-          "comment": "Bq = (CaO+MgO)/(SiO₂+Al₂O₃)"
+          "field": "V_Ratio",
+          "operator": ">",
+          "value": 1.2
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85,
-      "notes": "Low-temperature, glassy slag - inefficient sulfur removal"
+      "confidence_score": 0.95
     },
     {
-      "name": "SLIGHTLY ACIDIC (Bq 0.5-0.8)",
-      "color": "#FFC107",
-      "description": "Moderately acidic slag",
+      "name": "NEUTRAL / FLUXED (V 1.0 - 1.2)",
+      "color": "#4CAF50",
+      "description": "Optimal balance for furnace refractory protection",
       "priority": 2,
       "rules": [
         {
-          "field": "Basicity_Quaternary",
+          "field": "V_Ratio",
           "operator": "between",
-          "min": 0.5,
-          "max": 0.8,
-          "comment": "Intermediate acidity"
+          "min": 1.0,
+          "max": 1.2
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.80,
-      "notes": "Transitional composition - moderate desulfurization"
+      "confidence_score": 0.90
     },
     {
-      "name": "NEUTRAL SLAG (Bq 0.8-1.2)",
-      "color": "#8BC34A",
-      "description": "Near-neutral slag chemistry",
+      "name": "ACIDIC SLAG (V 0.5 - 1.0)",
+      "color": "#FFC107",
+      "description": "Viscous slag; likely requires additional fluxing agents",
       "priority": 3,
       "rules": [
         {
-          "field": "Basicity_Quaternary",
+          "field": "V_Ratio",
           "operator": "between",
-          "min": 0.8,
-          "max": 1.2,
-          "comment": "Neutral range"
+          "min": 0.5,
+          "max": 1.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85,
-      "notes": "Balanced composition - good general-purpose slag"
+      "confidence_score": 0.85
     },
     {
-      "name": "BASIC SLAG (Bq 1.2-2.0)",
-      "color": "#4CAF50",
-      "description": "Basic slag - good desulfurization",
+      "name": "HIGHLY SILICEOUS / GLASSY (V < 0.5)",
+      "color": "#F44336",
+      "description": "Extremely viscous; potential for furnace tapping issues",
       "priority": 4,
       "rules": [
         {
-          "field": "Basicity_Quaternary",
-          "operator": "between",
-          "min": 1.2,
-          "max": 2.0,
-          "comment": "Basic composition"
+          "field": "V_Ratio",
+          "operator": "<",
+          "value": 0.5
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85,
-      "notes": "Efficient sulfur removal - typical of advanced metallurgy"
+      "confidence_score": 0.80
     },
     {
-      "name": "HIGHLY BASIC (Bq > 2.0)",
-      "color": "#2196F3",
-      "description": "Very basic slag - excellent desulfurization but high melting point",
-      "priority": 5,
-      "rules": [
-        {
-          "field": "Basicity_Quaternary",
-          "operator": ">",
-          "value": 2.0,
-          "comment": "Very basic"
-        }
-      ],
-      "logic": "AND",
-      "confidence_score": 0.80,
-      "notes": "Excellent desulfurization but requires high furnace temperatures"
-    },
-    {
-      "name": "INSUFFICIENT DATA",
+      "name": "DATA INCOMPLETE",
       "color": "#9E9E9E",
-      "description": "Missing oxide data for basicity calculation",
+      "description": "Missing major oxide components for basicity calculation",
       "priority": 999,
       "rules": [],
       "logic": "DEFAULT",
-      "confidence_score": 0.0,
-      "notes": "Requires CaO, SiO₂, MgO, Al₂O₃ measurements"
+      "confidence_score": 0.0
     }
   ],
-  
-  "output_column_name": "Slag_Type",
+
+  "output_column_name": "Slag_Basicity_Class",
   "add_confidence_column": true,
-  "notes": "Binary basicity B = CaO/SiO₂. Quaternary basicity Bq = (CaO+MgO)/(SiO₂+Al₂O₃). Lower values (<1) indicate acidic/glassy slags. Higher values (>1) indicate basic slags with better desulfurization. Archaeometallurgy application: reconstruct ancient smelting technology and efficiency."
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
 }

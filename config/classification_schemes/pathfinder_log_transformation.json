@@ -1,6 +1,6 @@
 {
   "scheme_name": "Pathfinder Log‑Transformation (Anomaly Detection)",
-  "version": "1.0",
+  "version": "1.1",
   "author": "Sefy Levy",
   "date_created": "2025-02-08",
   "description": "Highlight ore anomalies using log-transformation of pathfinder elements",
@@ -8,113 +8,89 @@
   "icon": "⚒️",
   "reference": "Levinson, 1974; standard geochemical exploration practice",
   "field": "Economic Geology / Exploration",
-  
+
   "requires_fields": [
     "Cu_ppm"
   ],
-  
+
   "classifications": [
     {
       "name": "BACKGROUND (<10 ppm Cu)",
-      "color": "#4CAF50",
-      "description": "Background copper concentration - no anomaly",
-      "priority": 1,
+      "color": "green",
       "rules": [
         {
           "field": "Cu_ppm",
           "operator": "<",
-          "value": 10.0,
-          "comment": "Background Cu levels"
+          "value": 10.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.90,
-      "notes": "Normal crustal abundance - no exploration interest"
+      "confidence_score": 1.0
     },
     {
       "name": "WEAK ANOMALY (10-50 ppm)",
-      "color": "#8BC34A",
-      "description": "Slight enrichment - peripheral halo possible",
-      "priority": 2,
+      "color": "limegreen",
       "rules": [
         {
           "field": "Cu_ppm",
           "operator": "between",
           "min": 10.0,
-          "max": 50.0,
-          "comment": "Low-grade enrichment"
+          "max": 50.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.75,
-      "notes": "May indicate distal position relative to mineralization"
+      "confidence_score": 1.0
     },
     {
       "name": "MODERATE ANOMALY (50-200 ppm)",
-      "color": "#FFC107",
-      "description": "Moderate enrichment - exploration target",
-      "priority": 3,
+      "color": "goldenrod",
       "rules": [
         {
           "field": "Cu_ppm",
           "operator": "between",
           "min": 50.0,
-          "max": 200.0,
-          "comment": "Significant enrichment"
+          "max": 200.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.80,
-      "notes": "Warrants follow-up sampling and exploration"
+      "confidence_score": 1.0
     },
     {
       "name": "STRONG ANOMALY (200-1000 ppm)",
-      "color": "#FF9800",
-      "description": "High-grade anomaly - drill target",
-      "priority": 4,
+      "color": "orange",
       "rules": [
         {
           "field": "Cu_ppm",
           "operator": "between",
           "min": 200.0,
-          "max": 1000.0,
-          "comment": "High enrichment"
+          "max": 1000.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85,
-      "notes": "Priority drill target - possible ore zone"
+      "confidence_score": 1.0
     },
     {
       "name": "ORE GRADE (>1000 ppm)",
-      "color": "#F44336",
-      "description": "Ore-grade concentration - potential economic mineralization",
-      "priority": 5,
+      "color": "red",
       "rules": [
         {
           "field": "Cu_ppm",
           "operator": ">",
-          "value": 1000.0,
-          "comment": "Very high enrichment"
+          "value": 1000.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.90,
-      "notes": "Potential economic mineralization - immediate drill priority"
+      "confidence_score": 1.0
     },
     {
       "name": "NO DATA",
-      "color": "#9E9E9E",
-      "description": "Element not measured",
-      "priority": 999,
+      "color": "gray",
       "rules": [],
       "logic": "DEFAULT",
-      "confidence_score": 0.0,
-      "notes": "Requires pathfinder element measurement"
+      "confidence_score": 0.0
     }
   ],
-  
+
   "output_column_name": "Anomaly_Status",
-  "add_confidence_column": true,
-  "notes": "Ore elements (Cu, Au, Ag, Pb, Zn, Mo, etc.) are log-normally distributed. Apply log₁₀ transformation to stabilize variance and highlight anomalies. This classification uses Cu as example - can be applied to any pathfinder element. Thresholds are general guidelines - adjust for local background levels."
+  "add_confidence_column": true
 }

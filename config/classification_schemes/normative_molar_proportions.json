@@ -1,6 +1,6 @@
 {
   "scheme_name": "Normative Molar Proportions (CIPW Pre‑Step)",
-  "version": "1.0",
+  "version": "1.1",
   "author": "Sefy Levy",
   "date_created": "2025-02-08",
   "description": "Convert oxides to molar amounts for normative mineralogy calculations",
@@ -8,114 +8,90 @@
   "icon": "💎",
   "reference": "Cross, Iddings, Pirsson, Washington (CIPW Norm)",
   "field": "Mineralogy & Petrology",
-  
+
   "requires_fields": [
     "SiO2_wt",
     "TiO2_wt",
     "Al2O3_wt",
     "MgO_wt"
   ],
-  
+
   "classifications": [
     {
       "name": "SILICA-SATURATED (High SiO₂ moles)",
-      "color": "#2196F3",
-      "description": "High silica content - quartz-normative",
-      "priority": 1,
+      "color": "blue",
       "rules": [
         {
           "field": "SiO2_wt",
           "operator": ">",
-          "value": 50.0,
-          "comment": "Proxy for silica saturation using wt%"
+          "value": 50.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.80,
-      "notes": "Will contain normative quartz in CIPW calculation"
+      "confidence_score": 1.0
     },
     {
       "name": "SILICA-UNDERSATURATED (Low SiO₂ moles)",
-      "color": "#9C27B0",
-      "description": "Low silica content - feldspathoid-normative",
-      "priority": 2,
+      "color": "purple",
       "rules": [
         {
           "field": "SiO2_wt",
           "operator": "<",
-          "value": 45.0,
-          "comment": "Proxy for silica undersaturation"
+          "value": 45.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.80,
-      "notes": "May contain normative nepheline or leucite in CIPW calculation"
+      "confidence_score": 1.0
     },
     {
       "name": "MAFIC (High MgO moles)",
-      "color": "#4CAF50",
-      "description": "High magnesium - olivine and pyroxene rich",
-      "priority": 3,
+      "color": "green",
       "rules": [
         {
           "field": "MgO_wt",
           "operator": ">",
-          "value": 8.0,
-          "comment": "High Mg content"
+          "value": 8.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85,
-      "notes": "Will contain significant normative olivine and pyroxene"
+      "confidence_score": 1.0
     },
     {
       "name": "TITANIFEROUS (High TiO₂ moles)",
-      "color": "#FF5722",
-      "description": "High titanium - ilmenite-bearing",
-      "priority": 4,
+      "color": "red",
       "rules": [
         {
           "field": "TiO2_wt",
           "operator": ">",
-          "value": 2.0,
-          "comment": "Elevated Ti content"
+          "value": 2.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85,
-      "notes": "Will contain significant normative ilmenite"
+      "confidence_score": 1.0
     },
     {
       "name": "INTERMEDIATE COMPOSITION",
-      "color": "#FFC107",
-      "description": "Transitional composition",
-      "priority": 5,
+      "color": "goldenrod",
       "rules": [
         {
           "field": "SiO2_wt",
           "operator": "between",
           "min": 45.0,
-          "max": 50.0,
-          "comment": "Intermediate silica"
+          "max": 50.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.75,
-      "notes": "Transitional between saturated and undersaturated"
+      "confidence_score": 1.0
     },
     {
       "name": "INSUFFICIENT DATA",
-      "color": "#9E9E9E",
-      "description": "Missing oxide data for CIPW calculation",
-      "priority": 999,
+      "color": "gray",
       "rules": [],
       "logic": "DEFAULT",
-      "confidence_score": 0.0,
-      "notes": "Requires complete major oxide analysis"
+      "confidence_score": 0.0
     }
   ],
-  
+
   "output_column_name": "CIPW_Category",
-  "add_confidence_column": true,
-  "notes": "Moles = wt% / molar mass. Molar masses: SiO₂=60.084, TiO₂=79.866, Al₂O₃=101.961, MgO=40.304 g/mol. This is 'Partial CIPW' - provides molar oxide basis only. Full normative mineralogy allocation (quartz, feldspar, pyroxene, olivine, etc.) requires complete CIPW calculation algorithm."
+  "add_confidence_column": true
 }

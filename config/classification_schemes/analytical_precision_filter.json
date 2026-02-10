@@ -1,12 +1,12 @@
 {
   "scheme_name": "Analytical Precision Filter (RSD‑Based)",
-  "version": "2.0",
+  "version": "1.1",
   "author": "Sefy Levy",
-  "date_created": "2026-02-08",
-  "description": "Classify pXRF/XRF measurements based on relative standard deviation (RSD) following accepted QA/QC practice",
+  "date_created": "2025-02-08",
+  "description": "Identify unreliable pXRF/XRF measurements using relative standard deviation",
   "category": "software",
-  "icon": "📊",
-  "reference": "Potts & West (2008); USGS pXRF QA/QC guidelines; NIST uncertainty framework",
+  "icon": "✅",
+  "reference": "Potts & West, 2008; NIST XRF QA/QC guidelines",
   "field": "Field Triage / QA–QC",
 
   "requires_fields": [
@@ -16,88 +16,66 @@
 
   "classifications": [
     {
-      "name": "HIGH PRECISION (RSD < 10%)",
-      "color": "#2E7D32",
-      "description": "Excellent analytical precision; suitable for quantitative and publication-grade work",
+      "name": "RESEARCH GRADE (RSD < 3%)",
+      "color": "#4CAF50",
+      "description": "High-quality data suitable for research publication",
       "priority": 1,
       "rules": [
         {
           "field": "Zr_RSD",
           "operator": "<",
-          "value": 0.10,
-          "comment": "Typical threshold for high-confidence pXRF precision on mid-Z elements"
+          "value": 0.03
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.98,
-      "notes": "Comparable to laboratory-grade repeatability for well-behaved elements"
+      "confidence_score": 0.95
     },
     {
-      "name": "ACCEPTABLE PRECISION (10–20%)",
-      "color": "#F9A825",
-      "description": "Good field precision; suitable for semi-quantitative interpretation and geochemical screening",
+      "name": "SCREENING GRADE (3-7%)",
+      "color": "#FFC107",
+      "description": "Acceptable for screening and triage",
       "priority": 2,
       "rules": [
         {
           "field": "Zr_RSD",
           "operator": "between",
-          "min": 0.10,
-          "max": 0.20,
-          "comment": "Commonly accepted range for field-grade pXRF precision"
+          "min": 0.03,
+          "max": 0.07
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.80,
-      "notes": "Appropriate for geometallurgy, mapping, and provenance triage"
+      "confidence_score": 0.70
     },
     {
-      "name": "LOW PRECISION (20–30%)",
-      "color": "#FB8C00",
-      "description": "Moderate uncertainty; usable for qualitative trends but not reliable for quantitative interpretation",
+      "name": "NON-QUANTIFIABLE (RSD > 7%)",
+      "color": "#F44336",
+      "description": "High uncertainty",
       "priority": 3,
       "rules": [
         {
           "field": "Zr_RSD",
-          "operator": "between",
-          "min": 0.20,
-          "max": 0.30,
-          "comment": "Often associated with low concentrations or matrix effects"
-        }
-      ],
-      "logic": "AND",
-      "confidence_score": 0.55,
-      "notes": "Use cautiously; verify critical samples with lab analysis"
-    },
-    {
-      "name": "UNRELIABLE (RSD > 30%)",
-      "color": "#C62828",
-      "description": "High uncertainty; not suitable for quantitative or semi-quantitative interpretation",
-      "priority": 4,
-      "rules": [
-        {
-          "field": "Zr_RSD",
           "operator": ">",
-          "value": 0.30,
-          "comment": "Indicates poor precision; typically requires re-measurement"
+          "value": 0.07
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.25,
-      "notes": "Flag for exclusion or re-analysis"
+      "confidence_score": 0.30
     },
     {
       "name": "NO ERROR DATA",
       "color": "#9E9E9E",
-      "description": "Uncertainty values missing; cannot compute RSD",
+      "description": "Missing uncertainty data",
       "priority": 999,
       "rules": [],
       "logic": "DEFAULT",
-      "confidence_score": 0.0,
-      "notes": "Error data required for precision assessment"
+      "confidence_score": 0.0
     }
   ],
 
-  "output_column_name": "Data_Quality",
+  "output_column_name": "Auto_Classification",
   "add_confidence_column": true,
-  "notes": "RSD = error/value. Thresholds reflect widely used pXRF QA/QC practice: <10% high precision, 10–20% acceptable, 20–30% low precision, >30% unreliable. Suitable for mid-Z elements such as Zr."
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.07,
+  "flag_column_name": "Flag_For_Review"
 }

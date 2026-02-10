@@ -1,6 +1,6 @@
 {
   "scheme_name": "Fe/Mn Planetary Analog Ratio",
-  "version": "1.0",
+  "version": "1.1",
   "author": "Sefy Levy",
   "date_created": "2025-02-08",
   "description": "Compare terrestrial basalts to Martian, lunar, or meteoritic analogs using Fe/Mn fingerprint",
@@ -8,12 +8,12 @@
   "icon": "🪐",
   "reference": "Papike et al., 2003; planetary basalt fingerprinting",
   "field": "Planetary Geology",
-  
+
   "requires_fields": [
     "Fe_ppm",
     "Mn_ppm"
   ],
-  
+
   "classifications": [
     {
       "name": "MARTIAN ANALOG (Fe/Mn 35-45)",
@@ -25,13 +25,11 @@
           "field": "Fe_Mn_Ratio",
           "operator": "between",
           "min": 35.0,
-          "max": 45.0,
-          "comment": "Mars basalts Fe/Mn ≈ 40"
+          "max": 45.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85,
-      "notes": "Martian mantle signature - screening for Mars analog studies"
+      "confidence_score": 0.85
     },
     {
       "name": "TERRESTRIAL (Fe/Mn 50-70)",
@@ -43,13 +41,11 @@
           "field": "Fe_Mn_Ratio",
           "operator": "between",
           "min": 50.0,
-          "max": 70.0,
-          "comment": "Earth basalts Fe/Mn ≈ 60"
+          "max": 70.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.90,
-      "notes": "Terrestrial mantle signature - normal Earth basalts"
+      "confidence_score": 0.90
     },
     {
       "name": "LUNAR ANALOG (Fe/Mn 70-90)",
@@ -61,13 +57,11 @@
           "field": "Fe_Mn_Ratio",
           "operator": "between",
           "min": 70.0,
-          "max": 90.0,
-          "comment": "Moon basalts Fe/Mn ≈ 80"
+          "max": 90.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85,
-      "notes": "Lunar mantle signature - screening for Moon analog studies"
+      "confidence_score": 0.85
     },
     {
       "name": "MARTIAN-TERRESTRIAL TRANSITIONAL",
@@ -79,47 +73,41 @@
           "field": "Fe_Mn_Ratio",
           "operator": "between",
           "min": 45.0,
-          "max": 50.0,
-          "comment": "Transitional range"
+          "max": 50.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.70,
-      "notes": "Intermediate signature - ambiguous planetary affinity"
+      "confidence_score": 0.70
     },
     {
-      "name": "ANOMALOUS / OUT OF RANGE",
+      "name": "ANOMALOUS / LOW RANGE",
       "color": "#9C27B0",
-      "description": "Fe/Mn ratio outside known planetary ranges",
+      "description": "Fe/Mn ratio below known planetary ranges",
       "priority": 5,
       "rules": [
         {
           "field": "Fe_Mn_Ratio",
           "operator": "<",
-          "value": 35.0,
-          "comment": "Below Mars range"
+          "value": 35.0
         }
       ],
-      "logic": "OR",
-      "confidence_score": 0.60,
-      "notes": "Unusual Fe/Mn - check for alteration or analytical error"
+      "logic": "AND",
+      "confidence_score": 0.60
     },
     {
-      "name": "ANOMALOUS / OUT OF RANGE",
+      "name": "ANOMALOUS / HIGH RANGE",
       "color": "#9C27B0",
-      "description": "Fe/Mn ratio outside known planetary ranges",
+      "description": "Fe/Mn ratio above known planetary ranges",
       "priority": 6,
       "rules": [
         {
           "field": "Fe_Mn_Ratio",
           "operator": ">",
-          "value": 90.0,
-          "comment": "Above lunar range"
+          "value": 90.0
         }
       ],
-      "logic": "OR",
-      "confidence_score": 0.60,
-      "notes": "Unusual Fe/Mn - check for alteration or analytical error"
+      "logic": "AND",
+      "confidence_score": 0.60
     },
     {
       "name": "INSUFFICIENT DATA",
@@ -128,12 +116,14 @@
       "priority": 999,
       "rules": [],
       "logic": "DEFAULT",
-      "confidence_score": 0.0,
-      "notes": "Requires Fe and Mn measurements for planetary analog comparison"
+      "confidence_score": 0.0
     }
   ],
-  
+
   "output_column_name": "Planetary_Analog",
   "add_confidence_column": true,
-  "notes": "Fe/Mn ratio is relatively constant within a planetary mantle source. Earth ≈ 60, Mars (SNC meteorites) ≈ 40, Moon ≈ 80. This is a screening-level tool for planetary analog studies. Terrestrial basalts with Martian-like Fe/Mn can serve as field analogs for Mars mission planning."
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.65,
+  "flag_column_name": "Flag_For_Review"
 }

@@ -1,6 +1,6 @@
 {
   "scheme_name": "Incompatible Trace-Element Provenance Fingerprinting",
-  "version": "1.0",
+  "version": "1.1",
   "author": "Sefy Levy",
   "date_created": "2025-02-08",
   "description": "Distinguish Nile/Ethiopian vs Levantine basalt sources using immobile trace elements",
@@ -8,32 +8,30 @@
   "icon": "🏺",
   "reference": "Hartung 2017; Shervais 1982; Philip & Williams-Thorpe 2001",
   "field": "Archaeology & Heritage",
-  
+
   "requires_fields": [
     "Zr_ppm",
     "Nb_ppm",
     "Ti_ppm",
     "V_ppm"
   ],
-  
+
   "classifications": [
     {
       "name": "NILE/ETHIOPIAN AFFINITY",
       "color": "#2196F3",
-      "description": "Nile/Ethiopian-fed basalt sources (Zr/Nb window 7.5-11.5)",
+      "description": "Nile/Ethiopian-fed basalt sources (Zr/Nb 7.5-11.5)",
       "priority": 1,
       "rules": [
         {
           "field": "Zr_Nb_Ratio",
           "operator": "between",
           "min": 7.5,
-          "max": 11.5,
-          "comment": "Characteristic Zr/Nb window for Nile/Ethiopian sources"
+          "max": 11.5
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.85,
-      "notes": "Immobile trace elements preserve mantle source signatures"
+      "confidence_score": 0.85
     },
     {
       "name": "LEVANT/GOLAN AFFINITY",
@@ -44,61 +42,57 @@
         {
           "field": "Zr_Nb_Ratio",
           "operator": ">=",
-          "value": 15.0,
-          "comment": "Many Levant/Golan basalts show elevated Zr/Nb"
+          "value": 15.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.80,
-      "notes": "Must be checked against local datasets for confirmation"
+      "confidence_score": 0.80
     },
     {
       "name": "ARC BASALT (Ti/V < 20)",
       "color": "#FF9800",
-      "description": "Arc basalt tectonic signature",
+      "description": "Subduction-related tectonic signature (Shervais, 1982)",
       "priority": 3,
       "rules": [
         {
           "field": "Ti_V_Ratio",
           "operator": "<",
-          "value": 20.0,
-          "comment": "Ti/V as tectonic proxy (Shervais 1982)"
+          "value": 20.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.75,
-      "notes": "Secondary tectonic proxy - combine with Zr/Nb for full interpretation"
+      "confidence_score": 0.75
     },
     {
-      "name": "MORB/OIB (Ti/V > 20)",
+      "name": "MORB/OIB SIGNATURE (Ti/V 20-50+)",
       "color": "#9C27B0",
-      "description": "Mid-Ocean Ridge Basalt or Ocean Island Basalt signature",
+      "description": "Mid-Ocean Ridge or Ocean Island Basalt tectonic setting",
       "priority": 4,
       "rules": [
         {
           "field": "Ti_V_Ratio",
-          "operator": ">",
-          "value": 20.0,
-          "comment": "MORB/OIB tectonic setting"
+          "operator": ">=",
+          "value": 20.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.75,
-      "notes": "Secondary tectonic proxy - combine with Zr/Nb for full interpretation"
+      "confidence_score": 0.75
     },
     {
-      "name": "TRANSITIONAL / REVIEW",
+      "name": "TRANSITIONAL / UNKNOWN",
       "color": "#9E9E9E",
-      "description": "Sample falls outside defined windows or requires review",
+      "description": "Outside defined provenance windows",
       "priority": 999,
       "rules": [],
       "logic": "DEFAULT",
-      "confidence_score": 0.50,
-      "notes": "Does not match primary classification windows"
+      "confidence_score": 0.0
     }
   ],
-  
+
   "output_column_name": "Provenance_Fingerprint",
   "add_confidence_column": true,
-  "notes": "Screening-level classification - always frame as 'affinity/window', not absolute provenance. Immobile trace elements (Zr, Nb, Ti, V) preserve mantle source signatures despite weathering and alteration."
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.70,
+  "flag_column_name": "Flag_For_Review"
 }

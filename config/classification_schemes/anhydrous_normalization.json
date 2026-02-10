@@ -1,6 +1,6 @@
 {
   "scheme_name": "Anhydrous Major‑Oxide Normalization (TAS Standard)",
-  "version": "1.0",
+  "version": "1.1",
   "author": "Sefy Levy",
   "date_created": "2025-02-08",
   "description": "Prepare major oxides for TAS, AFM, and petrogenetic diagrams following IUGS standards",
@@ -8,7 +8,7 @@
   "icon": "🔬",
   "reference": "Le Maitre (IUGS), 2002",
   "field": "Igneous Petrology",
-  
+
   "requires_fields": [
     "SiO2_wt",
     "TiO2_wt",
@@ -19,28 +19,26 @@
     "Na2O_wt",
     "K2O_wt"
   ],
-  
+
   "classifications": [
     {
-      "name": "BASALT (SiO₂ < 52%)",
-      "color": "#4CAF50",
+      "name": "BASALT (SiO2 < 52%)",
+      "color": "green",
       "description": "Basaltic composition (TAS classification)",
       "priority": 1,
       "rules": [
         {
           "field": "SiO2_wt",
           "operator": "<",
-          "value": 52.0,
-          "comment": "Normalized SiO₂ content"
+          "value": 52.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.90,
-      "notes": "After anhydrous normalization to 100%"
+      "confidence_score": 0.90
     },
     {
       "name": "BASALTIC ANDESITE (52-57%)",
-      "color": "#8BC34A",
+      "color": "limegreen",
       "description": "Basaltic andesite composition",
       "priority": 2,
       "rules": [
@@ -48,17 +46,15 @@
           "field": "SiO2_wt",
           "operator": "between",
           "min": 52.0,
-          "max": 57.0,
-          "comment": "Intermediate composition"
+          "max": 57.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.90,
-      "notes": "Intermediate volcanic rock"
+      "confidence_score": 0.90
     },
     {
       "name": "ANDESITE (57-63%)",
-      "color": "#CDDC39",
+      "color": "yellowgreen",
       "description": "Andesitic composition",
       "priority": 3,
       "rules": [
@@ -66,17 +62,15 @@
           "field": "SiO2_wt",
           "operator": "between",
           "min": 57.0,
-          "max": 63.0,
-          "comment": "Andesitic range"
+          "max": 63.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.90,
-      "notes": "Arc-related volcanism typical"
+      "confidence_score": 0.90
     },
     {
       "name": "DACITE (63-69%)",
-      "color": "#FFC107",
+      "color": "goldenrod",
       "description": "Dacitic composition",
       "priority": 4,
       "rules": [
@@ -84,44 +78,38 @@
           "field": "SiO2_wt",
           "operator": "between",
           "min": 63.0,
-          "max": 69.0,
-          "comment": "Felsic intermediate"
+          "max": 69.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.90,
-      "notes": "High-silica intermediate"
+      "confidence_score": 0.90
     },
     {
-      "name": "RHYOLITE (SiO₂ > 69%)",
-      "color": "#FF5722",
+      "name": "RHYOLITE (SiO2 > 69%)",
+      "color": "red",
       "description": "Rhyolitic composition",
       "priority": 5,
       "rules": [
         {
           "field": "SiO2_wt",
           "operator": ">",
-          "value": 69.0,
-          "comment": "High silica"
+          "value": 69.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 0.90,
-      "notes": "Highly evolved, viscous magma"
+      "confidence_score": 0.90
     },
     {
       "name": "INSUFFICIENT DATA",
-      "color": "#9E9E9E",
+      "color": "gray",
       "description": "Missing major oxide data",
       "priority": 999,
       "rules": [],
       "logic": "DEFAULT",
-      "confidence_score": 0.0,
-      "notes": "Requires complete major oxide analysis"
+      "confidence_score": 0.0
     }
   ],
-  
+
   "output_column_name": "TAS_Classification",
-  "add_confidence_column": true,
-  "notes": "Convert total iron to FeO* = Fe₂O₃(T) × 0.8998. Normalize all oxides to 100% anhydrous. Full TAS diagram also requires Na₂O+K₂O alkali content for refined classification."
+  "add_confidence_column": true
 }

@@ -1,62 +1,51 @@
 {
   "scheme_name": "Basalt Provenance Triage (Egyptian–Sinai–Levantine)",
-  "version": "1.0",
+  "version": "1.1",
   "author": "Sefy Levy",
   "date_created": "2025-02-07",
-  "description": "THE ORIGINAL classification that started this toolkit - Archaeological basalt vessel provenance for Egyptian, Sinai, and Levantine sources",
+  "description": "Geochemical provenance classification for Egyptian, Sinai, and Levantine basalt sources",
   "category": "software",
   "icon": "🎯",
   "priority": 0,
   "reference": "Hartung 2017; Philip & Williams-Thorpe 2001; Williams-Thorpe & Thorpe 1993; Rosenberg et al. 2016",
-  
+
   "requires_fields": [
     "Zr_ppm",
     "Nb_ppm",
     "Ba_ppm",
     "Rb_ppm",
     "Cr_ppm",
-    "Ni_ppm",
-    "Wall_Thickness_mm"
+    "Ni_ppm"
   ],
-  
+
   "classifications": [
     {
       "name": "EGYPTIAN (HADDADIN FLOW)",
       "color": "blue",
-      "description": "Egyptian Haddadin Flow basalt - thin-walled vessels from Nile sources",
+      "description": "Egyptian Haddadin Flow basalt",
       "priority": 1,
       "rules": [
         {
           "field": "Zr_Nb_Ratio",
           "operator": "between",
           "min": 7.0,
-          "max": 12.0,
-          "comment": "Characteristic Zr/Nb range for Haddadin"
+          "max": 12.0
         },
         {
           "field": "Ba_ppm",
           "operator": "between",
           "min": 240.0,
-          "max": 300.0,
-          "comment": "Barium range for Haddadin"
+          "max": 300.0
         },
         {
           "field": "Cr_Ni_Ratio",
           "operator": "between",
           "min": 1.1,
-          "max": 1.6,
-          "comment": "Cr/Ni ratio for Haddadin"
-        },
-        {
-          "field": "Wall_Thickness_mm",
-          "operator": "<",
-          "value": 4.0,
-          "comment": "Thin-walled vessels typical of Egyptian import"
+          "max": 1.6
         }
       ],
       "logic": "AND",
-      "confidence_score": 4,
-      "notes": "High-confidence match for Egyptian Haddadin Flow basalt"
+      "confidence_score": 4
     },
     {
       "name": "EGYPTIAN (ALKALINE / EXOTIC)",
@@ -67,25 +56,16 @@
         {
           "field": "Zr_Nb_Ratio",
           "operator": ">",
-          "value": 22.0,
-          "comment": "Very high Zr/Nb indicates alkaline source"
+          "value": 22.0
         },
         {
           "field": "Ba_ppm",
           "operator": ">",
-          "value": 350.0,
-          "comment": "Elevated barium"
-        },
-        {
-          "field": "Wall_Thickness_mm",
-          "operator": "<",
-          "value": 4.0,
-          "comment": "Thin-walled"
+          "value": 350.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 3,
-      "notes": "Alkaline or exotic Egyptian sources"
+      "confidence_score": 3
     },
     {
       "name": "SINAI OPHIOLITIC",
@@ -96,32 +76,27 @@
         {
           "field": "Zr_Nb_Ratio",
           "operator": ">=",
-          "value": 20.0,
-          "comment": "High Zr/Nb for ophiolitic"
+          "value": 20.0
         },
         {
           "field": "Cr_Ni_Ratio",
           "operator": "between",
           "min": 1.8,
-          "max": 2.3,
-          "comment": "Characteristic Cr/Ni for ophiolitic"
+          "max": 2.3
         },
         {
           "field": "Ba_ppm",
           "operator": "<=",
-          "value": 150.0,
-          "comment": "Low barium"
+          "value": 150.0
         },
         {
           "field": "Rb_ppm",
           "operator": "<=",
-          "value": 30.0,
-          "comment": "Low rubidium"
+          "value": 30.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 4,
-      "notes": "Sinai ophiolitic sequence basalt"
+      "confidence_score": 4
     },
     {
       "name": "SINAI / TRANSITIONAL",
@@ -133,13 +108,11 @@
           "field": "Zr_Nb_Ratio",
           "operator": "between",
           "min": 15.0,
-          "max": 22.0,
-          "comment": "Mid-range Zr/Nb for Sinai/transitional"
+          "max": 22.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 1,
-      "notes": "Sinai or transitional sources - lower confidence"
+      "confidence_score": 1
     },
     {
       "name": "LOCAL LEVANTINE",
@@ -150,31 +123,21 @@
         {
           "field": "Zr_Nb_Ratio",
           "operator": "<",
-          "value": 15.0,
-          "comment": "Low Zr/Nb for local sources"
+          "value": 15.0
         },
         {
           "field": "Cr_Ni_Ratio",
           "operator": ">",
-          "value": 2.5,
-          "comment": "High Cr/Ni for Levantine"
+          "value": 2.5
         },
         {
           "field": "Ba_ppm",
           "operator": "<",
-          "value": 200.0,
-          "comment": "Low barium"
-        },
-        {
-          "field": "Wall_Thickness_mm",
-          "operator": ">",
-          "value": 4.5,
-          "comment": "Thick-walled vessels typical of local production"
+          "value": 200.0
         }
       ],
       "logic": "AND",
-      "confidence_score": 4,
-      "notes": "Local Levantine basalt - Golan, Galilee, or Hula sources"
+      "confidence_score": 4
     },
     {
       "name": "REVIEW REQUIRED",
@@ -183,11 +146,10 @@
       "priority": 999,
       "rules": [],
       "logic": "DEFAULT",
-      "confidence_score": 1,
-      "notes": "Default classification when no other matches - review manually"
+      "confidence_score": 1
     }
   ],
-  
+
   "output_column_name": "Auto_Classification",
   "add_confidence_column": true,
   "confidence_column_name": "Auto_Confidence",
