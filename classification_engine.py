@@ -94,48 +94,77 @@ class ClassificationEngine:
         return None
 
     def classify_sample(self, sample: Dict, scheme_id: str) -> Tuple[str, float, str]:
-        """
-        Classify a single sample using specified scheme
+        print(">>> classify_sample CALLED with scheme_id =", scheme_id)
 
-        Args:
-            sample: Dictionary with sample data (Zr_ppm, Nb_ppm, etc.)
-            scheme_id: ID of classification scheme to use
-
-        Returns:
-            Tuple of (classification, confidence, color)
-        """
         if scheme_id not in self.schemes:
+            print(">>> SCHEME NOT FOUND. Available:", list(self.schemes.keys()))
             return ("SCHEME_NOT_FOUND", 0.0, "#808080")
 
-        # Normalize sample (handle pandas Series defensively)
         sample = self._normalize_sample(sample)
         if sample is None:
+            print(">>> INVALID SAMPLE after normalization")
             return ("INVALID_SAMPLE", 0.0, "#808080")
+
+        # Clean Zr_error
+        if "Zr_error" in sample:
+            try:
+                raw = str(sample["Zr_error"])
+                raw = raw.replace("±", "").replace("%", "").replace("ppm", "").strip()
+                sample["Zr_error"] = float(raw)
+            except:
+                sample["Zr_error"] = None
+
+        # Compute Zr_RSD
+        if "Zr_ppm" in sample and "Zr_error" in sample:
+            try:
+                zr = float(sample["Zr_ppm"])
+                err = float(sample["Zr_error"])
+                if zr != 0:
+                    sample["Zr_RSD"] = err / zr
+            except:
+                sample["Zr_RSD"] = None
+
+        # Compute Zr_Nb_Ratio
+        if "Zr_ppm" in sample and "Nb_ppm" in sample:
+            try:
+                zr = float(sample["Zr_ppm"])
+                nb = float(sample["Nb_ppm"])
+                if nb != 0:
+                    sample["Zr_Nb_Ratio"] = zr / nb
+            except:
+                sample["Zr_Nb_Ratio"] = None
+
+        # Compute Cr_Ni_Ratio
+        if "Cr_ppm" in sample and "Ni_ppm" in sample:
+            try:
+                cr = float(sample["Cr_ppm"])
+                ni = float(sample["Ni_ppm"])
+                if ni != 0:
+                    sample["Cr_Ni_Ratio"] = cr / ni
+            except:
+                sample["Cr_Ni_Ratio"] = None
+
+        # 🔥 THE DEBUG PRINTS YOU NEED — GUARANTEED TO RUN
+        print("ENGINE Zr_ppm  =", sample.get("Zr_ppm"))
+        print("ENGINE Zr_error=", sample.get("Zr_error"))
+        print("ENGINE Zr_RSD  =", sample.get("Zr_RSD"))
+        print("ENGINE Zr/Nb   =", sample.get("Zr_Nb_Ratio"))
+        print("ENGINE Cr/Ni   =", sample.get("Cr_Ni_Ratio"))
 
         scheme = self.schemes[scheme_id]
 
-        # Check if sample has required fields
-        missing_fields: List[str] = []
-        for field in scheme['requires_fields']:
-            if field not in sample or sample[field] is None or sample[field] == '':
-                missing_fields.append(field)
+        # Apply classification rules (supports both "classifications" and "rules")
+        class_list = scheme.get("classifications") or scheme.get("rules") or []
 
-        if missing_fields:
-            return ("INSUFFICIENT_DATA", 0.0, "#808080")
-
-        # Try each classification in order
-        for classification in scheme.get('classifications', []):
-            if not isinstance(classification, dict):
-                continue
+        for classification in class_list:
             if self.matches_classification(sample, classification):
-                return (
-                    classification['name'],
-                    classification.get('confidence_score', 0.85),
-                    classification.get('color', '#4CAF50')
-                )
+                name = classification.get("name") or classification.get("label") or "UNNAMED"
+                confidence = classification.get("confidence_score") or classification.get("confidence") or 0.0
+                color = classification.get("color", "#A9A9A9")
+                return (name, confidence, color)
 
-        # No classification matched
-        return ("UNCLASSIFIED", 0.0, "#808080")
+        return ("UNCLASSIFIED", 0.0, "#A9A9A9")
+
 
     def matches_classification(self, sample: Dict, classification: Dict) -> bool:
         """
@@ -261,25 +290,19 @@ class ClassificationEngine:
             return False
 
     def classify_all_samples(self, samples: Any, scheme_id: str,
-                             output_column: str = None) -> List[Dict]:
+                            output_column: str = None) -> List[Dict]:
         """
-        Classify all samples using specified scheme
-
-        Args:
-            samples: List of sample dictionaries OR pandas DataFrame
-            scheme_id: ID of classification scheme to use
-            output_column: Column name for classification result
-
-        Returns:
-            Updated samples list with classifications added
+        Classify all samples using ONLY the selected scheme.
+        Removes all default/secondary scheme execution.
         """
+
         if scheme_id not in self.schemes:
             print(f"⚠️ Classification scheme not found: {scheme_id}")
             return samples
 
         scheme = self.schemes[scheme_id]
 
-        # If a pandas DataFrame was passed, convert it to list of dicts
+        # Convert DataFrame → list of dicts
         try:
             import pandas as pd  # type: ignore
         except ImportError:
@@ -288,30 +311,28 @@ class ClassificationEngine:
         if pd is not None and isinstance(samples, pd.DataFrame):
             samples = samples.to_dict(orient='records')
 
-        # If it's not a list at this point, we can't safely iterate
         if not isinstance(samples, list):
             print("⚠️ 'samples' must be a list of dicts or a pandas DataFrame")
             return samples
 
-        # Get output column name
+        # Output column name
         if output_column is None:
             output_column = scheme.get('output_column_name', 'Classification')
 
-        # Classify each sample
         classified_count = 0
+
         for i, sample in enumerate(samples):
             normalized = self._normalize_sample(sample)
             if normalized is None:
-                # Keep original but mark as invalid
                 if isinstance(sample, dict):
                     sample[output_column] = "INVALID_SAMPLE"
                     sample[f'{output_column}_Confidence'] = 0.0
                     sample[f'{output_column}_Color'] = "#808080"
                 continue
 
+            # Run ONLY the selected scheme
             classification, confidence, color = self.classify_sample(normalized, scheme_id)
 
-            # Add classification to sample (mutate original dict)
             sample[output_column] = classification
             sample[f'{output_column}_Confidence'] = confidence
             sample[f'{output_column}_Color'] = color

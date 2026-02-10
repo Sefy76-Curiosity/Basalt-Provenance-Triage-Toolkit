@@ -52,6 +52,252 @@ from collections import Counter  # Added for optimization
 ICON_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAAADTED8xAAAI60lEQVR4nO3dv2odRxTH8VHI4xj8BHFhNwFBEKR1Y0iX50kXcKM2IAICN3GTJ8gbpRh5tN5/d3Z3zsyc+X0/hQm2dKUk5ze/s3fle+/evHsIgKofWn8DQEsEANIIAKQRAEgjAJBGACCNAEAaAYA0AgBpBADSCACkEQBIIwCQRgAgjQBAGgGANAIAaQQA0ggApBEASCMAkEYAII0AQBoBgDQCAGkEANIIAKQRAEgjAJBGACCNAEAaAYA0AgBpBADSCACkEQBIIwCQRgAgjQBAGgFo7Ndffmr9LUgjAC3F6ScDDd3xTvFNrA79X3//W/87EUcDNLB15FMF9dEAVS1H/Pmf/+4/vJ39JlVQDQ1Qz+r0p1/3PxJGaIAatkZ/hiqojwYwlzn9q79PFVijAQzlj/4MVVANDWDl9PSvfiRVYIQGMDGb1/zRn5lVAT1QHAEo7MrBv4p1yBQrUEnFp3/1EViHCqIByrAY/RmqwAINUECF6V99TKrgOhrgkjqjP0MVFEQDnNdk+le/ClVwGg1wUqknOq/gSdLrCMBhrQ7+VaxDF7ECHdPV9K9+ddahQ5o1gOn/J4tTsLfRn6EKzqEBsnQ+/YEqOItrgBv6H/0ZquAQGmCPu+kPVMFBNMA6j6M/QxXkoAFWDDD9gSrIQwPM9XCHqyzul+0gAK/GOPhXsQ5tYQV6MfD0B9ahbTTA4KM/QxXMqDeA1PQHqmBBtwHURn+GKohEG0B8+gNV8I1cAzD6M+JVoNUATP+SeBUINcB4d7jK0rxfJhEADv5MguvQ+CsQ059PcB0auQEY/dN0qmDYBmD6r9CpggEbwNfof/r48+fHL62/i03DV8FoDeBu+tOvfRq+CoZqAEdPdK4OvaMqGKYHBgmAx4M/hPD0/DX+w8P9+/gPjjIQhojBCAFwNP3Tgz9Nf5QyEDqOwXgZ8B0AR6Mf1g7+JaqgMscXweNN//RPuTKuw2UDOB39cGv6ExfrUBiiCvwFwOn0Z47+FOtQBZ4C4HT0w6npj6gCa2O+OnTzYFw5+JeoAjuOL4K7VXb6g58r4+bnzgluVqBpY3T7H7rI2rPFxTo07QEaQMv04C8+/bOH7bkKfPmx9TcwAtODf+bp+WusgvhFu60CL2iAq6wP/iWqoCACcEnx6918ZKAIVqCTaq49W1iHrqMBzqi/9mxhHbqIBjimh4N/iSo4jfsABzTc+DNZ3zNe3u4tqMl9A1agXP1Pf+DK+Dga4LY+154dDe8Zcyd4NP1c7+bjyjgfF8Gb3B38M1wZ56AB1nk8+JeogpsIwAoX17v5yMAOVqDveF97trAObSEAr6od/L//9mnrj/7487PRF43/UikGZCAiACHUOvh35n75MUZJoApmCECNg382+o9Pz1sf+fHhfvopFjGgCqYIwAuj6Z+O/s7cLz8mJsE0BtP7ZbJ4FshQmv7Hp+ec6Z+afkrO7oRzCICV6fSffhAyYI0AmIjzeuLgX0oPQgYsEIDy0vQXfEwyYIQAFGYx/REZsEAASqoznWSgIAJQnsXxb/3IsghAMXbLzxSLUFnNboRdeXXom38ztdsXD0VvaIAy6hz/ESVQULMGOPoXRnt4VQiMhwaANAJQQM39J2ILKoUAQBoBgDQCAGkEANIIAKTxVyJxwKFXhz56s59XhwZqowFwwM178Lw6tKL4qg3pFU0qiF/L7lW0dBAASCMAkEYAyqi5BbH/FEQAII0AFFOnBDj+yyIA5dlloOYTTSIIQEl1DmaO/4IIQGF2ixDLjwUCUJ5FBph+IwTARMrA9RikB2H6LRAAK2ler2QgfS7Tb4QAGJpm4GgMpp/C9Nvhp0FfPNy/t3iXpDi78eUb0kDnvEfY9NMt8P5I0d2bdw+tv4cspi+M1c+7RCZ1Rr/4O+S5+3FoGiCEb3MQY2BUBWEy003eJzhK0y/+5pAJAXj1+fFLykCwrIImO73pwe8XAfhOnSqoj4N/C88CrUhTMsaVItO/gwCsm2bAbwym3zzTv4oVaJP3dYjRz0ED3OCxCjj489EAt/mqAkb/EBogl4srY6b/KAJwQM/rEGvPOaxAx/S5DjH6p9EAZ/RTBRz8F/HDcJekn6JrUgX1R//Qq0MfxatD+9PwypiDvwgaoIA6P02d9Pxjbfw4tKKaV8Yc/GWxAhVjfWXM9a4FGqAkuypg9I24bID7D29Nn464qPiVsYvp7/x/yhY3F8Fh7U3XersanipyZdzz9e7UcvRdXAEHXwGInMbgRAa8HPyz3/Ey+pG/AAS3GQjZMeDgr8ZlACKnMbiZAQ7+mlxeBEfL/+I9X4RlXhkz/ZU5boDEURXsrEMu1p6RRj8aIQDBVQbC2jrEwd/KIAGIZjFwkYEpR9M/wOhHQwUguK0CR6MfBpr+4PoieJXHK2Omv6HRGiDxVQUdGn70o9EaIPFVBb0Rmf4wcAMkVMEhOqMfDdsACVWQT236g0IDJI6eJG1i1Cc69wkFILAObRA8+JPxV6Ap1qEl5ekPag2QUAVBfvQjrQZIqAKmPxJtgESwChj9KdEGSNSqgOmfUW+AZPgqYPRXqTdAMnYVMP1baIC58e6Xad7hykQAVgyzDnHw38QKtGKMdYjpz0ED7HFaBYx+Phpgj8cqYPoPoQGyuKgCRv8EGiBL/1XA9J9DAxzTYRUw+lfQAMf0VgVM/0U0wEk93C/jDtd1BOC8husQB38prEDntVqHmP6CaIACqlUBo18cDVBAnSpg+i3QACUZVQGjb4cGKMmiCph+UzSAiVJPkvJEpzUCYOXiOsTBXwcrkJUr6xDTXw0NYO5QFTD6ldEA5vKrgOmvjwaoZ6cKGP1WaIB6tqqA6W+IBmhgWQUJo18ZDdDA1pQz/fXRAC2lKmD0W6EBWopzz/Q3RANAGg0AaQQA0ggApBEASCMAkEYAII0AQBoBgDQCAGkEANIIAKQRAEgjAJBGACCNAEAaAYA0AgBpBADSCACkEQBIIwCQRgAgjQBAGgGANAIAaQQA0ggApBEASCMAkEYAII0AQBoBgDQCAGkEANIIAKQRAEgjAJBGACDtf0aWDPRBI8inAAAAAElFTkSuQmCC"
 
 # ────────────────────────────────────────────────
+# UNIFIED ELEMENT LOOKUP - FIX FOR ISSUE #1
+# ────────────────────────────────────────────────
+
+def get_element_value(row: Dict[str, Any], element_name: str) -> Optional[float]:
+    """
+    Unified element lookup that handles ALL column name variations.
+    """
+    if not row or not element_name:
+        return None
+
+    element_lower = element_name.lower()
+
+    # Define ALL possible key variations to check
+    key_variations = []
+
+    # Special handling for wall thickness
+    if "wall" in element_lower or "thickness" in element_lower:
+        key_variations = [
+            "Wall_Thickness_mm", "Wall_Thickness", "wall_thickness_mm",
+            "wall_thickness", "Thickness_mm", "thickness_mm",
+            "Thickness", "thickness", "Wall_mm", "wall_mm"
+        ]
+    else:
+        # For trace elements
+        base_name = element_lower.replace("_ppm", "").replace("ppm", "").strip()
+
+        # Check in this priority order:
+        key_variations = [
+            f"{base_name}",           # 1. Raw element (e.g., "Zr")
+            f"{base_name.upper()}",   # 2. Uppercase (e.g., "ZR")
+            f"{base_name}_ppm",       # 3. With _ppm suffix
+            f"{base_name.upper()}_PPM", # 4. Uppercase with _ppm
+            f"pxrf_{base_name}_ppm",  # 5. pXRF variant
+            f"pxrf_{base_name}",      # 6. pXRF without suffix
+            f"{base_name}ppm",        # 7. No underscore
+            f"{base_name} ppm"        # 8. With space
+        ]
+
+    # Try ALL variations
+    for key in key_variations:
+        value = row.get(key)
+        if value is not None and value != "":
+            result = safe_float(value)
+            if result is not None:
+                return result
+
+    # Last resort: check any key containing the element name
+    if element_lower not in ["wall", "thickness"]:
+        for key, value in row.items():
+            if key and element_lower in key.lower():
+                result = safe_float(value)
+                if result is not None:
+                    return result
+
+    return None
+
+    # For trace elements: handle both with and without _ppm suffix
+    base_name = element_lower.replace("_ppm", "").replace("ppm", "").strip()
+
+    # Generate ALL possible key variations (order matters for priority)
+    key_variations = [
+        # Primary variants (exact matches)
+        f"{base_name}_ppm", f"{base_name}",
+        f"{base_name.upper()}_PPM", f"{base_name.upper()}",
+
+        # Common data import variants
+        f"pxrf_{base_name}_ppm", f"pxrf_{base_name}",
+        f"pXRF_{base_name}_ppm", f"pXRF_{base_name}",
+        f"{base_name} ppm", f"{base_name}_PPM",
+        f"{base_name}_ppb", f"{base_name}_%",  # Rare but possible
+
+        # Direct matches from original row keys
+        element_name  # Original passed name
+    ]
+
+    # Remove duplicates while preserving order
+    unique_keys = []
+    for key in key_variations:
+        if key not in unique_keys:
+            unique_keys.append(key)
+
+    # Try all variations
+    for key in unique_keys:
+        value = row.get(key)
+        if value is not None and value != "":
+            result = safe_float(value)
+            if result is not None:
+                return result
+
+    # Last resort: check any key containing the element name
+    for key, value in row.items():
+        key_lower = str(key).lower()
+        if base_name in key_lower:
+            result = safe_float(value)
+            if result is not None:
+                return result
+
+    return None
+
+
+def get_ratio_value(row: Dict[str, Any], num_element: str, den_element: str) -> Optional[float]:
+    """
+    FIXED: Safe ratio calculation with comprehensive error handling.
+    Returns None if either value is missing or denominator is zero.
+    """
+    num = get_element_value(row, num_element)
+    den = get_element_value(row, den_element)
+
+    if num is None:
+        print(f"DEBUG: Missing numerator {num_element} for ratio calculation")
+        return None
+    if den is None:
+        print(f"DEBUG: Missing denominator {den_element} for ratio calculation")
+        return None
+    if den == 0:
+        print(f"DEBUG: Zero denominator {den_element} for ratio calculation")
+        return None
+
+    return num / den
+
+
+# ────────────────────────────────────────────────
+# SIMPLIFIED CLASSIFICATION LOGIC (v10.2)
+# ────────────────────────────────────────────────
+
+def classify_row(row: Dict[str, Any]) -> Tuple[Optional[float], Optional[float], Optional[float], str, int, str]:
+    """
+    SIMPLIFIED VERSION: All calculations moved to classification_engine.py
+
+    Returns:
+        Tuple[Zr/Nb ratio, Cr/Ni ratio, Ba/Rb ratio, classification, confidence, flag]
+    Note: All ratios are now None since they're calculated elsewhere.
+    """
+
+    # In v10.2, all classification logic is handled by classification_engine.py
+    # This function remains only for backward compatibility
+
+    # If classification_engine is available, we could use it here
+    # But for now, just return placeholders
+
+    # Check if the classification has already been set by the engine
+    classification = row.get('Final_Classification') or \
+                     row.get('Primary_Class') or \
+                     row.get('Auto_Classification') or \
+                     row.get('Classification') or \
+                     "REVIEW REQUIRED"
+
+    # Get confidence if available
+    confidence = safe_float(row.get('Confidence_1_to_5') or row.get('Auto_Confidence'))
+    if confidence is None:
+        confidence = 1 if classification == "REVIEW REQUIRED" else 3
+
+    # Get flag if available
+    flag = row.get('Flag_For_Review', 'YES' if classification == "REVIEW REQUIRED" else 'NO')
+
+    # Return None for all ratios (they're calculated elsewhere now)
+    return None, None, None, classification, int(confidence), flag
+
+
+# REMOVE OR COMMENT OUT THE DUPLICATE FUNCTION AT LINE 545
+# def classify_row(row: Dict[str, Any]) -> Tuple[Optional[float], Optional[float], Optional[float], str, int, str]:
+#     """FIXED VERSION: Uses unified element lookup to ensure 8/8 classification."""
+#     ... (keep this commented out or delete it)
+
+
+# ────────────────────────────────────────────────
+# FIXED CLASSIFICATION SYNC FUNCTION
+# ────────────────────────────────────────────────
+
+
+
+def get_consistent_classification(row: Dict[str, Any]) -> str:
+    """
+    FIX FOR ISSUE #5: Read classification consistently across the app.
+    Single source of truth for reading classification from any row.
+    """
+    if not row:
+        return "UNCLASSIFIED"
+
+    # Check keys in priority order (same as HUD and plot)
+    classification = (row.get('Final_Classification') or
+                     row.get('Primary_Class') or
+                     row.get('Auto_Classification') or
+                     row.get('Classification') or
+                     "UNCLASSIFIED")
+
+    return str(classification).strip()
+
+
+SCATTER_COLORS = {
+    "EGYPTIAN (HADDADIN FLOW)": "blue",
+    "EGYPTIAN (ALKALINE / EXOTIC)": "red",
+    "SINAI / TRANSITIONAL": "goldenrod",
+    "SINAI OPHIOLITIC": "orange",
+    "LOCAL LEVANTINE": "green",
+
+    "REVIEW REQUIRED": "gray",
+    "UNCLASSIFIED": "darkgray",
+    "INSUFFICIENT_DATA": "lightgray",
+
+    "RESEARCH GRADE (RSD < 3%)": "green",
+    "SCREENING GRADE (3-7%)": "goldenrod",
+    "NON-QUANTIFIABLE (RSD > 7%)": "red",
+    "NO ERROR DATA": "gray"
+}
+# ────────────────────────────────────────────────
+# CLASSIFICATION SYNC FUNCTION - FIX FOR ISSUE #5
+# ────────────────────────────────────────────────
+
+def sync_classification_keys(row: Dict[str, Any], classification: str) -> None:
+    """
+    FIX FOR ISSUE #5: Write classification to ALL keys consistently.
+    Ensures table, HUD, and plot all see the same result.
+    """
+    if not row or not classification:
+        return
+
+    clean_classification = str(classification).strip().upper()
+
+    # Write to ALL classification keys
+    all_class_keys = [
+        "Final_Classification",    # Primary key for UI
+        "Primary_Class",           # Engine result
+        "Auto_Classification",     # Legacy auto-class
+        "Classification",          # Generic fallback
+    ]
+
+    for key in all_class_keys:
+        row[key] = clean_classification
+
+    # Also sync color
+    color = get_color_for_label(clean_classification)
+    row["Display_Color"] = color
+    row["Auto_Classification_Color"] = color
+def get_color_for_label(label: str) -> str:
+    """Returns the correct color regardless of text casing or extra spaces."""
+    if not label: return "gray"
+    # Normalize: Uppercase and strip whitespace
+    clean_label = str(label).upper().strip()
+
+    # Check map
+    for key, color in SCATTER_COLORS.items():
+        if key.upper().strip() == clean_label:
+            return color
+    return "gray"
+# ────────────────────────────────────────────────
 # Backend detection (GUI only)
 # ────────────────────────────────────────────────
 HAS_MATPLOTLIB = False
@@ -190,125 +436,6 @@ THREAD_JOIN_TIMEOUT = 2.0  # seconds to wait for thread shutdown
 AUTO_SAVE_INTERVAL = 300   # seconds (5 minutes)
 MAX_UNDO_STACK = 50        # maximum undo history size
 
-DISPLAY_COLUMNS = [
-    # Basic Sample Info
-    "Sample_ID", "Museum_Code", "Wall_Thickness_mm",
-    
-    # Trace Elements with Error Bars (±)
-    "Zr_ppm", "Zr_ppm_error", 
-    "Nb_ppm", "Nb_ppm_error",
-    "Ba_ppm", "Ba_ppm_error",
-    "Rb_ppm", "Rb_ppm_error",
-    "Cr_ppm", "Cr_ppm_error",
-    "Ni_ppm", "Ni_ppm_error",
-    
-    # Below Detection Limit (BDL) Flags
-    "Zr_BDL", "Nb_BDL", "Ba_BDL", "Rb_BDL", "Cr_BDL", "Ni_BDL",
-    
-    # Calculated Ratios
-    "Zr_Nb_Ratio", "Cr_Ni_Ratio", "Ba_Rb_Ratio",
-    
-    # Classification Results
-    "Auto_Classification", "Auto_Confidence",
-    "Final_Classification", "Confidence_1_to_5", "Flag_For_Review",
-    
-    # QA/QC and Instrument Metadata
-    "QC_Sample_Type",        # Standard, Duplicate, Blank, Unknown
-    "Instrument_Model",      # Bruker S1, Olympus Vanta, etc.
-    "Measurement_Time_sec",  # Duration
-    "Data_Quality_Flag",     # Good, Suspect, Bad
-    
-    # Museum and Location
-    "Museum_URL", "Photo_Path",
-    "Latitude", "Longitude",
-    
-    # Isotopes with Errors
-    "87Sr_86Sr", "87Sr_86Sr_error",
-    "143Nd_144Nd", "143Nd_144Nd_error",
-    "206Pb_204Pb", "206Pb_204Pb_error",
-    "207Pb_204Pb", "207Pb_204Pb_error",
-    "208Pb_204Pb", "208Pb_204Pb_error",
-    "δ18O", "δ18O_error",
-    
-    # Major Elements (wt%) with Errors
-    "SiO2", "SiO2_error",
-    "TiO2", "TiO2_error",
-    "Al2O3", "Al2O3_error",
-    "Fe2O3", "Fe2O3_error",
-    "MgO", "MgO_error",
-    "CaO", "CaO_error",
-    "Na2O", "Na2O_error",
-    "K2O", "K2O_error",
-    "P2O5", "P2O5_error",
-    "Normalized_Total",
-    "Isotope_Classification"
-]
-
-COLOR_MAP = {
-    "EGYPTIAN (HADDADIN FLOW)": "#cce5ff",
-    "EGYPTIAN (ALKALINE / EXOTIC)": "#f8d7da",
-    "SINAI / TRANSITIONAL": "#fff3cd",
-    "SINAI OPHIOLITIC": "#ffe5b4",
-    "LOCAL LEVANTINE": "#d4edda",
-    "REVIEW REQUIRED": "#e2e3e5",
-
-    "HARRAT ASH SHAAM": "#e2d9f3",
-}
-
-SCATTER_COLORS = {
-    "EGYPTIAN (HADDADIN FLOW)": "blue",
-    "EGYPTIAN (ALKALINE / EXOTIC)": "red",
-    "SINAI / TRANSITIONAL": "yellow",
-    "SINAI OPHIOLITIC": "orange",
-    "LOCAL LEVANTINE": "green",
-    "REVIEW REQUIRED": "gray",
-
-    "HARRAT ASH SHAAM": "purple",
-}
-
-# ═══════════════════════════════════════════
-# SOURCE REGIONS FOR MAPPING
-# ═══════════════════════════════════════════
-SOURCE_REGIONS = {
-    "EGYPTIAN (HADDADIN FLOW)": {
-        "center": (30.5, 31.0),
-        "radius": 50,
-        "color": "#cce5ff",
-        "description": "Egyptian Haddadin Flow - Oligocene flood basalts"
-    },
-    "EGYPTIAN (ALKALINE / EXOTIC)": {
-        "center": (28.0, 33.0),
-        "radius": 100,
-        "color": "#f8d7da",
-        "description": "Egyptian alkaline/exotic sources"
-    },
-    "SINAI OPHIOLITIC": {
-        "center": (28.5, 34.0),
-        "radius": 75,
-        "color": "#ffe5b4",
-        "description": "Sinai ophiolite complex - Cretaceous oceanic crust"
-    },
-    "SINAI / TRANSITIONAL": {
-        "center": (29.0, 34.5),
-        "radius": 80,
-        "color": "#fff3cd",
-        "description": "Sinai transitional basalts"
-    },
-    "LOCAL LEVANTINE": {
-        "center": (33.0, 35.5),
-        "radius": 60,
-        "color": "#d4edda",
-        "description": "Local Levantine sources (Golan, Galilee, Hula)"
-    },
-    "HARRAT ASH SHAAM": {
-        "center": (32.0, 37.0),
-        "radius": 150,
-        "color": "#e2d9f3",
-        "description": "Harrat Ash Shaam - Jordanian volcanic fields"
-    }
-}
-
-
 # ═══════════════════════════════════════════
 # v9.0 ENHANCEMENTS - Themes and UI
 # ═══════════════════════════════════════════
@@ -361,7 +488,26 @@ def safe_float(value: Any) -> Optional[float]:
     except (ValueError, TypeError):
         return None
 
+def get_unified_classification(row: Dict[str, Any]) -> str:
+    """
+    Unified classification reader that checks all possible keys.
+    Returns 'UNCLASSIFIED' if no classification found.
+    """
+    if not row:
+        return "UNCLASSIFIED"
 
+    # Check keys in priority order
+    classification_keys = [
+        'Final_Classification', 'Primary_Class', 'Auto_Classification',
+        'Classification', 'Class'
+    ]
+
+    for key in classification_keys:
+        value = row.get(key)
+        if value and str(value).strip():
+            return str(value).strip().upper()
+
+    return "UNCLASSIFIED"
 
 # ────────────────────────────────────────────────
 # OXIDE CONVERSION FUNCTIONS
@@ -441,6 +587,7 @@ def convert_major_elements_in_row(row):
                 row[f"{oxide}_norm"] = f"{value:.1f}"
             return True
     return False
+
 def safe_ratio(a: Optional[float], b: Optional[float]) -> Optional[float]:
     if a is None or b is None or b == 0:
         return None
@@ -502,72 +649,11 @@ def check_alteration_warnings(row: Dict[str, Any]) -> List[str]:
 
     return warnings
 
-
-# ────────────────────────────────────────────────
-# CLASSIFICATION LOGIC
-# ────────────────────────────────────────────────
-
-def classify_row(row: Dict[str, Any]) -> Tuple[Optional[float], Optional[float], Optional[float], str, int, str]:
-    wall = safe_float(row.get("Wall_Thickness_mm"))
-    zr   = safe_float(row.get("Zr_ppm"))
-    nb   = safe_float(row.get("Nb_ppm"))
-    ba   = safe_float(row.get("Ba_ppm"))
-    rb   = safe_float(row.get("Rb_ppm"))
-    cr   = safe_float(row.get("Cr_ppm"))
-    ni   = safe_float(row.get("Ni_ppm"))
-
-    zrnb = safe_ratio(zr, nb)
-    crni = safe_ratio(cr, ni)
-    barb = safe_ratio(ba, rb)
-
-    criticals = (wall, zr, nb, ba, cr, ni)
-    missing = any(v is None for v in criticals)
-
-    classification = "REVIEW REQUIRED"
-    score = 0
-
-    if not missing:
-        if (zrnb is not None and HADDADIN_ZRNB_MIN <= zrnb <= HADDADIN_ZRNB_MAX and
-            HADDADIN_BA_MIN <= ba <= HADDADIN_BA_MAX and
-            crni is not None and HADDADIN_CRNI_MIN <= crni <= HADDADIN_CRNI_MAX and
-            wall < THIN_WALL_THRESHOLD_MM):
-            classification = "EGYPTIAN (HADDADIN FLOW)"
-            score = 4
-
-        elif (zrnb is not None and zrnb > ALKALINE_ZRNB_THRESHOLD and
-              ba > ALKALINE_BA_THRESHOLD and
-              wall < THIN_WALL_THRESHOLD_MM):
-            classification = "EGYPTIAN (ALKALINE / EXOTIC)"
-            score = 3
-
-        elif (zrnb is not None and zrnb >= OPHIOLITIC_ZRNB_MIN and
-              crni is not None and OPHIOLITIC_CRNI_MIN <= crni <= OPHIOLITIC_CRNI_MAX and
-              ba <= OPHIOLITIC_BA_MAX and
-              rb <= OPHIOLITIC_RB_MAX):
-            classification = "SINAI OPHIOLITIC"
-            score = 4
-
-        elif zrnb is not None and SINAI_ZRNB_MIN <= zrnb <= SINAI_ZRNB_MAX:
-            classification = "SINAI / TRANSITIONAL"
-            score = 1
-
-        elif (zrnb is not None and zrnb < 15 and
-              crni is not None and crni > LEVANTINE_CRNI_THRESHOLD and
-              ba < 200 and
-              wall > THICK_WALL_THRESHOLD_MM):
-            classification = "LOCAL LEVANTINE"
-            score = 4
-
-    confidence = min(5, score) if score > 0 else (1 if missing else 2)
-    flag = "YES" if missing or classification == "REVIEW REQUIRED" else "NO"
-
-    return zrnb, crni, barb, classification, confidence, flag
-
 # ────────────────────────────────────────────────
 # Batch Processing for CSV Files
 # ────────────────────────────────────────────────
 def batch_process_csv(input_path: str, output_path: str):
-    """Single-file batch processor used by batch_process_directory"""
+    """Universal batch processor - Detects headers dynamically from processed data"""
     samples = []
     imported = 0
     skipped = 0
@@ -577,11 +663,15 @@ def batch_process_csv(input_path: str, output_path: str):
             reader = csv.DictReader(f)
             for r in reader:
                 row = {k.strip(): v.strip() for k, v in r.items() if v.strip()}
+
+                # Basic safety check: Skip empty rows or rows without IDs
                 if not row.get("Sample_ID"):
                     skipped += 1
                     continue
 
                 valid = True
+                # We keep the basalt elements for now as a "soft" check,
+                # but we use .get() so it doesn't crash if they are missing
                 numeric_fields = ["Wall_Thickness_mm", "Zr_ppm", "Nb_ppm", "Ba_ppm", "Rb_ppm", "Cr_ppm", "Ni_ppm"]
                 for field in numeric_fields:
                     if row.get(field) and safe_float(row[field]) is None:
@@ -589,6 +679,7 @@ def batch_process_csv(input_path: str, output_path: str):
                         break
 
                 if valid:
+                    # Perform classification
                     zrnb, crni, barb, auto_cls, conf, flag = classify_row(row)
                     row.update({
                         "Zr_Nb_Ratio": f"{zrnb:.3f}" if zrnb is not None else "",
@@ -598,9 +689,11 @@ def batch_process_csv(input_path: str, output_path: str):
                         "Auto_Confidence": conf,
                         "Flag_For_Review": flag,
                     })
+
                     if not row.get("Final_Classification"):
                         row["Final_Classification"] = auto_cls
                         row["Confidence_1_to_5"] = conf
+
                     samples.append(row)
                     imported += 1
                 else:
@@ -610,21 +703,30 @@ def batch_process_csv(input_path: str, output_path: str):
             print(f"No valid rows in {input_path}")
             return
 
+        # DYNAMIC FIX: Instead of DISPLAY_COLUMNS, we use the keys from the first sample
+        # This ensures all new calculated columns (like Ratios) are included in the CSV
+        output_headers = list(samples[0].keys())
+
         with open(output_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=DISPLAY_COLUMNS, extrasaction="ignore")
+            writer = csv.DictWriter(f, fieldnames=output_headers, extrasaction="ignore")
             writer.writeheader()
             writer.writerows(samples)
 
         print(f"✓ {imported} rows processed, {skipped} skipped → {output_path}")
 
     except Exception as e:
+        # This will catch the 'DISPLAY_COLUMNS' error if any part of the old logic was missed
         print(f"✗ Batch failed on {input_path}: {e}")
 
 
 class BasaltTriageApp:
     def __init__(self, root: tk.Tk):
         self.root = root
-
+        self.active_scheme_id = None
+        self.sample_id_to_index = {}
+        self.filter_cache = None
+        self.last_filter_state = ("", "All")
+        self.selected_rows = set() # Ensure this is a set for O(1) speed
         # Load dependency warning preference
         global SHOW_DEPENDENCY_WARNING
         try:
@@ -634,11 +736,18 @@ class BasaltTriageApp:
                     SHOW_DEPENDENCY_WARNING = settings.get("show_dependency_warning", True)
         except:
             pass
-        self.root.title("Basalt Provenance Triage Toolkit")
-        self.root.geometry("1350x780")
 
+        self.root.title("Basalt Provenance Triage Toolkit")
+        self.root.geometry("1450x850") # Slightly wider to accommodate the Split View
+
+        # DATA STORAGE
         self.samples: List[Dict[str, Any]] = []
-        self.filtered_samples: List[Dict[str, Any]] = []  # For search/filter
+        self.filtered_samples: List[Dict[str, Any]] = []
+
+        # v11.0 RESULT TRACKING (The "Right Side" Data)
+        # This keeps classification results separate from your raw CSV data
+        self.classification_results: Dict[str, Dict[str, Any]] = {}
+
         self.current_page = 0
         self.first_plot_shown = False
 
@@ -646,14 +755,14 @@ class BasaltTriageApp:
         self.undo_stack: List[List[Dict[str, Any]]] = []
         self.max_undo = 10
 
-        # v9.2 Autosave and crash recovery
+        # Autosave and crash recovery
         self.current_theme = "Light"
         self.sound_enabled = True
-        self.auto_save_enabled = True  # Now enabled by default
-        self.auto_save_interval = 5  # minutes
+        self.auto_save_enabled = True
+        self.auto_save_interval = 5
         self.last_save_time = time.time()
         self.unsaved_changes = False
-        self.current_project_path = None  # Track current project for autosave
+        self.current_project_path = None
         self.recovery_file = os.path.join(os.path.expanduser("~"), ".basalt_recovery.json")
         self.achievements = {"samples_classified": 0, "samples_added": 0, "projects_saved": 0}
         self.current_tip_index = 0
@@ -669,10 +778,10 @@ class BasaltTriageApp:
         self._matplotlib_canvas = None
         self._pillow_image = None
         self.backend_status_label = None
-        self.preferred_backend = tk.StringVar(value="Auto")  # User can choose backend
-        
-        # Track current classification scheme for dynamic plotting
-        self.current_classification_scheme_id = 'regional_triage'  # Default
+        self.preferred_backend = tk.StringVar(value="Auto")
+
+        # Track current classification scheme
+        self.current_classification_scheme_id = 'regional_triage'
         self.current_classification_scheme_info = None
 
         # Search/filter
@@ -680,15 +789,16 @@ class BasaltTriageApp:
         self.search_var.trace("w", lambda *args: self._apply_filter())
         self.filter_class_var = tk.StringVar(value="All")
 
-        # Selection tracking for delete functionality
-        self.selected_rows = set()  # Track selected row indices
+        # Selection tracking
+        self.selected_rows = set()
 
         # Check for crash recovery
         self._check_crash_recovery()
 
+        # UI BUILDING (This will now build the PanedWindow)
         self._build_ui()
-        
-        # Progress bar (created here, will be shown by plugins when needed)
+
+        # Progress bar
         self.progress_frame = ttk.Frame(self.root, relief="raised", borderwidth=1)
         self.progress_var = tk.DoubleVar(value=0)
         self.progress_bar = ttk.Progressbar(
@@ -700,17 +810,20 @@ class BasaltTriageApp:
         self.progress_bar.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5, pady=2)
         self.progress_label = ttk.Label(self.progress_frame, text="")
         self.progress_label.pack(side=tk.RIGHT, padx=5)
-        self.progress_frame.pack_forget()  # Hide initially
-        
-        # Store menubar reference for plugins
-        self.menubar = self.root.nametowidget(self.root.cget('menu'))
-        
-        # Load plugins if available
+        self.progress_frame.pack_forget()
+
+        # Store menubar reference
+        try:
+            self.menubar = self.root.nametowidget(self.root.cget('menu'))
+        except:
+            self.menubar = None
+
+        # Load plugins
         self._load_plugins()
-        
+
         self._update_status("Ready")
 
-    # ADD THE _open_hardware_plugin METHOD RIGHT HERE ↓↓↓
+
     def _open_hardware_plugin(self, plugin_id):
         """Dynamically open a hardware plugin"""
         try:
@@ -804,6 +917,30 @@ class BasaltTriageApp:
         # Handle clean exit
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
 
+    def setup_dynamic_columns(self, column_names: List[str]):
+        """
+        NEW v10.2: Dismantles the old table structure and builds a new one
+        based on the provided list of headers from any science field.
+        """
+        # Define the new columns in the Treeview
+        self.tree["columns"] = column_names
+        self.tree["displaycolumns"] = column_names
+
+        # Hide the default ghost column #0
+        self.tree.column("#0", width=0, stretch=tk.NO)
+
+        # Create headers dynamically
+        for col in column_names:
+            # Clean up the name for display (e.g., replace underscores with spaces)
+            display_name = col.replace("_", " ")
+            self.tree.heading(col, text=display_name, anchor=tk.CENTER)
+
+            # Set a standard width; this can be adjusted by the user in the UI
+            self.tree.column(col, width=110, anchor=tk.CENTER)
+
+        # Store current headers so other functions know what's active
+        self.active_headers = column_names
+
     def _build_ui(self):
         # Menu bar
         menubar = tk.Menu(self.root)
@@ -839,7 +976,7 @@ class BasaltTriageApp:
         edit_menu.add_separator()
         edit_menu.add_command(label="Classify All (Ctrl+C)", command=self.classify_all)
         edit_menu.add_command(label="Clear All", command=self.clear_all)
-        
+
         # View menu
         view_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="View", menu=view_menu)
@@ -848,7 +985,7 @@ class BasaltTriageApp:
         view_menu.add_separator()
         view_menu.add_command(label="Statistics Summary (Ctrl+T)", command=self.show_statistics)
         view_menu.add_command(label="Threshold Visualization", command=self._show_threshold_table)
-        
+
         # Analysis menu - PROFESSIONAL GRADE DATA PROCESSING
         analysis_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Analysis", menu=analysis_menu)
@@ -860,11 +997,11 @@ class BasaltTriageApp:
         analysis_menu.add_separator()
         analysis_menu.add_command(label="🔍 Sample Validation Report", command=self._show_validation_report)
         analysis_menu.add_command(label="⚖️ Compare Two Samples", command=self._compare_samples)
-        
+
         # Plots menu - ALL THE ESSENTIAL DIAGRAMS IN CORE APP
         plots_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Plots", menu=plots_menu)
-        plots_menu.add_command(label="⭐ TAS Diagram (Total Alkali-Silica)", 
+        plots_menu.add_command(label="⭐ TAS Diagram (Total Alkali-Silica)",
                               command=self._show_tas_diagram,
                               font=("Arial", 10, "bold"))
         plots_menu.add_command(label="🕷️ Spider Diagram (Normalized)", command=self._show_spider_diagram)
@@ -917,34 +1054,31 @@ class BasaltTriageApp:
 
                     rest_schemes.sort(key=lambda s: s.get('name', '').lower())
 
-                    # Your main scheme FIRST (no header, no extra stuff)
+                    # FIX 1: Main Scheme (The 'sid=sid' part is critical)
                     if main_scheme:
                         icon = main_scheme.get('icon', '🪨')
                         name = main_scheme.get('name', 'Basalt Provenance')
+                        msid = main_scheme['id']
                         classify_menu.add_command(
-                            label=f"{icon} {name}",  # simple & safe
-                            command=lambda sid=main_scheme['id']: self.classify_all_with_scheme(sid)
+                            label=f"{icon} {name}",
+                            command=lambda s=msid: self.classify_all_with_scheme(s)
                         )
 
-                    # Single separator only if there are more schemes
                     if rest_schemes:
                         classify_menu.add_separator()
 
-                    # Rest of the schemes
+                    # FIX 2: Loop Schemes (The 's=scheme['id']' freezes the ID for that specific item)
                     for scheme in rest_schemes:
                         icon = scheme.get('icon', '📊')
                         name = scheme.get('name', 'Unnamed')
+                        current_sid = scheme['id']
                         classify_menu.add_command(
                             label=f"{icon} {name}",
-                            command=lambda sid=scheme['id']: self.classify_all_with_scheme(sid)
+                            command=lambda s=current_sid: self.classify_all_with_scheme(s)
                         )
 
             except Exception as e:
-                classify_menu.add_command(
-                    label=f"Error: {str(e)}",
-                    state="disabled"
-                )
-
+                classify_menu.add_command(label=f"Error loading: {str(e)}", state="disabled")
         else:
             classify_menu.add_command(label="Engine not available", state="disabled")
         # ────────────────────────────────────────────────────────────────
@@ -1038,12 +1172,12 @@ class BasaltTriageApp:
 
         tools_menu.add_command(label="Geological Context Guide", command=self._show_geological_context)
         tools_menu.add_separator()
-        
+
         # Plugin system integration
         if HAS_PLUGIN_SYSTEM:
             tools_menu.add_command(label="🔌 Manage Plugins...", command=self._open_plugin_manager)
         else:
-            tools_menu.add_command(label="🔌 Plugins (Not Installed)", 
+            tools_menu.add_command(label="🔌 Plugins (Not Installed)",
                                  state='disabled',
                                  command=lambda: None)
 
@@ -1094,7 +1228,17 @@ class BasaltTriageApp:
         main = ttk.Frame(self.root)
         main.pack(fill=tk.BOTH, expand=True, padx=12, pady=10)
 
-        self.notebook = ttk.Notebook(main)
+        # 1. Create the Horizontal Splitter (PanedWindow)
+        # This replaces the direct notebook placement
+        self.main_pane = ttk.PanedWindow(main, orient=tk.HORIZONTAL)
+        self.main_pane.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
+
+        # 2. Left Side: The Data/Plot Notebook Container
+        self.left_frame = ttk.Frame(self.main_pane)
+        self.main_pane.add(self.left_frame, weight=4) # Weight 4 keeps the table wide
+
+        # 3. Your Original Notebook - Now attached to self.left_frame
+        self.notebook = ttk.Notebook(self.left_frame)
         self.notebook.pack(fill=tk.BOTH, expand=True)
 
         self.table_tab = ttk.Frame(self.notebook)
@@ -1105,9 +1249,259 @@ class BasaltTriageApp:
         self._build_table_tab()
         self._build_plot_tab()
 
+        # 4. Right Side: The Classification HUD
+        # This is the new side-panel for your 15+ results
+        self.right_hud = ttk.LabelFrame(self.main_pane, text=" 🎯 Classification HUD ", padding=5)
+        self.main_pane.add(self.right_hud, weight=1) # Weight 1 keeps this thin
+
+        hud_cols = ("Sample", "Result", "QC")
+
+        # Create a frame inside the hud to hold tree and scrollbar
+        hud_inner = ttk.Frame(self.right_hud)
+        hud_inner.pack(fill=tk.BOTH, expand=True)
+
+        self.hud_tree = ttk.Treeview(hud_inner, columns=hud_cols, show='headings', height=15)
+        self.hud_tree.heading("Sample", text="ID")
+        self.hud_tree.heading("Result", text="Classification")
+        self.hud_tree.heading("QC", text="Status")
+
+        self.hud_tree.column("Sample", width=70, anchor="center")
+        self.hud_tree.column("Result", width=130, anchor="w")
+        self.hud_tree.column("QC", width=80, anchor="center")
+
+        # Create and pack scrollbar for HUD
+        hud_vsb = ttk.Scrollbar(hud_inner, orient="vertical", command=self.hud_tree.yview)
+        self.hud_tree.configure(yscrollcommand=hud_vsb.set)
+
+        # Pack tree and scrollbar side by side
+        self.hud_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        hud_vsb.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Store scrollbar reference for later synchronization
+        self.hud_vsb = hud_vsb
+
+        # Initialize scroll synchronization flag - this prevents infinite loops
+        self._scroll_sync_active = False
+
+        # Re-attach your original events
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
 
-        self.status_var = tk.StringVar(value="Ready")
+        # FIX: Set up scroll synchronization AFTER everything is built
+        self._setup_scroll_sync()
+
+    def _setup_scroll_sync(self):
+        """
+        Set up scrolling synchronization between the main table and HUD table.
+        When one scrolls, the other will scroll to the same position.
+        """
+        # Prevent re-setting up if already done
+        if hasattr(self, '_scroll_sync_configured') and self._scroll_sync_configured:
+            return
+
+        self._scroll_sync_configured = True
+
+        # Flag to prevent infinite recursion when syncing
+        self._is_syncing_scroll = False
+
+        def sync_from_main_to_hud(*args):
+            """When main table scrolls, sync HUD to same position"""
+            if self._is_syncing_scroll:
+                return
+
+            self._is_syncing_scroll = True
+
+            try:
+                # Get the current scroll position from args (first arg is moveto position)
+                if args:
+                    # Sync HUD to same position
+                    self.hud_tree.yview_moveto(args[0])
+                    # Also update HUD scrollbar position
+                    if hasattr(self, 'hud_vsb'):
+                        self.hud_vsb.set(*args)
+            except Exception as e:
+                # Silently fail if there's an issue
+                pass
+
+            self._is_syncing_scroll = False
+
+        def sync_from_hud_to_main(*args):
+            """When HUD scrolls, sync main table to same position"""
+            if self._is_syncing_scroll:
+                return
+
+            self._is_syncing_scroll = True
+
+            try:
+                # Get the current scroll position from args
+                if args:
+                    # Sync main table to same position
+                    self.tree.yview_moveto(args[0])
+                    # Also update main scrollbar position
+                    if hasattr(self, 'vsb'):
+                        self.vsb.set(*args)
+            except Exception as e:
+                # Silently fail if there's an issue
+                pass
+
+            self._is_syncing_scroll = False
+
+        # Store the original scroll commands
+        original_tree_yscroll = self.tree.cget('yscrollcommand')
+        original_hud_yscroll = self.hud_tree.cget('yscrollcommand')
+
+        # Create wrapper functions that call both the original and sync functions
+        def tree_yscroll_wrapper(*args):
+            # Call the original scroll command first
+            if original_tree_yscroll:
+                original_tree_yscroll(*args)
+            # Then sync to HUD
+            sync_from_main_to_hud(*args)
+
+        def hud_yscroll_wrapper(*args):
+            # Call the original scroll command first
+            if original_hud_yscroll:
+                original_hud_yscroll(*args)
+            # Then sync to main table
+            sync_from_hud_to_main(*args)
+
+        # Apply the wrapper functions
+        self.tree.configure(yscrollcommand=tree_yscroll_wrapper)
+        self.hud_tree.configure(yscrollcommand=hud_yscroll_wrapper)
+
+        # Also handle mouse wheel events for manual scrolling
+        def on_tree_mousewheel(event):
+            # Scroll the tree and then sync
+            if event.num == 5 or event.delta < 0:  # Scroll down
+                self.tree.yview_scroll(1, "units")
+            else:  # Scroll up
+                self.tree.yview_scroll(-1, "units")
+            # Get current position and sync
+            sync_from_main_to_hud(self.tree.yview()[0])
+            return "break"
+
+        def on_hud_mousewheel(event):
+            # Scroll the HUD and then sync
+            if event.num == 5 or event.delta < 0:  # Scroll down
+                self.hud_tree.yview_scroll(1, "units")
+            else:  # Scroll up
+                self.hud_tree.yview_scroll(-1, "units")
+            # Get current position and sync
+            sync_from_hud_to_main(self.hud_tree.yview()[0])
+            return "break"
+
+        # Bind mouse wheel events (cross-platform)
+        self.tree.bind("<MouseWheel>", on_tree_mousewheel)
+        self.hud_tree.bind("<MouseWheel>", on_hud_mousewheel)
+
+        # For Linux with button events
+        self.tree.bind("<Button-4>", on_tree_mousewheel)
+        self.tree.bind("<Button-5>", on_tree_mousewheel)
+        self.hud_tree.bind("<Button-4>", on_hud_mousewheel)
+        self.hud_tree.bind("<Button-5>", on_hud_mousewheel)
+
+    def _build_table_tab(self):
+        # Create container that can switch between table and report views
+        self.table_container = ttk.Frame(self.table_tab)
+        self.table_container.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # Main table view (shown by default)
+        self.main_table_view = ttk.Frame(self.table_container)
+        self.main_table_view.pack(fill=tk.BOTH, expand=True)
+
+        # Report view (hidden by default)
+        self.report_view = ttk.Frame(self.table_container)
+
+        # Build form in the table tab - COMPACT LAYOUT
+        form = ttk.LabelFrame(self.table_tab, text="Quick Entry", padding=6)
+        form.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 6), before=self.table_container)
+
+        self.entry_vars = {}
+        # DYNAMIC FIX: Only show basic fields initially; plugins will expand this.
+        fields = ["Sample_ID", "Status", "Notes"]
+
+        for i, field in enumerate(fields):
+            ttk.Label(form, text=f"{field}:", font=("TkDefaultFont", 8)).grid(
+                row=i, column=0, sticky="w", pady=1, padx=2)
+            var = tk.StringVar()
+            self.entry_vars[field] = var
+            ttk.Entry(form, textvariable=var, width=18, font=("TkDefaultFont", 8)).grid(
+                row=i, column=1, pady=1, padx=2, sticky="ew")
+
+        ttk.Button(form, text="Add Row", command=self.add_sample_from_form)\
+            .grid(row=len(fields), column=0, columnspan=2, pady=6, padx=2, sticky="ew")
+
+        table_frame = ttk.Frame(self.main_table_view)
+        table_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Search and Filter controls
+        search_frame = ttk.Frame(table_frame)
+        search_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 5))
+
+        ttk.Label(search_frame, text="Search:").pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Entry(search_frame, textvariable=self.search_var, width=30).pack(side=tk.LEFT, padx=5)
+
+        ttk.Label(search_frame, text="Filter:").pack(side=tk.LEFT, padx=(15, 5))
+
+        # DYNAMIC FIX: Filter now starts generic; schemes will populate this.
+        self.filter_options = ["All", "UNCLASSIFIED", "REVIEW REQUIRED"]
+        self.filter_menu = ttk.OptionMenu(search_frame, self.filter_class_var, "All", *self.filter_options,
+                                 command=lambda x: self._apply_filter())
+        self.filter_menu.pack(side=tk.LEFT, padx=5)
+
+        ttk.Button(search_frame, text="Clear Filter", command=self._clear_filter).pack(side=tk.LEFT, padx=5)
+
+        # INITIALIZE TREEVIEW
+        initial_cols = ["Sample_ID", "Notes"]
+        self.tree = ttk.Treeview(table_frame, columns=initial_cols, show="headings", height=26)
+
+        # Store scrollbars as instance variables for synchronization
+        vsb = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
+        hsb = ttk.Scrollbar(table_frame, orient="horizontal", command=self.tree.xview)
+
+        # Configure tree with scroll commands - we'll replace these later with sync functions
+        self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+        # Store scrollbar references
+        self.vsb = vsb  # Main vertical scrollbar
+        self.hsb = hsb  # Main horizontal scrollbar
+
+        self.tree.grid(row=1, column=0, sticky="nsew")
+        vsb.grid(row=1, column=1, sticky="ns")
+        hsb.grid(row=2, column=0, sticky="ew")
+
+        table_frame.rowconfigure(1, weight=1)
+        table_frame.columnconfigure(0, weight=1)
+
+        # APPLY DYNAMIC HEADERS
+        # This will now create the "Notes" column automatically
+        self.setup_dynamic_columns(initial_cols)
+
+        # Pagination controls
+        page_frame = ttk.Frame(table_frame)
+        page_frame.grid(row=3, column=0, columnspan=2, pady=5, sticky="ew")
+
+        # Binds
+        self.tree.bind("<Button-1>", self._on_table_click)
+        self.tree.bind("<Double-1>", self._on_row_double_click)
+        self.tree.bind("<Button-3>", self._show_context_menu)
+        self.tree.bind("<Button-2>", self._show_context_menu)
+
+        self.prev_btn = ttk.Button(page_frame, text="Previous", command=self._prev_page)
+        self.prev_btn.pack(side=tk.LEFT, padx=5)
+
+        self.page_label = tk.Label(page_frame, text="Page 1 of 1", font=("TkDefaultFont", 10))
+        self.page_label.pack(side=tk.LEFT, padx=10)
+
+        self.next_btn = ttk.Button(page_frame, text="Next", command=self._next_page)
+        self.next_btn.pack(side=tk.LEFT, padx=5)
+
+        # Add selection controls on the right
+        ttk.Button(page_frame, text="Select All", command=self._select_all_rows).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(page_frame, text="Deselect All", command=self._deselect_all_rows).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(page_frame, text="🗑️ Delete Selected", command=self._delete_selected_rows).pack(side=tk.RIGHT, padx=5)
+
+        self.selection_label = tk.Label(page_frame, text="Selected: 0", font=("TkDefaultFont", 10, "bold"))
+        self.selection_label.pack(side=tk.RIGHT, padx=15)
 
     def _on_tab_changed(self, event):
         selected_tab = self.notebook.select()
@@ -1139,6 +1533,118 @@ class BasaltTriageApp:
             corner_msg = "matplotlib" if HAS_MATPLOTLIB else ("Pillow" if HAS_PILLOW else "Basic Tk")
             self.backend_status_label.config(text=corner_msg, fg=color)
 
+    def _setup_scroll_sync(self):
+        """
+        Set up scrolling synchronization between the main table and HUD table.
+        When one scrolls, the other will scroll to the same position.
+        """
+        # Prevent re-setting up if already done
+        if hasattr(self, '_scroll_sync_configured') and self._scroll_sync_configured:
+            return
+
+        self._scroll_sync_configured = True
+
+        # Flag to prevent infinite recursion when syncing
+        self._is_syncing_scroll = False
+
+        def sync_from_main_to_hud(*args):
+            """When main table scrolls, sync HUD to same position"""
+            if self._is_syncing_scroll:
+                return
+
+            self._is_syncing_scroll = True
+
+            try:
+                # Get the current scroll position from args (first arg is moveto position)
+                if args:
+                    # Sync HUD to same position
+                    self.hud_tree.yview_moveto(args[0])
+                    # Also update HUD scrollbar position
+                    if hasattr(self, 'hud_vsb'):
+                        self.hud_vsb.set(*args)
+            except Exception as e:
+                # Silently fail if there's an issue
+                pass
+
+            self._is_syncing_scroll = False
+
+        def sync_from_hud_to_main(*args):
+            """When HUD scrolls, sync main table to same position"""
+            if self._is_syncing_scroll:
+                return
+
+            self._is_syncing_scroll = True
+
+            try:
+                # Get the current scroll position from args
+                if args:
+                    # Sync main table to same position
+                    self.tree.yview_moveto(args[0])
+                    # Also update main scrollbar position
+                    if hasattr(self, 'vsb'):
+                        self.vsb.set(*args)
+            except Exception as e:
+                # Silently fail if there's an issue
+                pass
+
+            self._is_syncing_scroll = False
+
+        # Store the original scroll commands
+        original_tree_yscroll = self.tree.cget('yscrollcommand')
+        original_hud_yscroll = self.hud_tree.cget('yscrollcommand')
+
+        # Store references to the scrollbar set methods (which are callable)
+        original_tree_scroll_set = self.vsb.set  # This is a callable method
+        original_hud_scroll_set = self.hud_vsb.set  # This is a callable method
+
+        # Create wrapper functions that call both the original and sync functions
+        def tree_yscroll_wrapper(*args):
+            # Call the original scrollbar set method first (updates scrollbar position)
+            original_tree_scroll_set(*args)
+            # Then sync to HUD
+            sync_from_main_to_hud(*args)
+
+        def hud_yscroll_wrapper(*args):
+            # Call the original scrollbar set method first (updates scrollbar position)
+            original_hud_scroll_set(*args)
+            # Then sync to main table
+            sync_from_hud_to_main(*args)
+
+        # Apply the wrapper functions
+        self.tree.configure(yscrollcommand=tree_yscroll_wrapper)
+        self.hud_tree.configure(yscrollcommand=hud_yscroll_wrapper)
+
+        # Also handle mouse wheel events for manual scrolling
+        def on_tree_mousewheel(event):
+            # Scroll the tree and then sync
+            if event.num == 5 or event.delta < 0:  # Scroll down
+                self.tree.yview_scroll(1, "units")
+            else:  # Scroll up
+                self.tree.yview_scroll(-1, "units")
+            # Get current position and sync
+            sync_from_main_to_hud(self.tree.yview()[0])
+            return "break"
+
+        def on_hud_mousewheel(event):
+            # Scroll the HUD and then sync
+            if event.num == 5 or event.delta < 0:  # Scroll down
+                self.hud_tree.yview_scroll(1, "units")
+            else:  # Scroll up
+                self.hud_tree.yview_scroll(-1, "units")
+            # Get current position and sync
+            sync_from_hud_to_main(self.hud_tree.yview()[0])
+            return "break"
+
+        # Bind mouse wheel events (cross-platform)
+        self.tree.bind("<MouseWheel>", on_tree_mousewheel)
+        self.hud_tree.bind("<MouseWheel>", on_hud_mousewheel)
+
+        # For Linux with button events
+        self.tree.bind("<Button-4>", on_tree_mousewheel)
+        self.tree.bind("<Button-5>", on_tree_mousewheel)
+        self.hud_tree.bind("<Button-4>", on_hud_mousewheel)
+        self.hud_tree.bind("<Button-5>", on_hud_mousewheel)
+
     def _build_table_tab(self):
         # Create container that can switch between table and report views
         self.table_container = ttk.Frame(self.table_tab)
@@ -1152,23 +1658,22 @@ class BasaltTriageApp:
         self.report_view = ttk.Frame(self.table_container)
 
         # Build form in the table tab - COMPACT LAYOUT
-        form = ttk.LabelFrame(self.table_tab, text="Manual Input", padding=6)
+        form = ttk.LabelFrame(self.table_tab, text="Quick Entry", padding=6)
         form.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 6), before=self.table_container)
 
         self.entry_vars = {}
-        fields = ["Sample_ID", "Museum_Code", "Museum_URL", "Wall_Thickness_mm", "Zr_ppm", "Nb_ppm", "Ba_ppm", "Rb_ppm", "Cr_ppm", "Ni_ppm"]
+        # DYNAMIC FIX: Only show basic fields initially; plugins will expand this.
+        fields = ["Sample_ID", "Notes"]
 
         for i, field in enumerate(fields):
             ttk.Label(form, text=f"{field}:", font=("TkDefaultFont", 8)).grid(
                 row=i, column=0, sticky="w", pady=1, padx=2)
             var = tk.StringVar()
             self.entry_vars[field] = var
-            # Narrower entry fields - Museum_URL still gets more space
-            width = 28 if field == "Museum_URL" else 18
-            ttk.Entry(form, textvariable=var, width=width, font=("TkDefaultFont", 8)).grid(
+            ttk.Entry(form, textvariable=var, width=18, font=("TkDefaultFont", 8)).grid(
                 row=i, column=1, pady=1, padx=2, sticky="ew")
 
-        ttk.Button(form, text="Add Sample", command=self.add_sample_from_form)\
+        ttk.Button(form, text="Add Row", command=self.add_sample_from_form)\
             .grid(row=len(fields), column=0, columnspan=2, pady=6, padx=2, sticky="ew")
 
         table_frame = ttk.Frame(self.main_table_view)
@@ -1181,53 +1686,30 @@ class BasaltTriageApp:
         ttk.Label(search_frame, text="Search:").pack(side=tk.LEFT, padx=(0, 5))
         ttk.Entry(search_frame, textvariable=self.search_var, width=30).pack(side=tk.LEFT, padx=5)
 
-        ttk.Label(search_frame, text="Filter by Class:").pack(side=tk.LEFT, padx=(15, 5))
-        filter_options = ["All", "EGYPTIAN (HADDADIN FLOW)", "EGYPTIAN (ALKALINE / EXOTIC)",
-                         "SINAI OPHIOLITIC", "SINAI / TRANSITIONAL", "LOCAL LEVANTINE", "REVIEW REQUIRED"]
-        ttk.OptionMenu(search_frame, self.filter_class_var, "All", *filter_options,
-                      command=lambda x: self._apply_filter()).pack(side=tk.LEFT, padx=5)
+        ttk.Label(search_frame, text="Filter:").pack(side=tk.LEFT, padx=(15, 5))
+
+        # DYNAMIC FIX: Filter now starts generic; schemes will populate this.
+        self.filter_options = ["All", "UNCLASSIFIED", "REVIEW REQUIRED"]
+        self.filter_menu = ttk.OptionMenu(search_frame, self.filter_class_var, "All", *self.filter_options,
+                                 command=lambda x: self._apply_filter())
+        self.filter_menu.pack(side=tk.LEFT, padx=5)
 
         ttk.Button(search_frame, text="Clear Filter", command=self._clear_filter).pack(side=tk.LEFT, padx=5)
 
-        self.tree = ttk.Treeview(table_frame, columns=["☐"] + DISPLAY_COLUMNS, show="headings", height=26)
+        # INITIALIZE TREEVIEW
+        initial_cols = ["Sample_ID", "Notes"]
+        self.tree = ttk.Treeview(table_frame, columns=initial_cols, show="headings", height=26)
 
-        # Checkbox column first
-        self.tree.heading("☐", text="☐")
-        self.tree.column("☐", width=30, anchor="center")
-
-        # Define optimal column widths based on content type
-        column_widths = {
-            "Sample_ID": 120,
-            "Museum_Code": 150,
-            "Museum_URL": 300,  # URLs need more space
-            "Wall_Thickness_mm": 90,
-            "Zr_ppm": 70,
-            "Nb_ppm": 70,
-            "Ba_ppm": 70,
-            "Rb_ppm": 70,
-            "Cr_ppm": 70,
-            "Ni_ppm": 70,
-            "Zr_Nb_Ratio": 85,
-            "Cr_Ni_Ratio": 85,
-            "Ba_Rb_Ratio": 85,
-            "Auto_Classification": 180,
-            "Auto_Confidence": 90,
-            "Final_Classification": 180,
-            "Confidence_1_to_5": 95,
-            "Flag_For_Review": 90,
-        }
-
-        # Make columns sortable with optimized widths
-        for col in DISPLAY_COLUMNS:
-            self.tree.heading(col, text=col.replace("_", " "),
-                            command=lambda c=col: self._sort_column(c))
-            width = column_widths.get(col, 100)  # Default to 100 if not specified
-            anchor = "w" if col == "Museum_URL" else "center"  # Left-align URLs
-            self.tree.column(col, width=width, anchor=anchor)
-
+        # Store scrollbars as instance variables for synchronization
         vsb = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
         hsb = ttk.Scrollbar(table_frame, orient="horizontal", command=self.tree.xview)
+
+        # Configure tree with scroll commands - we'll replace these later with sync functions
         self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+        # Store scrollbar references
+        self.vsb = vsb  # Main vertical scrollbar
+        self.hsb = hsb  # Main horizontal scrollbar
 
         self.tree.grid(row=1, column=0, sticky="nsew")
         vsb.grid(row=1, column=1, sticky="ns")
@@ -1236,19 +1718,19 @@ class BasaltTriageApp:
         table_frame.rowconfigure(1, weight=1)
         table_frame.columnconfigure(0, weight=1)
 
+        # APPLY DYNAMIC HEADERS
+        # This will now create the "Notes" column automatically
+        self.setup_dynamic_columns(initial_cols)
+
         # Pagination controls
         page_frame = ttk.Frame(table_frame)
         page_frame.grid(row=3, column=0, columnspan=2, pady=5, sticky="ew")
 
-        # Click to select (checkbox)
+        # Binds
         self.tree.bind("<Button-1>", self._on_table_click)
-
-        # Double-click to edit
         self.tree.bind("<Double-1>", self._on_row_double_click)
-
-        # Right-click context menu
-        self.tree.bind("<Button-3>", self._show_context_menu)  # Right-click (Windows/Linux)
-        self.tree.bind("<Button-2>", self._show_context_menu)  # Right-click (Mac)
+        self.tree.bind("<Button-3>", self._show_context_menu)
+        self.tree.bind("<Button-2>", self._show_context_menu)
 
         self.prev_btn = ttk.Button(page_frame, text="Previous", command=self._prev_page)
         self.prev_btn.pack(side=tk.LEFT, padx=5)
@@ -1266,9 +1748,6 @@ class BasaltTriageApp:
 
         self.selection_label = tk.Label(page_frame, text="Selected: 0", font=("TkDefaultFont", 10, "bold"))
         self.selection_label.pack(side=tk.RIGHT, padx=15)
-
-        for cls, color in COLOR_MAP.items():
-            self.tree.tag_configure(cls, background=color)
 
     def _show_report_view(self):
         """Switch from table to report view"""
@@ -1308,67 +1787,88 @@ class BasaltTriageApp:
         self.next_btn.state(["!disabled" if self.current_page < total_pages - 1 else "disabled"])
 
     def _build_plot_tab(self):
+        # ... (keep the top bar code you have)
         top = ttk.Frame(self.plot_tab)
         top.pack(side=tk.TOP, fill=tk.X, pady=4, padx=4)
 
-        # Info label with colored backend status - using tk.Label for color support
-        self.plot_info_var = tk.StringVar(value="Click 'Generate Plot' to create visualization")
-        self.plot_info_label = tk.Label(top, textvariable=self.plot_info_var,
-                                       font=("TkDefaultFont", 10, "bold"))
-        self.plot_info_label.pack(side=tk.LEFT, padx=4)
+        # (keep your labels and buttons)
+        # ...
 
-        # Backend selector in the middle
-        backend_frame = ttk.Frame(top)
-        backend_frame.pack(side=tk.LEFT, padx=20)
-
-        ttk.Label(backend_frame, text="Plotting Engine:").pack(side=tk.LEFT, padx=(0, 5))
-
-        # Determine available backends
-        backend_options = ["Auto"]
-        if HAS_MATPLOTLIB:
-            backend_options.append("Matplotlib")
-        if HAS_PILLOW:
-            backend_options.append("Pillow")
-        backend_options.append("Basic Tk")
-
-        self.backend_dropdown = ttk.OptionMenu(
-            backend_frame,
-            self.preferred_backend,
-            "Auto",
-            *backend_options,
-            command=self._on_backend_changed
-        )
-        self.backend_dropdown.pack(side=tk.LEFT)
-
-        # Buttons on the right
-        button_frame = ttk.Frame(top)
-        button_frame.pack(side=tk.RIGHT)
-
-        ttk.Button(button_frame, text="Generate Plot", command=lambda: (print("BUTTON CLICKED!"), self.refresh_plot())).pack(side=tk.LEFT, padx=2)
-        ttk.Button(button_frame, text="Save Plot", command=self.save_plot).pack(side=tk.LEFT, padx=2)
-        ttk.Button(button_frame, text="Clear Plot", command=self.clear_plot).pack(side=tk.LEFT, padx=2)
-        ttk.Button(button_frame, text="Back to Table",
-                   command=lambda: self.notebook.select(self.table_tab)).pack(side=tk.LEFT, padx=2)
-
-        self.plot_area = ttk.Frame(self.plot_tab, relief="sunken")
+        # THE FIX: Use tk.Frame instead of ttk.Frame for the plot area
+        # This prevents the "white void" on Linux
+        self.plot_area = tk.Frame(self.plot_tab, bg="white", relief="sunken", borderwidth=1)
         self.plot_area.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
 
-        # Backend status label in bottom-right corner
-        self.backend_status_label = tk.Label(self.plot_area, text="", fg="black", bg="white",
-                                             font=("TkDefaultFont", 8, "italic"))
-        self.backend_status_label.place(relx=1.0, rely=1.0, anchor="se", x=-10, y=-5)
+        # Move the status label to the 'top' frame instead of 'place' inside the plot
+        self.backend_status_label = tk.Label(top, text="", fg="blue", font=("TkDefaultFont", 8, "italic"))
+        self.backend_status_label.pack(side=tk.RIGHT, padx=10)
+
+        # Info label
+        self.plot_info_var = tk.StringVar(value="Click 'Generate Plot' to create visualization")
+        self.plot_info_label = tk.Label(top, textvariable=self.plot_info_var, font=("TkDefaultFont", 10, "bold"))
+        self.plot_info_label.pack(side=tk.LEFT, padx=4)
+
+        # Backend selector
+        backend_frame = ttk.Frame(top)
+        backend_frame.pack(side=tk.LEFT, padx=20)
+        ttk.Label(backend_frame, text="Plotting Engine:").pack(side=tk.LEFT, padx=(0, 5))
+
+        backend_options = ["Auto"]
+        if HAS_MATPLOTLIB: backend_options.append("Matplotlib")
+        if HAS_PILLOW: backend_options.append("Pillow")
+        backend_options.append("Basic Tk")
+
+        self.backend_dropdown = ttk.OptionMenu(backend_frame, self.preferred_backend, "Auto", *backend_options, command=self._on_backend_changed)
+        self.backend_dropdown.pack(side=tk.LEFT)
+
+        # Buttons
+        button_frame = ttk.Frame(top)
+        button_frame.pack(side=tk.RIGHT)
+        ttk.Button(button_frame, text="Generate Plot", command=self.refresh_plot).pack(side=tk.LEFT, padx=2)
+        ttk.Button(button_frame, text="Save Plot", command=self.save_plot).pack(side=tk.LEFT, padx=2)
+        ttk.Button(button_frame, text="Clear Plot", command=self.clear_plot).pack(side=tk.LEFT, padx=2)
+
+        # --- THE FIX STARTS HERE ---
+        # Create a container frame that holds BOTH the plot and the status bar
+        container = ttk.Frame(self.plot_tab)
+        container.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        # 1. The actual Plot Area (Now purely for the plot)
+        self.plot_area = tk.Frame(container, bg="white", relief="sunken", borderwidth=1)
+        self.plot_area.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        # 2. Separate Status Bar (So it doesn't overlap the Matplotlib canvas)
+        status_bar = tk.Frame(container)
+        status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+
+        self.backend_status_label = tk.Label(status_bar, text="", fg="gray", font=("TkDefaultFont", 8, "italic"))
+        self.backend_status_label.pack(side=tk.RIGHT)
 
     # ────────────────────────────────────────────────
     # Table actions
     # ────────────────────────────────────────────────
     def _get_row_values(self, row: Dict[str, Any]) -> Tuple:
-        # Get row index to check if selected
-        try:
-            row_idx = self.samples.index(row)
-            checkbox = "☑" if row_idx in self.selected_rows else "☐"
-        except:
-            checkbox = "☐"
-        return tuple([checkbox] + [str(row.get(key, "")) for key in DISPLAY_COLUMNS])
+        """FIXED: Optimized O(1) lookup that ensures classification results appear in the table."""
+        # 1. Checkbox state (Simple check, no expensive index lookup)
+        sample_id = row.get("Sample_ID", "N/A")
+        checkbox = "☑" if sample_id in self.selected_rows else "☐"
+
+        # 2. Get active columns from the widget
+        current_columns = self.tree["columns"]
+
+        row_data = []
+        for col in current_columns:
+            if col == "☐":
+                row_data.append(checkbox)
+            elif col in ["Zr_Nb_Ratio", "Cr_Ni_Ratio", "Ba_Rb_Ratio"]:
+                # Format numeric ratios to 3 decimal places for display
+                val = row.get(col)
+                row_data.append(f"{val:.3f}" if isinstance(val, (int, float)) else str(val or ""))
+            else:
+                # Get anything else (Classification, Sample_ID, etc.)
+                row_data.append(str(row.get(col, "")))
+
+        return tuple(row_data)
 
     def _insert_row(self, row: Dict[str, Any]):
         tag = row.get("Final_Classification") or row.get("Auto_Classification") or "REVIEW REQUIRED"
@@ -1389,6 +1889,13 @@ class BasaltTriageApp:
         self._save_undo()
         self.samples.append(row)
         self._apply_filter()  # Use filter instead of refresh
+        # FIX FOR ISSUE #2: Sync HUD when adding new sample
+        if hasattr(self, 'hud_tree'):
+            self._update_hud_results(self.samples)
+
+        self._clear_form()
+        self._mark_unsaved_changes()
+        self._update_status(f"Added {row['Sample_ID']}")
         self._clear_form()
         self._mark_unsaved_changes()
         self._update_status(f"Added {row['Sample_ID']}")
@@ -1456,7 +1963,7 @@ class BasaltTriageApp:
             'Lu_ppm': ['lu_ppm', 'luppm', '^lu$', 'lutetium'],
             
             # Major elements (wt%)
-            'SiO2': ['sio2', 'sio2_wt%', 'sio2wt%', 'silica', 'si_o2'],
+            'SiO2': ['sio2', 'sio2_wt%', 'sio2wt%', 'silica', 'si_o2', 'si02', 'sio₂'],
             'TiO2': ['tio2', 'tio2_wt%', 'tio2wt%', 'titania', 'ti_o2'],
             'Al2O3': ['al2o3', 'al2o3_wt%', 'al2o3wt%', 'alumina', 'al_2o3'],
             'Fe2O3': ['fe2o3', 'fe2o3_wt%', 'fe2o3wt%', 'feo_t', 'feot', 'iron', 'fe_2o3'],
@@ -1653,259 +2160,376 @@ class BasaltTriageApp:
             return str(value)  # Return as-is if can't parse
 
     def import_csv(self):
-        """Smart import for CSV and Excel files"""
         path = filedialog.askopenfilename(
-            title="Import pXRF Data",
-            filetypes=[
-                ("All supported files", "*.csv *.xlsx *.xls"),
-                ("CSV files", "*.csv"),
-                ("Excel files", "*.xlsx *.xls"),
-                ("All files", "*.*")
-            ]
+            title="Import Dataset",
+            filetypes=[("Data files", "*.csv *.xlsx *.xls"), ("All files", "*.*")]
         )
         if not path:
             return
 
         try:
-            imported_count = 0
-
-            # Determine file type and read accordingly
+            # 1. Load file into new_samples + headers
             if path.lower().endswith(('.xlsx', '.xls')):
-                # Excel import
-                if not HAS_PANDAS:
-                    messagebox.showerror("Pandas Required",
-                        "Excel import requires pandas library.\n\n"
-                        "Install with: pip install pandas openpyxl")
-                    return
-
-                # Read Excel file
-                df = pd.read_excel(path, header=None)
-                rows = df.values.tolist()
-
-                # Find where data starts
-                start_row = self._find_data_start_row(rows)
-
-                # Get headers
-                headers = [str(cell) if cell is not None else f'Col_{i}'
-                          for i, cell in enumerate(rows[start_row])]
-
-                # Map columns
-                column_map = self._smart_column_mapper(headers)
-
-                # Check if next row is units row and skip it
-                data_start_idx = start_row + 1
-                if data_start_idx < len(rows) and self._is_units_row(rows[data_start_idx]):
-                    data_start_idx += 1  # Skip units row
-                    print(f"  Skipped units row at line {data_start_idx}")
-
-                # Import data rows
-                for row in rows[data_start_idx:]:
-                    sample = {}
-
-                    # Map values
-                    for i, (header, cell_value) in enumerate(zip(headers, row)):
-                        if header in column_map:
-                            target_col = column_map[header]
-                            sample[target_col] = self._parse_value(cell_value)
-
-                    # Only add if we have some element data
-                    if any(sample.get(el) for el in ['Cr_ppm', 'Ni_ppm', 'Zr_ppm', 'Nb_ppm', 'Ba_ppm', 'Rb_ppm']):
-                        # Generate Sample_ID if missing
-                        if not sample.get('Sample_ID'):
-                            sample['Sample_ID'] = f"Sample_{len(self.samples) + imported_count + 1}"
-
-                        self.samples.append(sample)
-                        imported_count += 1
-
+                df = pd.read_excel(path)
+                headers = df.columns.tolist()
+                new_samples = df.to_dict(orient='records')
             else:
-                # CSV import
-                with open(path, 'r', encoding='utf-8-sig', errors='replace') as f:
-                    # Read all lines
-                    lines = f.readlines()
-
-                    # Find data start
-                    rows = [line.strip().split(',') for line in lines if line.strip()]
-                    start_row = self._find_data_start_row(rows)
-
-                    # Re-read from the start row with csv.DictReader
-                    f.seek(0)
-                    for _ in range(start_row):
-                        next(f)  # Skip to data start
-
+                with open(path, 'r', encoding='utf-8-sig') as f:
                     reader = csv.DictReader(f)
-                    column_map = self._smart_column_mapper(reader.fieldnames)
+                    headers = reader.fieldnames
+                    new_samples = [row for row in reader]
 
-                    for row in reader:
-                        sample = {}
+            # 2. Clear table + internal data BEFORE changing columns
+            self.tree.delete(*self.tree.get_children())
+            self.samples = []
+            self.root.update()
 
-                        # Map columns
-                        for source_col, target_col in column_map.items():
-                            if source_col in row:
-                                sample[target_col] = self._parse_value(row[source_col])
+            # 3. Build dynamic columns from imported headers
+            # No forced columns, no fixed schema
+            self.setup_dynamic_columns(headers)
+            self.root.update()
 
-                        # Only add if we have some element data
-                        if any(sample.get(el) for el in ['Cr_ppm', 'Ni_ppm', 'Zr_ppm', 'Nb_ppm', 'Ba_ppm', 'Rb_ppm']):
-                            # Generate Sample_ID if missing
-                            if not sample.get('Sample_ID'):
-                                sample['Sample_ID'] = f"Sample_{len(self.samples) + imported_count + 1}"
+            # 4. Insert rows using the dynamic headers
+            for row in new_samples:
+                clean_row = {k: self._parse_value(v) for k, v in row.items()}
+                self.samples.append(clean_row)
 
-                            self.samples.append(sample)
-                            imported_count += 1
+            # 5. Refresh table
+            self.current_page = 0
+            self.refresh_tree()
 
-            if imported_count > 0:
-                self.current_page = 0
-                self.refresh_tree()
-                self._update_status(f"Imported {imported_count} samples")
-                messagebox.showinfo("Import Success",
-                    f"Successfully imported {imported_count} samples.\n\n"
-                    "Note: Negative values (below detection limit) were skipped.\n"
-                    "Add Wall Thickness and any missing elements manually.")
-            else:
-                messagebox.showwarning("No Data",
-                    "No valid samples found in file.\n\n"
-                    "Make sure file contains geochemical data columns:\n"
-                    "Cr, Ni, Zr, Nb, Ba, Rb (in any format)")
+            # 6. HUD refresh (optional)
+            if hasattr(self, 'hud_tree'):
+                self._update_hud_results([])  # empty HUD until classification
+
+            messagebox.showinfo("Success", f"Imported {len(self.samples)} rows.")
 
         except Exception as e:
-            messagebox.showerror("Import Error",
-                f"Failed to import file:\n\n{str(e)}\n\n"
-                "Try checking:\n"
-                "• File is not corrupted\n"
-                "• File contains geochemical data\n"
-                "• Column names include element symbols")
+            messagebox.showerror("Import Error", f"Crashed during import:\n{str(e)}")
+
+    def classify_all_with_scheme(self, scheme_id=None):
+        if scheme_id is None:
+            scheme_id = "regional_triage"
+
+        self.active_scheme_id = scheme_id
+        self.classify_all()
 
     def classify_all(self):
-        """
-        Classify all samples using the default classification scheme (legacy shortcut)
-        Now uses the new classification engine with the original scheme
-        """
-        if HAS_CLASSIFICATION_ENGINE:
-            # Use the new engine with the original Basalt Provenance Triage scheme
-            self.classify_all_with_scheme('regional_triage')
-        else:
-            # Fallback to old method if engine not available
-            if not self.samples:
-                messagebox.showinfo("Info", "No samples.")
-                return
-
-            for row in self.samples:
-                zrnb, crni, barb, auto, conf, flag = classify_row(row)
-                row["Zr_Nb_Ratio"] = f"{zrnb:.3f}" if zrnb is not None else ""
-                row["Cr_Ni_Ratio"] = f"{crni:.3f}" if crni is not None else ""
-                row["Ba_Rb_Ratio"] = f"{barb:.3f}" if barb is not None else ""
-                row["Auto_Classification"] = auto
-                row["Auto_Confidence"] = conf
-                row["Flag_For_Review"] = flag
-
-                if "Final_Classification" not in row or not row["Final_Classification"]:
-                    row["Final_Classification"] = auto
-                    row["Confidence_1_to_5"] = conf
-
-            self.refresh_tree()
-            self._mark_unsaved_changes()
-            self._update_status("Classification complete (legacy mode)")
-
-    def classify_all_with_scheme(self, scheme_id):
-        """
-        NEW v10.2: Classify all samples using a selected classification scheme
-        """
         if not self.samples:
             messagebox.showinfo("Info", "No samples to classify.")
             return
 
-        if not HAS_CLASSIFICATION_ENGINE:
-            messagebox.showerror("Error", "Classification engine not available!")
+        if not hasattr(self, "engine") or self.engine is None:
+            messagebox.showerror("Error", "Classification engine not initialized.")
+            return
+
+        if not hasattr(self, "active_scheme_id") or not self.active_scheme_id:
+            messagebox.showerror("Error", "No classification scheme selected.")
+            return
+
+        hud_results = []
+
+        for row in self.samples:
+            clean = {}
+
+            # 1. Copy all non-empty fields, strip key whitespace
+            for k, v in row.items():
+                if v not in (None, ""):
+                    clean[str(k).strip()] = v
+
+            # 2. Ensure Wall_Thickness_mm exists (for schemes that need it)
+            if "Wall_Thickness_mm" not in clean or clean["Wall_Thickness_mm"] in (None, ""):
+                clean["Wall_Thickness_mm"] = 3.5
+
+            # 3. Force Zr_ppm and Zr_error to float if present
+            zr_val = clean.get("Zr_ppm")
+            zr_err = clean.get("Zr_error")
+
+            zr_ppm = None
+            zr_error = None
+
+            try:
+                if zr_val is not None and zr_val != "":
+                    zr_ppm = float(zr_val)
+                    clean["Zr_ppm"] = zr_ppm
+            except (ValueError, TypeError):
+                zr_ppm = None
+
+            try:
+                if zr_err is not None and zr_err != "":
+                    zr_error = float(zr_err)
+                    clean["Zr_error"] = zr_error
+            except (ValueError, TypeError):
+                zr_error = None
+
+            # 4. Compute Zr_RSD if possible
+            if zr_ppm is not None and zr_error is not None and zr_ppm != 0:
+                clean["Zr_RSD"] = zr_error / zr_ppm
+
+            # 5. DEBUG: see exactly what the engine gets for this scheme
+            #    (you can remove this once it works)
+            if self.active_scheme_id == "analytical_precision_filter":
+                print("\n=== DEBUG analytical_precision_filter SAMPLE ===")
+                print("Sample_ID:", row.get("Sample_ID"))
+                print("All keys:", list(clean.keys()))
+                print("==============================================\n")
+
+            # 6. Classify
+            classification, confidence, color = self.engine.classify_sample(
+                clean,
+                self.active_scheme_id
+            )
+
+            hud_results.append({
+                "Sample_ID": row.get("Sample_ID", "N/A"),
+                "Classification": classification,
+                "Confidence": confidence,
+                "Color": color
+            })
+
+        if hasattr(self, "_update_hud_results"):
+            self._update_hud_results(hud_results)
+
+        messagebox.showinfo(
+            "Success",
+            f"Classified {len(self.samples)} samples using scheme '{self.active_scheme_id}'."
+        )
+
+    def _update_hud_results(self, results):
+        if not hasattr(self, 'hud_tree'):
+            return
+
+        for item in self.hud_tree.get_children():
+            self.hud_tree.delete(item)
+
+        for res in results:
+            sample_id = res.get("Sample_ID", "N/A")
+            classification = res.get("Classification", "UNCLASSIFIED")
+            flag = res.get("Flag", "NO")
+
+            if flag == "YES" or classification == "REVIEW REQUIRED":
+                status = "⚠ REVIEW"
+            elif classification == "UNCLASSIFIED":
+                status = "..."
+            else:
+                status = "✓ OK"
+
+            item_id = self.hud_tree.insert("", "end",
+                                        values=(sample_id, classification, status))
+
+            hex_color = SCATTER_COLORS.get(classification, "gray")
+
+            tag_name = f"hud_{classification}"
+
+            self.hud_tree.tag_configure(tag_name, foreground=hex_color)
+            self.hud_tree.item(item_id, tags=(tag_name,))
+
+
+    def _clear_hud(self):
+        """Clears all entries from the right-side classification sidebar"""
+        if hasattr(self, 'hud_tree'):
+            for item in self.hud_tree.get_children():
+                self.hud_tree.delete(item)
+
+    def _update_hud_results(self, results):
+        """FIXED: Unified HUD update that synchronizes with the Plot and Table."""
+        self._clear_hud()
+
+        for res in results:
+            sample_id = res.get('Sample_ID', res.get('id', 'N/A'))
+
+            # Unified priority for classification
+            # FIX FOR ISSUE #5: Use unified reader
+            classification = get_consistent_classification(res)
+
+            # Unified status logic
+            is_flagged = res.get('Flag_For_Review') == 'YES' or res.get('flag') == 'YES'
+            if is_flagged or classification == "REVIEW REQUIRED":
+                status = "⚠ REVIEW"
+            elif classification == "UNCLASSIFIED":
+                status = "..."
+            else:
+                status = "✓ OK"
+
+            # Insert and apply color tag
+            item_id = self.hud_tree.insert("", "end", values=(sample_id, classification, status))
+
+            # Retrieve color from central SCATTER_COLORS map
+            hex_color = SCATTER_COLORS.get(classification, "gray")
+            # Tkinter tags need unique names; we use the classification string
+            self.hud_tree.tag_configure(classification, foreground=hex_color)
+            self.hud_tree.item(item_id, tags=(classification,))
+
+    def classify_all_with_scheme(self, scheme_id=None):
+        if scheme_id is None: scheme_id = 'regional_triage'
+
+        if not self.samples:
+            print("DEBUG: No samples found in self.samples.")
             return
 
         try:
-            # Initialize classification engine
             engine = ClassificationEngine()
 
-            # FIX: Convert DataFrame → list of dicts
-            if HAS_PANDAS and isinstance(self.samples, pd.DataFrame):
-                samples_list = self.samples.to_dict(orient="records")
-            else:
-                samples_list = self.samples
-
-            # Get scheme info
-            scheme_info = engine.get_scheme_info(scheme_id)
-            scheme_name = scheme_info.get('name', scheme_id)
-
-            # Classify all samples (engine-safe)
-            classified = engine.classify_all_samples(samples_list, scheme_id)
-            self.samples = classified
-
-            # Store current scheme for dynamic plotting
-            self.current_classification_scheme_id = scheme_id
-            self.current_classification_scheme_info = scheme_info
-
-            # Compute ratios for plotting (if not already present)
+            # 1. Prepare Data
+            prepared_list = []
             for row in self.samples:
-                if not row.get("Zr_Nb_Ratio"):
-                    zr = safe_float(row.get("Zr_ppm"))
-                    nb = safe_float(row.get("Nb_ppm"))
-                    zrnb = safe_ratio(zr, nb)
-                    row["Zr_Nb_Ratio"] = f"{zrnb:.3f}" if zrnb is not None else ""
+                # Create a clean dictionary where keys have no whitespace or suffix
+                clean_row = {}
 
-                if not row.get("Cr_Ni_Ratio"):
-                    cr = safe_float(row.get("Cr_ppm"))
-                    ni = safe_float(row.get("Ni_ppm"))
-                    crni = safe_ratio(cr, ni)
-                    row["Cr_Ni_Ratio"] = f"{crni:.3f}" if crni is not None else ""
+                # FIRST: Copy all original data (skip empty values)
+                for key, value in row.items():
+                    if value is None or value == "":
+                        continue
+                    clean_key = str(key).strip()
+                    # Don't replace _ppm yet
+                    clean_row[clean_key] = value
 
-                if not row.get("Ba_Rb_Ratio"):
-                    ba = safe_float(row.get("Ba_ppm"))
-                    rb = safe_float(row.get("Rb_ppm"))
-                    barb = safe_ratio(ba, rb)
-                    row["Ba_Rb_Ratio"] = f"{barb:.3f}" if barb is not None else ""
+                # SECOND: Ensure we have base element names (without _ppm)
+                # This is for the coordinate math later
+                for key in list(clean_row.keys()):
+                    if key.endswith('_ppm'):
+                        base_key = key.replace('_ppm', '')
+                        if base_key not in clean_row:
+                            # Copy value from _ppm to base
+                            clean_row[base_key] = clean_row[key]
 
-            # Refresh display AND plot
+                # THIRD: Ensure _ppm versions exist for the engine
+                # The engine's JSON rules look for "Zr_ppm", not "Zr"
+                critical_elements = ['Zr', 'Nb', 'Ba', 'Rb', 'Cr', 'Ni']
+                for elem in critical_elements:
+                    if elem in clean_row and f"{elem}_ppm" not in clean_row:
+                        clean_row[f"{elem}_ppm"] = clean_row[elem]
+
+                # Standardize Wall Thickness
+                if 'Wall_Thickness_mm' not in clean_row:
+                    clean_row['Wall_Thickness_mm'] = 3.5
+
+                prepared_list.append(clean_row)
+
+            # 2. Execute Engine
+            classified_output = engine.classify_all_samples(prepared_list, scheme_id)
+
+            # DEBUG: Check EVERY sample
+            unclassified_indices = []
+            for i, res in enumerate(classified_output):
+                classification = res.get('Classification', 'NO_CLASSIFICATION')
+                sample_id = prepared_list[i].get('Sample_ID', f'Sample_{i}')
+
+                if classification in ['UNCLASSIFIED', 'INSUFFICIENT_DATA', 'INVALID_SAMPLE']:
+                    unclassified_indices.append(i)
+                    print(f"UNCLASSIFIED: Sample {i} ({sample_id}) -> {classification}")
+                    # Show its values
+                    data = prepared_list[i]
+                    print(f"  Zr_ppm: {data.get('Zr_ppm')}, Nb_ppm: {data.get('Nb_ppm')}")
+                    print(f"  Ba_ppm: {data.get('Ba_ppm')}, Rb_ppm: {data.get('Rb_ppm')}")
+                    print(f"  Cr_ppm: {data.get('Cr_ppm')}, Ni_ppm: {data.get('Ni_ppm')}")
+                    print(f"  Wall: {data.get('Wall_Thickness_mm')}")
+
+            print(f"\nDEBUG: {len(unclassified_indices)} samples unclassified: {unclassified_indices}")
+
+            # 3. Data Sync & Coordinate Calculation
+            print(f"DEBUG: Processing {len(classified_output)} engine results against {len(self.samples)} UI samples")
+            processed_count = 0
+            for i, res in enumerate(classified_output):
+                # DEBUG: Show ALL keys in engine result
+                print(f"\nDEBUG Sample {i}:")
+                print(f"  All keys in engine result: {list(res.keys())}")
+                print(f"  'Classification' value: {res.get('Classification')}")
+                print(f"  'Auto_Classification' value: {res.get('Auto_Classification')}")
+
+                # FIX: Engine uses 'Auto_Classification' not 'Classification'
+                val = res.get('Auto_Classification') or res.get('Classification') or 'UNCLASSIFIED'
+                final_val = str(val).upper().strip()
+                print(f"  Using value: {final_val}")
+
+                # Sync classification to UI
+                sync_classification_keys(self.samples[i], final_val)
+                processed_count += 1
+
+                # COORDINATE MATH
+                s_data = prepared_list[i]
+                print(f"  Data keys for math: {[k for k in s_data.keys() if k in ['Zr', 'Nb', 'Cr', 'Ni', 'Zr_ppm', 'Nb_ppm', 'Cr_ppm', 'Ni_ppm']]}")
+
+                # Get values with proper fallback
+                zr_str = s_data.get("Zr") or s_data.get("Zr_ppm") or "0"
+                nb_str = s_data.get("Nb") or s_data.get("Nb_ppm") or "1"
+                cr_str = s_data.get("Cr") or s_data.get("Cr_ppm") or "0"
+                ni_str = s_data.get("Ni") or s_data.get("Ni_ppm") or "1"
+
+                print(f"  Raw values -> Zr:{zr_str}, Nb:{nb_str}, Cr:{cr_str}, Ni:{ni_str}")
+
+                # Convert with error handling
+                try:
+                    zr = float(zr_str)
+                    nb = float(nb_str)
+                    cr = float(cr_str)
+                    ni = float(ni_str)
+                except (ValueError, TypeError) as e:
+                    print(f"  ERROR converting to float: {e}")
+                    zr, nb, cr, ni = 0.0, 1.0, 0.0, 1.0
+
+                # Prevent division by zero
+                nb_val = nb if nb != 0 else 1.0
+                ni_val = ni if ni != 0 else 1.0
+
+                self.samples[i]["Zr_Nb_Ratio"] = zr / nb_val
+                self.samples[i]["Cr_Ni_Ratio"] = cr / ni_val
+                print(f"  Calculated ratios -> Zr/Nb: {zr/nb_val:.3f}, Cr/Ni: {cr/ni_val:.3f}")
+
+                # Color assignment
+                color = get_color_for_label(final_val)
+                self.samples[i]["Display_Color"] = color
+                print(f"  Assigned color: {color}")
+
+            print(f"\nDEBUG: Processed {processed_count} samples")
+
+            # 4. Filter Reset
+            self.filtered_samples = None
+
+            # 5. UI Refresh
+            if hasattr(self, '_update_hud_results'):
+                self._update_hud_results(self.samples)
+
             self.refresh_tree()
             self.refresh_plot()
-            self._mark_unsaved_changes()
 
-            # Show success message
-            output_col = scheme_info.get('output_column', 'Classification')
-            classified_count = sum(
-                1 for s in self.samples
-                if s.get(output_col) not in ['INSUFFICIENT_DATA', 'UNCLASSIFIED', None]
-            )
-
-            messagebox.showinfo(
-                "Classification Complete",
-                f"✓ Classification Complete!\n\n"
-                f"Scheme: {scheme_name}\n"
-                f"Classified: {classified_count}/{len(self.samples)} samples\n\n"
-                f"Output column: {output_col}"
-            )
-
-            self._update_status(
-                f"Classified {classified_count}/{len(self.samples)} samples using '{scheme_name}'"
-            )
+            # FINAL DATA VERIFICATION
+            print(f"\nDEBUG FINAL: Sample 0")
+            print(f"  Final classification: {get_consistent_classification(self.samples[0])}")
+            print(f"  Zr/Nb ratio: {self.samples[0].get('Zr_Nb_Ratio')}")
+            print(f"  Display color: {self.samples[0].get('Display_Color')}")
+            print(f"  All classification keys:")
+            for key in ['Final_Classification', 'Primary_Class', 'Auto_Classification', 'Classification']:
+                print(f"    {key}: {self.samples[0].get(key)}")
 
         except Exception as e:
-            messagebox.showerror(
-                "Classification Error",
-                f"Error during classification:\n{str(e)}"
-            )
-
-
+            import traceback
+            print(f"DEBUG ERROR: {e}")
+            traceback.print_exc()
     def export_csv(self):
         if not self.samples:
             messagebox.showinfo("Info", "Nothing to export.")
             return
-        path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")])
+
+        path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv")]
+        )
         if not path: return
 
         try:
+            # Use the currently active headers from the UI (ignoring the checkbox)
+            current_cols = [c for c in self.tree["columns"] if c != "☐"]
+
             with open(path, "w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=DISPLAY_COLUMNS, extrasaction="ignore")
+                writer = csv.DictWriter(f, fieldnames=current_cols, extrasaction="ignore")
                 writer.writeheader()
                 for row in self.samples:
                     writer.writerow(row)
+
             messagebox.showinfo("Success", f"Exported to {path}")
         except Exception as e:
-            messagebox.showerror("Export Error", str(e))
+            messagebox.showerror("Export Error", f"Failed to export: {str(e)}")
 
     def export_publication_table(self):
         if not self.samples:
@@ -1968,13 +2592,9 @@ class BasaltTriageApp:
         if HAS_MATPLOTLIB:
             self.plot_info_var.set("Backend: matplotlib (best available).")
         elif HAS_PILLOW:
-            self.plot_info_var.set(
-                "Matplotlib not available → using Pillow backend."
-            )
+            self.plot_info_var.set("Matplotlib not available → using Pillow backend.")
         else:
-            self.plot_info_var.set(
-                "No advanced plotting → using basic Tk canvas."
-            )
+            self.plot_info_var.set("No advanced plotting → using basic Tk canvas.")
 
         self.refresh_plot()
         self.notebook.select(self.plot_tab)
@@ -1989,115 +2609,66 @@ class BasaltTriageApp:
             "Basic Tk": "basic Tk (simple)"
         }
         self.plot_info_var.set(f"Backend: {backend_map.get(backend, backend)} - Click 'Generate Plot' to see")
-        # Clear current plot so user regenerates with new backend
         if hasattr(self, 'plot_image_ref') and self.plot_image_ref:
             self.clear_plot()
 
-
     def refresh_plot(self):
-        """Generate/refresh the scatter plot with backend status messages"""
+        """FIXED: Generate scatter plot with synchronized data from all sources."""
         try:
-            # Debug output
-
-            # Clear existing plot
+            # 1. Clear UI
             for w in self.plot_area.winfo_children():
-                if w != self.backend_status_label:  # Keep the status label
+                if w != self.backend_status_label:
                     w.destroy()
-            self.plot_image_ref = None
-            self._matplotlib_figure = None
-            self._pillow_image = None
 
-            # Update backend warning - this sets the colors!
-            self._update_plot_warning()
-
-            # Extract data
             xs, ys, colors, labels = [], [], [], []
-            
-            # Determine which classification column to use based on current scheme
-            if self.current_classification_scheme_info:
-                class_column = self.current_classification_scheme_info.get(
-                    'output_column',
-                    'Auto_Classification'
-                )
 
-                # Clean corrupted classification entries
-                raw_classes = self.current_classification_scheme_info.get('classifications', [])
-                clean_classes = []
-                for cls in raw_classes:
-                    if isinstance(cls, dict):
-                        clean_classes.append(cls)
-                    else:
-                        print("[CORRUPTED CLASS REMOVED]", cls)
-
-                # Replace with cleaned list
-                self.current_classification_scheme_info['classifications'] = clean_classes
-
-                # Build color map
-                color_map = {}
-                for cls in clean_classes:
-                    cls_name = cls.get('name', '')
-                    cls_color = cls.get('color', 'gray')
-                    if cls_name:
-                        color_map[cls_name] = cls_color
-
-            else:
-                class_column = "Auto_Classification"
-                color_map = SCATTER_COLORS
-
-
-
+            # 2. Extract Data with unified key lookup
             for row in self.samples:
-                zrnb = safe_float(row.get("Zr_Nb_Ratio", ""))
-                crni = safe_float(row.get("Cr_Ni_Ratio", ""))
-                if zrnb is None or crni is None:
+                try:
+                    # USE UNIFIED LOOKUP FUNCTIONS - FIX FOR ISSUE #1
+                    zr = get_element_value(row, "Zr")
+                    nb = get_element_value(row, "Nb")
+                    cr = get_element_value(row, "Cr")
+                    ni = get_element_value(row, "Ni")
+
+                    if None in (zr, nb, cr, ni) or nb == 0 or ni == 0:
+                        continue
+
+                    zrnb = zr / nb
+                    crni = cr / ni
+
+                    classification = row.get('Final_Classification') or \
+                                   row.get('Primary_Class') or \
+                                   row.get('Auto_Classification') or \
+                                   row.get('Classification', 'UNKNOWN')
+
+                    # UNIFIED COLOR LOOKUP
+                    color = row.get('Display_Color') or row.get('Auto_Classification_Color')
+                    if not color:
+                        color = get_color_for_label(classification) # Using our case-insensitive helper
+
+                    xs.append(zrnb)
+                    ys.append(crni)
+                    colors.append(color)
+                    labels.append(str(row.get("Sample_ID", "?")))
+
+                except Exception as e:
+                    print(f"Plot error for sample {row.get('Sample_ID', '?')}: {e}")
                     continue
 
-                # Get classification from current scheme's output column
-                classification = row.get(class_column, "")
-                # Fallback to old columns if scheme column is empty
-                if not classification:
-                    classification = row.get("Final_Classification") or row.get("Auto_Classification") or "REVIEW REQUIRED"
-                
-                c = color_map.get(classification, "gray")
-
-                xs.append(zrnb)
-                ys.append(crni)
-                colors.append(c)
-                labels.append(row.get("Sample_ID", "?"))
-
-
             if not xs:
-                self.plot_info_var.set("No valid data to plot. Import samples and classify them first.")
-                self.plot_info_label.config(fg="red")
+                self.plot_info_var.set("No valid plot data. Check Zr, Nb, Cr, Ni values.")
                 return
 
-            # Generate plot with user-selected backend
+            # 3. Render
             preferred = self.preferred_backend.get()
-
-            # Respect user preference
             if preferred == "Matplotlib" and HAS_MATPLOTLIB:
                 self._plot_with_matplotlib(xs, ys, labels, colors)
-            elif preferred == "Pillow" and HAS_PILLOW:
-                self._plot_with_pillow(xs, ys, labels, colors)
-            elif preferred == "Basic Tk":
-                self._plot_with_tk(xs, ys, labels, colors)
             else:
-                # Auto mode - use best available
-                if HAS_MATPLOTLIB:
-                    self._plot_with_matplotlib(xs, ys, labels, colors)
-                elif HAS_PILLOW:
-                    self._plot_with_pillow(xs, ys, labels, colors)
-                else:
-                    self._plot_with_tk(xs, ys, labels, colors)
-
-            # Keep the colored backend message showing after plot is generated
-            self._update_plot_warning()
+                self._plot_with_tk(xs, ys, labels, colors)
 
         except Exception as e:
             print(f"ERROR in refresh_plot: {e}")
-            import traceback
-            traceback.print_exc()
-            messagebox.showerror("Plot Error", f"Failed to generate plot:\n{str(e)}")
 
     def clear_plot(self):
         """Clear the plot area and reset status"""
@@ -2107,40 +2678,62 @@ class BasaltTriageApp:
         self._matplotlib_figure = None
         self._pillow_image = None
 
-        # Recreate the backend status label
         self.backend_status_label = tk.Label(self.plot_area, text="", fg="black", bg="white",
                                              font=("TkDefaultFont", 8, "italic"))
         self.backend_status_label.place(relx=1.0, rely=1.0, anchor="se", x=-10, y=-5)
-
-        # Update the warning to show current backend with colors
         self._update_plot_warning()
 
     def _plot_with_matplotlib(self, xs, ys, labels, colors):
-        fig, ax = plt.subplots(figsize=(7.5, 5.5), dpi=100)
-        ax.scatter(xs, ys, c=colors, edgecolors="black", s=70, linewidth=0.8)
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+        import tkinter as tk
 
-        for x, y, lab in zip(xs, ys, labels):
-            ax.text(x, y, lab, fontsize=8, ha="left", va="bottom",
-                    bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', pad=1))
+        try:
+            # 1. DESTROY EVERYTHING in the plot area to be sure
+            for widget in self.plot_area.winfo_children():
+                widget.destroy()
 
-        ax.set_xlabel("Zr / Nb ratio")
-        ax.set_ylabel("Cr / Ni ratio")
-        ax.set_title("Basalt Provenance – Zr/Nb vs Cr/Ni")
+            # 2. Force the container to be visible (Grey background test)
+            self.plot_area.configure(bg="lightgray")
 
-        legend_elements = [
-            plt.Line2D([0], [0], marker='o', color='w', label=cls,
-                       markerfacecolor=col, markeredgecolor='black', markersize=9)
-            for cls, col in SCATTER_COLORS.items()
-        ]
-        ax.legend(handles=legend_elements, loc="upper right", fontsize=9, framealpha=0.95)
+            # 3. Create Figure
+            fig = plt.figure(figsize=(5, 4))
+            ax = fig.add_subplot(111)
 
-        plt.tight_layout()
-        canvas = FigureCanvasTkAgg(fig, master=self.plot_area)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            # 4. Draw - Force 'blue' to be a standard hex if 'blue' fails
+            # But we will trust 'blue' for now as it's standard.
+            ax.scatter(xs, ys, c=colors, s=200, edgecolors='black', zorder=5)
 
-        self._matplotlib_figure = fig
-        self._matplotlib_canvas = canvas
+            for i, txt in enumerate(labels):
+                ax.annotate(txt, (xs[i], ys[i]), xytext=(5,5), textcoords='offset points')
+
+            ax.set_title("PROVENANCE PLOT - LIVE DATA")
+            ax.set_xlabel("Zr/Nb")
+            ax.set_ylabel("Cr/Ni")
+
+            # 5. PACKING - This is usually where the 'white void' happens
+            # 1. Standard Canvas Setup
+            canvas = FigureCanvasTkAgg(fig, master=self.plot_area)
+            canvas_widget = canvas.get_tk_widget()
+
+            # 2. THE HAMMER: Force placement and visibility
+            canvas_widget.place(relx=0, rely=0, relwidth=1, relheight=1) # Force it to fill the box
+            canvas_widget.lift() # Pull it to the very front of the UI stack
+
+            # 3. Force the Backend to talk to the GPU
+            canvas.draw()
+
+            # 4. Force the UI to recalculate size
+            self.plot_area.update_idletasks()
+
+            # 5. Backup: If using an old Tkinter version, it might need this:
+            self.plot_area.config(width=500, height=400)
+
+            self._matplotlib_figure = fig
+            print("UI SYSTEM: Geometry forced. If you still see nothing, the container is invisible.")
+
+        except Exception as e:
+            print(f"UI ERROR: {e}")
 
     def _plot_with_pillow(self, xs, ys, labels, colors):
         width, height = 900, 600
@@ -2153,11 +2746,8 @@ class BasaltTriageApp:
         if max_x == min_x: max_x += 1
         if max_y == min_y: max_y += 1
 
-        def tx(x):
-            return margin + (x - min_x) / (max_x - min_x) * (width - 2 * margin)
-
-        def ty(y):
-            return height - margin - (y - min_y) / (max_y - min_y) * (height - 2 * margin)
+        def tx(x): return margin + (x - min_x) / (max_x - min_x) * (width - 2 * margin)
+        def ty(y): return height - margin - (y - min_y) / (max_y - min_y) * (height - 2 * margin)
 
         draw.line((margin, margin, margin, height - margin), fill="black", width=2)
         draw.line((margin, height - margin, width - margin, height - margin), fill="black", width=2)
@@ -2167,16 +2757,6 @@ class BasaltTriageApp:
             r = 5
             draw.ellipse((px - r, py - r, px + r, py + r), fill=col, outline="black")
             draw.text((px + 4, py - 4), lab, fill="black")
-
-        draw.text((width // 2 - 40, height - margin + 30), "Zr / Nb", fill="black")
-        draw.text((10, height // 2 - 20), "Cr / Ni", fill="black")
-
-        legend_x = width - margin - 180
-        legend_y = margin
-        for cls, col in SCATTER_COLORS.items():
-            draw.rectangle((legend_x, legend_y, legend_x + 14, legend_y + 14), fill=col, outline="black")
-            draw.text((legend_x + 20, legend_y), cls, fill="black")
-            legend_y += 18
 
         self._pillow_image = img
         tk_img = ImageTk.PhotoImage(img)
@@ -2195,14 +2775,10 @@ class BasaltTriageApp:
         if max_x == min_x: max_x += 1
         if max_y == min_y: max_y += 1
 
-        def tx(x):
-            return margin + (x - min_x) / (max_x - min_x) * (width - 2 * margin)
-
-        def ty(y):
-            return height - margin - (y - min_y) / (max_y - min_y) * (height - 2 * margin)
+        def tx(x): return margin + (x - min_x) / (max_x - min_x) * (width - 2 * margin)
+        def ty(y): return height - margin - (y - min_y) / (max_y - min_y) * (height - 2 * margin)
 
         canvas.config(width=width, height=height)
-
         canvas.create_line(margin, margin, margin, height - margin, width=2)
         canvas.create_line(margin, height - margin, width - margin, height - margin, width=2)
 
@@ -2212,35 +2788,14 @@ class BasaltTriageApp:
             canvas.create_oval(px - r, py - r, px + r, py + r, fill=col, outline="black")
             canvas.create_text(px + 8, py - 4, text=lab, anchor="w", font=("TkDefaultFont", 8))
 
-        canvas.create_text(width // 2, height - margin + 30, text="Zr / Nb")
-        canvas.create_text(30, height // 2, text="Cr / Ni", angle=90)
-
-        legend_x = width - margin - 180
-        legend_y = margin
-        for cls, col in SCATTER_COLORS.items():
-            canvas.create_rectangle(legend_x, legend_y, legend_x + 14, legend_y + 14, fill=col, outline="black")
-            canvas.create_text(legend_x + 22, legend_y + 7, text=cls, anchor="w", font=("TkDefaultFont", 8))
-            legend_y += 18
-
     def save_plot(self):
+        from tkinter import filedialog, messagebox
         if self._matplotlib_figure is not None:
             path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png")])
-            if not path: return
-            try:
-                self._matplotlib_figure.savefig(path, dpi=300)
-                messagebox.showinfo("Success", f"Saved to {path}")
-            except Exception as e:
-                messagebox.showerror("Error", str(e))
-        elif self._pillow_image is not None:
+            if path: self._matplotlib_figure.savefig(path, dpi=300)
+        elif hasattr(self, '_pillow_image') and self._pillow_image:
             path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png")])
-            if not path: return
-            try:
-                self._pillow_image.save(path)
-                messagebox.showinfo("Success", f"Saved to {path}")
-            except Exception as e:
-                messagebox.showerror("Error", str(e))
-        else:
-            messagebox.showinfo("Info", "Save only available with matplotlib or Pillow.")
+            if path: self._pillow_image.save(path)
 
     def show_help(self):
         """Show classification rules and parameters in a help window"""
@@ -2251,7 +2806,6 @@ class BasaltTriageApp:
         text = tk.Text(help_win, wrap="word", font=("TkDefaultFont", 10), padx=20, pady=20)
         scrollbar = ttk.Scrollbar(help_win, command=text.yview)
         text.config(yscrollcommand=scrollbar.set)
-
         text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
@@ -2611,12 +3165,20 @@ KEYBOARD SHORTCUTS:
                 for row in self.samples:
                     x = safe_float(row.get(x_field))
                     y = safe_float(row.get(y_field))
+
                     if x is not None and y is not None:
                         xs.append(x)
                         ys.append(y)
                         labels.append(row.get("Sample_ID", "?"))
-                        cls = row.get("Final_Classification") or row.get("Auto_Classification", "REVIEW REQUIRED")
-                        colors.append(SCATTER_COLORS.get(cls, "gray"))
+
+                        # Use the color we saved in Block 1
+                        c = row.get("Display_Color") or row.get("Auto_Classification_Color") or "gray"
+                        colors.append(c)
+
+                # FIX: Stop looking up the color again! Just use the one already saved.
+                # This ensures Block 6 shows the exact same 'blue' as Block 5.
+                c = row.get("Display_Color") or row.get("Auto_Classification_Color") or "gray"
+                colors.append(c)
 
                 if not xs:
                     continue
@@ -2798,33 +3360,104 @@ KEYBOARD SHORTCUTS:
     # ════════════════════════════════════════════════════════════════════
 
     def _apply_filter(self):
-        """Apply search and classification filter"""
+        """OPTIMIZED: High-speed filtering using index caching."""
         search_term = self.search_var.get().lower()
         class_filter = self.filter_class_var.get()
 
-        if not search_term and class_filter == "All":
-            self.filtered_samples = self.samples
-        else:
-            self.filtered_samples = []
-            for row in self.samples:
-                # Check search term (searches in Sample_ID and Notes)
-                if search_term:
-                    sample_id = str(row.get("Sample_ID", "")).lower()
-                    notes = str(row.get("Notes", "")).lower()
-                    if search_term not in sample_id and search_term not in notes:
-                        continue
+        # 1. Check if the filter hasn't changed (Cache hit)
+        current_state = (search_term, class_filter)
+        if self.filter_cache is not None and self.last_filter_state == current_state:
+            self.current_page = 0
+            self._refresh_table_page()
+            self.last_filter_state = current_state
+            self.current_page = 0
+            self._refresh_table_page()
 
-                # Check classification filter
-                if class_filter != "All":
-                    classification = row.get("Final_Classification") or row.get("Auto_Classification", "")
-                    if classification != class_filter:
-                        continue
+            # FIX FOR ISSUE #2: Sync HUD with filtered results
+            if hasattr(self, 'hud_tree'):
+                # Show ALL samples in HUD (not filtered)
+                self._update_hud_results(self.samples)
+            return
 
-                self.filtered_samples.append(row)
+        # 2. Rebuild Filtered List
+        self.filter_cache = []
+        for idx, row in enumerate(self.samples):
+            # Text Search
+            id_match = search_term in str(row.get("Sample_ID", "")).lower()
+            note_match = search_term in str(row.get("Notes", "")).lower()
 
+            # Classification Search
+            cls = row.get("Final_Classification") or row.get("Auto_Classification") or "All"
+            cls_match = (class_filter == "All" or cls == class_filter)
+
+            if (id_match or note_match) and cls_match:
+                self.filter_cache.append(idx) # Store the INDEX, not the row
+
+        self.last_filter_state = current_state
         self.current_page = 0
         self._refresh_table_page()
-        self._update_status(f"Showing {len(self.filtered_samples)} of {len(self.samples)} samples")
+
+    def _refresh_table_page(self):
+        """OPTIMIZED: Draws only the visible page using cached indices."""
+        self.tree.delete(*self.tree.get_children())
+
+        # Use filtered indices if they exist, else show all
+        display_indices = self.filter_cache if self.filter_cache is not None else list(range(len(self.samples)))
+
+        start = self.current_page * ROWS_PER_PAGE
+        end = start + ROWS_PER_PAGE
+
+        for idx in display_indices[start:end]:
+            if idx < len(self.samples):
+                self._insert_row_with_index(self.samples[idx], idx)
+
+        # Update Pagination Label
+        total_pages = max(1, (len(display_indices) + ROWS_PER_PAGE - 1) // ROWS_PER_PAGE)
+        if hasattr(self, 'page_label'):
+            self.page_label.config(text=f"Page {self.current_page + 1} of {total_pages}")
+
+    def _insert_row_with_index(self, row: Dict[str, Any], row_idx: int):
+        """Ultra-fast row insertion using pre-calculated index."""
+        # 1. Checkbox logic (O(1) lookup)
+        checkbox = "☑" if row_idx in self.selected_rows else "☐"
+
+        # 2. Get active headers
+        current_cols = list(self.tree["columns"])
+        row_data = []
+
+        for col in current_cols:
+            if col == "☐":
+                row_data.append(checkbox)
+            elif col in ["Zr_Nb_Ratio", "Cr_Ni_Ratio"]:
+                val = row.get(col, "")
+                row_data.append(f"{val:.3f}" if isinstance(val, (int, float)) else val)
+            else:
+                row_data.append(str(row.get(col, "")))
+
+        # 3. Get tag (Color)
+        tag = row.get("Final_Classification") or row.get("Auto_Classification") or "REVIEW REQUIRED"
+
+        # 4. Insert
+        self.tree.insert("", "end", values=tuple(row_data), tags=(tag,))
+
+
+    def _update_filter_options(self):
+        """Rebuilds the filter dropdown with unique results from the data."""
+        if not hasattr(self, 'filter_class_var'): return
+
+        unique_classes = set()
+        for s in self.samples:
+            cls = s.get("Auto_Classification")
+            if cls: unique_classes.add(cls)
+
+        new_options = ["All"] + sorted(list(unique_classes))
+
+        # Update the OptionMenu (if your UI uses a standard ttk.OptionMenu)
+        if hasattr(self, 'filter_menu'):
+            menu = self.filter_menu["menu"]
+            menu.delete(0, "end")
+            for string in new_options:
+                menu.add_command(label=string, command=lambda v=string: self.filter_class_var.set(v))
 
     def _clear_filter(self):
         """Clear all filters"""
@@ -2932,7 +3565,10 @@ KEYBOARD SHORTCUTS:
         # Create entry fields for all columns
         entry_vars = {}
         row_num = 0
-        for col in DISPLAY_COLUMNS:
+        current_cols = list(self.tree["columns"])
+
+        for col in current_cols:
+            if col == "☐": continue  # Skip checkbox if you have one
             ttk.Label(main_frame, text=f"{col}:").grid(row=row_num, column=0, sticky="w", pady=5, padx=5)
             var = tk.StringVar(value=str(sample.get(col, "")))
             entry = ttk.Entry(main_frame, textvariable=var, width=40)
@@ -3489,15 +4125,21 @@ KEYBOARD SHORTCUTS:
             print(f"Cleanup failed: {e}")
 
     def _copy_to_clipboard(self):
-        """Copy table to clipboard"""
+        """Copy current table view to clipboard dynamically"""
         if not self.filtered_samples:
             messagebox.showinfo("Info", "No data to copy")
             return
 
         try:
-            lines = ["\t".join(DISPLAY_COLUMNS)]
+            # Grab the columns currently visible in the Treeview
+            current_cols = [c for c in self.tree["columns"] if c != "☐"]
+
+            # Create the header row
+            lines = ["\t".join(current_cols)]
+
+            # Create the data rows
             for sample in self.filtered_samples:
-                row = [str(sample.get(col, "")) for col in DISPLAY_COLUMNS]
+                row = [str(sample.get(col, "")) for col in current_cols]
                 lines.append("\t".join(row))
 
             clipboard_text = "\n".join(lines)
@@ -3506,8 +4148,7 @@ KEYBOARD SHORTCUTS:
             self.root.clipboard_append(clipboard_text)
 
             self._update_status(f"Copied {len(self.filtered_samples)} samples to clipboard")
-            self._play_sound()
-            messagebox.showinfo("Success", f"Copied {len(self.filtered_samples)} samples to clipboard.\nYou can now paste into Excel or other applications.")
+            messagebox.showinfo("Success", "Table data copied to clipboard.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to copy to clipboard:\n{str(e)}")
 
@@ -3714,15 +4355,18 @@ KEYBOARD SHORTCUTS:
         self._play_sound()
 
     def _auto_resize_columns(self):
-        """Auto-resize columns to fit content"""
-        for col in DISPLAY_COLUMNS:
+        # CHANGE: Use active columns
+        current_cols = list(self.tree["columns"])
+
+        for idx, col in enumerate(current_cols):
+            # Start with header width
             max_width = len(col) * 10
 
             for item in self.tree.get_children():
                 values = self.tree.item(item)["values"]
-                col_index = DISPLAY_COLUMNS.index(col)
-                if col_index < len(values):
-                    value_width = len(str(values[col_index])) * 8
+                # Use the index from our loop rather than searching the old list
+                if idx < len(values):
+                    value_width = len(str(values[idx])) * 8
                     max_width = max(max_width, value_width)
 
             self.tree.column(col, width=min(max_width + 20, 300))
@@ -3738,13 +4382,13 @@ KEYBOARD SHORTCUTS:
 
     def _apply_theme(self):
         """Apply current theme"""
-        theme = THEMES[self.current_theme]
-        global COLOR_MAP
-        COLOR_MAP = theme["colors"]
-        self._refresh_table()
+        theme = THEMES.get(self.current_theme, THEMES["Light"])
+        # Update COLOR_MAP if it exists, or update SCATTER_COLORS directly
+        for cls, color in theme.get("colors", {}).items():
+            SCATTER_COLORS[cls] = color
 
-        self._update_status("Ready")
-        # Set initial status
+        self._apply_filter()  # Refresh the display with new colors
+        self._update_status(f"Theme applied: {self.current_theme}")
 
     def _refresh_table(self):
         """Refresh the table display"""
@@ -4254,7 +4898,6 @@ limitations and will use the results appropriately.
         dialog.lift()
         dialog.focus_force()
 
-
     def _show_tutorial(self):
         """Show interactive tutorial"""
         tutorial_steps = [
@@ -4734,6 +5377,13 @@ limitations and will use the results appropriately.
         # Refresh display
         self.current_page = 0
         self._apply_filter()
+        # FIX FOR ISSUE #2: Sync HUD after deleting samples
+        if hasattr(self, 'hud_tree'):
+            self._update_hud_results(self.samples)
+
+        self._mark_unsaved_changes()
+        self._update_status(f"Deleted {count} sample(s)")
+        self._update_selection_count()
         self._mark_unsaved_changes()
         self._update_status(f"Deleted {count} sample(s)")
         self._update_selection_count()
@@ -4835,13 +5485,13 @@ limitations and will use the results appropriately.
             for field, (min_val, max_val) in ranges.items():
                 value = safe_float(sample.get(field))
                 if value is not None and (value < min_val or value > max_val):
-                    issues.append(f"{field}={value:.1f}")
+                    issues.append(f"{field}: {value:.1f} (expected {min_val}-{max_val})")
 
             if issues:
-                out_of_range.append((sample.get("Sample_ID"), ", ".join(issues)))
+                out_of_range.append((sample.get("Sample_ID"), "; ".join(issues)))
 
-        ttk.Label(parent, text=f"Samples with suspicious values: {len(out_of_range)} of {len(self.samples)}",
-                 font=("Arial", 11, "bold")).pack(pady=10)
+        ttk.Label(parent, text=f"Samples with out-of-range values: {len(out_of_range)} of {len(self.samples)}",
+                font=("Arial", 11, "bold")).pack(pady=10)
 
         # Create tree
         tree_frame = ttk.Frame(parent)
@@ -5569,66 +6219,7 @@ geochemical constraints or isotopic data.
 # Museum Import Dialog
 # ────────────────────────────────────────────────
 
-    def _check_optional_dependencies(self):
-        """Show helpful first-run popup about missing optional libraries"""
-        global SHOW_DEPENDENCY_WARNING
-        if not SHOW_DEPENDENCY_WARNING:
-            return
 
-        missing = []
-
-        if not HAS_MATPLOTLIB:
-            missing.append(("matplotlib – Best quality scatter plots", "pip install matplotlib"))
-        if not HAS_PILLOW:
-            missing.append(("Pillow – Alternative plot rendering", "pip install pillow"))
-        if not HAS_PANDAS:
-            missing.append(("pandas + openpyxl – Excel file import", "pip install pandas openpyxl"))
-        if not HAS_REQUESTS:
-            missing.append(("requests – Museum database import", "pip install requests"))
-
-        if not missing:
-            return  # Everything is installed
-
-        # ── Build friendly dialog ──
-        dialog = tk.Toplevel(self.root)
-        dialog.title("Recommended Components Missing")
-        dialog.geometry("680x460")
-        dialog.transient(self.root)
-        dialog.grab_set()
-        dialog.resizable(False, False)
-
-        ttk.Label(dialog, text="Some recommended features are not available yet",
-                  font=("TkDefaultFont", 12, "bold")).pack(pady=(20, 5))
-
-        ttk.Label(dialog, text="You can still use the tool normally, but the following features will be limited:",
-                  font=("TkDefaultFont", 10)).pack(pady=5)
-
-        frame = ttk.Frame(dialog, padding=15)
-        frame.pack(fill=tk.BOTH, expand=True)
-
-        text = tk.Text(frame, wrap="word", font=("TkDefaultFont", 10), height=12, bg="#f9f9f9")
-        text.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-        for name, cmd in missing:
-            text.insert("end", f"• {name}\n")
-            text.insert("end", f"   → {cmd}\n\n")
-
-        text.config(state="disabled")
-
-        dont_show_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(dialog, text="Don't show this message again", variable=dont_show_var).pack(pady=12)
-
-        def save_and_close():
-            global SHOW_DEPENDENCY_WARNING
-            SHOW_DEPENDENCY_WARNING = not dont_show_var.get()
-            try:
-                with open(SETTINGS_FILE, "w") as f:
-                    json.dump({"show_dependency_warning": SHOW_DEPENDENCY_WARNING}, f)
-            except:
-                pass
-            dialog.destroy()
-
-        ttk.Button(dialog, text="Close", command=save_and_close, width=15).pack(pady=10)
     
     # ═══════════════════════════════════════════════════════════════════════════════
     # CORE PROFESSIONAL FEATURES - v10.2 PROFESSIONAL EDITION
