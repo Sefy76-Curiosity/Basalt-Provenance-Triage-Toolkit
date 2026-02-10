@@ -1,0 +1,130 @@
+{
+  "scheme_name": "Meteorite Weathering Grade",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Classification of terrestrial weathering in ordinary chondrites (W0–W6)",
+  "category": "software",
+  "icon": "🌑",
+  "reference": "Wlotzka, F. (1993). A weathering scale for the ordinary chondrites.",
+  "field": "Meteoritics",
+
+  "requires_fields": [
+    "Weathering_Features"
+  ],
+
+  "classifications": [
+    {
+      "name": "W0 (FRESH)",
+      "color": "#4CAF50",
+      "description": "No visible oxidation of metal or troilite",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "Weathering_Features",
+          "operator": "=",
+          "value": "none"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "W1 (SLIGHT)",
+      "color": "#8BC34A",
+      "description": "Minor oxide rims around metal and troilite; minor brown staining",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "Weathering_Features",
+          "operator": "=",
+          "value": "minor brown staining"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "W2 (MODERATE)",
+      "color": "#CDDC39",
+      "description": "Moderate oxidation; roughly 20–60% of metal is affected",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "Weathering_Features",
+          "operator": "=",
+          "value": "moderate oxidation, some metal replaced"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "W3 (SIGNIFICANT)",
+      "color": "#FFC107",
+      "description": "Heavy oxidation; 60–95% of metal/troilite replaced by oxides",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "Weathering_Features",
+          "operator": "=",
+          "value": "heavy staining, metal largely replaced"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "W4 (HEAVY)",
+      "color": "#FF9800",
+      "description": "Complete replacement of metal and troilite; matrix heavily stained",
+      "priority": 5,
+      "rules": [
+        {
+          "field": "Weathering_Features",
+          "operator": "=",
+          "value": "metal and troilite mostly replaced, matrix altered"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "W5 (VERY HEAVY)",
+      "color": "#F57C00",
+      "description": "Silicate minerals starting to be altered by oxidation products",
+      "priority": 6,
+      "rules": [
+        {
+          "field": "Weathering_Features",
+          "operator": "=",
+          "value": "extensive oxidation, original texture still visible"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.80
+    },
+    {
+      "name": "W6 (EXTREME)",
+      "color": "#F44336",
+      "description": "Massive replacement; original silicate texture largely destroyed",
+      "priority": 7,
+      "rules": [
+        {
+          "field": "Weathering_Features",
+          "operator": "=",
+          "value": "almost completely oxidized, texture largely destroyed"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    }
+  ],
+
+  "output_column_name": "Weathering_Grade",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
+}

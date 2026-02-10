@@ -1,0 +1,79 @@
+{
+  "scheme_name": "Water Hardness Classification",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-10",
+  "description": "Standardized classification of water hardness based on CaCO3 concentration",
+  "category": "software",
+  "icon": "💧",
+  "reference": "USGS Water Science School; WQA Standards",
+  "field": "Water Chemistry / Hydrology",
+
+  "requires_fields": [
+    "Hardness_mgL"
+  ],
+
+  "classifications": [
+    {
+      "name": "SOFT",
+      "color": "#4CAF50",
+      "description": "0–60 mg/L; negligible scale formation",
+      "priority": 1,
+      "rules": [
+        { "field": "Hardness_mgL", "operator": "<", "value": 60.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "MODERATELY HARD",
+      "color": "#FFC107",
+      "description": "61–120 mg/L; some scale may occur",
+      "priority": 2,
+      "rules": [
+        { "field": "Hardness_mgL", "operator": "between", "min": 60.0, "max": 120.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "HARD",
+      "color": "#FF9800",
+      "description": "121–180 mg/L; significant scale and soap curd",
+      "priority": 3,
+      "rules": [
+        { "field": "Hardness_mgL", "operator": "between", "min": 120.0, "max": 180.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "VERY HARD",
+      "color": "#F44336",
+      "description": ">180 mg/L; severe scale and interference with detergents",
+      "priority": 4,
+      "rules": [
+        { "field": "Hardness_mgL", "operator": ">", "value": 180.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "INVALID DATA",
+      "color": "#9E9E9E",
+      "description": "Missing or negative hardness value",
+      "priority": 999,
+      "rules": [
+        { "field": "Hardness_mgL", "operator": "<", "value": 0.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Hardness_Level",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": false,
+  "flag_column_name": "Flag_For_Review"
+}

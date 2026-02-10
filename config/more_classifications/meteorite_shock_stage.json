@@ -1,0 +1,124 @@
+{
+  "scheme_name": "Meteorite Shock Stage Classification",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Stöffler scale for shock metamorphism in ordinary chondrites (S1–S6)",
+  "category": "software",
+  "icon": "💥",
+  "reference": "Stöffler, D., Keil, K., & Edward, R. D. S. (1991). Shock metamorphism of ordinary chondrites.",
+  "field": "Meteoritics",
+
+  "requires_fields": [
+    "Shock_Features"
+  ],
+
+  "classifications": [
+    {
+      "name": "S1 (UNSHOCKED)",
+      "color": "#4CAF50",
+      "description": "<5 GPa; sharp optical extinction in olivine",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "Shock_Features",
+          "operator": "=",
+          "value": "none"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "S2 (VERY LOW)",
+      "color": "#8BC34A",
+      "description": "5–10 GPa; undulose extinction in olivine",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "Shock_Features",
+          "operator": "=",
+          "value": "undulose extinction"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "S3 (LOW)",
+      "color": "#CDDC39",
+      "description": "15–20 GPa; planar fractures and mosaicism in olivine",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "Shock_Features",
+          "operator": "=",
+          "value": "mosaicism"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "S4 (MODERATE)",
+      "color": "#FFC107",
+      "description": "30–35 GPa; presence of maskelynite (diaplectic glass)",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "Shock_Features",
+          "operator": "=",
+          "value": "maskelynite"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "S5 (HIGH)",
+      "color": "#FF9800",
+      "description": "45–55 GPa; pervasive mosaicism and local melt veins",
+      "priority": 5,
+      "rules": [
+        {
+          "field": "Shock_Features",
+          "operator": "=",
+          "value": "partial melt"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "S6 (EXTREME)",
+      "color": "#F44336",
+      "description": "75–90 GPa; total rock melting and recrystallization",
+      "priority": 6,
+      "rules": [
+        {
+          "field": "Shock_Features",
+          "operator": "=",
+          "value": "whole rock melt"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "INSUFFICIENT PETROGRAPHIC DATA",
+      "color": "#9E9E9E",
+      "description": "Missing specific shock feature observation",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Shock_Stage",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.80,
+  "flag_column_name": "Flag_For_Review"
+}

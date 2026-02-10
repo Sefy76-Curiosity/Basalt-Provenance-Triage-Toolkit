@@ -1,0 +1,80 @@
+{
+  "scheme_name": "FTIR Crystallinity Index (Bone Preservation)",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Assess bone mineral crystallinity and diagenetic alteration using the Infrared Splitting Factor (SF)",
+  "category": "software",
+  "icon": "💠",
+  "reference": "Weiner & Bar-Yosef (1990); Surovell & Stiner (2001)",
+  "field": "Bioarchaeology & Forensic Taphonomy",
+
+  "requires_fields": [
+    "FTIR_CI"
+  ],
+
+  "classifications": [
+    {
+      "name": "WELL-PRESERVED (CI < 3.3)",
+      "color": "#4CAF50",
+      "description": "Minimal diagenetic recrystallization; crystal lattice remains bio-organic",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "FTIR_CI",
+          "operator": "<",
+          "value": 3.3
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "MODERATELY ALTERED (CI 3.3–4.0)",
+      "color": "#FFC107",
+      "description": "Observable crystal growth; moderate diagenetic overprinting",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "FTIR_CI",
+          "operator": "between",
+          "min": 3.3,
+          "max": 4.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "HIGHLY ALTERED / CALCINED (CI > 4.0)",
+      "color": "#F44336",
+      "description": "High crystallinity; typical of burned/cremated bone or advanced diagenesis",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "FTIR_CI",
+          "operator": ">",
+          "value": 4.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "INSUFFICIENT SPECTRAL DATA",
+      "color": "#9E9E9E",
+      "description": "Missing FTIR Splitting Factor measurement",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Bone_Preservation_Status",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
+}

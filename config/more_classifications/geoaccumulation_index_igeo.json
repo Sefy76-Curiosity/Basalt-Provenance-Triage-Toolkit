@@ -1,0 +1,119 @@
+{
+  "scheme_name": "Geoaccumulation Index (Igeo)",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Quantify metal pollution in sediments using Müller's geoaccumulation index",
+  "category": "software",
+  "icon": "🌍",
+  "reference": "Müller, G. (1969). Index of geoaccumulation in sediments of the Rhine River.",
+  "field": "Environmental Geochemistry",
+
+  "requires_fields": [
+    "Igeo"
+  ],
+
+  "classifications": [
+    {
+      "name": "Class 0: UNPOLLUTED (Igeo ≤ 0)",
+      "color": "#4CAF50",
+      "description": "Background concentration; no anthropogenic enrichment",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "Igeo",
+          "operator": "<=",
+          "value": 0.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "Class 1: UNPOLLUTED TO MODERATELY POLLUTED",
+      "color": "#8BC34A",
+      "description": "Initial detectable enrichment above background",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "Igeo",
+          "operator": "between",
+          "min": 0.0,
+          "max": 1.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "Class 2: MODERATELY POLLUTED",
+      "color": "#FFC107",
+      "description": "Clear anthropogenic impact (2nd grade)",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "Igeo",
+          "operator": "between",
+          "min": 1.0,
+          "max": 2.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "Class 3: MODERATELY TO HEAVILY POLLUTED",
+      "color": "#FF9800",
+      "description": "Significant contamination; remediation planning recommended",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "Igeo",
+          "operator": "between",
+          "min": 2.0,
+          "max": 3.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "Class 4-5: HEAVILY TO STRONGLY POLLUTED",
+      "color": "#F44336",
+      "description": "Severe environmental risk; significant industrial discharge",
+      "priority": 5,
+      "rules": [
+        {
+          "field": "Igeo",
+          "operator": "between",
+          "min": 3.0,
+          "max": 5.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "Class 6: EXTREMELY POLLUTED (Igeo > 5)",
+      "color": "#B71C1C",
+      "description": "Extreme enrichment; serious ecological hazard",
+      "priority": 6,
+      "rules": [
+        {
+          "field": "Igeo",
+          "operator": ">",
+          "value": 5.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    }
+  ],
+
+  "output_column_name": "Pollution_Grade_Igeo",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.80,
+  "flag_column_name": "Flag_For_Review"
+}

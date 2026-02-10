@@ -1,0 +1,80 @@
+{
+  "scheme_name": "Soil Sodicity Classification (SAR)",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Classification of soil sodicity based on Sodium Adsorption Ratio (SAR) standards",
+  "category": "software",
+  "icon": "🧂",
+  "reference": "USDA Agricultural Handbook No. 60; US Salinity Laboratory Staff (1954)",
+  "field": "Soil Science / Agronomy",
+
+  "requires_fields": [
+    "SAR"
+  ],
+
+  "classifications": [
+    {
+      "name": "NON-SODIC (SAR < 13)",
+      "color": "#4CAF50",
+      "description": "Low sodium hazard; soil structure is likely stable",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "SAR",
+          "operator": "<",
+          "value": 13.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "SODIC (SAR 13–30)",
+      "color": "#FF9800",
+      "description": "High sodium hazard; potential for clay dispersion and poor permeability",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "SAR",
+          "operator": "between",
+          "min": 13.0,
+          "max": 30.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "STRONGLY SODIC (SAR > 30)",
+      "color": "#F44336",
+      "description": "Very high sodium hazard; severe structural degradation and alkalinity issues",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "SAR",
+          "operator": ">",
+          "value": 30.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "INSUFFICIENT DATA",
+      "color": "#9E9E9E",
+      "description": "Missing Sodium Adsorption Ratio (SAR) calculation",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Sodicity_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.85,
+  "flag_column_name": "Flag_For_Review"
+}

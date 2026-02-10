@@ -1,0 +1,106 @@
+{
+  "scheme_name": "Slag Basicity Index (Binary & Quaternary)",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Assess slag chemistry, furnace efficiency, and desulfurization potential using quaternary basicity",
+  "category": "software",
+  "icon": "🔥",
+  "reference": "Bachmann, H. G. (1982). The Identification of Slags from Archaeological Sites.",
+  "field": "Archaeometallurgy",
+
+  "requires_fields": [
+    "CaO_wt",
+    "SiO2_wt",
+    "MgO_wt",
+    "Al2O3_wt"
+  ],
+
+  "classifications": [
+    {
+      "name": "ACIDIC SLAG (Bq < 0.5)",
+      "color": "#FF5722",
+      "description": "Highly acidic, glassy slag; indicates low-temperature smelting or high silica intake",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "Basicity_Quaternary",
+          "operator": "<",
+          "value": 0.5
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "SLIGHTLY ACIDIC (Bq 0.5-0.8)",
+      "color": "#FFC107",
+      "description": "Moderately acidic slag; transitional composition",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "Basicity_Quaternary",
+          "operator": "between",
+          "min": 0.5,
+          "max": 0.8
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "NEUTRAL SLAG (Bq 0.8-1.2)",
+      "color": "#8BC34A",
+      "description": "Balanced slag chemistry; optimal for many ancient smelting processes",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "Basicity_Quaternary",
+          "operator": "between",
+          "min": 0.8,
+          "max": 1.2
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "BASIC SLAG (Bq 1.2-2.0)",
+      "color": "#4CAF50",
+      "description": "Basic slag; indicates efficient sulfur removal and advanced furnace control",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "Basicity_Quaternary",
+          "operator": "between",
+          "min": 1.2,
+          "max": 2.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "HIGHLY BASIC (Bq > 2.0)",
+      "color": "#2196F3",
+      "description": "Very basic; excellent desulfurization but requires extreme furnace temperatures",
+      "priority": 5,
+      "rules": [
+        {
+          "field": "Basicity_Quaternary",
+          "operator": ">",
+          "value": 2.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    }
+  ],
+
+  "output_column_name": "Slag_Basicity_Type",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
+}

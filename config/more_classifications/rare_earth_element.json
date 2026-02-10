@@ -1,0 +1,114 @@
+{
+  "scheme_name": "REE Pattern Classification",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Classify REE fractionation and Eu anomalies using Boynton (1984) chondrite-normalized values",
+  "category": "software",
+  "icon": "🧪",
+  "reference": "Boynton, W. V. (1984). Cosmochemistry of the Rare Earth Elements: Meteorite Studies.",
+  "field": "Trace Element Geochemistry",
+
+  "requires_fields": [
+    "La_N",
+    "Sm_N",
+    "Yb_N",
+    "Eu_N",
+    "Eu_star"
+  ],
+
+  "classifications": [
+    {
+      "name": "LREE-ENRICHED",
+      "color": "#4CAF50",
+      "description": "Steep pattern; enrichment of Light REE relative to Middle REE (La_N/Sm_N > 2.0)",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "La_N/Sm_N",
+          "operator": ">",
+          "value": 2.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "FLAT REE PATTERN",
+      "color": "#FFC107",
+      "description": "Minimal fractionation between LREE and MREE",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "La_N/Sm_N",
+          "operator": "between",
+          "min": 0.7,
+          "max": 2.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "HREE-ENRICHED",
+      "color": "#2196F3",
+      "description": "Depletion in MREE relative to Heavy REE; typical of garnet-rich sources",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "Sm_N/Yb_N",
+          "operator": "<",
+          "value": 0.7
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "EU ANOMALY (NEGATIVE)",
+      "color": "#F44336",
+      "description": "Eu/Eu* < 0.85; indicates plagioclase fractionation or removal",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "Eu_N/Eu_star",
+          "operator": "<",
+          "value": 0.85
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "EU ANOMALY (POSITIVE)",
+      "color": "#03A9F4",
+      "description": "Eu/Eu* > 1.15; indicates plagioclase accumulation",
+      "priority": 5,
+      "rules": [
+        {
+          "field": "Eu_N/Eu_star",
+          "operator": ">",
+          "value": 1.15
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "INSUFFICIENT NORMALIZED DATA",
+      "color": "#9E9E9E",
+      "description": "Missing key normalized values for La, Sm, Yb, or Eu",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "REE_Pattern_Type",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.80,
+  "flag_column_name": "Flag_For_Review"
+}

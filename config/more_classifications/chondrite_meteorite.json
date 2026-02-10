@@ -1,0 +1,132 @@
+{
+  "scheme_name": "Chondrite Meteorite Classification",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Classify ordinary and enstatite chondrites using bulk Fe and metallic iron content",
+  "category": "software",
+  "icon": "☄️",
+  "reference": "Kallemeyn et al., 1989; Weisberg et al., 2006",
+  "field": "Meteoritics",
+
+  "requires_fields": [
+    "Fe_pct",
+    "Metal_pct"
+  ],
+
+  "classifications": [
+    {
+      "name": "H CHONDRITE (High-Iron)",
+      "color": "#F44336",
+      "description": "Ordinary chondrite; High total and metallic iron",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "Fe_pct",
+          "operator": "between",
+          "min": 25.0,
+          "max": 30.0
+        },
+        {
+          "field": "Metal_pct",
+          "operator": "between",
+          "min": 15.0,
+          "max": 19.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "L CHONDRITE (Low-Iron)",
+      "color": "#FFC107",
+      "description": "Ordinary chondrite; Low total and metallic iron",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "Fe_pct",
+          "operator": "between",
+          "min": 20.0,
+          "max": 25.0
+        },
+        {
+          "field": "Metal_pct",
+          "operator": "between",
+          "min": 4.0,
+          "max": 10.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "LL CHONDRITE (Low-Iron, Low-Metal)",
+      "color": "#4CAF50",
+      "description": "Ordinary chondrite; Very low metallic iron",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "Fe_pct",
+          "operator": "between",
+          "min": 18.0,
+          "max": 22.0
+        },
+        {
+          "field": "Metal_pct",
+          "operator": "between",
+          "min": 1.0,
+          "max": 3.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "EH CHONDRITE (Enstatite High-Iron)",
+      "color": "#03A9F4",
+      "description": "Enstatite chondrite; High metal content (>20%)",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "Metal_pct",
+          "operator": ">",
+          "value": 20.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "EL CHONDRITE (Enstatite Low-Iron)",
+      "color": "#9C27B0",
+      "description": "Enstatite chondrite; Moderate metal content (14-20%)",
+      "priority": 5,
+      "rules": [
+        {
+          "field": "Metal_pct",
+          "operator": "between",
+          "min": 14.0,
+          "max": 20.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "INSUFFICIENT DATA",
+      "color": "#9E9E9E",
+      "description": "Missing Fe or Metal measurements",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Chondrite_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.70,
+  "flag_column_name": "Flag_For_Review"
+}

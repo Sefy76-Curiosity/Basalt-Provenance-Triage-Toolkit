@@ -1,0 +1,87 @@
+{
+  "scheme_name": "Ceramic Firing Temperature Proxies",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Estimate firing temperature using Fe/Ti ratios and Magnetic Susceptibility (MS)",
+  "category": "software",
+  "icon": "🏺",
+  "reference": "Tite, 2008; Rasmussen, 2001; Quinn, 2013",
+  "field": "Archaeoceramics",
+
+  "requires_fields": [
+    "Fe2O3_pct",
+    "TiO2_pct",
+    "MagSus_10e6_si"
+  ],
+
+  "classifications": [
+    {
+      "name": "LOW-FIRE (<700°C)",
+      "color": "#FFC107",
+      "description": "Pre-vitrification; clay minerals largely intact",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "Fe2O3_TiO2_Ratio",
+          "operator": ">",
+          "value": 6.0
+        },
+        {
+          "field": "MagSus_10e6_si",
+          "operator": "<",
+          "value": 100.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "MID-FIRE (700–900°C)",
+      "color": "#4CAF50",
+      "description": "Dehydroxylation zone; peak magnetic susceptibility",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "Fe2O3_TiO2_Ratio",
+          "operator": "between",
+          "min": 3.0,
+          "max": 6.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.80
+    },
+    {
+      "name": "HIGH-FIRE (>900°C)",
+      "color": "#F44336",
+      "description": "Vitrification stage; mineralogical stability",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "MagSus_10e6_si",
+          "operator": ">",
+          "value": 300.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "INSUFFICIENT PROXY DATA",
+      "color": "#9E9E9E",
+      "description": "Missing chemical or magnetic data",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Estimated_Firing_Temp",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
+}

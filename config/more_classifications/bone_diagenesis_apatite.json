@@ -1,0 +1,45 @@
+{
+  "scheme_name": "Bone Diagenesis (Mineral Alteration)",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "description": "Classification of mineral alteration using Calcium/Phosphorus ratios",
+  "category": "bone_chemistry",
+  "icon": "🧪",
+
+  "requires_fields": [
+    "CaO_wt",
+    "P2O5_wt"
+  ],
+
+  "classifications": [
+    {
+      "name": "BIO-APATITE (MODERN/FRESH)",
+      "color": "blue",
+      "rules": [
+        {
+          "field": "CaO_wt/P2O5_wt",
+          "operator": "between",
+          "min": 2.0,
+          "max": 2.3
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 1.0
+    },
+    {
+      "name": "DIAGENETICALLY ALTERED (FOSSILIZED)",
+      "color": "orange",
+      "rules": [
+        {
+          "field": "CaO_wt/P2O5_wt",
+          "operator": ">",
+          "value": 2.3
+        }
+      ],
+      "logic": "OR",
+      "confidence_score": 1.0
+    }
+  ],
+
+  "output_column_name": "Apatite_Classification"
+}

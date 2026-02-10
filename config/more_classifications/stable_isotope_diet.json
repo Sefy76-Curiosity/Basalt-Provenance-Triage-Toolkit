@@ -1,0 +1,101 @@
+{
+  "scheme_name": "Stable Isotope Diet Classification",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Paleodietary reconstruction using carbon (δ13C) and nitrogen (δ15N) isotopes in collagen",
+  "category": "software",
+  "icon": "🧬",
+  "reference": "Schoeninger et al. (1983); DeNiro (1985); Lee-Thorp (2008)",
+  "field": "Bioarchaeology / Isotope Ecology",
+
+  "requires_fields": [
+    "d13C",
+    "d15N"
+  ],
+
+  "classifications": [
+    {
+      "name": "C3 TERRESTRIAL DIET",
+      "color": "#4CAF50",
+      "description": "Predominantly C3 plants (wheat, barley, fruits) and terrestrial herbivores (δ13C < -18.5‰)",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "d13C",
+          "operator": "<",
+          "value": -18.5
+        },
+        {
+          "field": "d15N",
+          "operator": "<",
+          "value": 10.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "MIXED C3/C4 OR MARINE INFLUENCE",
+      "color": "#FFC107",
+      "description": "Mixed dietary sources or low-level marine protein intake",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "d13C",
+          "operator": "between",
+          "min": -18.5,
+          "max": -14.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "C4 OR HIGH MARINE DIET",
+      "color": "#2196F3",
+      "description": "Predominantly C4 plants (maize, millet) or significant marine protein (δ13C > -14.0‰)",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "d13C",
+          "operator": ">",
+          "value": -14.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "HIGH TROPHIC / AQUATIC",
+      "color": "#F44336",
+      "description": "High trophic level (carnivory) or freshwater/marine fish consumption (δ15N > 12.0‰)",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "d15N",
+          "operator": ">",
+          "value": 12.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "INSUFFICIENT DATA / ALTERED",
+      "color": "#9E9E9E",
+      "description": "Missing isotope values or values outside biological norms (potential diagenesis)",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Dietary_Group",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.80,
+  "flag_column_name": "Flag_For_Review"
+}

@@ -1,0 +1,66 @@
+{
+  "scheme_name": "Total Alkali vs Silica (TAS) Series Classification",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Distinguish between Alkaline and Subalkaline volcanic series based on total alkalis (Na2O+K2O) and Silica (SiO2)",
+  "category": "software",
+  "icon": "🧭",
+  "reference": "Irvine, T. N., & Baragar, W. R. A. (1971). A guide to the chemical classification of the common volcanic rocks.",
+  "field": "Igneous Petrology",
+
+  "requires_fields": [
+    "SiO2_wt",
+    "Na2O_wt",
+    "K2O_wt"
+  ],
+
+  "classifications": [
+    {
+      "name": "ALKALINE SERIES",
+      "color": "#F44336",
+      "description": "Rocks plotting above the Irvine & Baragar dividing line; enriched in Na2O+K2O relative to SiO2",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "Na2O_wt+K2O_wt",
+          "operator": ">",
+          "value": 7.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "SUBALKALINE SERIES",
+      "color": "#4CAF50",
+      "description": "Rocks plotting below the dividing line; includes Tholeiitic and Calc-Alkaline suites",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "Na2O_wt+K2O_wt",
+          "operator": "<=",
+          "value": 7.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "INSUFFICIENT DATA",
+      "color": "#9E9E9E",
+      "description": "Missing key oxide values (SiO2, Na2O, or K2O)",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "TAS_Magmatic_Series",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.80,
+  "flag_column_name": "Flag_For_Review"
+}

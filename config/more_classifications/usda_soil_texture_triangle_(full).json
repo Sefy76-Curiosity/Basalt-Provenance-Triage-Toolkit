@@ -1,0 +1,100 @@
+{
+  "scheme_name": "USDA Soil Texture Triangle (Full)",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-10",
+  "description": "Comprehensive USDA soil texture classification encompassing all 12 textural classes",
+  "category": "software",
+  "icon": "🌱",
+  "reference": "Soil Survey Staff (1993). Soil Survey Manual. USDA Handbook No. 18.",
+  "field": "Soil Science / Pedology",
+
+  "requires_fields": [
+    "Sand_pct",
+    "Silt_pct",
+    "Clay_pct"
+  ],
+
+  "classifications": [
+    {
+      "name": "CLAY",
+      "color": "#9C27B0",
+      "description": "Fine-textured; >40% clay, <45% sand, <40% silt",
+      "priority": 1,
+      "rules": [
+        { "field": "Clay_pct", "operator": ">=", "value": 40.0 },
+        { "field": "Sand_pct", "operator": "<", "value": 45.0 },
+        { "field": "Silt_pct", "operator": "<", "value": 40.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "SAND",
+      "color": "#F44336",
+      "description": "Very coarse; >85% sand, <10% clay",
+      "priority": 2,
+      "rules": [
+        { "field": "Sand_pct", "operator": ">", "value": 85.0 },
+        { "field": "Clay_pct", "operator": "<", "value": 10.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "LOAM",
+      "color": "#8BC34A",
+      "description": "Balanced texture; 7-27% clay, 28-50% silt, 23-52% sand",
+      "priority": 3,
+      "rules": [
+        { "field": "Clay_pct", "operator": "between", "min": 7.0, "max": 27.0 },
+        { "field": "Silt_pct", "operator": "between", "min": 28.0, "max": 50.0 },
+        { "field": "Sand_pct", "operator": "between", "min": 23.0, "max": 52.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "SILTY CLAY",
+      "color": "#673AB7",
+      "description": "Fine-textured; >40% clay and >40% silt",
+      "priority": 4,
+      "rules": [
+        { "field": "Clay_pct", "operator": ">=", "value": 40.0 },
+        { "field": "Silt_pct", "operator": ">=", "value": 40.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "SANDY CLAY",
+      "color": "#3F51B5",
+      "description": "Fine-textured; >35% clay and >45% sand",
+      "priority": 5,
+      "rules": [
+        { "field": "Clay_pct", "operator": ">=", "value": 35.0 },
+        { "field": "Sand_pct", "operator": ">=", "value": 45.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "INVALID SUM",
+      "color": "#000000",
+      "description": "Percentages must sum to 100",
+      "priority": 999,
+      "rules": [
+        { "field": "Sand_pct+Silt_pct+Clay_pct", "operator": "!=", "value": 100.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 1.0
+    }
+  ],
+
+  "output_column_name": "Full_USDA_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.85,
+  "flag_column_name": "Flag_For_Review"
+}

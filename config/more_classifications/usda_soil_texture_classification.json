@@ -1,0 +1,85 @@
+{
+  "scheme_name": "USDA Soil Texture Classification",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-10",
+  "description": "Standardized USDA classification based on sand, silt, and clay percentages",
+  "category": "software",
+  "icon": "🌱",
+  "reference": "USDA Soil Survey Manual; Soil Taxonomy (1999)",
+  "field": "Soil Science / Pedology",
+
+  "requires_fields": [
+    "Sand_pct",
+    "Silt_pct",
+    "Clay_pct"
+  ],
+
+  "classifications": [
+    {
+      "name": "CLAY",
+      "color": "#9C27B0",
+      "description": "Fine-textured soil; >40% clay content",
+      "priority": 1,
+      "rules": [
+        { "field": "Clay_pct", "operator": ">=", "value": 40.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "SAND",
+      "color": "#F44336",
+      "description": "Coarse-textured soil; >85% sand, <10% clay",
+      "priority": 2,
+      "rules": [
+        { "field": "Sand_pct", "operator": ">", "value": 85.0 },
+        { "field": "Clay_pct", "operator": "<", "value": 10.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "SILT LOAM",
+      "color": "#4CAF50",
+      "description": "Medium-textured soil; >50% silt and 12-27% clay",
+      "priority": 3,
+      "rules": [
+        { "field": "Silt_pct", "operator": ">", "value": 50.0 },
+        { "field": "Clay_pct", "operator": "between", "min": 12.0, "max": 27.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "SANDY LOAM",
+      "color": "#FFC107",
+      "description": "Moderately coarse soil; 43-85% sand and <20% clay",
+      "priority": 4,
+      "rules": [
+        { "field": "Sand_pct", "operator": "between", "min": 43.0, "max": 85.0 },
+        { "field": "Clay_pct", "operator": "<", "value": 20.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "DATA INTEGRITY ERROR",
+      "color": "#000000",
+      "description": "Total percentage (Sand+Silt+Clay) does not equal 100%",
+      "priority": 999,
+      "rules": [
+        { "field": "Sand_pct+Silt_pct+Clay_pct", "operator": "!=", "value": 100.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 1.0
+    }
+  ],
+
+  "output_column_name": "USDA_Texture_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.85,
+  "flag_column_name": "Flag_For_Review"
+}

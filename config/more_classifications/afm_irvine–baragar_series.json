@@ -1,0 +1,84 @@
+{
+  "scheme_name": "AFM Irvine–Baragar Series",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Distinguish between Tholeiitic and Calc-Alkaline magma series using AFM ternary relationships",
+  "category": "software",
+  "icon": "🌋",
+  "reference": "Irvine & Baragar, 1971; Rollinson, 1993",
+  "field": "Igneous Petrology",
+
+  "requires_fields": [
+    "Na2O_pct",
+    "K2O_pct",
+    "Fe2O3_pct",
+    "MgO_pct"
+  ],
+
+  "classifications": [
+    {
+      "name": "THOLEIITIC SERIES (TH)",
+      "color": "#F44336",
+      "description": "Iron-enrichment trend typical of mid-ocean ridges and hotspots",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "AFM_Boundary_Value",
+          "operator": ">",
+          "value": 0.0,
+          "comment": "Sample plots above the Irvine-Baragar dividing line (Iron-rich side)"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "CALC-ALKALINE SERIES (CA)",
+      "color": "#2196F3",
+      "description": "Trend typical of subduction-related volcanic arcs",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "AFM_Boundary_Value",
+          "operator": "<=",
+          "value": 0.0,
+          "comment": "Sample plots below the Irvine-Baragar dividing line (Alkali/Mg-rich side)"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "HIGH-MAGNESIUM / KOMATIITIC",
+      "color": "#4CAF50",
+      "description": "Extremely high MgO content often falling outside standard series",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "MgO_pct",
+          "operator": ">",
+          "value": 18.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "INSUFFICIENT OXIDE DATA",
+      "color": "#9E9E9E",
+      "description": "Missing major elements required for AFM calculation",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Magmatic_Series",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.70,
+  "flag_column_name": "Flag_For_Review"
+}

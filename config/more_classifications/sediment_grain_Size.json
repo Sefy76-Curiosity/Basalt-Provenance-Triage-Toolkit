@@ -1,0 +1,102 @@
+{
+  "scheme_name": "Sediment Grain-Size Classification (Udden-Wentworth)",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Classify clastic sediment particles using the standardized Udden-Wentworth scale",
+  "category": "software",
+  "icon": "🧱",
+  "reference": "Wentworth, C. K. (1922). A scale of grade and class terms for clastic sediments.",
+  "field": "Sedimentology",
+
+  "requires_fields": [
+    "GrainSize_um"
+  ],
+
+  "classifications": [
+    {
+      "name": "CLAY (<4 µm)",
+      "color": "#3F51B5",
+      "description": "Very fine-grained particles; typically phyllosilicates",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "GrainSize_um",
+          "operator": "<",
+          "value": 4.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "SILT (4–63 µm)",
+      "color": "#8BC34A",
+      "description": "Fine-grained particles; gritty feel between teeth",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "GrainSize_um",
+          "operator": "between",
+          "min": 4.0,
+          "max": 63.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "SAND (63–2000 µm)",
+      "color": "#FFC107",
+      "description": "Visible grains; size range 0.063 mm to 2 mm",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "GrainSize_um",
+          "operator": "between",
+          "min": 63.0,
+          "max": 2000.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "GRAVEL / PEBBLE (>2000 µm)",
+      "color": "#795548",
+      "description": "Coarse particles; diameter greater than 2 mm",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "GrainSize_um",
+          "operator": ">",
+          "value": 2000.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "OUT OF RANGE / ERROR",
+      "color": "#9E9E9E",
+      "description": "Negative value or non-numeric data encountered",
+      "priority": 999,
+      "rules": [
+        {
+          "field": "GrainSize_um",
+          "operator": "<",
+          "value": 0.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Wentworth_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.90,
+  "flag_column_name": "Flag_For_Review"
+}

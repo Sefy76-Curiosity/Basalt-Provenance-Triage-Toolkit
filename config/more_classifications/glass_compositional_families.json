@@ -1,0 +1,112 @@
+{
+  "scheme_name": "Glass Compositional Families",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Classify archaeological glass based on major flux (MgO, K2O, Na2O) composition",
+  "category": "software",
+  "icon": "🧪",
+  "reference": "Sayre & Smith, 1961; Freestone, 2006; Lilyquist & Brill, 1993",
+  "field": "Archaeometry",
+
+  "requires_fields": [
+    "Na2O_wt",
+    "K2O_wt",
+    "MgO_wt"
+  ],
+
+  "classifications": [
+    {
+      "name": "NATRON GLASS (Low-Mg, Low-K)",
+      "color": "#2196F3",
+      "description": "Roman-style glass; mineral flux (Na2O > 12%, MgO < 1.5%, K2O < 1.5%)",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "Na2O_wt",
+          "operator": ">",
+          "value": 12.0
+        },
+        {
+          "field": "MgO_wt",
+          "operator": "<",
+          "value": 1.5
+        },
+        {
+          "field": "K2O_wt",
+          "operator": "<",
+          "value": 1.5
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "PLANT-ASH GLASS (High-Mg, High-K)",
+      "color": "#4CAF50",
+      "description": "Sasanian/Islamic/Late Bronze Age style; plant-ash flux (MgO > 1.5%, K2O > 1.5%)",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "MgO_wt",
+          "operator": ">",
+          "value": 1.5
+        },
+        {
+          "field": "K2O_wt",
+          "operator": ">",
+          "value": 1.5
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "HIGH-POTASH GLASS (Medieval Wood-Ash)",
+      "color": "#FFC107",
+      "description": "Central/Northern European style; wood-ash flux (K2O > 8%)",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "K2O_wt",
+          "operator": ">",
+          "value": 8.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "MIXED-ALKALI / TRANSITIONAL",
+      "color": "#9C27B0",
+      "description": "Potential recycling signature or unusual flux source",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "MgO_wt",
+          "operator": "between",
+          "min": 1.0,
+          "max": 1.5
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.70
+    },
+    {
+      "name": "INSUFFICIENT FLUX DATA",
+      "color": "#9E9E9E",
+      "description": "Missing Na2O, K2O, or MgO measurements",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Glass_Family_Type",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
+}
