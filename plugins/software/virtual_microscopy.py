@@ -16,58 +16,51 @@ License: CC BY-NC-SA 4.0
 """
 
 PLUGIN_INFO = {
-    "category": "software",
+    "category": "visualization",
     "id": "virtual_microscopy",
     "name": "3D Thin-Section Microscopy",
     "description": "Interactive 3D visualization of thin-section data",
     "icon": "🔬",
     "version": "1.0",
-    "requires": ["pyvista", "numpy", "matplotlib", "pillow"],
+    "requires": ["numpy", "matplotlib", "pillow"],
     "author": "Sefy Levy"
 }
 
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, scrolledtext
 import numpy as np
-from io import StringIO
-import traceback
 import json
-import os
+import traceback
 from pathlib import Path
+from datetime import datetime
 
-# Check dependencies
-HAS_PYVISTA = False
-HAS_NUMPY = False
-HAS_MATPLOTLIB = False
-HAS_PIL = False
-
+# Import matplotlib with tkinter support
 try:
-    import pyvista as pv
-    HAS_PYVISTA = True
+    import matplotlib
+    matplotlib.use('TkAgg')  # Use Tkinter backend
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+    from matplotlib.figure import Figure
+    HAS_MATPLOTLIB = True
 except ImportError:
-    PYVISTA_ERROR = "pyvista not found"
+    HAS_MATPLOTLIB = False
+    MATPLOTLIB_ERROR = "matplotlib not found"
 
 try:
     import numpy as np
     HAS_NUMPY = True
 except ImportError:
+    HAS_NUMPY = False
     NUMPY_ERROR = "numpy not found"
 
 try:
-    import matplotlib.pyplot as plt
-    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-    from matplotlib.colors import ListedColormap
-    HAS_MATPLOTLIB = True
-except ImportError:
-    MATPLOTLIB_ERROR = "matplotlib not found"
-
-try:
-    from PIL import Image, ImageTk, ImageDraw, ImageFont
+    from PIL import Image, ImageTk
     HAS_PIL = True
 except ImportError:
+    HAS_PIL = False
     PIL_ERROR = "PIL/Pillow not found"
 
-HAS_REQUIREMENTS = HAS_PYVISTA and HAS_NUMPY and HAS_MATPLOTLIB and HAS_PIL
+HAS_REQUIREMENTS = HAS_NUMPY and HAS_MATPLOTLIB and HAS_PIL
 
 
 class VirtualMicroscopyPlugin:
@@ -78,9 +71,8 @@ class VirtualMicroscopyPlugin:
         self.app = main_app
         self.window = None
         self.current_section = None
-        self.mineral_data = None
+        self.mineral_data = []
         self.texture_data = None
-        self.plotter = None
 
         # Default mineral colors (RGBA)
         self.mineral_colors = {
@@ -98,6 +90,7 @@ class VirtualMicroscopyPlugin:
             'calcite': [1.0, 1.0, 0.8, 1.0],     # Pale yellow
             'clay': [0.6, 0.5, 0.4, 1.0],        # Brown
             'void': [0.0, 0.0, 0.0, 0.0],        # Transparent
+            'unknown': [0.5, 0.5, 0.5, 1.0]      # Gray
         }
 
         # Mineral properties
@@ -110,578 +103,231 @@ class VirtualMicroscopyPlugin:
             'olivine': {'hardness': 6.5, 'birefringence': 0.035, 'relief': 'high'},
         }
 
+        # Initialize matplotlib figure
+        self.fig = None
+        self.ax = None
+        self.canvas = None
+
+    def show(self):
+        """Main show method - called by application"""
+        self.open_virtual_microscopy()
+
+    def open(self):
+        """Alternative open method"""
+        self.open_virtual_microscopy()
+
     def open_virtual_microscopy(self):
         """Open the virtual microscopy interface"""
         if not HAS_REQUIREMENTS:
             missing = []
-            if not HAS_PYVISTA: missing.append("pyvista")
             if not HAS_NUMPY: missing.append("numpy")
             if not HAS_MATPLOTLIB: missing.append("matplotlib")
             if not HAS_PIL: missing.append("pillow")
 
-            response = messagebox.askyesno(
+            messagebox.showerror(
                 "Missing Dependencies",
                 f"Virtual Microscopy requires these packages:\n\n"
-                f"• pyvista\n• numpy\n• matplotlib\n• pillow\n\n"
-                f"Missing: {', '.join(missing)}\n\n"
-                f"Do you want to install missing dependencies now?",
-                parent=self.app.root
+                f"• numpy\n• matplotlib\n• pillow\n\n"
+                f"Missing: {', '.join(missing)}",
+                parent=self.app.root if hasattr(self.app, 'root') else None
             )
-            if response:
-                self._install_dependencies(missing)
             return
 
+        # Close existing window if open
         if self.window and self.window.winfo_exists():
-            self.window.lift()
-            return
+            self.window.destroy()
 
-        self.window = tk.Toplevel(self.app.root)
-        self.window.title("3D Virtual Microscopy - Thin Section Viewer")
-        self.window.geometry("1200x800")
+        # Create new window
+        self.window = tk.Toplevel()
+        self.window.title("3D Thin-Section Virtual Microscopy")
+        self.window.geometry("1200x700")
 
         # Make window stay on top
-        self.window.transient(self.app.root)
+        if hasattr(self.app, 'root'):
+            self.window.transient(self.app.root)
 
         self._create_interface()
 
+        # Center window
+        self._center_window()
+
         # Bring to front
-        self.window.lift()
         self.window.focus_force()
+        self.window.lift()
+
+        # Load demo data automatically
+        self.window.after(500, self._load_demo_data)
+
+    def _center_window(self):
+        """Center window on screen"""
+        self.window.update_idletasks()
+        width = self.window.winfo_width()
+        height = self.window.winfo_height()
+        x = (self.window.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.window.winfo_screenheight() // 2) - (height // 2)
+        self.window.geometry(f'{width}x{height}+{x}+{y}')
 
     def _create_interface(self):
-        """Create the virtual microscopy interface"""
-        # Header with microscope icon
-        header = tk.Frame(self.window, bg="#37474F")
-        header.pack(fill=tk.X)
+        """Create the main interface"""
+        # Create main container
+        main_container = tk.Frame(self.window)
+        main_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        # Header
+        header = tk.Frame(main_container, bg="#2C3E50")
+        header.pack(fill=tk.X, pady=(0, 10))
 
         tk.Label(header,
-                text="🔬 3D Virtual Thin-Section Microscopy",
-                font=("Arial", 18, "bold"),
-                bg="#37474F", fg="white",
-                pady=12).pack()
+                text="🔬 3D Thin-Section Virtual Microscopy",
+                font=("Arial", 16, "bold"),
+                bg="#2C3E50", fg="white",
+                pady=10).pack()
 
         tk.Label(header,
-                text="Interactive 3D visualization of thin-section mineralogy and texture",
+                text="Interactive visualization of mineral distributions and textures",
                 font=("Arial", 10),
-                bg="#37474F", fg="#B0BEC5").pack(pady=(0, 12))
+                bg="#2C3E50", fg="#BDC3C7").pack(pady=(0, 10))
 
-        # Create main container with paned window
-        main_paned = ttk.PanedWindow(self.window, orient=tk.HORIZONTAL)
-        main_paned.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        # Main content area
+        content_frame = tk.Frame(main_container)
+        content_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Left panel - Controls and settings
-        left_panel = ttk.Frame(main_paned, relief=tk.RAISED, borderwidth=1)
-        main_paned.add(left_panel, weight=1)
+        # Left panel - Controls
+        left_panel = tk.Frame(content_frame, width=300, relief=tk.RAISED, borderwidth=1)
+        left_panel.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 5))
+        left_panel.pack_propagate(False)
 
-        # Right panel - Visualization and display
-        right_panel = ttk.Frame(main_paned)
-        main_paned.add(right_panel, weight=3)
+        # Right panel - Visualization
+        right_panel = tk.Frame(content_frame)
+        right_panel.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        # Create left panel content
+        # Create panels
         self._create_control_panel(left_panel)
-
-        # Create right panel content
         self._create_visualization_panel(right_panel)
-
-        # Load demo data if available
-        self._load_demo_data()
 
     def _create_control_panel(self, parent):
         """Create the control panel"""
+        # Create scrollable frame
+        canvas = tk.Canvas(parent)
+        scrollbar = tk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas)
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
         # Sample selection
-        sample_frame = tk.LabelFrame(parent, text="Sample Selection",
-                                    padx=10, pady=10)
+        sample_frame = tk.LabelFrame(scrollable_frame, text="Sample", padx=10, pady=10)
         sample_frame.pack(fill=tk.X, padx=5, pady=5)
 
-        tk.Label(sample_frame, text="Current Sample:").pack(anchor=tk.W)
+        tk.Button(sample_frame, text="📁 Load Data",
+                 command=self._load_data,
+                 width=25).pack(pady=5)
 
-        self.sample_var = tk.StringVar()
-        sample_combo = ttk.Combobox(sample_frame, textvariable=self.sample_var,
-                                   state="readonly", width=25)
-        sample_combo.pack(fill=tk.X, pady=5)
+        tk.Button(sample_frame, text="🎲 Generate Demo",
+                 command=self._generate_demo,
+                 width=25).pack(pady=5)
 
-        # Update sample list
-        self._update_sample_list()
+        tk.Button(sample_frame, text="🗑️ Clear Data",
+                 command=self._clear_data,
+                 width=25).pack(pady=5)
 
-        # Load buttons
-        btn_frame = tk.Frame(sample_frame)
-        btn_frame.pack(fill=tk.X, pady=5)
-
-        tk.Button(btn_frame, text="📁 Load Thin-Section Data",
-                 command=self._load_thin_section_data,
-                 width=25).pack(side=tk.LEFT, padx=2)
-
-        tk.Button(btn_frame, text="🎲 Generate Demo",
-                 command=self._generate_demo_section,
-                 width=25).pack(side=tk.LEFT, padx=2)
-
-        # Visualization mode
-        viz_frame = tk.LabelFrame(parent, text="Visualization Mode",
-                                 padx=10, pady=10)
+        # Visualization settings
+        viz_frame = tk.LabelFrame(scrollable_frame, text="Visualization", padx=10, pady=10)
         viz_frame.pack(fill=tk.X, padx=5, pady=5)
 
-        self.viz_mode_var = tk.StringVar(value="3D Mineral Distribution")
-        modes = ["3D Mineral Distribution", "2D Mineral Map",
-                "Texture Analysis", "Porosity Visualization",
-                "Cross-Polarized Simulation", "Grain Boundary Network"]
-
-        for mode in modes:
-            tk.Radiobutton(viz_frame, text=mode, variable=self.viz_mode_var,
-                          value=mode, anchor=tk.W).pack(fill=tk.X, pady=2)
-
         # Mineral selection
-        mineral_frame = tk.LabelFrame(parent, text="Mineral Display",
-                                     padx=10, pady=10)
-        mineral_frame.pack(fill=tk.X, padx=5, pady=5)
+        tk.Label(viz_frame, text="Show Minerals:").pack(anchor=tk.W)
 
-        # Mineral checklist
         self.mineral_vars = {}
-        minerals_frame = tk.Frame(mineral_frame)
-        minerals_frame.pack(fill=tk.X)
-
-        # Create two columns
-        col1 = tk.Frame(minerals_frame)
-        col1.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        col2 = tk.Frame(minerals_frame)
-        col2.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+        minerals_frame = tk.Frame(viz_frame)
+        minerals_frame.pack(fill=tk.X, pady=5)
 
         minerals = list(self.mineral_colors.keys())
-        mid = len(minerals) // 2
-
-        for i, mineral in enumerate(minerals):
+        for mineral in minerals:
             var = tk.BooleanVar(value=True)
             self.mineral_vars[mineral] = var
 
-            if i < mid:
-                parent_col = col1
-            else:
-                parent_col = col2
+            frame = tk.Frame(minerals_frame)
+            frame.pack(fill=tk.X, pady=1)
 
-            cb = tk.Checkbutton(parent_col, text=mineral.capitalize(),
-                               variable=var, anchor=tk.W)
-            cb.pack(fill=tk.X, pady=1)
+            cb = tk.Checkbutton(frame, text=mineral.capitalize(),
+                              variable=var, anchor=tk.W)
+            cb.pack(side=tk.LEFT)
 
             # Color preview
             color = self.mineral_colors[mineral]
-            preview_canvas = tk.Canvas(parent_col, width=15, height=15,
-                                      bg=self._rgb_to_hex(color),
-                                      highlightthickness=1,
-                                      highlightbackground="gray")
-            preview_canvas.pack(side=tk.RIGHT, padx=5)
-
-        # Color adjustment
-        color_frame = tk.Frame(mineral_frame, pady=5)
-        color_frame.pack(fill=tk.X)
-
-        tk.Button(color_frame, text="🎨 Adjust Colors",
-                 command=self._adjust_colors,
-                 width=20).pack(side=tk.LEFT, padx=2)
-
-        tk.Button(color_frame, text="🔄 Reset Colors",
-                 command=self._reset_colors,
-                 width=20).pack(side=tk.RIGHT, padx=2)
+            preview = tk.Canvas(frame, width=20, height=20,
+                               bg=self._rgb_to_hex(color))
+            preview.pack(side=tk.RIGHT)
 
         # Display settings
-        display_frame = tk.LabelFrame(parent, text="Display Settings",
-                                     padx=10, pady=10)
-        display_frame.pack(fill=tk.X, padx=5, pady=5)
+        tk.Label(viz_frame, text="Point Size:").pack(anchor=tk.W, pady=(10, 0))
+        self.size_var = tk.DoubleVar(value=50)
+        tk.Scale(viz_frame, from_=10, to=200, orient=tk.HORIZONTAL,
+                variable=self.size_var).pack(fill=tk.X, pady=5)
 
-        # Transparency
-        trans_frame = tk.Frame(display_frame)
-        trans_frame.pack(fill=tk.X, pady=2)
-
-        tk.Label(trans_frame, text="Transparency:").pack(side=tk.LEFT)
-        self.transparency_var = tk.DoubleVar(value=0.0)
-        tk.Scale(trans_frame, from_=0.0, to=1.0, resolution=0.1,
-                orient=tk.HORIZONTAL, variable=self.transparency_var,
-                length=150).pack(side=tk.RIGHT)
-
-        # Lighting
-        light_frame = tk.Frame(display_frame)
-        light_frame.pack(fill=tk.X, pady=2)
-
-        tk.Label(light_frame, text="Lighting:").pack(side=tk.LEFT)
-        self.lighting_var = tk.DoubleVar(value=0.7)
-        tk.Scale(light_frame, from_=0.1, to=1.5, resolution=0.1,
-                orient=tk.HORIZONTAL, variable=self.lighting_var,
-                length=150).pack(side=tk.RIGHT)
-
-        # Grain size threshold
-        size_frame = tk.Frame(display_frame)
-        size_frame.pack(fill=tk.X, pady=2)
-
-        tk.Label(size_frame, text="Min Grain Size (px):").pack(side=tk.LEFT)
-        self.grain_size_var = tk.IntVar(value=10)
-        tk.Entry(size_frame, textvariable=self.grain_size_var,
-                width=10).pack(side=tk.RIGHT)
+        tk.Label(viz_frame, text="Transparency:").pack(anchor=tk.W)
+        self.alpha_var = tk.DoubleVar(value=0.7)
+        tk.Scale(viz_frame, from_=0.1, to=1.0, resolution=0.1,
+                orient=tk.HORIZONTAL, variable=self.alpha_var).pack(fill=tk.X, pady=5)
 
         # Analysis tools
-        analysis_frame = tk.LabelFrame(parent, text="Analysis Tools",
-                                      padx=10, pady=10)
+        analysis_frame = tk.LabelFrame(scrollable_frame, text="Analysis", padx=10, pady=10)
         analysis_frame.pack(fill=tk.X, padx=5, pady=5)
 
         tools = [
-            ("📐 Grain Size Distribution", self._analyze_grain_size),
-            ("📊 Mineral Abundance", self._analyze_mineral_abundance),
-            ("🔄 Texture Orientation", self._analyze_texture),
-            ("🕳️ Porosity Analysis", self._analyze_porosity),
-            ("🔍 Zoom Region", self._zoom_region),
-            ("📷 Capture Snapshot", self._capture_snapshot)
+            ("📊 Show Statistics", self._show_statistics),
+            ("📈 Grain Size Analysis", self._analyze_grain_sizes),
+            ("🎨 Adjust Colors", self._adjust_colors),
+            ("📷 Save Image", self._save_image),
+            ("📋 Export Data", self._export_data)
         ]
 
-        for text, command in tools:
-            tk.Button(analysis_frame, text=text, command=command,
-                     width=25).pack(pady=2)
+        for text, cmd in tools:
+            tk.Button(analysis_frame, text=text,
+                     command=cmd, width=25).pack(pady=2)
 
-        # Export section
-        export_frame = tk.LabelFrame(parent, text="Export",
-                                    padx=10, pady=10)
-        export_frame.pack(fill=tk.X, padx=5, pady=5)
-
-        export_formats = [
-            ("💾 Save as PNG", ".png", self._export_png),
-            ("📊 Save as STL", ".stl", self._export_stl),
-            ("🎭 Save as OBJ", ".obj", self._export_obj),
-            ("📋 Save Statistics", ".csv", self._export_stats),
-            ("📄 Save Session", ".json", self._export_session)
-        ]
-
-        for text, ext, command in export_formats:
-            tk.Button(export_frame, text=text, command=command,
-                     width=25).pack(pady=2)
-
-        # Action buttons at bottom
-        action_frame = tk.Frame(parent, pady=15)
-        action_frame.pack(fill=tk.X, padx=5)
-
-        tk.Button(action_frame, text="🚀 Render 3D View",
-                 command=self._render_3d_view,
-                 bg="#2196F3", fg="white",
-                 font=("Arial", 11, "bold"),
-                 height=2).pack(fill=tk.X, pady=5)
-
-        tk.Button(action_frame, text="🔄 Update View",
-                 command=self._update_view,
-                 bg="#4CAF50", fg="white",
-                 font=("Arial", 11, "bold"),
-                 height=2).pack(fill=tk.X, pady=5)
+        # Status bar at bottom
+        self.status_var = tk.StringVar(value="Ready")
+        tk.Label(scrollable_frame, textvariable=self.status_var,
+                bg="#ECF0F1", fg="#2C3E50",
+                font=("Arial", 9)).pack(fill=tk.X, pady=10)
 
     def _create_visualization_panel(self, parent):
         """Create the visualization panel"""
-        # Tabbed interface for different views
-        notebook = ttk.Notebook(parent)
-        notebook.pack(fill=tk.BOTH, expand=True)
+        # Create matplotlib figure
+        self.fig, self.ax = plt.subplots(figsize=(10, 8))
+        self.canvas = FigureCanvasTkAgg(self.fig, parent)
+        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # Tab 1: 3D Viewer
-        self.tab_3d = tk.Frame(notebook)
-        notebook.add(self.tab_3d, text="🎲 3D View")
-
-        # Tab 2: 2D Mineral Map
-        self.tab_2d = tk.Frame(notebook)
-        notebook.add(self.tab_2d, text="🗺️ 2D Map")
-
-        # Tab 3: Statistics
-        self.tab_stats = tk.Frame(notebook)
-        notebook.add(self.tab_stats, text="📊 Statistics")
-
-        # Tab 4: Help
-        self.tab_help = tk.Frame(notebook)
-        notebook.add(self.tab_help, text="❓ Help")
-
-        # Initialize tabs
-        self._init_3d_tab()
-        self._init_2d_tab()
-        self._init_stats_tab()
-        self._init_help_tab()
-
-    def _init_3d_tab(self):
-        """Initialize 3D viewer tab"""
-        # This will be filled when 3D view is rendered
-        self.canvas_3d_frame = tk.Frame(self.tab_3d)
-        self.canvas_3d_frame.pack(fill=tk.BOTH, expand=True)
-
-        tk.Label(self.canvas_3d_frame,
-                text="Click 'Render 3D View' to generate interactive 3D visualization",
-                font=("Arial", 12),
-                fg="gray").pack(expand=True)
-
-    def _init_2d_tab(self):
-        """Initialize 2D mineral map tab"""
-        # Canvas for 2D map
-        self.canvas_2d_frame = tk.Frame(self.tab_2d)
-        self.canvas_2d_frame.pack(fill=tk.BOTH, expand=True)
-
-        # Matplotlib figure for 2D map
-        self.fig_2d, self.ax_2d = plt.subplots(figsize=(8, 6))
-        self.canvas_2d = FigureCanvasTkAgg(self.fig_2d, self.canvas_2d_frame)
-        self.canvas_2d.draw()
-        self.canvas_2d.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
-        # Toolbar
-        toolbar_frame = tk.Frame(self.canvas_2d_frame)
-        toolbar_frame.pack(side=tk.BOTTOM, fill=tk.X)
-        toolbar = NavigationToolbar2Tk(self.canvas_2d, toolbar_frame)
+        # Add toolbar
+        toolbar_frame = tk.Frame(parent)
+        toolbar_frame.pack(fill=tk.X, padx=5)
+        toolbar = NavigationToolbar2Tk(self.canvas, toolbar_frame)
         toolbar.update()
 
-        # Initial message
-        self.ax_2d.text(0.5, 0.5, "Load or generate thin-section data\nto view mineral map",
-                       ha='center', va='center', transform=self.ax_2d.transAxes,
-                       fontsize=12, color='gray')
-        self.ax_2d.set_axis_off()
-        self.fig_2d.tight_layout()
-        self.canvas_2d.draw()
+        # Initial empty plot
+        self.ax.text(0.5, 0.5, "Load or generate data to visualize",
+                    ha='center', va='center', fontsize=12, color='gray',
+                    transform=self.ax.transAxes)
+        self.ax.set_axis_off()
+        self.fig.tight_layout()
+        self.canvas.draw()
 
-    def _init_stats_tab(self):
-        """Initialize statistics tab"""
-        # Text widget for statistics
-        self.stats_text = scrolledtext.ScrolledText(self.tab_stats,
-                                                   wrap=tk.WORD,
-                                                   font=("Courier New", 10))
-        self.stats_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-        # Initial message
-        self.stats_text.insert(tk.END,
-                              "Thin-Section Statistics\n"
-                              "════════════════════════\n\n"
-                              "No data loaded. Please load or generate\n"
-                              "thin-section data to view statistics.\n")
-        self.stats_text.config(state='disabled')
-
-        # Buttons
-        button_frame = tk.Frame(self.tab_stats)
-        button_frame.pack(fill=tk.X, padx=5, pady=5)
-
-        tk.Button(button_frame, text="Calculate Statistics",
-                 command=self._calculate_statistics).pack(side=tk.LEFT, padx=5)
-
-        tk.Button(button_frame, text="Clear",
-                 command=lambda: self.stats_text.delete(1.0, tk.END)).pack(side=tk.LEFT, padx=5)
-
-    def _init_help_tab(self):
-        """Initialize help tab"""
-        text = scrolledtext.ScrolledText(self.tab_help, wrap=tk.WORD,
-                                        font=("Arial", 10), padx=10, pady=10)
-        text.pack(fill=tk.BOTH, expand=True)
-
-        help_text = """
-3D VIRTUAL MICROSCOPY - USER GUIDE
-═══════════════════════════════════════════════════════════════
-
-OVERVIEW
-────────────────────────────────────────────────────────────────
-This tool creates interactive 3D visualizations of thin-section
-mineralogy and texture from your geochemical data.
-
-KEY FEATURES:
-• 3D mineral distribution visualization
-• Interactive mineral identification
-• Texture analysis (grain size, shape)
-• Porosity and void space mapping
-• Cross-polarized light simulation
-• Export to 3D formats (STL, OBJ)
-
-═══════════════════════════════════════════════════════════════
-
-WORKFLOW
-────────────────────────────────────────────────────────────────
-
-1. LOAD DATA:
-   • Select sample from dropdown
-   • Load existing thin-section data
-   • Generate demo data for testing
-
-2. CONFIGURE VISUALIZATION:
-   • Choose visualization mode
-   • Select minerals to display
-   • Adjust colors and transparency
-   • Set display parameters
-
-3. ANALYZE:
-   • Render 3D view
-   • Analyze grain size distribution
-   • Calculate mineral abundances
-   • Examine texture patterns
-   • Measure porosity
-
-4. EXPORT:
-   • Save high-resolution images
-   • Export 3D models (STL, OBJ)
-   • Save statistical data
-   • Save session for later
-
-═══════════════════════════════════════════════════════════════
-
-DATA FORMATS
-────────────────────────────────────────────────────────────────
-
-SUPPORTED INPUTS:
-• CSV with mineral composition data
-• JSON with thin-section parameters
-• Image files for texture mapping
-• Manual entry for demo generation
-
-REQUIRED DATA (for automatic generation):
-• Mineral percentages
-• Grain size distribution
-• Sample dimensions
-• Porosity information
-
-═══════════════════════════════════════════════════════════════
-
-VISUALIZATION MODES
-────────────────────────────────────────────────────────────────
-
-1. 3D MINERAL DISTRIBUTION:
-   • Interactive 3D scatter plot
-   • Color-coded by mineral type
-   • Adjustable transparency
-   • Rotate, zoom, pan
-
-2. 2D MINERAL MAP:
-   • Traditional thin-section view
-   • Mineral boundaries
-   • Grain size visualization
-   • Porosity mapping
-
-3. TEXTURE ANALYSIS:
-   • Grain orientation rose diagrams
-   • Size distribution histograms
-   • Shape factor analysis
-   • Fabric visualization
-
-4. CROSS-POLARIZED SIMULATION:
-   • Simulates optical microscopy
-   • Birefringence colors
-   • Extinction positions
-   • Interference patterns
-
-═══════════════════════════════════════════════════════════════
-
-ANALYSIS TOOLS
-────────────────────────────────────────────────────────────────
-
-GRAIN SIZE ANALYSIS:
-• Calculate size distribution
-• Mean, median, mode sizes
-• Sorting coefficient
-• Histogram visualization
-
-MINERAL ABUNDANCE:
-• Volume percentages
-• Modal vs normative comparison
-• Mineral associations
-• Spatial distribution
-
-TEXTURE ANALYSIS:
-• Grain shape (roundness, sphericity)
-• Orientation fabric
-• Contact relationships
-• Deformation features
-
-POROSITY ANALYSIS:
-• Total porosity calculation
-• Pore size distribution
-• Pore connectivity
-• Permeability estimation
-
-═══════════════════════════════════════════════════════════════
-
-EXPORT OPTIONS
-────────────────────────────────────────────────────────────────
-
-IMAGES:
-• High-resolution PNG
-• Publication-quality figures
-• Animated rotations (GIF)
-• Cross-section views
-
-3D MODELS:
-• STL for 3D printing
-• OBJ for 3D software
-• VRML for virtual reality
-• PLY for point clouds
-
-DATA:
-• CSV statistics
-• JSON session files
-• Mineral distribution maps
-• Analysis reports
-
-═══════════════════════════════════════════════════════════════
-
-TIPS FOR BEST RESULTS
-────────────────────────────────────────────────────────────────
-
-1. Start with demo data to learn interface
-2. Adjust colors for better mineral distinction
-3. Use transparency to see internal structures
-4. Export at high resolution for publications
-5. Save sessions to revisit analyses
-6. Combine with geochemical data for interpretation
-
-═══════════════════════════════════════════════════════════════
-
-USE CASES
-────────────────────────────────────────────────────────────────
-
-PETROLOGY:
-• Visualize mineral zoning
-• Analyze reaction textures
-• Document metamorphic grade
-• Identify alteration patterns
-
-GEOCHEMISTRY:
-• Correlate chemistry with texture
-• Map element distributions
-• Identify mineral hosts
-• Visualize chemical zoning
-
-ENGINEERING:
-• Analyze pore networks
-• Measure fracture density
-• Characterize material properties
-• Quality control of materials
-
-EDUCATION:
-• Virtual thin-section library
-• Interactive mineral identification
-• Texture recognition training
-• Remote microscopy teaching
-
-═══════════════════════════════════════════════════════════════
-"""
-
-        text.insert('1.0', help_text)
-        text.config(state='disabled')
-
-    def _update_sample_list(self):
-        """Update sample dropdown list"""
-        if not self.app.samples:
-            return
-
-        sample_ids = []
-        for sample in self.app.samples:
-            sample_id = sample.get('Sample_ID')
-            if sample_id:
-                sample_ids.append(sample_id)
-
-        if sample_ids:
-            # Update combobox
-            if hasattr(self, 'sample_var'):
-                # Find the combobox widget
-                for child in self.window.winfo_children():
-                    if isinstance(child, ttk.Combobox):
-                        child['values'] = sample_ids
-                        if sample_ids:
-                            child.set(sample_ids[0])
-                        break
-
-    def _load_thin_section_data(self):
-        """Load thin-section data from file"""
+    def _load_data(self):
+        """Load data from file"""
         filetypes = [
-            ("CSV files", "*.csv"),
             ("JSON files", "*.json"),
-            ("Image files", "*.png *.jpg *.tif"),
+            ("CSV files", "*.csv"),
+            ("Image files", "*.png *.jpg *.jpeg *.tif *.tiff"),
             ("All files", "*.*")
         ]
 
@@ -690,25 +336,34 @@ EDUCATION:
             filetypes=filetypes
         )
 
-        if path:
-            try:
-                ext = Path(path).suffix.lower()
+        if not path:
+            return
 
-                if ext == '.json':
-                    self._load_json_data(path)
-                elif ext == '.csv':
-                    self._load_csv_data(path)
-                elif ext in ['.png', '.jpg', '.jpeg', '.tif', '.tiff']:
-                    self._load_image_data(path)
-                else:
-                    messagebox.showerror("Unsupported Format",
-                                       f"Cannot load {ext} files.")
+        try:
+            self.status_var.set(f"Loading {Path(path).name}...")
+            self.window.update()
 
-            except Exception as e:
-                messagebox.showerror("Load Error", f"Error: {str(e)}\n\n{traceback.format_exc()}")
+            ext = Path(path).suffix.lower()
 
-    def _load_json_data(self, path):
-        """Load JSON thin-section data"""
+            if ext == '.json':
+                self._load_json(path)
+            elif ext == '.csv':
+                self._load_csv(path)
+            elif ext in ['.png', '.jpg', '.jpeg', '.tif', '.tiff']:
+                self._load_image(path)
+            else:
+                messagebox.showerror("Error", f"Unsupported file type: {ext}")
+                return
+
+            self.status_var.set(f"Loaded: {Path(path).name}")
+            self._update_plot()
+
+        except Exception as e:
+            messagebox.showerror("Load Error", f"Error loading file:\n{str(e)}")
+            self.status_var.set("Load failed")
+
+    def _load_json(self, path):
+        """Load JSON data"""
         with open(path, 'r') as f:
             data = json.load(f)
 
@@ -716,22 +371,14 @@ EDUCATION:
         self.mineral_data = data.get('minerals', [])
         self.texture_data = data.get('texture', {})
 
-        messagebox.showinfo("Data Loaded",
-                          f"Loaded thin-section data: {len(self.mineral_data)} minerals")
-
-        # Update display
-        self._update_2d_map()
-        self._calculate_statistics()
-
-    def _load_csv_data(self, path):
-        """Load CSV thin-section data"""
+    def _load_csv(self, path):
+        """Load CSV data"""
         import pandas as pd
         df = pd.read_csv(path)
 
-        # Convert to mineral data format
         self.mineral_data = []
         for _, row in df.iterrows():
-            mineral = {
+            grain = {
                 'type': row.get('Mineral', 'unknown'),
                 'x': row.get('X', 0),
                 'y': row.get('Y', 0),
@@ -739,7 +386,7 @@ EDUCATION:
                 'size': row.get('Size', 1),
                 'shape': row.get('Shape', 'equant')
             }
-            self.mineral_data.append(mineral)
+            self.mineral_data.append(grain)
 
         self.current_section = {
             'width': df['X'].max() if 'X' in df.columns else 100,
@@ -747,227 +394,207 @@ EDUCATION:
             'depth': df['Z'].max() if 'Z' in df.columns else 10
         }
 
-        messagebox.showinfo("Data Loaded",
-                          f"Loaded {len(self.mineral_data)} mineral grains")
+    def _load_image(self, path):
+        """Load and process image"""
+        from PIL import Image
+        import numpy as np
 
-        self._update_2d_map()
-        self._calculate_statistics()
+        img = Image.open(path)
+        img_gray = img.convert('L')
+        img_array = np.array(img_gray)
 
-    def _load_image_data(self, path):
-        """Load image and convert to mineral data"""
-        try:
-            from PIL import Image
-            import numpy as np
+        height, width = img_array.shape
+        self.mineral_data = []
 
-            img = Image.open(path)
-            img_gray = img.convert('L')  # Convert to grayscale
-            img_array = np.array(img_gray)
+        # Sample points
+        step = max(1, min(width, height) // 50)
 
-            # Simple thresholding to identify minerals
-            # This is a demo - real implementation would be more sophisticated
-            threshold = 128
-            mineral_map = img_array > threshold
+        for y in range(0, height, step):
+            for x in range(0, width, step):
+                pixel_value = img_array[y, x]
 
-            # Convert to mineral data points
-            self.mineral_data = []
-            height, width = mineral_map.shape
+                # Simple classification
+                if pixel_value > 200:
+                    mineral_type = 'quartz'
+                elif pixel_value > 150:
+                    mineral_type = 'feldspar'
+                elif pixel_value > 100:
+                    mineral_type = 'biotite'
+                else:
+                    mineral_type = 'opaque'
 
-            # Sample points (every 10th pixel for performance)
-            for y in range(0, height, 10):
-                for x in range(0, width, 10):
-                    if mineral_map[y, x]:
-                        mineral = {
-                            'type': 'quartz' if img_array[y, x] > 200 else 'feldspar',
-                            'x': x,
-                            'y': y,
-                            'z': 0,
-                            'size': 5,
-                            'shape': 'equant'
-                        }
-                        self.mineral_data.append(mineral)
+                grain = {
+                    'type': mineral_type,
+                    'x': x,
+                    'y': y,
+                    'z': 0,
+                    'size': step / 2,
+                    'shape': 'equant'
+                }
+                self.mineral_data.append(grain)
 
-            self.current_section = {
-                'width': width,
-                'height': height,
-                'depth': 10
-            }
-
-            messagebox.showinfo("Image Loaded",
-                              f"Converted image to {len(self.mineral_data)} mineral points")
-
-            self._update_2d_map()
-            self._calculate_statistics()
-
-        except Exception as e:
-            messagebox.showerror("Image Error", f"Error processing image: {str(e)}")
-
-    def _generate_demo_section(self):
-        """Generate a demo thin-section with realistic mineral distributions"""
-        np.random.seed(42)  # For reproducible results
-
-        # Create section dimensions
-        width, height, depth = 100, 100, 10
-
-        # Define mineral proportions
-        mineral_proportions = {
-            'quartz': 0.35,
-            'feldspar': 0.25,
-            'biotite': 0.15,
-            'amphibole': 0.10,
-            'pyroxene': 0.08,
-            'opaque': 0.05,
-            'void': 0.02
+        self.current_section = {
+            'width': width,
+            'height': height,
+            'depth': 10
         }
 
-        # Generate mineral grains
+    def _generate_demo(self):
+        """Generate demo data"""
+        self.status_var.set("Generating demo data...")
+        self.window.update()
+
+        np.random.seed(42)
+
+        # Create demo section
+        width, height, depth = 100, 100, 10
         self.mineral_data = []
+
+        mineral_types = ['quartz', 'feldspar', 'biotite', 'amphibole', 'opaque', 'void']
+        proportions = [0.35, 0.25, 0.15, 0.10, 0.10, 0.05]
+
         total_grains = 500
 
-        for mineral, proportion in mineral_proportions.items():
+        for mineral, proportion in zip(mineral_types, proportions):
             n_grains = int(total_grains * proportion)
 
-            # Different size distributions for different minerals
-            if mineral == 'quartz':
-                sizes = np.random.uniform(3, 15, n_grains)
-            elif mineral == 'feldspar':
-                sizes = np.random.uniform(2, 10, n_grains)
-            elif mineral in ['biotite', 'amphibole']:
-                sizes = np.random.uniform(1, 5, n_grains)
-            else:
-                sizes = np.random.uniform(0.5, 3, n_grains)
-
             for i in range(n_grains):
-                # Avoid overlap (simple check)
-                max_attempts = 10
-                for attempt in range(max_attempts):
-                    x = np.random.uniform(0, width)
-                    y = np.random.uniform(0, height)
-                    z = np.random.uniform(0, depth)
-                    size = sizes[i]
-
-                    # Check for overlap (simple distance check)
-                    too_close = False
-                    for existing in self.mineral_data[-100:]:  # Check recent grains
-                        dist = np.sqrt((x - existing['x'])**2 +
-                                     (y - existing['y'])**2 +
-                                     (z - existing['z'])**2)
-                        if dist < (size + existing['size']):
-                            too_close = True
-                            break
-
-                    if not too_close or attempt == max_attempts - 1:
-                        grain = {
-                            'type': mineral,
-                            'x': x,
-                            'y': y,
-                            'z': z,
-                            'size': size,
-                            'shape': self._get_grain_shape(mineral),
-                            'orientation': np.random.uniform(0, 360) if mineral in ['biotite', 'amphibole'] else 0
-                        }
-                        self.mineral_data.append(grain)
-                        break
+                grain = {
+                    'type': mineral,
+                    'x': np.random.uniform(0, width),
+                    'y': np.random.uniform(0, height),
+                    'z': np.random.uniform(0, depth),
+                    'size': np.random.uniform(1, 8),
+                    'shape': 'equant'
+                }
+                self.mineral_data.append(grain)
 
         self.current_section = {
             'width': width,
             'height': height,
             'depth': depth,
-            'name': 'Demo Basalt Thin-Section',
-            'rock_type': 'Basalt',
+            'name': 'Demo Granite Thin-Section',
+            'rock_type': 'Granite',
             'location': 'Synthetic'
         }
 
-        messagebox.showinfo("Demo Generated",
-                          f"Generated demo thin-section with {len(self.mineral_data)} mineral grains")
+        self.status_var.set("Loaded: Demo Section")
+        self._update_plot()
 
-        self._update_2d_map()
-        self._calculate_statistics()
+    def _load_demo_data(self):
+        """Load demo data on startup"""
+        self._generate_demo()
 
-    def _get_grain_shape(self, mineral):
-        """Get appropriate grain shape for mineral"""
-        shapes = {
-            'quartz': 'equant',
-            'feldspar': 'tabular',
-            'biotite': 'platy',
-            'amphibole': 'prismatic',
-            'pyroxene': 'prismatic',
-            'opaque': 'equant',
-            'void': 'irregular'
-        }
-        return shapes.get(mineral, 'equant')
+    def _clear_data(self):
+        """Clear all data"""
+        self.mineral_data = []
+        self.current_section = None
+        self.status_var.set("Data cleared")
+        self._update_plot()
 
-    def _update_2d_map(self):
-        """Update the 2D mineral map"""
+    def _update_plot(self):
+        """Update the matplotlib plot"""
+        self.ax.clear()
+
         if not self.mineral_data:
+            self.ax.text(0.5, 0.5, "No data loaded",
+                        ha='center', va='center', fontsize=12, color='gray',
+                        transform=self.ax.transAxes)
+            self.ax.set_axis_off()
+        else:
+            # Filter minerals based on checkboxes
+            filtered_data = []
+            for grain in self.mineral_data:
+                mineral = grain.get('type', 'unknown')
+                if mineral in self.mineral_vars and self.mineral_vars[mineral].get():
+                    filtered_data.append(grain)
+
+            if not filtered_data:
+                self.ax.text(0.5, 0.5, "No minerals selected",
+                            ha='center', va='center', fontsize=12, color='gray',
+                            transform=self.ax.transAxes)
+                self.ax.set_axis_off()
+            else:
+                # Prepare data for plotting
+                x_vals = []
+                y_vals = []
+                colors = []
+                sizes = []
+
+                for grain in filtered_data:
+                    x_vals.append(grain['x'])
+                    y_vals.append(grain['y'])
+
+                    mineral = grain.get('type', 'unknown')
+                    color = self.mineral_colors.get(mineral, [0.5, 0.5, 0.5, 1.0])
+                    colors.append(color[:3])  # RGB only
+
+                    # Scale size
+                    base_size = grain.get('size', 1)
+                    sizes.append(base_size * self.size_var.get())
+
+                # Create scatter plot
+                scatter = self.ax.scatter(x_vals, y_vals,
+                                         s=sizes,
+                                         c=colors,
+                                         alpha=self.alpha_var.get(),
+                                         edgecolors='black',
+                                         linewidths=0.5)
+
+                # Set plot limits
+                if self.current_section:
+                    self.ax.set_xlim(0, self.current_section.get('width', 100))
+                    self.ax.set_ylim(0, self.current_section.get('height', 100))
+
+                self.ax.set_aspect('equal')
+                self.ax.set_xlabel('X Position (μm)')
+                self.ax.set_ylabel('Y Position (μm)')
+                self.ax.set_title('2D Mineral Distribution')
+
+                # Add legend
+                unique_minerals = set(g['type'] for g in filtered_data)
+                legend_handles = []
+                for mineral in sorted(unique_minerals):
+                    if mineral in self.mineral_colors:
+                        color = self.mineral_colors[mineral]
+                        legend_handles.append(plt.Line2D([0], [0],
+                                                        marker='o',
+                                                        color='w',
+                                                        markerfacecolor=color[:3],
+                                                        markersize=8,
+                                                        label=mineral.capitalize()))
+
+                if legend_handles:
+                    self.ax.legend(handles=legend_handles,
+                                  loc='upper right',
+                                  fontsize='small',
+                                  ncol=2)
+
+        self.fig.tight_layout()
+        self.canvas.draw()
+
+    def _show_statistics(self):
+        """Show statistics dialog"""
+        if not self.mineral_data:
+            messagebox.showinfo("No Data", "No data loaded.")
             return
 
-        # Clear previous plot
-        self.ax_2d.clear()
+        # Create statistics window
+        stats_win = tk.Toplevel(self.window)
+        stats_win.title("Thin-Section Statistics")
+        stats_win.geometry("500x400")
 
-        # Create color mapping
-        colors = []
-        sizes = []
-        positions = []
-
-        for grain in self.mineral_data:
-            mineral = grain['type']
-            if mineral in self.mineral_colors:
-                color = self.mineral_colors[mineral]
-                colors.append(color[:3])  # RGB only
-                sizes.append(grain['size'] * 5)  # Scale for visibility
-                positions.append([grain['x'], grain['y']])
-
-        if positions:
-            positions = np.array(positions)
-            colors = np.array(colors)
-            sizes = np.array(sizes)
-
-            # Scatter plot
-            scatter = self.ax_2d.scatter(positions[:, 0], positions[:, 1],
-                                        s=sizes, c=colors, alpha=0.7,
-                                        edgecolors='black', linewidths=0.5)
-
-            # Set limits
-            if self.current_section:
-                self.ax_2d.set_xlim(0, self.current_section['width'])
-                self.ax_2d.set_ylim(0, self.current_section['height'])
-
-            self.ax_2d.set_aspect('equal')
-            self.ax_2d.set_xlabel('X Position (μm)')
-            self.ax_2d.set_ylabel('Y Position (μm)')
-            self.ax_2d.set_title('2D Mineral Distribution Map')
-
-            # Add legend
-            unique_minerals = set(g['type'] for g in self.mineral_data)
-            legend_elements = []
-            for mineral in sorted(unique_minerals):
-                if mineral in self.mineral_colors:
-                    color = self.mineral_colors[mineral]
-                    legend_elements.append(plt.Line2D([0], [0], marker='o',
-                                                     color='w', markerfacecolor=color[:3],
-                                                     markersize=8, label=mineral.capitalize()))
-
-            if legend_elements:
-                self.ax_2d.legend(handles=legend_elements, loc='upper right',
-                                 fontsize='small', ncol=2)
-
-        self.fig_2d.tight_layout()
-        self.canvas_2d.draw()
-
-    def _calculate_statistics(self):
-        """Calculate and display thin-section statistics"""
-        if not self.mineral_data:
-            return
+        # Create text widget
+        text = scrolledtext.ScrolledText(stats_win, wrap=tk.WORD, font=("Courier", 10))
+        text.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         # Calculate statistics
         mineral_counts = {}
         mineral_sizes = {}
-        total_volume = 0
 
         for grain in self.mineral_data:
             mineral = grain['type']
             size = grain['size']
-            volume = (4/3) * np.pi * (size/2)**3  # Assuming spherical
 
             if mineral not in mineral_counts:
                 mineral_counts[mineral] = 0
@@ -975,211 +602,141 @@ EDUCATION:
 
             mineral_counts[mineral] += 1
             mineral_sizes[mineral].append(size)
-            total_volume += volume
 
-        # Prepare statistics text
-        self.stats_text.config(state='normal')
-        self.stats_text.delete(1.0, tk.END)
-
-        self.stats_text.insert(tk.END,
-                              f"THIN-SECTION STATISTICS\n"
-                              f"══════════════════════════════\n\n")
+        # Generate report
+        report = []
+        report.append("THIN-SECTION STATISTICS")
+        report.append("=" * 50)
+        report.append("")
 
         if self.current_section:
+            report.append("SECTION INFORMATION:")
             for key, value in self.current_section.items():
-                if key not in ['width', 'height', 'depth']:
-                    self.stats_text.insert(tk.END, f"{key}: {value}\n")
+                if isinstance(value, (int, float, str)):
+                    report.append(f"  {key}: {value}")
+            report.append("")
 
-            self.stats_text.insert(tk.END,
-                                  f"\nDimensions: {self.current_section.get('width', 0)} × "
-                                  f"{self.current_section.get('height', 0)} × "
-                                  f"{self.current_section.get('depth', 0)} μm\n")
-
-        self.stats_text.insert(tk.END,
-                              f"\nMINERALOGY\n"
-                              f"──────────\n")
+        report.append("MINERAL DISTRIBUTION:")
+        report.append("-" * 30)
 
         total_grains = len(self.mineral_data)
-        for mineral, count in sorted(mineral_counts.items(),
-                                    key=lambda x: x[1], reverse=True):
+        for mineral, count in sorted(mineral_counts.items(), key=lambda x: x[1], reverse=True):
             percentage = (count / total_grains) * 100
             size_data = mineral_sizes[mineral]
             avg_size = np.mean(size_data) if size_data else 0
-            std_size = np.std(size_data) if len(size_data) > 1 else 0
 
-            self.stats_text.insert(tk.END,
-                                  f"{mineral.capitalize():12} {count:4d} grains "
-                                  f"({percentage:5.1f}%) "
-                                  f"Size: {avg_size:.1f} ± {std_size:.1f} μm\n")
+            report.append(f"{mineral.capitalize():12} {count:4d} grains ({percentage:5.1f}%)")
+            report.append(f"              Avg size: {avg_size:.2f} μm")
 
-        # Texture statistics
-        self.stats_text.insert(tk.END,
-                              f"\nTEXTURE\n"
-                              f"───────\n")
+        report.append("")
+        report.append(f"Total grains: {total_grains}")
 
-        all_sizes = [g['size'] for g in self.mineral_data]
-        if all_sizes:
-            self.stats_text.insert(tk.END,
-                                  f"Mean grain size: {np.mean(all_sizes):.2f} μm\n")
-            self.stats_text.insert(tk.END,
-                                  f"Grain size range: {min(all_sizes):.2f} - {max(all_sizes):.2f} μm\n")
-            self.stats_text.insert(tk.END,
-                                  f"Sorting (std): {np.std(all_sizes):.2f} μm\n")
+        # Insert report
+        text.insert('1.0', '\n'.join(report))
+        text.config(state='disabled')
 
-        # Calculate porosity if void data exists
-        if 'void' in mineral_counts:
-            porosity = mineral_counts['void'] / total_grains * 100
-            self.stats_text.insert(tk.END,
-                                  f"\nPorosity: {porosity:.1f}%\n")
-
-        self.stats_text.insert(tk.END,
-                              f"\nTotal grains analyzed: {total_grains}\n")
-
-        self.stats_text.config(state='disabled')
-
-    def _render_3d_view(self):
-        """Render interactive 3D view"""
+    def _analyze_grain_sizes(self):
+        """Analyze grain size distribution"""
         if not self.mineral_data:
-            messagebox.showwarning("No Data",
-                                 "Please load or generate thin-section data first.")
+            messagebox.showinfo("No Data", "No data loaded.")
             return
 
-        try:
-            # Clear previous 3D view
-            for widget in self.canvas_3d_frame.winfo_children():
-                widget.destroy()
+        # Extract sizes
+        sizes = [g['size'] for g in self.mineral_data if g['type'] != 'void']
 
-            # Create PyVista plotter
-            self.plotter = pv.Plotter(window_size=[800, 600])
-            self.plotter.set_background("white")
+        if not sizes:
+            messagebox.showinfo("No Grains", "No mineral grains to analyze.")
+            return
 
-            # Get selected minerals
-            selected_minerals = [m for m, var in self.mineral_vars.items()
-                               if var.get()]
+        # Create analysis window
+        analysis_win = tk.Toplevel(self.window)
+        analysis_win.title("Grain Size Analysis")
+        analysis_win.geometry("600x500")
 
-            # Create point cloud for each mineral
-            for mineral in selected_minerals:
-                # Filter grains of this mineral
-                grains = [g for g in self.mineral_data if g['type'] == mineral]
+        # Create matplotlib figure
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 8))
 
-                if not grains:
-                    continue
+        # Histogram
+        ax1.hist(sizes, bins=20, alpha=0.7, color='skyblue', edgecolor='black')
+        ax1.set_xlabel('Grain Size (μm)')
+        ax1.set_ylabel('Frequency')
+        ax1.set_title('Grain Size Distribution')
 
-                # Prepare data
-                points = []
-                colors = []
-                sizes = []
+        # Add statistics
+        mean_size = np.mean(sizes)
+        median_size = np.median(sizes)
+        std_size = np.std(sizes)
 
-                for grain in grains:
-                    points.append([grain['x'], grain['y'], grain['z']])
-                    color = self.mineral_colors.get(mineral, [0.5, 0.5, 0.5, 1.0])
-                    colors.append(color[:3])  # RGB only
-                    sizes.append(grain['size'] * 0.5)  # Scale factor
+        ax1.axvline(mean_size, color='red', linestyle='--', label=f'Mean: {mean_size:.2f} μm')
+        ax1.axvline(median_size, color='green', linestyle='--', label=f'Median: {median_size:.2f} μm')
+        ax1.legend()
 
-                if points:
-                    points_array = np.array(points)
-                    colors_array = np.array(colors)
+        # Box plot
+        ax2.boxplot(sizes, vert=False)
+        ax2.set_xlabel('Grain Size (μm)')
+        ax2.set_title('Grain Size Statistics')
 
-                    # Create point cloud
-                    point_cloud = pv.PolyData(points_array)
-                    point_cloud['colors'] = (colors_array * 255).astype(np.uint8)
-                    point_cloud['sizes'] = np.array(sizes)
+        # Add text summary
+        stats_text = f"""Statistics:
+        Count: {len(sizes)}
+        Mean: {mean_size:.2f} μm
+        Median: {median_size:.2f} μm
+        Std Dev: {std_size:.2f} μm
+        Min: {min(sizes):.2f} μm
+        Max: {max(sizes):.2f} μm"""
 
-                    # Add to plotter with transparency
-                    opacity = 1.0 - self.transparency_var.get()
+        ax2.text(0.02, 0.95, stats_text, transform=ax2.transAxes,
+                fontsize=10, verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
 
-                    self.plotter.add_points(point_cloud,
-                                          scalars='colors',
-                                          rgb=True,
-                                          point_size='sizes',
-                                          render_points_as_spheres=True,
-                                          opacity=opacity)
+        fig.tight_layout()
 
-            # Add section bounds as wireframe
-            if self.current_section:
-                bounds = pv.Box(bounds=[0, self.current_section['width'],
-                                       0, self.current_section['height'],
-                                       0, self.current_section['depth']])
-                self.plotter.add_mesh(bounds, style='wireframe',
-                                     color='black', line_width=1, opacity=0.3)
-
-            # Add axes and title
-            self.plotter.add_axes(xlabel='X (μm)', ylabel='Y (μm)', zlabel='Z (μm)')
-            self.plotter.add_text("3D Thin-Section Mineral Distribution",
-                                 position='upper_edge', font_size=14, color='black')
-
-            # Add lighting
-            self.plotter.set_lighting(lighting=self.lighting_var.get())
-
-            # Embed in tkinter window (simplified - in real implementation,
-            # you would use pv.BackgroundPlotter for proper embedding)
-
-            # For now, show in separate window
-            self.plotter.show()
-
-            # Update status
-            messagebox.showinfo("3D View Rendered",
-                              "3D view opened in separate window.\n"
-                              "Use mouse to rotate, scroll to zoom.")
-
-        except Exception as e:
-            messagebox.showerror("3D Render Error",
-                               f"Error rendering 3D view:\n\n{str(e)}\n\n{traceback.format_exc()}")
-
-    def _update_view(self):
-        """Update current view with new settings"""
-        # Update 2D map with current color settings
-        self._update_2d_map()
-
-        # Recalculate statistics
-        self._calculate_statistics()
-
-        messagebox.showinfo("View Updated", "Display settings updated.")
+        # Embed in tkinter
+        canvas = FigureCanvasTkAgg(fig, analysis_win)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
     def _adjust_colors(self):
-        """Open color adjustment dialog"""
+        """Adjust mineral colors"""
         color_win = tk.Toplevel(self.window)
         color_win.title("Adjust Mineral Colors")
-        color_win.geometry("500x400")
+        color_win.geometry("400x500")
 
-        # Color adjustment interface
-        canvas = tk.Canvas(color_win, bg="white")
-        canvas.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # Create scrollable frame
+        canvas = tk.Canvas(color_win)
+        scrollbar = tk.Scrollbar(color_win, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas)
 
-        y_pos = 10
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # Color pickers for each mineral
         for mineral, color in self.mineral_colors.items():
-            # Mineral label
-            tk.Label(canvas, text=mineral.capitalize(),
-                    font=("Arial", 10)).place(x=10, y=y_pos)
+            frame = tk.Frame(scrollable_frame)
+            frame.pack(fill=tk.X, padx=10, pady=5)
+
+            tk.Label(frame, text=mineral.capitalize(), width=15).pack(side=tk.LEFT)
 
             # Current color preview
-            preview = tk.Canvas(canvas, width=30, height=30,
-                               bg=self._rgb_to_hex(color),
-                               highlightthickness=1,
-                               highlightbackground="black")
-            preview.place(x=150, y=y_pos)
+            preview = tk.Canvas(frame, width=30, height=30,
+                               bg=self._rgb_to_hex(color))
+            preview.pack(side=tk.LEFT, padx=5)
 
             # Color picker button
-            tk.Button(canvas, text="Pick Color",
-                     command=lambda m=mineral, p=preview:
-                     self._pick_color(m, p)).place(x=200, y=y_pos)
+            tk.Button(frame, text="Change",
+                     command=lambda m=mineral, p=preview: self._pick_color(m, p)).pack(side=tk.LEFT)
 
-            # RGB sliders
-            for i, channel in enumerate(['R', 'G', 'B']):
-                slider = tk.Scale(canvas, from_=0, to=255, orient=tk.HORIZONTAL,
-                                 label=channel, length=100)
-                slider.set(int(color[i] * 255))
-                slider.place(x=300 + i*120, y=y_pos-20)
-
-                # Bind slider update
-                slider.configure(command=lambda v, m=mineral, idx=i:
-                               self._update_color_slider(m, idx, float(v)/255))
-
-            y_pos += 60
-
-        # Close button
+        # Apply button
         tk.Button(color_win, text="Apply Colors",
-                 command=lambda: [self._update_2d_map(), color_win.destroy()],
+                 command=self._apply_colors,
                  bg="#4CAF50", fg="white",
                  font=("Arial", 11, "bold")).pack(pady=10)
 
@@ -1191,324 +748,83 @@ EDUCATION:
         hex_color = self._rgb_to_hex(current_color)
 
         color = colorchooser.askcolor(hex_color, title=f"Pick color for {mineral}")
-        if color[1]:  # User selected a color
-            # Convert hex to RGB
-            hex_val = color[1].lstrip('#')
-            rgb = tuple(int(hex_val[i:i+2], 16) / 255.0 for i in (0, 2, 4))
-
-            # Update color
-            self.mineral_colors[mineral] = [rgb[0], rgb[1], rgb[2], 1.0]
-
+        if color[1]:
             # Update preview
             preview_canvas.config(bg=color[1])
+            # Store RGB values (0-255 to 0-1)
+            rgb = tuple(int(color[1][i:i+2], 16) / 255.0 for i in (1, 3, 5))
+            self.mineral_colors[mineral] = [rgb[0], rgb[1], rgb[2], 1.0]
 
-    def _update_color_slider(self, mineral, channel_idx, value):
-        """Update color from slider"""
-        color = list(self.mineral_colors[mineral])
-        color[channel_idx] = value
-        self.mineral_colors[mineral] = color
+    def _apply_colors(self):
+        """Apply color changes and update plot"""
+        self._update_plot()
+        messagebox.showinfo("Colors Updated", "Mineral colors have been updated.")
 
-    def _reset_colors(self):
-        """Reset colors to defaults"""
-        default_colors = {
-            'quartz': [0.9, 0.9, 0.9, 1.0],
-            'feldspar': [0.8, 0.8, 1.0, 1.0],
-            'plagioclase': [0.7, 0.8, 0.9, 1.0],
-            'biotite': [0.2, 0.2, 0.2, 1.0],
-            'muscovite': [0.9, 0.9, 0.7, 1.0],
-            'amphibole': [0.1, 0.5, 0.1, 1.0],
-            'pyroxene': [0.3, 0.3, 0.1, 1.0],
-            'olivine': [0.2, 0.6, 0.2, 1.0],
-            'apatite': [0.8, 0.4, 0.8, 1.0],
-            'zircon': [0.9, 0.9, 0.1, 1.0],
-            'opaque': [0.1, 0.1, 0.1, 1.0],
-            'calcite': [1.0, 1.0, 0.8, 1.0],
-            'clay': [0.6, 0.5, 0.4, 1.0],
-            'void': [0.0, 0.0, 0.0, 0.0],
-        }
-
-        self.mineral_colors = default_colors.copy()
-        self._update_2d_map()
-        messagebox.showinfo("Colors Reset", "Mineral colors reset to defaults.")
-
-    def _analyze_grain_size(self):
-        """Analyze grain size distribution"""
+    def _save_image(self):
+        """Save current plot as image"""
         if not self.mineral_data:
-            messagebox.showwarning("No Data", "No thin-section data loaded.")
-            return
-
-        # Extract grain sizes
-        sizes = [g['size'] for g in self.mineral_data if g['type'] != 'void']
-
-        if not sizes:
-            messagebox.showwarning("No Grains", "No mineral grains to analyze.")
-            return
-
-        # Create histogram
-        fig, ax = plt.subplots(figsize=(10, 6))
-
-        ax.hist(sizes, bins=20, alpha=0.7, edgecolor='black')
-        ax.set_xlabel('Grain Size (μm)')
-        ax.set_ylabel('Frequency')
-        ax.set_title('Grain Size Distribution')
-
-        # Add statistics
-        mean_size = np.mean(sizes)
-        median_size = np.median(sizes)
-        std_size = np.std(sizes)
-
-        stats_text = f"n = {len(sizes)}\nMean = {mean_size:.2f} μm\n"
-        stats_text += f"Median = {median_size:.2f} μm\nStd = {std_size:.2f} μm"
-
-        ax.text(0.95, 0.95, stats_text,
-               transform=ax.transAxes, verticalalignment='top',
-               horizontalalignment='right',
-               bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-
-        plt.tight_layout()
-        plt.show()
-
-    def _analyze_mineral_abundance(self):
-        """Analyze mineral abundance"""
-        if not self.mineral_data:
-            return
-
-        # Count minerals
-        mineral_counts = {}
-        for grain in self.mineral_data:
-            mineral = grain['type']
-            mineral_counts[mineral] = mineral_counts.get(mineral, 0) + 1
-
-        # Create pie chart
-        fig, ax = plt.subplots(figsize=(10, 8))
-
-        labels = []
-        counts = []
-        colors = []
-
-        for mineral, count in sorted(mineral_counts.items(),
-                                    key=lambda x: x[1], reverse=True):
-            labels.append(f"{mineral.capitalize()}\n({count})")
-            counts.append(count)
-            if mineral in self.mineral_colors:
-                colors.append(self.mineral_colors[mineral][:3])
-            else:
-                colors.append([0.5, 0.5, 0.5])
-
-        wedges, texts, autotexts = ax.pie(counts, labels=labels, colors=colors,
-                                         autopct='%1.1f%%', startangle=90)
-
-        ax.set_title('Mineral Abundance')
-        plt.tight_layout()
-        plt.show()
-
-    def _analyze_texture(self):
-        """Analyze texture orientation"""
-        if not self.mineral_data:
-            return
-
-        # For platy minerals, analyze orientation
-        platy_minerals = ['biotite', 'muscovite', 'amphibole']
-        orientations = []
-
-        for grain in self.mineral_data:
-            if grain['type'] in platy_minerals and 'orientation' in grain:
-                orientations.append(grain['orientation'])
-
-        if orientations:
-            # Create rose diagram
-            fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(projection='polar'))
-
-            n_bins = 36
-            theta = np.radians(np.array(orientations))
-            bins = np.linspace(0, 2*np.pi, n_bins + 1)
-
-            counts, _ = np.histogram(theta, bins=bins)
-            widths = 2 * np.pi / n_bins
-            bars = ax.bar(bins[:-1], counts, width=widths, bottom=0.0)
-
-            ax.set_title('Mineral Orientation Rose Diagram')
-            ax.set_theta_zero_location('N')
-            ax.set_theta_direction(-1)
-
-            plt.tight_layout()
-            plt.show()
-        else:
-            messagebox.showinfo("No Orientation Data",
-                              "No platy minerals with orientation data found.")
-
-    def _analyze_porosity(self):
-        """Analyze porosity"""
-        if not self.mineral_data:
-            return
-
-        # Count void spaces
-        void_count = sum(1 for g in self.mineral_data if g['type'] == 'void')
-        total_count = len(self.mineral_data)
-
-        if void_count > 0:
-            porosity = (void_count / total_count) * 100
-
-            # Create visualization
-            fig, ax = plt.subplots(figsize=(8, 6))
-
-            categories = ['Minerals', 'Void Space']
-            counts = [total_count - void_count, void_count]
-            colors = ['#4CAF50', '#2196F3']
-
-            ax.bar(categories, counts, color=colors)
-            ax.set_ylabel('Number of Grains')
-            ax.set_title(f'Porosity Analysis: {porosity:.1f}%')
-
-            # Add value labels
-            for i, v in enumerate(counts):
-                ax.text(i, v + 0.5, str(v), ha='center')
-
-            plt.tight_layout()
-            plt.show()
-        else:
-            messagebox.showinfo("No Porosity",
-                              "No void spaces detected in this thin-section.")
-
-    def _zoom_region(self):
-        """Zoom to specific region"""
-        # In a full implementation, this would allow selecting a region
-        # to zoom in on in the 3D view
-        messagebox.showinfo("Zoom Feature",
-                          "Click and drag in the 3D view to zoom.\n"
-                          "Or use mouse wheel to zoom in/out.")
-
-    def _capture_snapshot(self):
-        """Capture snapshot of current view"""
-        if not self.plotter:
-            messagebox.showwarning("No 3D View",
-                                 "Please render a 3D view first.")
+            messagebox.showwarning("No Data", "No data to save.")
             return
 
         path = filedialog.asksaveasfilename(
-            title="Save Snapshot",
+            title="Save Image",
             defaultextension=".png",
-            filetypes=[("PNG files", "*.png"), ("All files", "*.*")]
+            filetypes=[("PNG files", "*.png"),
+                      ("JPEG files", "*.jpg"),
+                      ("PDF files", "*.pdf"),
+                      ("All files", "*.*")]
         )
 
         if path:
             try:
-                self.plotter.screenshot(path)
-                messagebox.showinfo("Snapshot Saved",
-                                  f"Snapshot saved to:\n{path}")
+                self.fig.savefig(path, dpi=300, bbox_inches='tight')
+                self.status_var.set(f"Image saved: {Path(path).name}")
+                messagebox.showinfo("Success", f"Image saved to:\n{path}")
             except Exception as e:
-                messagebox.showerror("Save Error", f"Error: {str(e)}")
+                messagebox.showerror("Save Error", f"Error saving image:\n{str(e)}")
 
-    def _export_png(self):
-        """Export as PNG image"""
-        path = filedialog.asksaveasfilename(
-            title="Export as PNG",
-            defaultextension=".png",
-            filetypes=[("PNG files", "*.png")]
-        )
-
-        if path:
-            try:
-                # Save current 2D map
-                self.fig_2d.savefig(path, dpi=300, bbox_inches='tight')
-                messagebox.showinfo("Export Successful",
-                                  f"2D map exported to:\n{path}")
-            except Exception as e:
-                messagebox.showerror("Export Error", f"Error: {str(e)}")
-
-    def _export_stl(self):
-        """Export 3D model as STL"""
-        path = filedialog.asksaveasfilename(
-            title="Export as STL",
-            defaultextension=".stl",
-            filetypes=[("STL files", "*.stl")]
-        )
-
-        if path:
-            try:
-                # In a full implementation, this would export the 3D model
-                # For now, show message
-                messagebox.showinfo("STL Export",
-                                  "STL export requires full 3D mesh generation.\n"
-                                  "This feature is available in the full version.")
-            except Exception as e:
-                messagebox.showerror("Export Error", f"Error: {str(e)}")
-
-    def _export_obj(self):
-        """Export 3D model as OBJ"""
-        path = filedialog.asksaveasfilename(
-            title="Export as OBJ",
-            defaultextension=".obj",
-            filetypes=[("OBJ files", "*.obj")]
-        )
-
-        if path:
-            messagebox.showinfo("OBJ Export",
-                              "OBJ export requires full 3D mesh generation.\n"
-                              "This feature is available in the full version.")
-
-    def _export_stats(self):
-        """Export statistics as CSV"""
+    def _export_data(self):
+        """Export data to file"""
         if not self.mineral_data:
             messagebox.showwarning("No Data", "No data to export.")
             return
 
         path = filedialog.asksaveasfilename(
-            title="Export Statistics",
-            defaultextension=".csv",
-            filetypes=[("CSV files", "*.csv")]
-        )
-
-        if path:
-            try:
-                import pandas as pd
-
-                # Create DataFrame from mineral data
-                df = pd.DataFrame(self.mineral_data)
-                df.to_csv(path, index=False)
-
-                messagebox.showinfo("Export Successful",
-                                  f"Statistics exported to:\n{path}")
-            except Exception as e:
-                messagebox.showerror("Export Error", f"Error: {str(e)}")
-
-    def _export_session(self):
-        """Export entire session as JSON"""
-        path = filedialog.asksaveasfilename(
-            title="Export Session",
+            title="Export Data",
             defaultextension=".json",
-            filetypes=[("JSON files", "*.json")]
+            filetypes=[("JSON files", "*.json"),
+                      ("CSV files", "*.csv"),
+                      ("All files", "*.*")]
         )
 
         if path:
             try:
-                session_data = {
-                    'section': self.current_section,
-                    'minerals': self.mineral_data,
-                    'colors': self.mineral_colors,
-                    'export_date': datetime.now().isoformat()
-                }
+                ext = Path(path).suffix.lower()
 
-                with open(path, 'w') as f:
-                    json.dump(session_data, f, indent=2)
+                if ext == '.json':
+                    data = {
+                        'section': self.current_section,
+                        'minerals': self.mineral_data,
+                        'texture': self.texture_data,
+                        'export_date': datetime.now().isoformat()
+                    }
+                    with open(path, 'w') as f:
+                        json.dump(data, f, indent=2)
 
-                messagebox.showinfo("Export Successful",
-                                  f"Session exported to:\n{path}")
+                elif ext == '.csv':
+                    import pandas as pd
+                    df = pd.DataFrame(self.mineral_data)
+                    df.to_csv(path, index=False)
+
+                else:
+                    messagebox.showerror("Error", f"Unsupported export format: {ext}")
+                    return
+
+                self.status_var.set(f"Data exported: {Path(path).name}")
+                messagebox.showinfo("Success", f"Data exported to:\n{path}")
+
             except Exception as e:
-                messagebox.showerror("Export Error", f"Error: {str(e)}")
-
-    def _load_demo_data(self):
-        """Load demo data on startup"""
-        # Check if we should auto-load demo
-        try:
-            config_path = Path("config/virtual_microscopy.json")
-            if config_path.exists():
-                with open(config_path, 'r') as f:
-                    config = json.load(f)
-                    if config.get('auto_load_demo', False):
-                        self._generate_demo_section()
-        except:
-            pass
+                messagebox.showerror("Export Error", f"Error exporting data:\n{str(e)}")
 
     def _rgb_to_hex(self, rgb):
         """Convert RGB list to hex color"""
@@ -1516,31 +832,14 @@ EDUCATION:
             return f'#{int(rgb[0]*255):02x}{int(rgb[1]*255):02x}{int(rgb[2]*255):02x}'
         return '#000000'
 
-    def _install_dependencies(self, missing_packages):
-        """Install missing dependencies"""
-        response = messagebox.askyesno(
-            "Install Dependencies",
-            f"Install these packages:\n\n{', '.join(missing_packages)}\n\n"
-            f"This may take a few minutes.",
-            parent=self.window
-        )
 
-        if response:
-            if hasattr(self.app, 'open_plugin_manager'):
-                self.window.destroy()
-                self.app.open_plugin_manager()
-
-
-# Bind to application menu
+# Setup function that the main application calls
 def setup_plugin(main_app):
     """Setup function called by main application"""
     plugin = VirtualMicroscopyPlugin(main_app)
 
-    # Add to Tools menu
-    if hasattr(main_app, 'menu_bar'):
-        main_app.menu_bar.add_command(
-            label="3D Virtual Microscopy",
-            command=plugin.open_virtual_microscopy
-        )
+    # Add both show and open methods for compatibility
+    plugin.show = plugin.open_virtual_microscopy
+    plugin.open = plugin.open_virtual_microscopy
 
     return plugin

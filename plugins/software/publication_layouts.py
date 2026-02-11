@@ -18,7 +18,7 @@ License: CC BY-NC-SA 4.0
 """
 
 PLUGIN_INFO = {
-    "category": "add-on",
+    "category": "software",
     "id": "publication_layouts",
     "name": "Publication Layouts Pro",
     "description": "Advanced multi-panel figure creation for publications",
@@ -1989,5 +1989,21 @@ def setup_plugin(main_app):
                                 pass
         except:
             pass
+
+    return plugin
+
+def setup_plugin(main_app):
+    """Plugin setup"""
+    plugin = publication_layouts(main_app)
+
+    if hasattr(main_app, 'menu_bar'):
+        if not hasattr(main_app, 'advanced_menu'):
+            main_app.advanced_menu = tk.Menu(main_app.menu_bar, tearoff=0)
+            main_app.menu_bar.add_cascade(label="Advanced", menu=main_app.advanced_menu)
+
+        main_app.advanced_menu.add_command(
+            label=f"{PLUGIN_INFO['icon']} {PLUGIN_INFO['name']} v{PLUGIN_INFO['version']}",
+            command=plugin.open_window
+        )
 
     return plugin
