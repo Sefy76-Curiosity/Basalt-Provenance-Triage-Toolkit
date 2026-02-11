@@ -40,7 +40,6 @@ if str(main_dir) not in sys.path:
 try:
     from classification_engine import ClassificationEngine
     HAS_ENGINE = True
-    print("🎲 ✓ Successfully loaded classification_engine.py")
 except ImportError as e:
     HAS_ENGINE = False
     print(f"🎲 ⚠ Could not load classification_engine.py: {e}")
@@ -101,7 +100,6 @@ class UncertaintyPropagationPlugin:
         if HAS_ENGINE:
             try:
                 self.engine = ClassificationEngine()
-                print("🎲 ✓ ClassificationEngine instantiated")
             except Exception as e:
                 print(f"🎲 ⚠ Could not instantiate ClassificationEngine: {e}")
                 self.engine = None
@@ -300,8 +298,9 @@ class UncertaintyPropagationPlugin:
         if not HAS_SCIPY:
             messagebox.showerror(
                 "Missing Dependency",
-                "Uncertainty Propagation requires scipy:\n\n"
-                "pip install scipy"
+                "Install with:\n"
+                "python -m pip install reportlab\n\n"
+                "python -m pip install scipy"
             )
             return
 
@@ -1087,7 +1086,6 @@ Shows where the TRUE POPULATION MEAN for each group lies.
 
 def setup_plugin(main_app):
     """Plugin setup function"""
-    print("🎲 Loading Uncertainty Propagation Plugin v1.0.2")
     plugin = UncertaintyPropagationPlugin(main_app)
 
     if hasattr(main_app, 'menu_bar'):
@@ -1099,8 +1097,5 @@ def setup_plugin(main_app):
             label="🎲 Uncertainty Propagation",
             command=plugin.open_window
         )
-        print("🎲 ✓ Added to Advanced menu")
 
-    print("🎲 ✓ Loaded: Uncertainty Propagation v1.0.2")
-    print("    Features: SAFE FALLBACK • FAST MODE • DIVISION GUARDS • PROGRESS BAR")
     return plugin
