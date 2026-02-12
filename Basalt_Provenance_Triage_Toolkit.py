@@ -1027,6 +1027,9 @@ class BasaltTriageApp:
         tools_menu.add_command(label="Batch Process Directory", command=self._call_batch_processor)
         tools_menu.add_separator()
 
+        tools_menu.add_command(label="Geological Context Guide", command=self._show_geological_context)
+        tools_menu.add_separator()
+        tools_menu.add_command(label="🔌 Plugin Manager", command=self._open_plugin_manager)
         # ────────────────────────────────────────────────────────────────
         # NEW TOP-LEVEL MENU: Classify All (right after Tools)
         # ────────────────────────────────────────────────────────────────
@@ -1097,89 +1100,96 @@ class BasaltTriageApp:
             try:
                 from pathlib import Path
                 import importlib.util
+                import json
 
-                # Scan hardware plugins directory
+                # Load enabled plugins from config
+                enabled_plugins = {}
+                config_file = Path("config/enabled_plugins.json")
+                if config_file.exists():
+                    try:
+                        with open(config_file) as f:
+                            enabled_plugins = json.load(f)
+                    except Exception as e:
+                        pass
+
+                # Scan hardware plugins directory ONLY
                 hardware_dir = Path("plugins/hardware")
                 if not hardware_dir.exists():
                     hardware_menu.add_command(label="No hardware plugins folder", state="disabled")
-                    return
+                else:
+                    # Find all Python files in hardware folder
+                    plugin_files = list(hardware_dir.glob("*.py"))
+                    hardware_plugins_found = False
 
-                # Find all Python files
-                plugin_files = list(hardware_dir.glob("*.py"))
-                if not plugin_files:
-                    hardware_menu.add_command(label="No hardware plugins found", state="disabled")
-                    return
+                    # Store plugin info for later
+                    self.hardware_plugins = {}
 
-                # Store plugin info for later
-                self.hardware_plugins = {}
+                    for plugin_file in sorted(plugin_files):
+                        if plugin_file.stem in ["__init__", "plugin_manager"]:
+                            continue
 
-                for plugin_file in sorted(plugin_files):
-                    if plugin_file.stem in ["__init__", "plugin_manager"]:
-                        continue
+                        plugin_id = plugin_file.stem
 
-                    plugin_id = plugin_file.stem
+                        # Skip if not enabled in plugin manager
+                        if not enabled_plugins.get(plugin_id, False):
+                            continue
 
-                    try:
-                        # Load module just to get PLUGIN_INFO
-                        spec = importlib.util.spec_from_file_location(plugin_id, plugin_file)
-                        module = importlib.util.module_from_spec(spec)
-                        spec.loader.exec_module(module)
+                        try:
+                            # Load module just to get PLUGIN_INFO
+                            spec = importlib.util.spec_from_file_location(plugin_id, plugin_file)
+                            module = importlib.util.module_from_spec(spec)
+                            spec.loader.exec_module(module)
 
-                        if hasattr(module, 'PLUGIN_INFO'):
-                            info = module.PLUGIN_INFO
-                            display_name = info.get('name', plugin_id.replace('_', ' ').title())
-                            icon = info.get('icon', '🔌')
+                            if hasattr(module, 'PLUGIN_INFO'):
+                                info = module.PLUGIN_INFO
 
-                            # Store for later
-                            self.hardware_plugins[plugin_id] = {
-                                'file': plugin_file,
-                                'info': info,
-                                'display_name': display_name,
-                                'icon': icon
-                            }
+                                # Verify this is actually a HARDWARE plugin
+                                category = info.get('category', '').lower()
+                                if category != 'hardware':
+                                    continue
 
-                            # Add to menu
-                            hardware_menu.add_command(
-                                label=f"{icon} {display_name}",
-                                command=lambda pid=plugin_id: self._open_hardware_plugin(pid)
-                            )
-                        else:
-                            # If no PLUGIN_INFO, use filename
-                            display_name = plugin_id.replace('_', ' ').title()
-                            self.hardware_plugins[plugin_id] = {
-                                'file': plugin_file,
-                                'info': None,
-                                'display_name': display_name,
-                                'icon': '🔌'
-                            }
-                            hardware_menu.add_command(
-                                label=f"🔌 {display_name}",
-                                command=lambda pid=plugin_id: self._open_hardware_plugin(pid)
-                            )
+                                display_name = info.get('name', plugin_id.replace('_', ' ').title())
+                                icon = info.get('icon', '🔌')
 
-                    except Exception as e:
-                        print(f"Error loading plugin {plugin_file}: {e}")
-                        continue
+                                # Store for later
+                                self.hardware_plugins[plugin_id] = {
+                                    'file': plugin_file,
+                                    'info': info,
+                                    'display_name': display_name,
+                                    'icon': icon
+                                }
 
-                if not self.hardware_plugins:
-                    hardware_menu.add_command(label="No valid plugins found", state="disabled")
+                                # Add to menu
+                                hardware_menu.add_command(
+                                    label=f"{icon} {display_name}",
+                                    command=lambda pid=plugin_id: self._open_hardware_plugin(pid)
+                                )
+                                hardware_plugins_found = True
+                            else:
+                                # If no PLUGIN_INFO, assume it's hardware
+                                display_name = plugin_id.replace('_', ' ').title()
+                                self.hardware_plugins[plugin_id] = {
+                                    'file': plugin_file,
+                                    'info': None,
+                                    'display_name': display_name,
+                                    'icon': '🔌'
+                                }
+                                hardware_menu.add_command(
+                                    label=f"🔌 {display_name}",
+                                    command=lambda pid=plugin_id: self._open_hardware_plugin(pid)
+                                )
+                                hardware_plugins_found = True
+
+                        except Exception as e:
+                            continue
+
+                    if not hardware_plugins_found:
+                        hardware_menu.add_command(label="No enabled hardware plugins", state="disabled")
 
             except Exception as e:
-                print(f"Error in hardware menu: {e}")
                 hardware_menu.add_command(label="Error loading plugins", state="disabled")
         else:
             hardware_menu.add_command(label="Plugin system not available", state="disabled")
-
-        tools_menu.add_command(label="Geological Context Guide", command=self._show_geological_context)
-        tools_menu.add_separator()
-
-        # Plugin system integration
-        if HAS_PLUGIN_SYSTEM:
-            tools_menu.add_command(label="🔌 Manage Plugins...", command=self._open_plugin_manager)
-        else:
-            tools_menu.add_command(label="🔌 Plugins (Not Installed)",
-                                 state='disabled',
-                                 command=lambda: None)
 
         # Help menu
         help_menu = tk.Menu(menubar, tearoff=0)
@@ -2206,6 +2216,32 @@ class BasaltTriageApp:
 
         except Exception as e:
             messagebox.showerror("Import Error", f"Crashed during import:\n{str(e)}")
+
+    # ────────────────────────────────────────────────
+    # NEW: Direct plugin import - bypasses file system
+    # ────────────────────────────────────────────────
+    def import_data_from_plugin(self, data_rows: List[Dict[str, Any]]):
+        """
+        Direct import for plugins - bypasses file system.
+        Uses the SAME dynamic table engine as CSV import.
+        """
+        if not data_rows:
+            return
+
+        self._save_undo()  # Add undo support!
+
+        # Same as CSV import but without the file reading step
+        headers = list(data_rows[0].keys())
+        self.setup_dynamic_columns(headers)
+
+        for row in data_rows:
+            clean_row = {k: self._parse_value(v) for k, v in row.items()}
+            self.samples.append(clean_row)
+
+        self.current_page = 0
+        self.refresh_tree()
+        self._update_status(f"Imported {len(data_rows)} samples from plugin")
+        self._mark_unsaved_changes()
 
     def classify_all_with_scheme(self, scheme_id=None):
         if scheme_id is None:
@@ -7215,103 +7251,113 @@ most commonly accepted method in geochemistry.
         return discovered
     
     def _load_plugins(self):
-        """Load enabled plugins from config"""
+        """Load enabled plugins from config - Only SOFTWARE goes to Advanced menu"""
         if not HAS_PLUGIN_SYSTEM:
             return
-        
+
         if not self._check_plugin_folder():
             return
-        
+
         from pathlib import Path
-        
+        import json
+
         # Load enabled plugins from config
         config_file = Path("config/enabled_plugins.json")
         if not config_file.exists():
             return
-        
+
         try:
             with open(config_file) as f:
-                enabled = json.load(f)
+                enabled_plugins = json.load(f)
         except Exception as e:
-            print(f"Error loading plugin config: {e}")
             return
-        
+
         # Check if any enabled
-        if not any(enabled.values()):
+        if not any(enabled_plugins.values()):
             return
-        
+
         # Discover available plugins
         available_plugins = self._discover_plugins()
-        
-        # Create Advanced menu
-        #self.advanced_menu = tk.Menu(self.menubar, tearoff=0)
-        #self.menubar.add_cascade(label="Advanced", menu=self.advanced_menu)
-        
+
+        # Clear Advanced menu first (if it exists)
+        if hasattr(self, 'advanced_menu'):
+            self.advanced_menu.delete(0, tk.END)
+        else:
+            # Create Advanced menu
+            self.advanced_menu = tk.Menu(self.menubar, tearoff=0)
+            self.menubar.add_cascade(label="Advanced", menu=self.advanced_menu)
+
+        # Track if we added anything
+        added_count = 0
+
         # Load each enabled plugin
-        for plugin_id, is_enabled in enabled.items():
+        for plugin_id, is_enabled in enabled_plugins.items():
             if is_enabled and plugin_id in available_plugins:
-                self._load_single_plugin(available_plugins[plugin_id])
-    
-    def _load_single_plugin(self, plugin_data):
-        """Load a single plugin"""
+                plugin_data = available_plugins[plugin_id]
+                info = plugin_data['info']
+
+                # Only SOFTWARE plugins go to Advanced menu
+                category = info.get('category', '').lower()
+
+                if category == 'software':
+                    if self._load_single_plugin_to_menu(plugin_data, self.advanced_menu):
+                        added_count += 1
+                # All other categories (hardware, add-ons, unknown) silently skipped
+
+        # If nothing was added, show disabled menu item
+        if added_count == 0:
+            self.advanced_menu.add_command(label="No enabled software plugins", state="disabled")
+
+    def _load_single_plugin_to_menu(self, plugin_data, menu):
+        """Load a single plugin and add it to the specified menu"""
         try:
             module = plugin_data['module']
             info = plugin_data['info']
-            print(f"DEBUG: Loading {info.get('name', 'unknown')}")
-            
+            plugin_id = info['id']
+
             # Get plugin class (assumes class name matches: NamePlugin)
-            class_name = ''.join(word.capitalize() for word in info['id'].split('_')) + 'Plugin'
-            
+            class_name = ''.join(word.capitalize() for word in plugin_id.split('_')) + 'Plugin'
+
             if hasattr(module, class_name):
                 plugin_class = getattr(module, class_name)
                 plugin_instance = plugin_class(self)
-                
+
                 # Store instance
-                setattr(self, f"{info['id']}_plugin", plugin_instance)
-                
-                # ONLY add Software and Hardware plugins to Advanced menu
-                # Skip UI add-ons (they're in toolbar/Tools menu)
-                category = info.get('category', '')
-                if category not in ['add-on', 'add-ons']:
-                    # Add to Advanced menu
-                    menu_label = f"{info.get('icon', '📦')} {info['name']}..."
-                    
-                    # Try different method names (in order of preference)
-                    open_method = None
-                    
-                    # 1. Try show() method (new add-ons)
-                    if hasattr(plugin_instance, 'show'):
-                        open_method = plugin_instance.show
-                    # 2. Try show_interface() method (hardware plugins)
-                    elif hasattr(plugin_instance, 'show_interface'):
-                        open_method = plugin_instance.show_interface
-                    # 3. Try open_XXX_window (old plugins)
-                    elif hasattr(plugin_instance, f"open_{info['id']}_window"):
-                        open_method = getattr(plugin_instance, f"open_{info['id']}_window")
-                    # 4. Try any show_* method
-                    elif any(m.startswith('show_') for m in dir(plugin_instance)):
-                        for method_name in dir(plugin_instance):
-                            if method_name.startswith('show_') and not method_name.startswith('show__'):
-                                open_method = getattr(plugin_instance, method_name)
-                                break
-                    # 5. Try any open_*_window method
-                    else:
-                        for method_name in dir(plugin_instance):
-                            if method_name.startswith('open_') and method_name.endswith('_window'):
-                                open_method = getattr(plugin_instance, method_name)
-                                break
-                    
-                    if open_method:
-                        self.advanced_menu.add_command(label=menu_label, command=open_method)
-                        print(f"✓ Loaded plugin: {info['name']}")
-                    else:
-                        print(f"⚠ Plugin {info['name']} loaded but no show/open method found")
-                        print(f"  Available methods: {[m for m in dir(plugin_instance) if not m.startswith('_')]}")
-                else:
-                    print(f"✓ Loaded add-on: {info['name']} (not added to Advanced menu)")
-                
+                setattr(self, f"{plugin_id}_plugin", plugin_instance)
+
+                # Create menu label with icon
+                menu_label = f"{info.get('icon', '📦')} {info['name']}..."
+
+                # Find the open method
+                open_method = None
+
+                # Try different method names
+                if hasattr(plugin_instance, 'show'):
+                    open_method = plugin_instance.show
+                elif hasattr(plugin_instance, 'show_interface'):
+                    open_method = plugin_instance.show_interface
+                elif hasattr(plugin_instance, f"open_{plugin_id}_window"):
+                    open_method = getattr(plugin_instance, f"open_{plugin_id}_window")
+                elif any(m.startswith('show_') for m in dir(plugin_instance)):
+                    for method_name in dir(plugin_instance):
+                        if method_name.startswith('show_') and not method_name.startswith('show__'):
+                            open_method = getattr(plugin_instance, method_name)
+                            break
+                elif any(m.startswith('open_') and m.endswith('_window') for m in dir(plugin_instance)):
+                    for method_name in dir(plugin_instance):
+                        if method_name.startswith('open_') and method_name.endswith('_window'):
+                            open_method = getattr(plugin_instance, method_name)
+                            break
+
+                if open_method:
+                    menu.add_command(label=menu_label, command=open_method)
+                    return True
+                return False
+            else:
+                return False
+
         except Exception as e:
-            print(f"Error loading plugin {info.get('id', 'unknown')}: {e}")
+            return False
 
     def _call_demo_generator(self):
         """Call demo data generator add-on"""
