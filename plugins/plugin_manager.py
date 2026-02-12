@@ -350,7 +350,7 @@ class PluginManager(tk.Toplevel):
                 frame.pack_forget()
 
     def _populate_category(self, parent, plugins):
-        """Fill a category with plugin rows - FIXED: FULL WIDTH."""
+        """Fill a category with plugin rows - FIXED: FULL WIDTH + MOUSE WHEEL."""
         if not plugins:
             empty = tk.Frame(parent, bg="white")
             empty.pack(fill=tk.BOTH, expand=True)
@@ -377,6 +377,34 @@ class PluginManager(tk.Toplevel):
 
         canvas.bind("<Configure>", _on_canvas_configure)
         canvas.configure(yscrollcommand=scrollbar.set)
+
+        # ============ MOUSE WHEEL SUPPORT ============
+        def _on_mousewheel(event):
+            """Handle mouse wheel scrolling - works on all platforms"""
+            if event.delta:  # Windows/macOS
+                canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            else:  # Linux
+                if event.num == 4:
+                    canvas.yview_scroll(-1, "units")
+                elif event.num == 5:
+                    canvas.yview_scroll(1, "units")
+
+        def _on_enter(event):
+            """Bind mouse wheel when mouse enters canvas"""
+            canvas.bind_all("<MouseWheel>", _on_mousewheel)  # Windows/macOS
+            canvas.bind_all("<Button-4>", _on_mousewheel)   # Linux up
+            canvas.bind_all("<Button-5>", _on_mousewheel)   # Linux down
+
+        def _on_leave(event):
+            """Unbind mouse wheel when mouse leaves canvas"""
+            canvas.unbind_all("<MouseWheel>")
+            canvas.unbind_all("<Button-4>")
+            canvas.unbind_all("<Button-5>")
+
+        # Bind mouse enter/leave events
+        canvas.bind("<Enter>", _on_enter)
+        canvas.bind("<Leave>", _on_leave)
+        # ===============================================
 
         # FIXED: Pack with expand=True to fill remaining space
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
