@@ -1,0 +1,166 @@
+# Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+
+## Scientific Toolkit v2.0 License
+
+Copyright (c) 2026 Sefy Levy
+
+This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
+
+To view a copy of this license, visit: http://creativecommons.org/licenses/by-nc-sa/4.0/
+or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+
+---
+
+## You are free to:
+
+- **Share** — copy and redistribute the material in any medium or format
+- **Adapt** — remix, transform, and build upon the material
+
+The licensor cannot revoke these freedoms as long as you follow the license terms.
+
+---
+
+## Under the following terms:
+
+- **Attribution** — You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
+
+- **NonCommercial** — You may not use the material for commercial purposes.
+
+- **ShareAlike** — If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original.
+
+- **No additional restrictions** — You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
+
+---
+
+## Notices:
+
+You do not have to comply with the license for elements of the material in the public domain or where your use is permitted by an applicable exception or limitation.
+
+No warranties are given. The license may not give you all of the permissions necessary for your intended use. For example, other rights such as publicity, privacy, or moral rights may limit how you use the material.
+
+---
+
+## How to Give Credit (Attribution)
+
+When using or citing this software, please include:
+
+**APA Format**:
+```
+Levy, S. (2026). Scientific Toolkit v2.0 [Computer software]. 
+Based on Basalt Provenance Triage Toolkit v10.2.
+https://doi.org/10.5281/zenodo.18499129
+```
+
+**BibTeX Format**:
+```bibtex
+@software{levy2026scientific,
+  author = {Levy, Sefy},
+  title = {Scientific Toolkit v2.0},
+  year = {2026},
+  note = {Based on Basalt Provenance Triage Toolkit v10.2},
+  url = {https://github.com/sefy-levy/scientific-toolkit},
+  doi = {10.5281/zenodo.18499129}
+}
+```
+
+**In Publications**:
+If this toolkit contributed to your research, please cite it in your publications and acknowledge in the acknowledgments section:
+
+```
+"Data analysis was performed using Scientific Toolkit v2.0 (Levy, 2026)."
+```
+
+---
+
+## Commercial Use
+
+This license **prohibits commercial use** of the software without explicit permission.
+
+Commercial use includes but is not limited to:
+- Using the software in a commercial laboratory for profit
+- Selling data analysis services using this software
+- Incorporating the software into a commercial product
+- Using the software for commercial consulting
+
+### Commercial Licensing
+
+If you are interested in commercial use, please contact:
+- **Email**: sefy76@gmail.com
+- **Subject**: Commercial License Inquiry
+
+Commercial licenses are available on a case-by-case basis and may include:
+- Custom features and support
+- Priority bug fixes
+- Integration assistance
+- Training and documentation
+
+---
+
+## Academic and Research Use
+
+This software is **free for academic and research purposes**, including:
+- University research projects
+- Student theses and dissertations
+- Academic publications
+- Non-profit research institutions
+- Educational use in teaching
+- Museum collections management (non-profit)
+- Government research agencies
+
+---
+
+## Contributions
+
+By contributing to this project, you agree that your contributions will be licensed under the same CC BY-NC-SA 4.0 license.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+---
+
+## Disclaimer of Warranty
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+---
+
+## Third-Party Dependencies
+
+This software uses various open-source libraries (NumPy, Pandas, Matplotlib, etc.), each with their own licenses. These libraries are not covered by this license. Please refer to their respective licenses for terms of use.
+
+See [requirements.txt](requirements.txt) for a full list of dependencies.
+
+---
+
+## Patent and Trademark Notice
+
+No patent rights or trademark rights are granted under this license.
+
+"Scientific Toolkit" is a descriptive name and is not registered as a trademark. You are free to use the name with proper attribution.
+
+---
+
+## Legal Code
+
+The full legal code of the CC BY-NC-SA 4.0 license can be found at:
+https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
+
+---
+
+## Questions?
+
+For licensing questions, contact: sefy76@gmail.com
+
+For other inquiries, see [README.md](README.md) for contact information.
+
+---
+
+## Version Information
+
+- License: CC BY-NC-SA 4.0
+- Software: Scientific Toolkit v2.0
+- Date: February 2026
+- Author: Sefy Levy
+
+---
+
+**Thank you for respecting the license terms and supporting open scientific software!** 🙏

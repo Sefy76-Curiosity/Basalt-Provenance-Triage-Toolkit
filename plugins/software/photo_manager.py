@@ -32,7 +32,7 @@ class PhotoManagerPlugin:
         self.app = main_app
         self.window = None
     
-    def open_photo_manager_window(self):
+    def open_window(self):
         """Open the photo manager interface"""
         if self.window and self.window.winfo_exists():
             self.window.lift()
@@ -270,3 +270,8 @@ class PhotoManagerPlugin:
             
             messagebox.showinfo("Path Set",
                               f"Photo path set for {sample_id}:\n\n{path}")
+
+def setup_plugin(main_app):
+    """Plugin setup function"""
+    plugin = PhotoManagerPlugin(main_app)
+    return plugin

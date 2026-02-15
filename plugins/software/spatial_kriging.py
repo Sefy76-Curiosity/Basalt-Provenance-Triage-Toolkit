@@ -223,7 +223,7 @@ class SpatialKrigingPlugin:
         self.export_btn.pack(side=tk.LEFT, padx=2)
 
         self.import_btn = tk.Button(row2_frame, text="📤 Import", bg="#e67e22", fg="white",
-                                   width=10, font=("Arial", 9), command=self._safe_import)
+                           width=10, font=("Arial", 9), command=self._import_to_main)  # Changed here
         self.import_btn.pack(side=tk.LEFT, padx=2)
 
         # Status
@@ -331,70 +331,109 @@ class SpatialKrigingPlugin:
         self.stats_text.pack(fill=tk.BOTH, expand=True, padx=3, pady=3)
 
     def _load_data(self):
-        """Load data from main app"""
+        """Load data from main app's dynamic table"""
         if not hasattr(self.app, 'samples') or not self.app.samples:
             messagebox.showwarning("No Data", "Load data in main app first!")
             return
 
         try:
+            # Convert main app samples to DataFrame
             self.df = pd.DataFrame(self.app.samples)
 
-            # Convert numeric columns
+            # Debug: Print available columns
+            print(f"Available columns: {list(self.df.columns)}")
+
+            # Convert numeric columns - but preserve original for mapping
             numeric_cols = []
+            text_cols = []
+
             for col in self.df.columns:
-                if col not in ['Sample_ID', 'Notes']:
-                    try:
-                        self.df[col] = pd.to_numeric(self.df[col], errors='coerce')
-                        if not self.df[col].isna().all():
-                            numeric_cols.append(col)
-                    except:
-                        pass
+                if col in ['Sample_ID', 'Notes', 'Timestamp', 'Plugin', 'Source', 'Analysis_Type']:
+                    text_cols.append(col)
+                    continue
+
+                try:
+                    # Try to convert to numeric
+                    self.df[col] = pd.to_numeric(self.df[col], errors='coerce')
+                    # Check if column has at least some numeric values
+                    if not self.df[col].isna().all():
+                        numeric_cols.append(col)
+                    else:
+                        text_cols.append(col)
+                except:
+                    text_cols.append(col)
 
             # Update info
             sample_count = len(self.df)
-            self.data_info_label.config(text=f"Samples: {sample_count}")
+            self.data_info_label.config(text=f"Samples: {sample_count} | Numeric: {len(numeric_cols)}")
 
-            # Auto-detect columns
+            # Auto-detect coordinate columns
             for col in numeric_cols:
                 col_lower = col.lower()
+
+                # Check for longitude/X columns
                 if any(term in col_lower for term in ['lon', 'long', 'x', 'easting']):
                     if not self.lon_var.get():
                         self.lon_var.set(col)
+                        print(f"Auto-detected X column: {col}")
+
+                # Check for latitude/Y columns
                 if any(term in col_lower for term in ['lat', 'y', 'northing']):
                     if not self.lat_var.get():
                         self.lat_var.set(col)
+                        print(f"Auto-detected Y column: {col}")
 
-            # Update comboboxes
-            self.lon_combo['values'] = numeric_cols
-            self.lat_combo['values'] = numeric_cols
-            self.value_combo['values'] = numeric_cols[:10]
+            # Update all comboboxes with available columns
+            all_columns = numeric_cols + text_cols
+            self.lon_combo['values'] = all_columns
+            self.lat_combo['values'] = all_columns
+            self.value_combo['values'] = numeric_cols  # Only numeric for value
 
+            # Auto-select first numeric column for value if not set
             if not self.value_var.get() and numeric_cols:
                 self.value_var.set(numeric_cols[0])
+                print(f"Auto-selected value column: {numeric_cols[0]}")
 
-            # Calculate aspect ratio for grid
+            # Calculate aspect ratio if both coordinates are selected
             if self.lon_var.get() and self.lat_var.get():
-                self.sample_coords = np.column_stack((
-                    self.df[self.lon_var.get()].values,
-                    self.df[self.lat_var.get()].values
-                ))
+                lon_col = self.lon_var.get()
+                lat_col = self.lat_var.get()
 
                 if lon_col in self.df.columns and lat_col in self.df.columns:
-                    x_min, x_max = self.df[lon_col].min(), self.df[lon_col].max()
-                    y_min, y_max = self.df[lat_col].min(), self.df[lat_col].max()
+                    # Get valid coordinates
+                    valid = ~(self.df[lon_col].isna() | self.df[lat_col].isna())
+                    if valid.sum() > 1:
+                        x_vals = self.df[lon_col][valid].values
+                        y_vals = self.df[lat_col][valid].values
 
-                    x_range = x_max - x_min
-                    y_range = y_max - y_min
+                        x_min, x_max = x_vals.min(), x_vals.max()
+                        y_min, y_max = y_vals.min(), y_vals.max()
 
-                    if x_range > 0 and y_range > 0:
-                        self.aspect_ratio = x_range / y_range
+                        x_range = x_max - x_min
+                        y_range = y_max - y_min
 
+                        if x_range > 0 and y_range > 0:
+                            self.aspect_ratio = x_range / y_range
+                            print(f"Aspect ratio: {self.aspect_ratio:.2f}")
 
-            self.status_label.config(text=f"Loaded {sample_count} samples", fg="green")
+                            # Store sample coordinates for later use
+                            self.sample_coords = np.column_stack([x_vals, y_vals])
+
+            # Update status
+            self.status_label.config(text=f"✅ Loaded {sample_count} samples from main app", fg="green")
+
+            # Enable interpolation button if we have required columns
+            if self.lon_var.get() and self.lat_var.get() and self.value_var.get():
+                self.interpolate_btn.config(state=tk.NORMAL)
+                self.status_label.config(text=f"Ready - {sample_count} samples loaded", fg="green")
+            else:
+                self.interpolate_btn.config(state=tk.DISABLED)
+                self.status_label.config(text="Select X, Y, and Value columns", fg="orange")
 
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to load: {str(e)}")
-
+            import traceback
+            traceback.print_exc()
+            messagebox.showerror("Error", f"Failed to load data:\n{str(e)}")
     def _validate_inputs(self):
         """Validate all inputs before processing"""
         errors = []
@@ -1000,125 +1039,116 @@ class SpatialKrigingPlugin:
         self.interpolate_btn.config(state=tk.NORMAL, text="📍 Run")
         self.progress['value'] = 0
 
-    def _safe_import(self):
-        """Safe import with options"""
+    def _import_to_main(self):
+        """Import interpolated data to main app - using working pattern from geochem_advanced"""
         if self.df.empty:
-            messagebox.showwarning("No Data", "Load data first!")
+            messagebox.showwarning("No Data", "No interpolated data to import!")
             return
 
-        if not hasattr(self.app, 'samples'):
-            messagebox.showerror("Error", "Main app not accessible")
-            return
+        try:
+            # Prepare table data in the format expected by import_data_from_plugin
+            table_data = []
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        if not self.app.samples:
-            # No existing data
-            self._import_replace()
-        else:
-            response = messagebox.askyesnocancel(
-                "Import Options",
-                "Existing data found:\n\n"
-                "• Yes = Append to existing (preserve metadata)\n"
-                "• No = Replace existing\n"
-                "• Cancel = Do nothing"
+            interpolation_method = self.method_var.get()
+            value_column = self.value_var.get()
+
+            # Process each interpolated point
+            for idx, row in self.df.iterrows():
+                sample_entry = {
+                    # REQUIRED: Sample_ID
+                    'Sample_ID': row.get('Sample_ID', f"KRIG-{idx+1:04d}"),
+
+                    # Metadata
+                    'Timestamp': timestamp,
+                    'Source': 'Spatial Interpolation',
+                    'Analysis_Type': interpolation_method,
+                    'Plugin': PLUGIN_INFO['name'],
+
+                    # REQUIRED: Notes field
+                    'Notes': f"Spatial interpolation of {value_column} using {interpolation_method}"
+                }
+
+                # Add all data columns
+                for col in self.df.columns:
+                    if col not in ['Sample_ID', 'Timestamp', 'Plugin']:  # Skip as we already set them
+                        val = row[col]
+                        if pd.notna(val):
+                            # Format numbers appropriately
+                            if isinstance(val, (int, float)):
+                                if 'Latitude' in col or 'Longitude' in col:
+                                    sample_entry[col] = f"{val:.6f}"
+                                else:
+                                    sample_entry[col] = f"{val:.3f}"
+                            else:
+                                sample_entry[col] = str(val)
+
+                table_data.append(sample_entry)
+
+            # Ask user if they want to append or replace
+            from tkinter import simpledialog
+            choice = simpledialog.askstring(
+                "Import Option",
+                "Enter 'append' to add to existing data, or 'replace' to clear existing data:",
+                initialvalue='append',
+                parent=self.window
             )
 
-            if response is None:
-                return
-            elif response:
-                self._import_append()
+            # Send to main app using the STANDARDIZED method
+            if hasattr(self.app, 'import_data_from_plugin'):
+                if choice and choice.lower() == 'replace':
+                    # Clear existing data first by importing empty list
+                    self.app.import_data_from_plugin([])
+
+                self.app.import_data_from_plugin(table_data)
+                self.status_label.config(text=f"✅ Imported {len(table_data)} interpolated points", fg="green")
+
+                # Log the import
+                if hasattr(self, 'log_text'):
+                    self.log_text.insert(tk.END, f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Imported {len(table_data)} interpolated samples\n")
+                    self.log_text.see(tk.END)
+
+                # Show success message
+                self.window.lift()
+                messagebox.showinfo("Success", f"✅ Imported {len(table_data)} interpolated points to main table!")
             else:
-                self._import_replace()
+                # Fallback to legacy method if import_data_from_plugin doesn't exist
+                self._legacy_import(table_data, interpolation_method, value_column, choice)
 
-    def _import_append(self):
-        """Append data while preserving original metadata"""
-        original_samples = self.app.samples.copy()
-        interpolation_method = self.method_var.get()
-        value_column = self.value_var.get()
+        except Exception as e:
+            messagebox.showerror("Import Error", f"Failed to import data: {str(e)}")
 
-        # Clear existing samples
-        self.app.samples = original_samples
+    def _legacy_import(self, table_data, interpolation_method, value_column, choice):
+        """Fallback import method for older main app versions"""
+        try:
+            if hasattr(self.app, 'samples'):
+                if choice and choice.lower() == 'replace':
+                    self.app.samples = table_data
+                else:
+                    self.app.samples.extend(table_data)
 
-        # Add interpolated samples with metadata
-        for idx, row in self.df.iterrows():
-            sample = {}
+            # Refresh main app UI
+            if hasattr(self.app, 'refresh_tree'):
+                self.app.refresh_tree()
+            elif hasattr(self.app, 'update_tree'):
+                self.app.update_tree()
+            elif hasattr(self.app, '_refresh_table_page'):
+                self.app._refresh_table_page()
 
-            # Add all original data
-            for col in self.df.columns:
-                val = row[col]
-                if not pd.isna(val):
-                    sample[col] = str(val)
+            # Update dynamic columns if available
+            if hasattr(self.app, 'setup_dynamic_columns') and self.app.samples:
+                all_columns = set()
+                for s in self.app.samples:
+                    all_columns.update(s.keys())
+                all_columns = [c for c in all_columns if c]
+                self.app.setup_dynamic_columns(all_columns)
 
-            # Add interpolation metadata WITHOUT overwriting Notes
-            sample['Interpolation_Method'] = interpolation_method
-            sample['Interpolated_Variable'] = value_column
-            sample['Interpolation_Date'] = datetime.now().strftime("%Y-%m-%d")
+            messagebox.showinfo("Import Complete",
+                            f"✅ {len(table_data)} interpolated samples imported (legacy mode)",
+                            parent=self.window)
 
-            # Preserve original Sample_ID if it exists, otherwise create new
-            if 'Sample_ID' in sample:
-                original_id = sample['Sample_ID']
-                sample['Sample_ID'] = f"{original_id}_INT{idx:03d}"
-            else:
-                sample['Sample_ID'] = f"INT_{len(self.app.samples):04d}"
-
-            # Only add Notes if not already present
-            if 'Notes' not in sample:
-                sample['Notes'] = f"Spatial interpolation ({interpolation_method})"
-            else:
-                # Append to existing Notes
-                existing_notes = sample['Notes']
-                sample['Notes'] = f"{existing_notes} | Interp: {interpolation_method}"
-
-            self.app.samples.append(sample)
-
-        # Refresh main app
-        if hasattr(self.app, 'refresh_tree'):
-            self.app.refresh_tree()
-
-        added_count = len(self.df)
-        total_count = len(self.app.samples)
-        messagebox.showinfo("Success", f"Appended {added_count} samples\nTotal: {total_count}")
-
-    def _import_replace(self):
-        """Replace data after confirmation"""
-        if not messagebox.askyesno("Confirm Replace",
-                                  f"Replace {len(self.app.samples)} existing samples?\n\n"
-                                  "This cannot be undone!"):
-            return
-
-        interpolation_method = self.method_var.get()
-        value_column = self.value_var.get()
-
-        # Clear existing
-        self.app.samples = []
-
-        # Add interpolated samples with metadata
-        for idx, row in self.df.iterrows():
-            sample = {}
-
-            # Add all data
-            for col in self.df.columns:
-                val = row[col]
-                if not pd.isna(val):
-                    sample[col] = str(val)
-
-            # Add interpolation metadata
-            sample['Interpolation_Method'] = interpolation_method
-            sample['Interpolated_Variable'] = value_column
-            sample['Interpolation_Date'] = datetime.now().strftime("%Y-%m-%d")
-
-            # Create unique Sample_ID
-            sample['Sample_ID'] = f"INT_{idx:04d}"
-
-            # Add informative Notes
-            sample['Notes'] = f"Spatial interpolation ({interpolation_method}) of {value_column}"
-
-            self.app.samples.append(sample)
-
-        # Refresh main app
-        if hasattr(self.app, 'refresh_tree'):
-            self.app.refresh_tree()
-
-        messagebox.showinfo("Success", f"Imported {len(self.df)} interpolated samples")
+        except Exception as e:
+            messagebox.showerror("Legacy Import Error", str(e), parent=self.window)
 
     def _export_results(self):
         """Export results"""
@@ -1144,15 +1174,4 @@ class SpatialKrigingPlugin:
 def setup_plugin(main_app):
     """Plugin setup"""
     plugin = SpatialKrigingPlugin(main_app)
-
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'advanced_menu'):
-            main_app.advanced_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="Advanced", menu=main_app.advanced_menu)
-
-        main_app.advanced_menu.add_command(
-            label=f"{PLUGIN_INFO['icon']} {PLUGIN_INFO['name']}",
-            command=plugin.open_window
-        )
-
-    return plugin
+    return plugin  # ← REMOVE ALL MENU CODE

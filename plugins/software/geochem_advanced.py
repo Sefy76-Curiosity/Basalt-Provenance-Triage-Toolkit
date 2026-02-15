@@ -160,9 +160,9 @@ Cr, Ni, Co, V, Sc, Cu, Zn, Pb"""
         button_frame = tk.Frame(parent, bg="#ecf0f1", pady=10)
         button_frame.pack(fill=tk.X, padx=10)
 
-        self.fetch_btn = tk.Button(button_frame, text="🚀 Fetch Data", bg="#27ae60", fg="white",
-                                  font=("Arial", 10, "bold"), width=15,
-                                  command=self._start_fetch)
+        self.fetch_btn = tk.Button(button_frame, text="🔍 Search", bg="#27ae60", fg="white",
+                                        font=("Arial", 10, "bold"), width=15,
+                                        command=self._start_fetch)
         self.fetch_btn.pack(side=tk.LEFT, padx=5)
 
         tk.Button(button_frame, text="📥 Import All", bg="#3498db", fg="white",
@@ -396,51 +396,74 @@ Cr, Ni, Co, V, Sc, Cu, Zn, Pb"""
     def _reset_fetch_ui(self):
         """Reset UI after fetch"""
         self.is_fetching = False
-        self.fetch_btn.config(state=tk.NORMAL, text="🚀 Fetch Data")
+        self.fetch_btn.config(state=tk.NORMAL, text="🔍 Search")  # ← Keep as "Search"
         self.progress.stop()
 
     # ==================== IMPORT METHOD ====================
 
     def _import_to_main(self):
-        """Handle Sample_ID and Notes columns"""
+        """Send geochemical data to main app using standardized import method"""
         if self.df.empty:
+            messagebox.showwarning("No Data", "Fetch some data first!")
             return
 
-        # Clear existing
-        self.app.samples = []
+        try:
+            # Prepare table data in the format expected by import_data_from_plugin
+            table_data = []
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Add each sample
-        for idx, row in self.df.iterrows():
-            sample = {}
+            # Process each sample
+            for idx, row in self.df.iterrows():
+                sample_entry = {
+                    # REQUIRED: Sample_ID
+                    'Sample_ID': f"GEO-{idx+1:04d}",
 
-            # Add all geochemical data
-            for col in self.df.columns:
-                val = row[col]
-                if not pd.isna(val):
-                    sample[col] = str(val)
+                    # Metadata
+                    'Timestamp': timestamp,
+                    'Source': self.source_var.get(),
+                    'Rock_Type': self.rock_var.get(),
+                    'Analysis_Type': 'Geochemistry',
 
-            # REQUIRED: Sample_ID
-            sample['Sample_ID'] = f"GEO_{idx:04d}"
+                    # REQUIRED: Notes field
+                    'Notes': f"Source: {self.source_var.get()} | Rock Type: {self.rock_var.get()}"
+                }
 
-            # REQUIRED: Notes (from Source)
-            if 'Source' in self.df.columns and not pd.isna(row['Source']):
-                sample['Notes'] = f"Database: {row['Source']}"
+                # Add all geochemical data columns
+                for col in self.df.columns:
+                    if col not in ['Sample_ID']:  # Skip as we already set it
+                        val = row[col]
+                        if not pd.isna(val):
+                            # Format numbers appropriately
+                            if isinstance(val, float):
+                                if col in ["SiO2", "TiO2", "Al2O3", "Fe2O3", "MgO", "CaO", "Na2O", "K2O", "P2O5"]:
+                                    sample_entry[col] = f"{val:.2f}"
+                                elif col in ["La", "Ce", "Nd", "Sm", "Eu", "Gd", "Yb", "Lu", "Ba", "Sr", "Zr", "Nb"]:
+                                    sample_entry[col] = f"{val:.1f}"
+                                else:
+                                    sample_entry[col] = f"{val:.3f}"
+                            else:
+                                sample_entry[col] = str(val)
+
+                table_data.append(sample_entry)
+
+            # Send to main app using the STANDARDIZED method
+            if hasattr(self.app, 'import_data_from_plugin'):
+                self.app.import_data_from_plugin(table_data)
+                self.status_label.config(text=f"✅ Imported {len(table_data)} samples", fg="green")
+
+                # Log the import
+                self.log_text.insert(tk.END, f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Imported {len(table_data)} samples to main table\n")
+                self.log_text.see(tk.END)
+
+                # Show success message
+                self.window.lift()
+                messagebox.showinfo("Success", f"✅ Imported {len(table_data)} geochemical samples to main table!")
             else:
-                sample['Notes'] = "Geochemical data import"
+                # Fallback if method doesn't exist
+                messagebox.showerror("Error", "Main application doesn't support plugin data import")
 
-            self.app.samples.append(sample)
-
-        # Setup columns
-        headers = self.df.columns.tolist() + ['Sample_ID', 'Notes']
-        if hasattr(self.app, 'setup_dynamic_columns'):
-            self.app.setup_dynamic_columns(headers)
-
-        # Refresh
-        if hasattr(self.app, 'refresh_tree'):
-            self.app.refresh_tree()
-
-        self.window.lift()  # Bring plugin window to front
-        messagebox.showinfo("Done", f"Added {len(self.df)} samples")
+        except Exception as e:
+            messagebox.showerror("Import Error", f"Failed to import data: {str(e)}")
 
     # ==================== OTHER COMPATIBILITY METHODS ====================
 
@@ -472,11 +495,5 @@ def setup_plugin(main_app):
     """Plugin setup function"""
     plugin = GeochemAdvancedPlugin(main_app)
 
-    # Add to menu
-    if hasattr(main_app, 'menu_bar'):
-        main_app.menu_bar.add_command(
-            label=f"{PLUGIN_INFO['icon']} {PLUGIN_INFO['name']}",
-            command=plugin.open_window
-        )
-
+    # Just return the plugin - your main app will add it to the Advanced menu
     return plugin

@@ -154,7 +154,7 @@ class SpectralToolboxPlugin:
         self.stats_label.pack()
 
     def _load_app_data(self):
-        """Load spectral data from app's samples"""
+        """Load spectral data from app's dynamic table"""
         if not self.app.samples:
             messagebox.showinfo("No Data", "No samples in the main app.")
             return
@@ -162,39 +162,96 @@ class SpectralToolboxPlugin:
         try:
             import numpy as np
 
-            # Extract trace elements as pseudo-spectral data
-            elements = ['Zr_ppm', 'Nb_ppm', 'Ba_ppm', 'Rb_ppm', 'Cr_ppm', 'Ni_ppm']
-            wavelengths = np.arange(len(elements))  # Dummy wavelengths 0-5
+            # Get all available columns from the dynamic table
+            if hasattr(self.app, 'active_headers') and self.app.active_headers:
+                all_columns = self.app.active_headers
+            else:
+                # Fallback: get from first sample
+                all_columns = list(self.app.samples[0].keys())
 
-            # Create average spectrum from all samples
-            all_intensities = []
-            for sample in self.app.samples:
-                intensities = []
-                for elem in elements:
-                    val = self._safe_float(sample.get(elem, ''))
-                    intensities.append(val if val is not None else 0.0)
-                all_intensities.append(intensities)
+            # Look for trace element columns (common patterns)
+            trace_elements = []
+            element_patterns = ['Zr', 'Nb', 'Ba', 'Rb', 'Cr', 'Ni', 'La', 'Ce',
+                            'Nd', 'Sm', 'Eu', 'Gd', 'Yb', 'Lu', 'Sr', 'Y']
 
-            if not all_intensities:
+            for col in all_columns:
+                col_lower = col.lower()
+                for elem in element_patterns:
+                    if elem.lower() in col_lower and 'ppm' in col_lower:
+                        trace_elements.append(col)
+                        break
+
+            # If no trace elements found, use numeric columns
+            if not trace_elements:
+                # Try to identify numeric columns
+                numeric_cols = []
+                sample = self.app.samples[0]
+                for col in all_columns:
+                    try:
+                        val = self._safe_float(sample.get(col, ''))
+                        if val is not None:
+                            numeric_cols.append(col)
+                    except:
+                        pass
+                trace_elements = numeric_cols[:10]  # Use first 10 numeric columns
+
+            if not trace_elements:
                 messagebox.showwarning("No Numeric Data", "No numeric trace element data found.")
                 return
 
-            # Use median spectrum
+            # Use element indices as pseudo-wavelengths
+            wavelengths = np.arange(len(trace_elements))
+
+            # Create average spectrum from all samples
+            all_intensities = []
+            valid_samples = 0
+
+            for sample in self.app.samples:
+                intensities = []
+                valid_point = True
+                for elem in trace_elements:
+                    val = self._safe_float(sample.get(elem, ''))
+                    if val is not None:
+                        intensities.append(val)
+                    else:
+                        intensities.append(0.0)
+                        valid_point = False
+                if valid_point and any(v > 0 for v in intensities):
+                    all_intensities.append(intensities)
+                    valid_samples += 1
+
+            if not all_intensities:
+                messagebox.showwarning("No Valid Data", "No valid numeric data found in samples.")
+                return
+
+            # Use median spectrum (robust to outliers)
             all_intensities = np.array(all_intensities)
             intensities = np.median(all_intensities, axis=0)
 
             # Store the spectrum
-            self.original_spectrum = (wavelengths, intensities)
+            self.original_spectrum = (wavelengths.copy(), intensities.copy())
             self.current_spectrum = (wavelengths.copy(), intensities.copy())
+
+            # Store element names for reference
+            self.spectrum_elements = trace_elements
 
             # Update preview
             self._update_preview()
 
+            # Update status
+            if hasattr(self, 'stats_label'):
+                self.stats_label.config(
+                    text=f"Loaded pseudo-spectrum from {valid_samples} samples, {len(trace_elements)} elements"
+                )
+
             messagebox.showinfo("Data Loaded",
-                              f"Loaded pseudo-spectrum from {len(self.app.samples)} samples\n"
-                              f"Elements: {', '.join(elements)}")
+                            f"✅ Loaded pseudo-spectrum from {valid_samples} samples\n"
+                            f"Elements: {', '.join(trace_elements[:10])}" +
+                            ("..." if len(trace_elements) > 10 else ""))
 
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             messagebox.showerror("Load Error", f"Failed to load data: {str(e)}")
 
     def _safe_float(self, value):
@@ -537,43 +594,89 @@ class SpectralToolboxPlugin:
             messagebox.showerror("Valley Detection Error", f"Failed to detect valleys: {str(e)}")
 
     def _export_peaks_to_app(self):
-        """Export detected peaks to main app as new samples"""
+        """Export detected peaks to main app as new samples - FIXED with proper import pattern"""
         if 'peaks' not in self.processed_data:
             messagebox.showwarning("No Peaks", "No peaks detected to export.")
             return
 
         try:
+            import numpy as np
+            from datetime import datetime
+
             x, y = self.current_spectrum
             peaks = self.processed_data['peaks']
 
-            # Create new samples for each peak
+            # Prepare table data in the format expected by import_data_from_plugin
+            table_data = []
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            # Create a sample entry for each detected peak
             for i, peak_idx in enumerate(peaks):
-                peak_sample = {
-                    "Sample_ID": f"Peak_{i+1}_{x[peak_idx]:.2f}",
-                    "Peak_X": f"{x[peak_idx]:.4f}",
-                    "Peak_Y": f"{y[peak_idx]:.4f}",
-                    "Peak_Index": str(peak_idx)
+                sample_entry = {
+                    # REQUIRED: Sample_ID
+                    'Sample_ID': f"PEAK_{i+1:03d}_{x[peak_idx]:.2f}",
+
+                    # Metadata
+                    'Timestamp': timestamp,
+                    'Source': 'Spectral Analysis',
+                    'Analysis_Type': 'Peak Detection',
+                    'Plugin': PLUGIN_INFO['name'],
+
+                    # REQUIRED: Notes field
+                    'Notes': f"Detected peak at position {x[peak_idx]:.4f}"
                 }
+
+                # Add peak data
+                sample_entry['Peak_X'] = f"{x[peak_idx]:.4f}"
+                sample_entry['Peak_Y'] = f"{y[peak_idx]:.4f}"
+                sample_entry['Peak_Index'] = str(peak_idx)
 
                 # Add prominence if available
                 if 'peak_properties' in self.processed_data:
                     props = self.processed_data['peak_properties']
                     if 'prominences' in props and i < len(props['prominences']):
-                        peak_sample["Peak_Prominence"] = f"{props['prominences'][i]:.4f}"
+                        sample_entry['Peak_Prominence'] = f"{props['prominences'][i]:.4f}"
                     if 'widths' in props and i < len(props['widths']):
-                        peak_sample["Peak_Width"] = f"{props['widths'][i]:.4f}"
+                        sample_entry['Peak_Width'] = f"{props['widths'][i]:.4f}"
 
-                # Add to app samples
-                self.app.samples.append(peak_sample)
+                table_data.append(sample_entry)
 
-            # Refresh app table
-            self.app.refresh_tree()
+            # Send to main app using the STANDARDIZED method
+            if hasattr(self.app, 'import_data_from_plugin'):
+                self.app.import_data_from_plugin(table_data)
 
-            messagebox.showinfo("Export Complete",
-                              f"Exported {len(peaks)} peaks to main app as new samples.")
+                # Refresh app table if needed (import_data_from_plugin should handle this)
+                if hasattr(self.app, 'refresh_tree'):
+                    self.app.refresh_tree()
+
+                messagebox.showinfo("Export Complete",
+                                f"✅ Exported {len(peaks)} peaks to main app.\n\n"
+                                f"Peaks detected at positions:\n" +
+                                "\n".join([f"  • {x[p]:.4f}" for p in peaks[:10]]) +
+                                ("\n  • ..." if len(peaks) > 10 else ""))
+            else:
+                # Fallback to legacy method
+                self._legacy_peak_export(table_data)
 
         except Exception as e:
             messagebox.showerror("Export Error", f"Failed to export peaks: {str(e)}")
+
+    def _legacy_peak_export(self, table_data):
+        """Fallback method for older main app versions"""
+        try:
+            # Add to app samples manually
+            for entry in table_data:
+                self.app.samples.append(entry)
+
+            # Refresh app table
+            if hasattr(self.app, 'refresh_tree'):
+                self.app.refresh_tree()
+
+            messagebox.showinfo("Export Complete",
+                            f"✅ Exported {len(table_data)} peaks to main app (legacy mode)")
+
+        except Exception as e:
+            messagebox.showerror("Legacy Export Error", str(e))
 
     def _create_smoothing_tab(self):
         """Create smoothing and derivatives tab"""
@@ -1038,6 +1141,7 @@ class SpectralToolboxPlugin:
             print(f"Fit plotting error: {e}")
 
 
-def register_plugin(parent_app):
-    """Register this plugin with the main application"""
-    return SpectralToolboxPlugin(parent_app)
+def setup_plugin(main_app):
+    """Plugin setup function"""
+    plugin = SpectralToolboxPlugin(main_app)
+    return plugin

@@ -1,120 +1,143 @@
 """
-Demo Data Generator - UI Add-on
-Generates sample archaeological data for testing
-
-Author: Sefy Levy
-Category: UI Add-on
+Demo Data Generator Plugin - Adds a toolbar button to generate Tel Hazor data.
+Category: software (appears as a button on the toolbar)
 """
 
 import random
+from datetime import datetime
+import tkinter as tk
+from tkinter import ttk, messagebox
 
 PLUGIN_INFO = {
     'id': 'demo_data_generator',
     'name': 'Demo Data Generator',
-    'category': 'add-on',
-    'icon': '🎲',
+    'category': 'software',          # still software, but we bypass the menu
+    'icon': '🧪',
     'requires': [],
-    'description': 'Generate sample basalt artifacts from Tel Hazor excavations for testing'
+    'version': '2.0',
+    'description': 'Robust Geochemical Data Generator for Tel Hazor',
+    'author': 'Sefy Levy'
 }
 
-
-def generate_demo_samples(count=8):
-    """Generate demo basalt artifact samples"""
+def generate_robust_samples():
+    """Generates 8 samples with pure floats and oxides needed for classification"""
     samples = []
-    
-    # Egyptian Haddadin samples (2)
-    for i in range(2):
-        samples.append({
-            "Sample_ID": f"HAZOR-M-{i+1:03d}",
-            "Museum_Code": f"HAZ-2010-M-BV-{i+1:03d}",
-            "Wall_Thickness_mm": f"{random.uniform(2.8, 3.8):.1f}",
-            "Zr_ppm": f"{random.randint(90, 110)}",
-            "Nb_ppm": f"{random.uniform(9.5, 11.5):.1f}",
-            "Ba_ppm": f"{random.randint(250, 280)}",
-            "Rb_ppm": f"{random.randint(40, 50)}",
-            "Cr_ppm": f"{random.randint(120, 140)}",
-            "Ni_ppm": f"{random.randint(90, 105)}",
-            "Museum_URL": "https://www.parks.org.il/en/reserve-park/tel-hazor-national-park/"
-        })
-    
-    # Egyptian Alkaline samples (2)
-    for i in range(2):
-        samples.append({
-            "Sample_ID": f"HAZOR-A-{i+1:03d}",
-            "Museum_Code": f"HAZ-1990-A-BV-{i+1:03d}",
-            "Wall_Thickness_mm": f"{random.uniform(2.8, 3.2):.1f}",
-            "Zr_ppm": f"{random.randint(280, 320)}",
-            "Nb_ppm": f"{random.uniform(11, 13):.1f}",
-            "Ba_ppm": f"{random.randint(420, 480)}",
-            "Rb_ppm": f"{random.randint(54, 62)}",
-            "Cr_ppm": f"{random.randint(140, 160)}",
-            "Ni_ppm": f"{random.randint(88, 98)}",
-            "Museum_URL": "https://www.parks.org.il/en/reserve-park/tel-hazor-national-park/"
-        })
-    
-    # Sinai Ophiolitic samples (2)
-    for i in range(2):
-        samples.append({
-            "Sample_ID": f"HAZOR-S-{i+1:03d}",
-            "Museum_Code": f"HAZ-1992-S-BV-{i+1:03d}",
-            "Wall_Thickness_mm": f"{random.uniform(4.2, 4.8):.1f}",
-            "Zr_ppm": f"{random.randint(210, 225)}",
-            "Nb_ppm": f"{random.uniform(9.8, 10.5):.1f}",
-            "Ba_ppm": f"{random.randint(110, 125)}",
-            "Rb_ppm": f"{random.randint(16, 21)}",
-            "Cr_ppm": f"{random.randint(210, 225)}",
-            "Ni_ppm": f"{random.randint(102, 112)}",
-            "Museum_URL": "https://www.parks.org.il/en/reserve-park/tel-hazor-national-park/"
-        })
-    
-    # Local Levantine samples (2)
-    for i in range(2):
-        samples.append({
-            "Sample_ID": f"HAZOR-L-{i+1:03d}",
-            "Museum_Code": f"HAZ-2003-L-BV-{i+1:03d}",
-            "Wall_Thickness_mm": f"{random.uniform(5.2, 6.2):.1f}",
-            "Zr_ppm": f"{random.randint(105, 120)}",
-            "Nb_ppm": f"{random.uniform(11, 12.5):.1f}",
-            "Ba_ppm": f"{random.randint(165, 180)}",
-            "Rb_ppm": f"{random.randint(12, 16)}",
-            "Cr_ppm": f"{random.randint(185, 200)}",
-            "Ni_ppm": f"{random.randint(65, 72)}",
-            "Museum_URL": "https://www.parks.org.il/en/reserve-park/tel-hazor-national-park/"
-        })
-    
+    specs = [
+        ("HAZ-Haddadin", 49.2, 2.8, 0.9, 100, 10.0, 265, 45, 130, 95),
+        ("HAZ-Alkaline", 45.1, 3.8, 1.6, 295, 14.5, 450, 58, 155, 90),
+        ("HAZ-Sinai", 51.8, 1.7, 0.4, 212, 7.8, 118, 18, 220, 105),
+        ("HAZ-Local", 49.8, 2.9, 1.1, 115, 11.5, 172, 14, 190, 65)
+    ]
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    for prefix, sio2, na2o, k2o, zr, nb, ba, rb, cr, ni in specs:
+        for i in range(2):
+            samples.append({
+                "Sample_ID": f"{prefix}-{i+1:02d}",
+                "SiO2": float(round(sio2 + random.uniform(-0.4, 0.4), 2)),
+                "Na2O": float(round(na2o + random.uniform(-0.2, 0.2), 2)),
+                "K2O": float(round(k2o + random.uniform(-0.1, 0.1), 2)),
+                "Zr_ppm": zr + random.randint(-5, 5),
+                "Nb_ppm": round(nb + random.uniform(-0.5, 0.5), 1),
+                "Ba_ppm": ba + random.randint(-10, 10),
+                "Rb_ppm": rb + random.randint(-3, 3),
+                "Cr_ppm": cr + random.randint(-10, 10),
+                "Ni_ppm": ni + random.randint(-5, 5),
+                "Museum_Code": f"REF-{prefix}-{i+1:02d}",
+                "Context": "Tel Hazor Strata",
+                "Timestamp": timestamp,
+                "Plugin": PLUGIN_INFO['name'],
+                "Notes": f"Tel Hazor sample from {prefix} context"
+            })
     return samples
 
 
 class DemoDataGeneratorPlugin:
-    """Demo data generator add-on"""
-    
-    def __init__(self, parent_app):
-        self.app = parent_app
-    
+    """Plugin that adds a toolbar button to generate demo data."""
+
+    def __init__(self, main_app):
+        self.app = main_app
+        self.button = None   # will hold the toolbar button reference
+
     def show(self):
-        """Generate and load demo data"""
-        from tkinter import messagebox
-        
-        # Generate samples
-        demo_samples = generate_demo_samples(8)
-        
-        # Add to app
-        self.app.samples.extend(demo_samples)
-        self.app.refresh_tree()
-        self.app._mark_unsaved_changes()
-        
-        messagebox.showinfo("Demo Data Generated",
-            f"✅ Generated 8 sample artifacts from Tel Hazor!\n\n"
-            f"Distribution:\n"
-            f"• 2 Egyptian (Haddadin Flow)\n"
-            f"• 2 Egyptian (Alkaline/Exotic)\n"
-            f"• 2 Sinai Ophiolitic\n"
-            f"• 2 Local Levantine\n\n"
-            f"Based on published research:\n"
-            f"Gluhak et al. (2016, 2022)\n"
-            f"Ebeling & Rosenberg (2015)")
+        """Generate and import demo data."""
+        try:
+            demo_data = generate_robust_samples()
+            if not demo_data:
+                messagebox.showwarning("No Data", "Failed to generate demo data!")
+                return
+
+            if hasattr(self.app, 'import_data_from_plugin'):
+                self.app.import_data_from_plugin(demo_data)
+                if hasattr(self.app, 'classify_all_with_scheme'):
+                    try:
+                        self.app.classify_all_with_scheme()
+                    except Exception as e:
+                        print(f"Classification trigger error: {e}")
+                messagebox.showinfo(
+                    "Success",
+                    f"✅ Generated {len(demo_data)} Tel Hazor samples!\n"
+                    f"Classification engine triggered."
+                )
+            else:
+                self._legacy_import(demo_data)
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to generate data: {str(e)}")
+
+    def _legacy_import(self, demo_data):
+        """Fallback for older app versions."""
+        if hasattr(self.app, 'samples'):
+            self.app.samples.clear()
+            self.app.samples.extend(demo_data)
+        if hasattr(self.app, 'tree'):
+            self.app.tree.configure(columns=[], displaycolumns=[])
+            if hasattr(self.app, 'setup_dynamic_columns'):
+                headers = list(demo_data[0].keys())
+                self.app.setup_dynamic_columns(headers)
+            self.app.refresh_tree()
+        if hasattr(self.app, 'classify_all_with_scheme'):
+            try:
+                self.app.classify_all_with_scheme()
+            except Exception as e:
+                print(f"Classification Trigger Error: {e}")
+        if hasattr(self.app, '_mark_unsaved_changes'):
+            self.app._mark_unsaved_changes()
+        messagebox.showinfo(
+            "Success",
+            f"✅ Generated {len(demo_data)} Tel Hazor samples!\n"
+            f"Classification engine triggered."
+        )
 
 
-def register_plugin(parent_app):
-    """Register this add-on with the main application"""
-    return DemoDataGeneratorPlugin(parent_app)
+def register_plugin(main_app):
+    """
+    Called by the main app when loading plugins.
+    Creates the plugin instance and adds a command to the Tools menu.
+    """
+    plugin = DemoDataGeneratorPlugin(main_app)
+
+    # Add to Tools menu if it exists
+    if hasattr(main_app, 'tools_menu') and main_app.tools_menu:
+        main_app.tools_menu.add_command(
+            label=f"{PLUGIN_INFO['icon']} Generate Demo Data",
+            command=plugin.show
+        )
+    # Alternative: if the menu is accessed via menubar
+    elif hasattr(main_app, 'menubar'):
+        # Check if Tools menu exists, create if it doesn't
+        tools_menu = None
+        for i, menu in enumerate(main_app.menubar.winfo_children()):
+            if isinstance(menu, tk.Menu) and hasattr(menu, 'entrycget'):
+                # Try to find existing Tools menu
+                pass
+
+        # Or simply add to an existing menu (like File or Edit)
+        if hasattr(main_app, 'file_menu'):
+            main_app.file_menu.add_command(
+                label=f"{PLUGIN_INFO['icon']} Generate Demo Data",
+                command=plugin.show
+            )
+
+    return plugin

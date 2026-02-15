@@ -21,7 +21,12 @@ PLUGIN_INFO = {
     "window_size": "950x600"
 }
 
+# ============================================================================
+# PREVENT DOUBLE REGISTRATION
+# ============================================================================
+
 import tkinter as tk
+_PHYSICAL_REGISTERED = False
 from tkinter import ttk, messagebox, filedialog
 import numpy as np
 import pandas as pd
@@ -1204,6 +1209,10 @@ class PhysicalPropertiesUnifiedSuitePlugin:
         self._check_dependencies()
         self._generate_sample_id()
 
+    def show_interface(self):
+        """Alias for open_window - for plugin manager compatibility"""
+        self.open_window()
+
     def _check_dependencies(self):
         self.deps = DEPS
         self.has_tdmagsus = self.deps['tdmagsus']
@@ -2181,23 +2190,42 @@ class PhysicalPropertiesUnifiedSuitePlugin:
         lines.append(f"\n✅ Main App Integration: send_to_table() ✓")
         return True, "\n".join(lines)
 
-
 # ============================================================================
-# PLUGIN REGISTRATION
+# STANDARD PLUGIN REGISTRATION - LEFT PANEL FIRST, MENU SECOND
 # ============================================================================
-
 def setup_plugin(main_app):
-    """Register Physical Properties Unified Suite with main application"""
+    """Register plugin - tries left panel first, falls back to hardware menu"""
+    global _PHYSICAL_REGISTERED
+
+    # PREVENT DOUBLE REGISTRATION
+    if _PHYSICAL_REGISTERED:
+        print(f"⏭️ Physical Properties plugin already registered, skipping...")
+        return None
+
     plugin = PhysicalPropertiesUnifiedSuitePlugin(main_app)
 
+    # ===== TRY LEFT PANEL FIRST (hardware buttons) =====
+    if hasattr(main_app, 'left') and main_app.left is not None:
+        main_app.left.add_hardware_button(
+            name=PLUGIN_INFO.get("name", "Plugin Name"),
+            icon=PLUGIN_INFO.get("icon", "🔌"),
+            command=plugin.show_interface
+        )
+        print(f"✅ Added to left panel: {PLUGIN_INFO.get('name')}")
+        _PHYSICAL_REGISTERED = True
+        return plugin
+
+    # ===== FALLBACK TO HARDWARE MENU =====
     if hasattr(main_app, 'menu_bar'):
         if not hasattr(main_app, 'hardware_menu'):
             main_app.hardware_menu = tk.Menu(main_app.menu_bar, tearoff=0)
             main_app.menu_bar.add_cascade(label="🔧 Hardware", menu=main_app.hardware_menu)
 
         main_app.hardware_menu.add_command(
-            label="Physical Properties Unified Suite",
-            command=plugin.open_window
+            label=PLUGIN_INFO.get("name", "Plugin Name"),
+            command=plugin.show_interface
         )
+        print(f"✅ Added to Hardware menu: {PLUGIN_INFO.get('name')}")
+        _PHYSICAL_REGISTERED = True
 
     return plugin

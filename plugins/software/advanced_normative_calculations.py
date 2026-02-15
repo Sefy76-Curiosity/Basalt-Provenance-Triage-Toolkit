@@ -31,16 +31,17 @@ class AdvancedNormativeCalculationsPlugin:
                       "CaO", "Na2O", "K2O", "P2O5"]
         self.initial_values = [50.0, 1.0, 15.0, 2.0, 8.0, 0.2, 10.0, 8.0, 3.0, 2.0, 0.5]
 
-    def show(self):
+    def open_window(self):  # ← RENAME from show
         """Show the plugin window"""
-        if self.window is None or not self.window.winfo_exists():
-            self.window = tk.Toplevel(self.app.root)
-            self.window.title("CIPW Norm Calculator")
-            self.window.geometry("700x600")
-            self._create_ui()
-        else:
-            self.window.deiconify()
-        self.window.focus_set()
+        if self.window and self.window.winfo_exists():
+            self.window.lift()
+            self.window.focus_force()
+            return
+
+        self.window = tk.Toplevel(self.app.root)
+        self.window.title("CIPW Norm Calculator")
+        self.window.geometry("700x600")
+        self._create_ui()
 
     def _create_ui(self):
         # Main frame
@@ -215,3 +216,8 @@ class AdvancedNormativeCalculationsPlugin:
         for item in self.tree.get_children():
             self.tree.delete(item)
         self.results = None
+
+def setup_plugin(main_app):
+    """Plugin setup function"""
+    plugin = AdvancedNormativeCalculationsPlugin(main_app)
+    return plugin  # ← REMOVE ALL MENU CODE

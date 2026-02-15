@@ -1220,20 +1220,5 @@ Different element groups tell different stories:
 
 def setup_plugin(main_app):
     """Plugin setup function"""
-    print("📐 Loading Compositional Data Analysis Plugin v1.1.1")
     plugin = CompositionalStatsPlugin(main_app)
-
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'advanced_menu'):
-            main_app.advanced_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="Advanced", menu=main_app.advanced_menu)
-
-        main_app.advanced_menu.add_command(
-            label="📐 Compositional Data Analysis",
-            command=plugin.open_window
-        )
-        print("📐 ✓ Added to Advanced menu")
-
-    print("📐 ✓ Loaded: Compositional Data Analysis v1.1.1")
-    print("    Features: Full ilr • Orthonormal basis • Robust PCA • Fast MCD • Enhanced hover")
-    return plugin
+    return plugin  # ← REMOVE ALL MENU CODE AND PRINT STATEMENTS

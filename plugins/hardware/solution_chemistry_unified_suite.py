@@ -26,7 +26,12 @@ PLUGIN_INFO = {
     "compact": True
 }
 
+# ============================================================================
+# PREVENT DOUBLE REGISTRATION
+# ============================================================================
+
 import tkinter as tk
+_SOLUTION_REGISTERED = False
 from tkinter import ttk, messagebox, filedialog
 import numpy as np
 import pandas as pd
@@ -1865,6 +1870,10 @@ class SolutionChemistryUnifiedSuitePlugin:
 
         self._check_deps()
 
+    def show_interface(self):
+        """Alias for open_window - for plugin manager compatibility"""
+        self.open_window()
+
     def _check_deps(self):
         """Check optional dependencies"""
         self.has_requests = HAS_REQUESTS
@@ -2885,23 +2894,42 @@ class SolutionChemistryUnifiedSuitePlugin:
 
         self.status_var.set("🧹 Cleared")
 
-
 # ============================================================================
-# PLUGIN REGISTRATION
+# STANDARD PLUGIN REGISTRATION - LEFT PANEL FIRST, MENU SECOND
 # ============================================================================
-
 def setup_plugin(main_app):
-    """Register plugin with main application"""
+    """Register plugin - tries left panel first, falls back to hardware menu"""
+    global _SOLUTION_REGISTERED
+
+    # PREVENT DOUBLE REGISTRATION
+    if _SOLUTION_REGISTERED:
+        print(f"⏭️ Solution Chemistry plugin already registered, skipping...")
+        return None
+
     plugin = SolutionChemistryUnifiedSuitePlugin(main_app)
 
+    # ===== TRY LEFT PANEL FIRST (hardware buttons) =====
+    if hasattr(main_app, 'left') and main_app.left is not None:
+        main_app.left.add_hardware_button(
+            name=PLUGIN_INFO.get("name", "Plugin Name"),
+            icon=PLUGIN_INFO.get("icon", "🔌"),
+            command=plugin.show_interface
+        )
+        print(f"✅ Added to left panel: {PLUGIN_INFO.get('name')}")
+        _SOLUTION_REGISTERED = True
+        return plugin
+
+    # ===== FALLBACK TO HARDWARE MENU =====
     if hasattr(main_app, 'menu_bar'):
         if not hasattr(main_app, 'hardware_menu'):
             main_app.hardware_menu = tk.Menu(main_app.menu_bar, tearoff=0)
             main_app.menu_bar.add_cascade(label="🔧 Hardware", menu=main_app.hardware_menu)
 
         main_app.hardware_menu.add_command(
-            label="Solution Chemistry Unified Suite",
-            command=plugin.open_window
+            label=PLUGIN_INFO.get("name", "Plugin Name"),
+            command=plugin.show_interface
         )
+        print(f"✅ Added to Hardware menu: {PLUGIN_INFO.get('name')}")
+        _SOLUTION_REGISTERED = True
 
     return plugin

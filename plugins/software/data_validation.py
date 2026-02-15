@@ -39,7 +39,7 @@ class DataValidationPlugin:
         self.window = None
         self.validation_results = {}
     
-    def open_data_validation_window(self):
+    def open_window(self):
         """Open the data validation interface"""
         if self.window and self.window.winfo_exists():
             self.window.lift()
@@ -476,3 +476,8 @@ class DataValidationPlugin:
         tk.Label(frame,
                 text="Creates a comprehensive validation report with all checks",
                 font=("Arial", 9), fg="gray").pack()
+
+def setup_plugin(main_app):
+    """Plugin setup function"""
+    plugin = DataValidationPlugin(main_app)
+    return plugin  # ← REMOVE ALL MENU CODE

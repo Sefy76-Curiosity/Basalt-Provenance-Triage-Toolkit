@@ -1,0 +1,1474 @@
+{
+  "elements": {
+    "Sample_ID": {
+      "standard": "Sample_ID",
+      "variations": [
+        "Sample_ID", "SampleID", "Sample Id", "ID", "Sample", "sample_id",
+        "Sample #", "Specimen", "Specimen_ID", "Sample Number", "Sample No",
+        "Sample-Id", "SampleId", "SAMPLE_ID", "SAMPLE ID", "Sample id",
+        "sample id", "sample-id", "sample number", "sample no", "SAMPLE NO",
+        "Sample#", "SAMPLE#", "sample#", "SAMPLE NUMBER", "SAMPLE NUMBER",
+        "id", "Id", "iD"
+      ],
+      "category": "identifier",
+      "display_name": "Sample ID",
+      "ui_group": "Identifiers"
+    },
+    "Museum_Code": {
+      "standard": "Museum_Code",
+      "variations": [
+        "Museum_Code", "MuseumCode", "Museum", "Accession", "Catalog",
+        "Catalog #", "Field #", "Museum No", "Museum Number", "Museum ID",
+        "Museum_Number", "Museum_No", "museum code", "MUSEUM CODE",
+        "Accession Number", "Accession_Number", "Catalog Number",
+        "Catalog_Number", "Field Number", "Field_Number", "FIELD #"
+      ],
+      "category": "identifier",
+      "display_name": "Museum Code",
+      "ui_group": "Identifiers"
+    },
+    "Date": {
+      "standard": "Date",
+      "variations": [
+        "Date", "Analysis_Date", "Collection_Date", "Sampling_Date",
+        "Date Collected", "Collection Date", "Analysis Date", "Sampling Date",
+        "DATE", "date", "Sample Date", "Sample_Date", "Acquisition Date",
+        "Acquisition_Date", "Run Date", "Run_Date", "AnalysisDate"
+      ],
+      "category": "metadata",
+      "display_name": "Date",
+      "ui_group": "Metadata"
+    },
+    "Notes": {
+      "standard": "Notes",
+      "variations": [
+        "Notes", "notes", "NOTE", "Note", "Comments", "comment",
+        "Description", "Remarks", "REMARKS", "Comment", "COMMENTS",
+        "Sample Notes", "Sample_Notes", "Analysis Notes", "Analysis_Notes",
+        "Field Notes", "Field_Notes", "NOTES", "NOTE", "Note", "备注"
+      ],
+      "category": "metadata",
+      "display_name": "Notes",
+      "ui_group": "Metadata"
+    },
+    "Latitude": {
+      "standard": "Latitude",
+      "variations": [
+        "Latitude", "lat", "Lat", "LAT", "LATITUDE", "latitude",
+        "Lat.", "lat.", "LAT.", "GPS Lat", "GPS_Lat", "GPS Latitude",
+        "GPS_Latitude", "Y", "y", "Y coord", "Y_coord", "Northing"
+      ],
+      "category": "location",
+      "display_name": "Latitude",
+      "ui_group": "Location"
+    },
+    "Longitude": {
+      "standard": "Longitude",
+      "variations": [
+        "Longitude", "lon", "Lon", "LON", "LONGITUDE", "longitude",
+        "Lon.", "lon.", "LON.", "GPS Lon", "GPS_Lon", "GPS Longitude",
+        "GPS_Longitude", "X", "x", "X coord", "X_coord", "Easting"
+      ],
+      "category": "location",
+      "display_name": "Longitude",
+      "ui_group": "Location"
+    },
+    "Wall_Thickness_mm": {
+      "standard": "Wall_Thickness_mm",
+      "variations": [
+        "Wall_Thickness", "Wall_Thickness_mm", "Thickness", "Thickness_mm",
+        "Wall_mm", "Wall Thickness", "Wall thickness", "WALL THICKNESS",
+        "Thickness (mm)", "Thickness mm", "Thickness_mm", "Wall (mm)",
+        "Wall mm", "Wall Thickness (mm)", "Wall Thickness mm", "WT",
+        "wt", "Wt", "W.T.", "Wall_Thick", "WallThick", "WallThickness"
+      ],
+      "category": "physical",
+      "display_name": "Wall Thickness (mm)",
+      "ui_group": "Physical Properties"
+    },
+    "Zr": {
+      "standard": "Zr_ppm",
+      "variations": [
+        "Zr", "Zr_ppm", "Zirconium", "ZR", "zr", "Zr (ppm)", "Zr ppm",
+        "Zr_conc", "Zr_concentration", "Zr Concentration", "Zr concentration",
+        "Zr (PPM)", "Zr PPM", "ZR (PPM)", "ZR PPM", "Zr-ppm", "Zr_ppm",
+        "Zr_ppm", "Zr_ppm", "Zirconium (ppm)", "Zirconium ppm", "Zirconium_ppm",
+        "[Zr]", "Zr]", "Zr-", "Zr含量", "锆", "Zr(ppm)", "Zr ppm)", "Zr, ppm"
+      ],
+      "category": "trace",
+      "display_name": "Zr (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "Zr_error": {
+      "standard": "Zr_error",
+      "variations": [
+        "Zr_error", "Zr_err", "Zr_1sigma", "Zr uncertainty", "Zr error",
+        "Zr Error", "Zr Error (ppm)", "Zr Error ppm", "Zr Error_ppm",
+        "Zr_err_ppm", "Zr_error_ppm", "Zr ±", "Zr+/-", "Zr +/-",
+        "Zr 1σ", "Zr 1-sigma", "Zr 1sigma", "Zr SD", "Zr Std Dev",
+        "Zr Standard Deviation", "Zr Std. Dev.", "Zr Uncertainty",
+        "Zr_error (ppm)", "Zr_err (ppm)", "Zr_1sigma (ppm)"
+      ],
+      "category": "error",
+      "display_name": "Zr Error",
+      "ui_group": "Analytical Errors"
+    },
+    "Zr_RSD": {
+      "standard": "Zr_RSD",
+      "variations": [
+        "Zr_RSD", "Zr RSD", "Zr_Relative", "Zr RSD (%)", "Zr RSD %",
+        "Zr %RSD", "Zr Percent RSD", "Zr Relative Std Dev", "Zr Rel. SD",
+        "Zr_rsd", "Zr_RSD%", "Zr RSD%", "Zr_RSD_%", "Zr_RSD_pct",
+        "Zr Relative Standard Deviation", "Zr RSD (percent)", "Zr RSD percent"
+      ],
+      "category": "calculated",
+      "display_name": "Zr RSD",
+      "ui_group": "Analytical Errors"
+    },
+    "Nb": {
+      "standard": "Nb_ppm",
+      "variations": [
+        "Nb", "Nb_ppm", "Niobium", "NB", "nb", "Nb (ppm)", "Nb ppm",
+        "Nb_conc", "Nb_concentration", "Nb Concentration", "Nb concentration",
+        "Nb (PPM)", "Nb PPM", "NB (PPM)", "NB PPM", "Nb-ppm", "Nb_ppm",
+        "Niobium (ppm)", "Niobium ppm", "Niobium_ppm", "[Nb]", "Nb]",
+        "Nb-", "Nb含量", "铌", "Nb(ppm)", "Nb ppm)", "Nb, ppm"
+      ],
+      "category": "trace",
+      "display_name": "Nb (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "Zr_Nb_Ratio": {
+      "standard": "Zr_Nb_Ratio",
+      "variations": [
+        "Zr_Nb_Ratio", "Zr/Nb", "Zr:Nb", "Zr/Nb ratio", "Zr/Nb (ratio)",
+        "Zr_Nb", "Zr/Nb Ratio", "Zr/Nb ratio", "ZrNb", "Zr:Nb ratio"
+      ],
+      "category": "calculated_ratio",
+      "display_name": "Zr/Nb",
+      "ui_group": "Calculated Ratios"
+    },
+    "Ba": {
+      "standard": "Ba_ppm",
+      "variations": [
+        "Ba", "Ba_ppm", "Barium", "BA", "ba", "Ba (ppm)", "Ba ppm",
+        "Ba_conc", "Ba_concentration", "Ba Concentration", "Ba concentration",
+        "Ba (PPM)", "Ba PPM", "BA (PPM)", "BA PPM", "Ba-ppm", "Ba_ppm",
+        "Barium (ppm)", "Barium ppm", "Barium_ppm", "[Ba]", "Ba]",
+        "Ba-", "Ba含量", "钡", "Ba(ppm)", "Ba ppm)", "Ba, ppm"
+      ],
+      "category": "trace",
+      "display_name": "Ba (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "Rb": {
+      "standard": "Rb_ppm",
+      "variations": [
+        "Rb", "Rb_ppm", "Rubidium", "RB", "rb", "Rb (ppm)", "Rb ppm",
+        "Rb_conc", "Rb_concentration", "Rb Concentration", "Rb concentration",
+        "Rb (PPM)", "Rb PPM", "RB (PPM)", "RB PPM", "Rb-ppm", "Rb_ppm",
+        "Rubidium (ppm)", "Rubidium ppm", "Rubidium_ppm", "[Rb]", "Rb]",
+        "Rb-", "Rb含量", "铷", "Rb(ppm)", "Rb ppm)", "Rb, ppm"
+      ],
+      "category": "trace",
+      "display_name": "Rb (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "Sr": {
+      "standard": "Sr_ppm",
+      "variations": [
+        "Sr", "Sr_ppm", "Strontium", "SR", "sr", "Sr (ppm)", "Sr ppm",
+        "Sr_conc", "Sr_concentration", "Sr Concentration", "Sr concentration",
+        "Sr (PPM)", "Sr PPM", "SR (PPM)", "SR PPM", "Sr-ppm", "Sr_ppm",
+        "Strontium (ppm)", "Strontium ppm", "Strontium_ppm", "[Sr]", "Sr]",
+        "Sr-", "Sr含量", "锶", "Sr(ppm)", "Sr ppm)", "Sr, ppm"
+      ],
+      "category": "trace",
+      "display_name": "Sr (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "Y": {
+      "standard": "Y_ppm",
+      "variations": [
+        "Y", "Y_ppm", "Yttrium", "Y (ppm)", "Y ppm", "Yttrium (ppm)",
+        "Yttrium ppm", "Y_conc", "Y_concentration", "Y Concentration",
+        "Y (PPM)", "Y PPM", "Y-ppm", "Y_ppm", "[Y]", "Y]", "Y-",
+        "Y含量", "钇", "Y(ppm)", "Y ppm)", "Y, ppm", "Yttrium_ppm",
+        "YTTRIUM", "yttrium", "Y (PPM)", "Y PPM"
+      ],
+      "category": "trace",
+      "display_name": "Y (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "Cr": {
+      "standard": "Cr_ppm",
+      "variations": [
+        "Cr", "Cr_ppm", "Chromium", "CR", "cr", "Cr (ppm)", "Cr ppm",
+        "Cr_conc", "Cr_concentration", "Cr Concentration", "Cr concentration",
+        "Cr (PPM)", "Cr PPM", "CR (PPM)", "CR PPM", "Cr-ppm", "Cr_ppm",
+        "Chromium (ppm)", "Chromium ppm", "Chromium_ppm", "[Cr]", "Cr]",
+        "Cr-", "Cr含量", "铬", "Cr(ppm)", "Cr ppm)", "Cr, ppm"
+      ],
+      "category": "trace",
+      "display_name": "Cr (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "Ni": {
+      "standard": "Ni_ppm",
+      "variations": [
+        "Ni", "Ni_ppm", "Nickel", "NI", "ni", "Ni (ppm)", "Ni ppm",
+        "Ni_conc", "Ni_concentration", "Ni Concentration", "Ni concentration",
+        "Ni (PPM)", "Ni PPM", "NI (PPM)", "NI PPM", "Ni-ppm", "Ni_ppm",
+        "Nickel (ppm)", "Nickel ppm", "Nickel_ppm", "[Ni]", "Ni]",
+        "Ni-", "Ni含量", "镍", "Ni(ppm)", "Ni ppm)", "Ni, ppm"
+      ],
+      "category": "trace",
+      "display_name": "Ni (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "Cr_Ni_Ratio": {
+      "standard": "Cr_Ni_Ratio",
+      "variations": [
+        "Cr_Ni_Ratio", "Cr/Ni", "Cr:Ni", "Cr/Ni ratio", "Cr/Ni (ratio)",
+        "Cr_Ni", "Cr/Ni Ratio", "Cr/Ni ratio", "CrNi", "Cr:Ni ratio"
+      ],
+      "category": "calculated_ratio",
+      "display_name": "Cr/Ni",
+      "ui_group": "Calculated Ratios"
+    },
+    "Co": {
+      "standard": "Co_ppm",
+      "variations": [
+        "Co", "Co_ppm", "Cobalt", "CO", "co", "Co (ppm)", "Co ppm",
+        "Co_conc", "Co_concentration", "Co Concentration", "Co concentration",
+        "Co (PPM)", "Co PPM", "CO (PPM)", "CO PPM", "Co-ppm", "Co_ppm",
+        "Cobalt (ppm)", "Cobalt ppm", "Cobalt_ppm", "[Co]", "Co]",
+        "Co-", "Co含量", "钴", "Co(ppm)", "Co ppm)", "Co, ppm"
+      ],
+      "category": "trace",
+      "display_name": "Co (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "V": {
+      "standard": "V_ppm",
+      "variations": [
+        "V", "V_ppm", "Vanadium", "V (ppm)", "V ppm", "Vanadium (ppm)",
+        "Vanadium ppm", "V_conc", "V_concentration", "V Concentration",
+        "V (PPM)", "V PPM", "V-ppm", "V_ppm", "[V]", "V]", "V-",
+        "V含量", "钒", "V(ppm)", "V ppm)", "V, ppm", "Vanadium_ppm",
+        "VANADIUM", "vanadium", "V (PPM)", "V PPM"
+      ],
+      "category": "trace",
+      "display_name": "V (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "Ti_V_Ratio": {
+      "standard": "Ti_V_Ratio",
+      "variations": [
+        "Ti_V_Ratio", "Ti/V", "Ti:V", "Ti/V ratio", "Ti/V (ratio)",
+        "Ti_V", "Ti/V Ratio", "Ti/V ratio", "TiV", "Ti:V ratio"
+      ],
+      "category": "calculated_ratio",
+      "display_name": "Ti/V",
+      "ui_group": "Calculated Ratios"
+    },
+    "Cu": {
+      "standard": "Cu_ppm",
+      "variations": [
+        "Cu", "Cu_ppm", "Copper", "CU", "cu", "Cu (ppm)", "Cu ppm",
+        "Cu_conc", "Cu_concentration", "Cu Concentration", "Cu concentration",
+        "Cu (PPM)", "Cu PPM", "CU (PPM)", "CU PPM", "Cu-ppm", "Cu_ppm",
+        "Copper (ppm)", "Copper ppm", "Copper_ppm", "[Cu]", "Cu]",
+        "Cu-", "Cu含量", "铜", "Cu(ppm)", "Cu ppm)", "Cu, ppm"
+      ],
+      "category": "trace",
+      "display_name": "Cu (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "Zn": {
+      "standard": "Zn_ppm",
+      "variations": [
+        "Zn", "Zn_ppm", "Zinc", "ZN", "zn", "Zn (ppm)", "Zn ppm",
+        "Zn_conc", "Zn_concentration", "Zn Concentration", "Zn concentration",
+        "Zn (PPM)", "Zn PPM", "ZN (PPM)", "ZN PPM", "Zn-ppm", "Zn_ppm",
+        "Zinc (ppm)", "Zinc ppm", "Zinc_ppm", "[Zn]", "Zn]",
+        "Zn-", "Zn含量", "锌", "Zn(ppm)", "Zn ppm)", "Zn, ppm"
+      ],
+      "category": "trace",
+      "display_name": "Zn (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "Pb": {
+      "standard": "Pb_ppm",
+      "variations": [
+        "Pb", "Pb_ppm", "Lead", "PB", "pb", "Pb (ppm)", "Pb ppm",
+        "Pb_conc", "Pb_concentration", "Pb Concentration", "Pb concentration",
+        "Pb (PPM)", "Pb PPM", "PB (PPM)", "PB PPM", "Pb-ppm", "Pb_ppm",
+        "Lead (ppm)", "Lead ppm", "Lead_ppm", "[Pb]", "Pb]",
+        "Pb-", "Pb含量", "铅", "Pb(ppm)", "Pb ppm)", "Pb, ppm"
+      ],
+      "category": "trace",
+      "display_name": "Pb (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "Pb_EF": {
+      "standard": "Pb_EF",
+      "variations": [
+        "Pb_EF", "Pb EF", "Pb Enrichment", "Pb enrichment factor",
+        "Pb Enrichment Factor", "EF Pb", "Enrichment Factor Pb",
+        "Pb EF value", "Pb(EF)", "Pb-EF", "Pb_Enrichment"
+      ],
+      "category": "calculated",
+      "display_name": "Pb EF",
+      "ui_group": "Environmental"
+    },
+    "Th": {
+      "standard": "Th_ppm",
+      "variations": [
+        "Th", "Th_ppm", "Thorium", "TH", "th", "Th (ppm)", "Th ppm",
+        "Th_conc", "Th_concentration", "Th Concentration", "Th concentration",
+        "Th (PPM)", "Th PPM", "TH (PPM)", "TH PPM", "Th-ppm", "Th_ppm",
+        "Thorium (ppm)", "Thorium ppm", "Thorium_ppm", "[Th]", "Th]",
+        "Th-", "Th含量", "钍", "Th(ppm)", "Th ppm)", "Th, ppm"
+      ],
+      "category": "trace",
+      "display_name": "Th (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "U": {
+      "standard": "U_ppm",
+      "variations": [
+        "U", "U_ppm", "Uranium", "U (ppm)", "U ppm", "Uranium (ppm)",
+        "Uranium ppm", "U_conc", "U_concentration", "U Concentration",
+        "U (PPM)", "U PPM", "U-ppm", "U_ppm", "[U]", "U]", "U-",
+        "U含量", "铀", "U(ppm)", "U ppm)", "U, ppm", "Uranium_ppm",
+        "URANIUM", "uranium", "U (PPM)", "U PPM"
+      ],
+      "category": "trace",
+      "display_name": "U (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "Nb_Yb_Ratio": {
+      "standard": "Nb_Yb_Ratio",
+      "variations": [
+        "Nb_Yb_Ratio", "Nb/Yb", "Nb:Yb", "Nb/Yb ratio", "Nb/Yb (ratio)",
+        "Nb_Yb", "Nb/Yb Ratio", "Nb/Yb ratio", "NbYb", "Nb:Yb ratio"
+      ],
+      "category": "calculated_ratio",
+      "display_name": "Nb/Yb",
+      "ui_group": "Calculated Ratios"
+    },
+    "Th_Yb_Ratio": {
+      "standard": "Th_Yb_Ratio",
+      "variations": [
+        "Th_Yb_Ratio", "Th/Yb", "Th:Yb", "Th/Yb ratio", "Th/Yb (ratio)",
+        "Th_Yb", "Th/Yb Ratio", "Th/Yb ratio", "ThYb", "Th:Yb ratio"
+      ],
+      "category": "calculated_ratio",
+      "display_name": "Th/Yb",
+      "ui_group": "Calculated Ratios"
+    },
+    "Ti": {
+      "standard": "Ti_ppm",
+      "variations": [
+        "Ti", "Ti_ppm", "Titanium", "TI", "ti", "Ti (ppm)", "Ti ppm",
+        "Ti_conc", "Ti_concentration", "Ti Concentration", "Ti concentration",
+        "Ti (PPM)", "Ti PPM", "TI (PPM)", "TI PPM", "Ti-ppm", "Ti_ppm",
+        "Titanium (ppm)", "Titanium ppm", "Titanium_ppm", "[Ti]", "Ti]",
+        "Ti-", "Ti含量", "钛", "Ti(ppm)", "Ti ppm)", "Ti, ppm"
+      ],
+      "category": "trace",
+      "display_name": "Ti (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "Ti_pct": {
+      "standard": "Ti_pct",
+      "variations": [
+        "Ti_pct", "Ti %", "Ti%", "Ti_percent", "Ti percent", "Ti (%)",
+        "Ti (percent)", "Ti pct", "Ti PCT", "Ti PCT", "Ti pct.",
+        "Ti wt%", "Ti wt %", "Ti weight %", "Ti weight percent",
+        "Ti (wt%)", "Ti wt%)", "Ti %)", "Ti %,", "Ti percentage",
+        "Ti_PCT", "Ti_%", "Ti_ percent", "Ti_ percent", "Ti_%"
+      ],
+      "category": "major",
+      "display_name": "Ti (%)",
+      "ui_group": "Major Elements"
+    },
+    "Mn": {
+      "standard": "Mn_ppm",
+      "variations": [
+        "Mn", "Mn_ppm", "Manganese", "MN", "mn", "Mn (ppm)", "Mn ppm",
+        "Mn_conc", "Mn_concentration", "Mn Concentration", "Mn concentration",
+        "Mn (PPM)", "Mn PPM", "MN (PPM)", "MN PPM", "Mn-ppm", "Mn_ppm",
+        "Manganese (ppm)", "Manganese ppm", "Manganese_ppm", "[Mn]", "Mn]",
+        "Mn-", "Mn含量", "锰", "Mn(ppm)", "Mn ppm)", "Mn, ppm"
+      ],
+      "category": "trace",
+      "display_name": "Mn (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "Fe": {
+      "standard": "Fe_ppm",
+      "variations": [
+        "Fe", "Fe_ppm", "Iron", "FE", "fe", "Fe (ppm)", "Fe ppm",
+        "Fe_conc", "Fe_concentration", "Fe Concentration", "Fe concentration",
+        "Fe (PPM)", "Fe PPM", "FE (PPM)", "FE PPM", "Fe-ppm", "Fe_ppm",
+        "Iron (ppm)", "Iron ppm", "Iron_ppm", "[Fe]", "Fe]",
+        "Fe-", "Fe含量", "铁", "Fe(ppm)", "Fe ppm)", "Fe, ppm"
+      ],
+      "category": "trace",
+      "display_name": "Fe (ppm)",
+      "ui_group": "Trace Elements"
+    },
+    "Fe_Mn_Ratio": {
+      "standard": "Fe_Mn_Ratio",
+      "variations": [
+        "Fe_Mn_Ratio", "Fe/Mn", "Fe:Mn", "Fe/Mn ratio", "Fe/Mn (ratio)",
+        "Fe_Mn", "Fe/Mn Ratio", "Fe/Mn ratio", "FeMn", "Fe:Mn ratio"
+      ],
+      "category": "calculated_ratio",
+      "display_name": "Fe/Mn",
+      "ui_group": "Calculated Ratios"
+    },
+    "Fe_pct": {
+      "standard": "Fe_pct",
+      "variations": [
+        "Fe_pct", "Fe %", "Fe%", "Fe_percent", "Fe percent", "Fe (%)",
+        "Fe (percent)", "Fe pct", "Fe PCT", "Fe PCT", "Fe pct.",
+        "Fe wt%", "Fe wt %", "Fe weight %", "Fe weight percent",
+        "Fe (wt%)", "Fe wt%)", "Fe %)", "Fe %,", "Fe percentage",
+        "Fe_PCT", "Fe_%", "Fe_ percent", "Fe_ percent", "Fe_%"
+      ],
+      "category": "major",
+      "display_name": "Fe (%)",
+      "ui_group": "Major Elements"
+    },
+    "Metal_pct": {
+      "standard": "Metal_pct",
+      "variations": [
+        "Metal_pct", "Metal %", "Metal%", "Metal_percent", "Metal percent",
+        "Metal (%)", "Metal (percent)", "Metal pct", "Metal PCT", "Metal pct.",
+        "Metal wt%", "Metal wt %", "Metal weight %", "Metal weight percent",
+        "Metal (wt%)", "Metal wt%)", "Metal %)", "Metal %,", "Metal percentage",
+        "Metal_PCT", "Metal_%", "Metal_ percent", "Metallic Fe", "Metallic Fe %",
+        "Metallic Fe (%)", "Metallic Fe percent", "Metallic Fe_pct", "Metal_Fe"
+      ],
+      "category": "major",
+      "display_name": "Metal (%)",
+      "ui_group": "Major Elements"
+    },
+    "SiO2": {
+      "standard": "SiO2_wt",
+      "variations": [
+        "SiO2", "SiO2_wt", "SiO2_pct", "SiO2 %", "Silica", "SiO2 (%)",
+        "SiO2 (wt%)", "sio2", "SiO₂", "SiO₂_wt", "SiO₂_pct", "SiO₂ %",
+        "SiO₂ (wt%)", "SiO₂ (%)", "SILICA", "silica", "SiO2 wt%", "SiO2 wt %",
+        "SiO2 weight %", "SiO2 weight percent", "SiO2 (percent)", "SiO2 percent",
+        "SiO2 PCT", "SiO2 pct", "SiO2 pct.", "SiO2_%", "SiO2_%", "SiO2_ppm?",
+        "Silicon dioxide", "Silicon Dioxide", "SiO2 (SiO2)", "SiO2 as SiO2"
+      ],
+      "category": "major_oxide",
+      "display_name": "SiO₂ (wt%)",
+      "ui_group": "Major Oxides"
+    },
+    "TiO2": {
+      "standard": "TiO2_wt",
+      "variations": [
+        "TiO2", "TiO2_wt", "TiO2_pct", "TiO2 %", "Titanium dioxide", "TiO2 (%)",
+        "TiO2 (wt%)", "tio2", "TiO₂", "TiO₂_wt", "TiO₂_pct", "TiO₂ %",
+        "TiO₂ (wt%)", "TiO₂ (%)", "TITANIUM DIOXIDE", "titanium dioxide",
+        "TiO2 wt%", "TiO2 wt %", "TiO2 weight %", "TiO2 weight percent",
+        "TiO2 (percent)", "TiO2 percent", "TiO2 PCT", "TiO2 pct", "TiO2 pct.",
+        "TiO2_%", "TiO2_%", "TiO2_ppm?", "Titania", "TITANIA", "titania"
+      ],
+      "category": "major_oxide",
+      "display_name": "TiO₂ (wt%)",
+      "ui_group": "Major Oxides"
+    },
+    "Al2O3": {
+      "standard": "Al2O3_wt",
+      "variations": [
+        "Al2O3", "Al2O3_wt", "Al2O3_pct", "Al2O3 %", "Alumina", "Al2O3 (%)",
+        "Al2O3 (wt%)", "al2o3", "Al₂O₃", "Al₂O₃_wt", "Al₂O₃_pct", "Al₂O₃ %",
+        "Al₂O₃ (wt%)", "Al₂O₃ (%)", "ALUMINA", "alumina", "Al2O3 wt%",
+        "Al2O3 wt %", "Al2O3 weight %", "Al2O3 weight percent",
+        "Al2O3 (percent)", "Al2O3 percent", "Al2O3 PCT", "Al2O3 pct",
+        "Al2O3_%", "Al2O3_%", "Aluminum oxide", "Aluminium oxide"
+      ],
+      "category": "major_oxide",
+      "display_name": "Al₂O₃ (wt%)",
+      "ui_group": "Major Oxides"
+    },
+    "Fe2O3": {
+      "standard": "Fe2O3_wt",
+      "variations": [
+        "Fe2O3", "Fe2O3_wt", "Fe2O3_pct", "Fe2O3 %", "Iron oxide", "Fe2O3_T",
+        "Fe2O3_total", "Fe2O3_T_wt", "Fe2O3 (total)", "Fe2O3 (%)", "Fe2O3 (wt%)",
+        "fe2o3", "Fe₂O₃", "Fe₂O₃_wt", "Fe₂O₃_pct", "Fe₂O₃ %", "Fe₂O₃ (wt%)",
+        "Fe₂O₃ (%)", "Fe2O3T", "Fe2O3_TOTAL", "Fe2O3 total", "Fe2O3 Total",
+        "IRON OXIDE", "iron oxide", "Ferric oxide", "Ferric Oxide",
+        "Fe2O3 wt%", "Fe2O3 wt %", "Fe2O3 weight %", "Fe2O3 weight percent",
+        "Fe2O3 (percent)", "Fe2O3 percent", "Fe2O3 PCT", "Fe2O3 pct"
+      ],
+      "category": "major_oxide",
+      "display_name": "Fe₂O₃ (wt%)",
+      "ui_group": "Major Oxides"
+    },
+    "Fe2O3_T_wt": {
+      "standard": "Fe2O3_T_wt",
+      "variations": [
+        "Fe2O3_T_wt", "Fe2O3_T", "Fe2O3_total", "Total Fe as Fe2O3",
+        "Fe2O3 (total)", "Total Fe2O3", "Fe2O3 Total", "Fe2O3T",
+        "Fe2O3_TOTAL", "Fe2O3 total", "Fe2O3 Total", "Total iron as Fe2O3"
+      ],
+      "category": "major_oxide",
+      "display_name": "Total Fe as Fe₂O₃ (wt%)",
+      "ui_group": "Major Oxides"
+    },
+    "FeO": {
+      "standard": "FeO_wt",
+      "variations": [
+        "FeO", "FeO_wt", "FeO_pct", "FeO %", "Ferrous oxide", "FeO (%)",
+        "FeO (wt%)", "feo", "FeO", "FeO_wt", "FeO_pct", "FeO %",
+        "FeO (wt%)", "FeO (%)", "FERROUS OXIDE", "ferrous oxide",
+        "FeO wt%", "FeO wt %", "FeO weight %", "FeO weight percent",
+        "FeO (percent)", "FeO percent", "FeO PCT", "FeO pct", "FeO pct.",
+        "Iron(II) oxide", "Iron (II) oxide"
+      ],
+      "category": "major_oxide",
+      "display_name": "FeO (wt%)",
+      "ui_group": "Major Oxides"
+    },
+    "MgO": {
+      "standard": "MgO_wt",
+      "variations": [
+        "MgO", "MgO_wt", "MgO_pct", "MgO %", "Magnesia", "MgO (%)",
+        "MgO (wt%)", "mgo", "MgO", "MgO_wt", "MgO_pct", "MgO %",
+        "MgO (wt%)", "MgO (%)", "MAGNESIA", "magnesia", "MgO wt%",
+        "MgO wt %", "MgO weight %", "MgO weight percent",
+        "MgO (percent)", "MgO percent", "MgO PCT", "MgO pct", "MgO pct.",
+        "Magnesium oxide", "Magnesium Oxide", "MgO (MgO)"
+      ],
+      "category": "major_oxide",
+      "display_name": "MgO (wt%)",
+      "ui_group": "Major Oxides"
+    },
+    "CaO": {
+      "standard": "CaO_wt",
+      "variations": [
+        "CaO", "CaO_wt", "CaO_pct", "CaO %", "Lime", "CaO (%)",
+        "CaO (wt%)", "cao", "CaO", "CaO_wt", "CaO_pct", "CaO %",
+        "CaO (wt%)", "CaO (%)", "LIME", "lime", "CaO wt%", "CaO wt %",
+        "CaO weight %", "CaO weight percent", "CaO (percent)", "CaO percent",
+        "CaO PCT", "CaO pct", "CaO pct.", "Calcium oxide", "Calcium Oxide"
+      ],
+      "category": "major_oxide",
+      "display_name": "CaO (wt%)",
+      "ui_group": "Major Oxides"
+    },
+    "Na2O": {
+      "standard": "Na2O_wt",
+      "variations": [
+        "Na2O", "Na2O_wt", "Na2O_pct", "Na2O %", "Soda", "Na2O (%)",
+        "Na2O (wt%)", "na2o", "Na₂O", "Na₂O_wt", "Na₂O_pct", "Na₂O %",
+        "Na₂O (wt%)", "Na₂O (%)", "SODA", "soda", "Na2O wt%", "Na2O wt %",
+        "Na2O weight %", "Na2O weight percent", "Na2O (percent)", "Na2O percent",
+        "Na2O PCT", "Na2O pct", "Na2O pct.", "Sodium oxide", "Sodium Oxide"
+      ],
+      "category": "major_oxide",
+      "display_name": "Na₂O (wt%)",
+      "ui_group": "Major Oxides"
+    },
+    "K2O": {
+      "standard": "K2O_wt",
+      "variations": [
+        "K2O", "K2O_wt", "K2O_pct", "K2O %", "Potash", "K2O (%)",
+        "K2O (wt%)", "k2o", "K₂O", "K₂O_wt", "K₂O_pct", "K₂O %",
+        "K₂O (wt%)", "K₂O (%)", "POTASH", "potash", "K2O wt%", "K2O wt %",
+        "K2O weight %", "K2O weight percent", "K2O (percent)", "K2O percent",
+        "K2O PCT", "K2O pct", "K2O pct.", "Potassium oxide", "Potassium Oxide"
+      ],
+      "category": "major_oxide",
+      "display_name": "K₂O (wt%)",
+      "ui_group": "Major Oxides"
+    },
+    "P2O5": {
+      "standard": "P2O5_wt",
+      "variations": [
+        "P2O5", "P2O5_wt", "P2O5_pct", "P2O5 %", "Phosphorus pentoxide", "P2O5 (%)",
+        "P2O5 (wt%)", "p2o5", "P₂O₅", "P₂O₅_wt", "P₂O₅_pct", "P₂O₅ %",
+        "P₂O₅ (wt%)", "P₂O₅ (%)", "PHOSPHORUS PENTOXIDE", "phosphorus pentoxide",
+        "P2O5 wt%", "P2O5 wt %", "P2O5 weight %", "P2O5 weight percent",
+        "P2O5 (percent)", "P2O5 percent", "P2O5 PCT", "P2O5 pct", "P2O5 pct.",
+        "Phosphoric anhydride", "Phosphoric Anhydride"
+      ],
+      "category": "major_oxide",
+      "display_name": "P₂O₅ (wt%)",
+      "ui_group": "Major Oxides"
+    },
+    "MnO": {
+      "standard": "MnO_wt",
+      "variations": [
+        "MnO", "MnO_wt", "MnO_pct", "MnO %", "Manganese oxide", "MnO (%)",
+        "MnO (wt%)", "mno", "MnO", "MnO_wt", "MnO_pct", "MnO %",
+        "MnO (wt%)", "MnO (%)", "MANGANESE OXIDE", "manganese oxide",
+        "MnO wt%", "MnO wt %", "MnO weight %", "MnO weight percent",
+        "MnO (percent)", "MnO percent", "MnO PCT", "MnO pct", "MnO pct.",
+        "Manganous oxide", "Manganous Oxide"
+      ],
+      "category": "major_oxide",
+      "display_name": "MnO (wt%)",
+      "ui_group": "Major Oxides"
+    },
+    "CIA_Value": {
+      "standard": "CIA_Value",
+      "variations": [
+        "CIA_Value", "CIA", "Chemical Index of Alteration",
+        "CIA index", "CIA value", "CIA (Chemical Index of Alteration)",
+        "Chemical Index of Alteration (CIA)", "CIA score",
+        "Alteration index", "Weathering index (CIA)"
+      ],
+      "category": "calculated",
+      "display_name": "CIA",
+      "ui_group": "Classification Outputs"
+    },
+    "V_Ratio": {
+      "standard": "V_Ratio",
+      "variations": [
+        "V_Ratio", "V-ratio", "Basicity index", "Slag basicity",
+        "V ratio", "V-Ratio", "V_ratio", "CaO+MgO/SiO2+Al2O3"
+      ],
+      "category": "calculated",
+      "display_name": "V-Ratio",
+      "ui_group": "Calculated Indices"
+    },
+    "Yb": {
+      "standard": "Yb_ppm",
+      "variations": [
+        "Yb", "Yb_ppm", "Ytterbium", "YB", "yb", "Yb (ppm)", "Yb ppm",
+        "Yb_conc", "Yb_concentration", "Yb Concentration", "Yb concentration",
+        "Yb (PPM)", "Yb PPM", "YB (PPM)", "YB PPM", "Yb-ppm", "Yb_ppm",
+        "Ytterbium (ppm)", "Ytterbium ppm", "Ytterbium_ppm", "[Yb]", "Yb]",
+        "Yb-", "Yb含量", "镱", "Yb(ppm)", "Yb ppm)", "Yb, ppm"
+      ],
+      "category": "rare_earth",
+      "display_name": "Yb (ppm)",
+      "ui_group": "Rare Earth Elements"
+    },
+    "La": {
+      "standard": "La_ppm",
+      "variations": [
+        "La", "La_ppm", "Lanthanum", "LA", "la", "La (ppm)", "La ppm",
+        "La_conc", "La_concentration", "La Concentration", "La concentration",
+        "La (PPM)", "La PPM", "LA (PPM)", "LA PPM", "La-ppm", "La_ppm",
+        "Lanthanum (ppm)", "Lanthanum ppm", "Lanthanum_ppm", "[La]", "La]",
+        "La-", "La含量", "镧", "La(ppm)", "La ppm)", "La, ppm"
+      ],
+      "category": "rare_earth",
+      "display_name": "La (ppm)",
+      "ui_group": "Rare Earth Elements"
+    },
+    "Ce": {
+      "standard": "Ce_ppm",
+      "variations": [
+        "Ce", "Ce_ppm", "Cerium", "CE", "ce", "Ce (ppm)", "Ce ppm",
+        "Ce_conc", "Ce_concentration", "Ce Concentration", "Ce concentration",
+        "Ce (PPM)", "Ce PPM", "CE (PPM)", "CE PPM", "Ce-ppm", "Ce_ppm",
+        "Cerium (ppm)", "Cerium ppm", "Cerium_ppm", "[Ce]", "Ce]",
+        "Ce-", "Ce含量", "铈", "Ce(ppm)", "Ce ppm)", "Ce, ppm"
+      ],
+      "category": "rare_earth",
+      "display_name": "Ce (ppm)",
+      "ui_group": "Rare Earth Elements"
+    },
+    "Nd": {
+      "standard": "Nd_ppm",
+      "variations": [
+        "Nd", "Nd_ppm", "Neodymium", "ND", "nd", "Nd (ppm)", "Nd ppm",
+        "Nd_conc", "Nd_concentration", "Nd Concentration", "Nd concentration",
+        "Nd (PPM)", "Nd PPM", "ND (PPM)", "ND PPM", "Nd-ppm", "Nd_ppm",
+        "Neodymium (ppm)", "Neodymium ppm", "Neodymium_ppm", "[Nd]", "Nd]",
+        "Nd-", "Nd含量", "钕", "Nd(ppm)", "Nd ppm)", "Nd, ppm"
+      ],
+      "category": "rare_earth",
+      "display_name": "Nd (ppm)",
+      "ui_group": "Rare Earth Elements"
+    },
+    "Sm": {
+      "standard": "Sm_ppm",
+      "variations": [
+        "Sm", "Sm_ppm", "Samarium", "SM", "sm", "Sm (ppm)", "Sm ppm",
+        "Sm_conc", "Sm_concentration", "Sm Concentration", "Sm concentration",
+        "Sm (PPM)", "Sm PPM", "SM (PPM)", "SM PPM", "Sm-ppm", "Sm_ppm",
+        "Samarium (ppm)", "Samarium ppm", "Samarium_ppm", "[Sm]", "Sm]",
+        "Sm-", "Sm含量", "钐", "Sm(ppm)", "Sm ppm)", "Sm, ppm"
+      ],
+      "category": "rare_earth",
+      "display_name": "Sm (ppm)",
+      "ui_group": "Rare Earth Elements"
+    },
+    "Eu": {
+      "standard": "Eu_ppm",
+      "variations": [
+        "Eu", "Eu_ppm", "Europium", "EU", "eu", "Eu (ppm)", "Eu ppm",
+        "Eu_conc", "Eu_concentration", "Eu Concentration", "Eu concentration",
+        "Eu (PPM)", "Eu PPM", "EU (PPM)", "EU PPM", "Eu-ppm", "Eu_ppm",
+        "Europium (ppm)", "Europium ppm", "Europium_ppm", "[Eu]", "Eu]",
+        "Eu-", "Eu含量", "铕", "Eu(ppm)", "Eu ppm)", "Eu, ppm"
+      ],
+      "category": "rare_earth",
+      "display_name": "Eu (ppm)",
+      "ui_group": "Rare Earth Elements"
+    },
+    "Gd": {
+      "standard": "Gd_ppm",
+      "variations": [
+        "Gd", "Gd_ppm", "Gadolinium", "GD", "gd", "Gd (ppm)", "Gd ppm",
+        "Gd_conc", "Gd_concentration", "Gd Concentration", "Gd concentration",
+        "Gd (PPM)", "Gd PPM", "GD (PPM)", "GD PPM", "Gd-ppm", "Gd_ppm",
+        "Gadolinium (ppm)", "Gadolinium ppm", "Gadolinium_ppm", "[Gd]", "Gd]",
+        "Gd-", "Gd含量", "钆", "Gd(ppm)", "Gd ppm)", "Gd, ppm"
+      ],
+      "category": "rare_earth",
+      "display_name": "Gd (ppm)",
+      "ui_group": "Rare Earth Elements"
+    },
+    "Lu": {
+      "standard": "Lu_ppm",
+      "variations": [
+        "Lu", "Lu_ppm", "Lutetium", "LU", "lu", "Lu (ppm)", "Lu ppm",
+        "Lu_conc", "Lu_concentration", "Lu Concentration", "Lu concentration",
+        "Lu (PPM)", "Lu PPM", "LU (PPM)", "LU PPM", "Lu-ppm", "Lu_ppm",
+        "Lutetium (ppm)", "Lutetium ppm", "Lutetium_ppm", "[Lu]", "Lu]",
+        "Lu-", "Lu含量", "镥", "Lu(ppm)", "Lu ppm)", "Lu, ppm"
+      ],
+      "category": "rare_earth",
+      "display_name": "Lu (ppm)",
+      "ui_group": "Rare Earth Elements"
+    },
+    "La_N": {
+      "standard": "La_N",
+      "variations": [
+        "La_N", "La_norm", "La normalized", "La (normalized)", "La normalized",
+        "La_Norm", "La_NORM", "La_n", "La_norm.", "La_norm",
+        "La chondrite", "La chondrite normalized", "La/Chondrite",
+        "La normalized to chondrite", "La_N (chondrite)", "La_N_chondrite"
+      ],
+      "category": "normalized",
+      "display_name": "La (normalized)",
+      "ui_group": "Normalized REE"
+    },
+    "Sm_N": {
+      "standard": "Sm_N",
+      "variations": [
+        "Sm_N", "Sm_norm", "Sm normalized", "Sm (normalized)", "Sm normalized",
+        "Sm_Norm", "Sm_NORM", "Sm_n", "Sm_norm.", "Sm_norm",
+        "Sm chondrite", "Sm chondrite normalized", "Sm/Chondrite",
+        "Sm normalized to chondrite", "Sm_N (chondrite)", "Sm_N_chondrite"
+      ],
+      "category": "normalized",
+      "display_name": "Sm (normalized)",
+      "ui_group": "Normalized REE"
+    },
+    "Yb_N": {
+      "standard": "Yb_N",
+      "variations": [
+        "Yb_N", "Yb_norm", "Yb normalized", "Yb (normalized)", "Yb normalized",
+        "Yb_Norm", "Yb_NORM", "Yb_n", "Yb_norm.", "Yb_norm",
+        "Yb chondrite", "Yb chondrite normalized", "Yb/Chondrite",
+        "Yb normalized to chondrite", "Yb_N (chondrite)", "Yb_N_chondrite"
+      ],
+      "category": "normalized",
+      "display_name": "Yb (normalized)",
+      "ui_group": "Normalized REE"
+    },
+    "Eu_N": {
+      "standard": "Eu_N",
+      "variations": [
+        "Eu_N", "Eu_norm", "Eu normalized", "Eu (normalized)", "Eu normalized",
+        "Eu_Norm", "Eu_NORM", "Eu_n", "Eu_norm.", "Eu_norm",
+        "Eu chondrite", "Eu chondrite normalized", "Eu/Chondrite",
+        "Eu normalized to chondrite", "Eu_N (chondrite)", "Eu_N_chondrite"
+      ],
+      "category": "normalized",
+      "display_name": "Eu (normalized)",
+      "ui_group": "Normalized REE"
+    },
+    "Eu_star": {
+      "standard": "Eu_star",
+      "variations": [
+        "Eu_star", "Eu/Eu*", "Eu anomaly", "Eu_star", "Eu*", "Eu/Eu",
+        "Eu anomaly", "Eu anomaly (Eu/Eu*)", "Eu/Eu* anomaly",
+        "Eu/Eu* ratio", "Eu_star_anomaly", "Eu_anomaly", "Eu*_anomaly",
+        "Eu/Eu*_value", "Eu anomaly value", "Eu/Eu* (anomaly)"
+      ],
+      "category": "calculated",
+      "display_name": "Eu/Eu*",
+      "ui_group": "Normalized REE"
+    },
+    "d13C": {
+      "standard": "d13C",
+      "variations": [
+        "d13C", "δ13C", "delta13C", "C13", "C-13", "δ13C (‰)", "d13C (‰)",
+        "δ13C permil", "d13C permil", "delta13C (‰)", "13C/12C",
+        "δ13C vs VPDB", "d13C vs VPDB", "13C", "δ13C-VPDB", "d13C-VPDB",
+        "delta 13C", "δ 13C", "d 13C", "C isotopic composition"
+      ],
+      "category": "isotope",
+      "display_name": "δ¹³C",
+      "ui_group": "Isotopes"
+    },
+    "d15N": {
+      "standard": "d15N",
+      "variations": [
+        "d15N", "δ15N", "delta15N", "N15", "N-15", "δ15N (‰)", "d15N (‰)",
+        "δ15N permil", "d15N permil", "delta15N (‰)", "15N/14N",
+        "δ15N vs AIR", "d15N vs AIR", "15N", "δ15N-AIR", "d15N-AIR",
+        "delta 15N", "δ 15N", "d 15N", "N isotopic composition"
+      ],
+      "category": "isotope",
+      "display_name": "δ¹⁵N",
+      "ui_group": "Isotopes"
+    },
+    "FTIR_CI": {
+      "standard": "FTIR_CI",
+      "variations": [
+        "FTIR_CI", "CI", "Crystallinity Index", "Splitting Factor", "SF",
+        "FTIR Crystallinity", "FTIR Splitting Factor", "FTIR CI",
+        "Crystallinity Index (FTIR)", "Splitting Factor (FTIR)",
+        "IR Splitting Factor", "IR Crystallinity", "FTIR SF",
+        "CI (FTIR)", "SF (FTIR)", "Crystallinity"
+      ],
+      "category": "spectral",
+      "display_name": "FTIR CI",
+      "ui_group": "Spectral Data"
+    },
+    "EC_dS_m": {
+      "standard": "EC_dS_m",
+      "variations": [
+        "EC_dS_m", "EC", "Electrical Conductivity", "ec", "Ec", "Conductivity",
+        "EC (dS/m)", "EC dS/m", "Electrical Conductivity (dS/m)",
+        "EC (deciSiemens/m)", "EC (ds/m)", "EC ds/m", "EC_dS/m",
+        "EC_dS_m", "EC_dS.m", "EC dS.m", "EC (μS/cm)", "EC μS/cm",
+        "Electrical Conductivity (μS/cm)", "EC microSiemens/cm",
+        "EC (µS/cm)", "EC µS/cm"
+      ],
+      "category": "physical",
+      "display_name": "EC (dS/m)",
+      "ui_group": "Soil Properties"
+    },
+    "SAR": {
+      "standard": "SAR",
+      "variations": [
+        "SAR", "Sodium Adsorption Ratio", "sar", "SAR (meq/L)",
+        "Sodium Adsorption Ratio (SAR)", "SAR value", "SAR index",
+        "Na adsorption ratio", "Sodium Absorption Ratio",
+        "SAR (mmol/L)", "SAR (meq/L)"
+      ],
+      "category": "calculated",
+      "display_name": "SAR",
+      "ui_group": "Soil Properties"
+    },
+    "GrainSize_um": {
+      "standard": "GrainSize_um",
+      "variations": [
+        "GrainSize_um", "Grain Size", "Particle Size", "GS", "grain size",
+        "Grain size (μm)", "Grain size µm", "Grain size (microns)",
+        "Particle size (μm)", "Particle size µm", "Mean grain size",
+        "Grain diameter", "Grain size (um)", "Grain size um",
+        "GrainSize (μm)", "GrainSize (um)", "GrainSize µm"
+      ],
+      "category": "physical",
+      "display_name": "Grain Size (µm)",
+      "ui_group": "Physical Properties"
+    },
+    "Sand_pct": {
+      "standard": "Sand_pct",
+      "variations": [
+        "Sand_pct", "Sand %", "Sand", "Sand%", "sand", "Sand (%)",
+        "Sand percent", "Sand pct", "Sand PCT", "Sand pct.",
+        "Sand fraction", "Sand content", "Sand wt%", "Sand wt %",
+        "Sand (percent)", "Sand_%", "SAND %", "SAND (%)"
+      ],
+      "category": "physical",
+      "display_name": "Sand (%)",
+      "ui_group": "Soil Texture"
+    },
+    "Silt_pct": {
+      "standard": "Silt_pct",
+      "variations": [
+        "Silt_pct", "Silt %", "Silt", "Silt%", "silt", "Silt (%)",
+        "Silt percent", "Silt pct", "Silt PCT", "Silt pct.",
+        "Silt fraction", "Silt content", "Silt wt%", "Silt wt %",
+        "Silt (percent)", "Silt_%", "SILT %", "SILT (%)"
+      ],
+      "category": "physical",
+      "display_name": "Silt (%)",
+      "ui_group": "Soil Texture"
+    },
+    "Clay_pct": {
+      "standard": "Clay_pct",
+      "variations": [
+        "Clay_pct", "Clay %", "Clay", "Clay%", "clay", "Clay (%)",
+        "Clay percent", "Clay pct", "Clay PCT", "Clay pct.",
+        "Clay fraction", "Clay content", "Clay wt%", "Clay wt %",
+        "Clay (percent)", "Clay_%", "CLAY %", "CLAY (%)"
+      ],
+      "category": "physical",
+      "display_name": "Clay (%)",
+      "ui_group": "Soil Texture"
+    },
+    "Mud_pct": {
+      "standard": "Mud_pct",
+      "variations": [
+        "Mud_pct", "Mud %", "Mud", "Mud%", "mud", "Mud (%)",
+        "Mud percent", "Mud pct", "Mud PCT", "Mud pct.",
+        "Mud fraction", "Mud content", "Mud wt%", "Mud wt %",
+        "Mud (percent)", "Mud_%", "MUD %", "MUD (%)"
+      ],
+      "category": "physical",
+      "display_name": "Mud (%)",
+      "ui_group": "Sedimentology"
+    },
+    "Grain_pct": {
+      "standard": "Grain_pct",
+      "variations": [
+        "Grain_pct", "Grain %", "Grains", "Grains%", "grain", "Grain (%)",
+        "Grain percent", "Grain pct", "Grain PCT", "Grain pct.",
+        "Grain fraction", "Grain content", "Grain wt%", "Grain wt %",
+        "Grain (percent)", "Grain_%", "GRAIN %", "GRAIN (%)"
+      ],
+      "category": "physical",
+      "display_name": "Grains (%)",
+      "ui_group": "Sedimentology"
+    },
+    "Support_Type": {
+      "standard": "Support_Type",
+      "variations": [
+        "Support_Type", "Support", "support", "Support type",
+        "Grain support", "Matrix support", "Support (texture)",
+        "Support Type", "SUPPORT TYPE", "support type",
+        "Depositional support", "Support mechanism"
+      ],
+      "category": "descriptive",
+      "display_name": "Support Type",
+      "ui_group": "Sedimentology"
+    },
+    "Hardness_mgL": {
+      "standard": "Hardness_mgL",
+      "variations": [
+        "Hardness_mgL", "Hardness", "Water Hardness", "CaCO3", "hardness",
+        "Hardness (mg/L)", "Hardness mg/L", "Total Hardness",
+        "Hardness as CaCO3", "CaCO3 (mg/L)", "CaCO3 mg/L",
+        "Water hardness (mg/L)", "Hardness (ppm CaCO3)",
+        "Hardness as CaCO3 (mg/L)", "Hardness (CaCO3)"
+      ],
+      "category": "physical",
+      "display_name": "Hardness (mg/L)",
+      "ui_group": "Water Chemistry"
+    },
+    "Igeo": {
+      "standard": "Igeo",
+      "variations": [
+        "Igeo", "I_geo", "Geoaccumulation Index", "igeo", "I-geo",
+        "I geo", "Index of geoaccumulation", "Müller Index",
+        "Geoaccumulation index", "I(geo)", "I_geo", "I-geo",
+        "Igeo index", "Geoaccumulation"
+      ],
+      "category": "calculated",
+      "display_name": "Igeo",
+      "ui_group": "Environmental"
+    },
+    "EF": {
+      "standard": "EF",
+      "variations": [
+        "EF", "Enrichment Factor", "ef", "Enrichment factor",
+        "Enrichment Factor (EF)", "EF value", "Enrichment",
+        "Element enrichment", "EF index"
+      ],
+      "category": "calculated",
+      "display_name": "EF",
+      "ui_group": "Environmental"
+    },
+    "Shock_Features": {
+      "standard": "Shock_Features",
+      "variations": [
+        "Shock_Features", "Shock", "shock", "Shock features",
+        "Shock metamorphism", "Shock stage", "Shock indicator",
+        "Shock features", "SHOCK FEATURES", "shock features",
+        "Shock deformation", "Shock effects"
+      ],
+      "category": "descriptive",
+      "display_name": "Shock Features",
+      "ui_group": "Meteoritics"
+    },
+    "Weathering_Features": {
+      "standard": "Weathering_Features",
+      "variations": [
+        "Weathering_Features", "Weathering", "weathering",
+        "Weathering features", "Weathering grade", "Weathering stage",
+        "Weathering index", "Weathering features", "WEATHERING FEATURES",
+        "weathering features", "Terrestrial weathering", "Oxidation"
+      ],
+      "category": "descriptive",
+      "display_name": "Weathering Features",
+      "ui_group": "Meteoritics"
+    },
+    "MagSus_10e6_si": {
+      "standard": "MagSus_10e6_si",
+      "variations": [
+        "MagSus_10e6_si", "Magnetic Susceptibility", "MS", "mag sus",
+        "Magnetic Susceptibility (10⁻⁶ SI)", "MS (10⁻⁶ SI)",
+        "MagSus (10⁻⁶ SI)", "Magnetic susceptibility",
+        "MS (SI units)", "MagSus SI", "χ (magnetic)",
+        "Volume magnetic susceptibility", "Magnetic susceptibility (χ)"
+      ],
+      "category": "physical",
+      "display_name": "Mag Sus (10⁻⁶ SI)",
+      "ui_group": "Physical Properties"
+    },
+    "Weathering_State": {
+      "standard": "Weathering_State",
+      "variations": [
+        "Weathering_State", "Weathering State", "Weathering state",
+        "Weathering classification", "Weathering class",
+        "WEATHERING STATE", "weathering state", "Weathering stage",
+        "Alteration state", "Degree of weathering"
+      ],
+      "category": "classification",
+      "display_name": "Weathering State",
+      "ui_group": "Classification Outputs"
+    },
+    "TAS_Classification": {
+      "standard": "TAS_Classification",
+      "variations": [
+        "TAS_Classification", "TAS Class", "TAS classification",
+        "Total Alkali Silica", "TAS diagram class",
+        "TAS rock type", "TAS name", "TAS category",
+        "TAS classification", "TAS class"
+      ],
+      "category": "classification",
+      "display_name": "TAS Classification",
+      "ui_group": "Classification Outputs"
+    },
+    "Magmatic_Series": {
+      "standard": "Magmatic_Series",
+      "variations": [
+        "Magmatic_Series", "Magmatic Series", "Magmatic series",
+        "AFM series", "Irvine-Baragar series",
+        "Tholeiitic/Calc-alkaline", "Magmatic affinity",
+        "Rock series", "Magmatic suite"
+      ],
+      "category": "classification",
+      "display_name": "Magmatic Series",
+      "ui_group": "Classification Outputs"
+    },
+    "IUGS_Volcanic_Class": {
+      "standard": "IUGS_Volcanic_Class",
+      "variations": [
+        "IUGS_Volcanic_Class", "IUGS Class", "IUGS classification",
+        "IUGS volcanic rock name", "IUGS rock type",
+        "IUGS name", "IUGS class", "IUGS volcanic"
+      ],
+      "category": "classification",
+      "display_name": "IUGS Class",
+      "ui_group": "Classification Outputs"
+    },
+    "Enrichment_Status": {
+      "standard": "Enrichment_Status",
+      "variations": [
+        "Enrichment_Status", "Enrichment Status", "Enrichment status",
+        "EF classification", "Enrichment class",
+        "ENRICHMENT STATUS", "enrichment status",
+        "Contamination level", "Pollution level"
+      ],
+      "category": "classification",
+      "display_name": "Enrichment Status",
+      "ui_group": "Classification Outputs"
+    },
+    "Anomaly_Status": {
+      "standard": "Anomaly_Status",
+      "variations": [
+        "Anomaly_Status", "Anomaly Status", "Anomaly status",
+        "Anomaly classification", "Anomaly class",
+        "ANOMALY STATUS", "anomaly status", "Exploration anomaly",
+        "Geochemical anomaly", "Anomaly grade"
+      ],
+      "category": "classification",
+      "display_name": "Anomaly Status",
+      "ui_group": "Classification Outputs"
+    },
+    "Pollution_Grade_Igeo": {
+      "standard": "Pollution_Grade_Igeo",
+      "variations": [
+        "Pollution_Grade_Igeo", "Igeo Grade", "Igeo class",
+        "Geoaccumulation grade", "Pollution level Igeo",
+        "Igeo pollution class", "Müller class",
+        "Geoaccumulation class", "Igeo category"
+      ],
+      "category": "classification",
+      "display_name": "Igeo Grade",
+      "ui_group": "Classification Outputs"
+    },
+    "Eruption_Style": {
+      "standard": "Eruption_Style",
+      "variations": [
+        "Eruption_Style", "Eruption Style", "Eruption style",
+        "Volcanic style", "Eruption type",
+        "ERUPTION STYLE", "eruption style",
+        "Volcanism style", "Magmatic eruption"
+      ],
+      "category": "classification",
+      "display_name": "Eruption Style",
+      "ui_group": "Classification Outputs"
+    },
+    "CIPW_Category": {
+      "standard": "CIPW_Category",
+      "variations": [
+        "CIPW_Category", "CIPW", "CIPW norm class",
+        "Normative mineralogy", "CIPW classification",
+        "CIPW category", "CIPW type", "Normative class"
+      ],
+      "category": "classification",
+      "display_name": "CIPW",
+      "ui_group": "Classification Outputs"
+    },
+    "Slag_Basicity_Class": {
+      "standard": "Slag_Basicity_Class",
+      "variations": [
+        "Slag_Basicity_Class", "Slag Class", "Slag basicity",
+        "V-ratio class", "Slag type", "Slag category",
+        "SLAG CLASS", "slag class", "Metallurgical slag"
+      ],
+      "category": "classification",
+      "display_name": "Slag Class",
+      "ui_group": "Classification Outputs"
+    },
+    "Bone_Preservation_Status": {
+      "standard": "Bone_Preservation_Status",
+      "variations": [
+        "Bone_Preservation_Status", "Bone Preservation", "Bone preservation",
+        "Bone diagenesis", "Bone alteration",
+        "BONE PRESERVATION", "bone preservation",
+        "Skeletal preservation", "Bone quality"
+      ],
+      "category": "classification",
+      "display_name": "Bone Preservation",
+      "ui_group": "Classification Outputs"
+    },
+    "Collagen_Status": {
+      "standard": "Collagen_Status",
+      "variations": [
+        "Collagen_Status", "Collagen", "Collagen quality",
+        "Collagen preservation", "C:N status",
+        "COLLAGEN", "collagen", "Bone collagen"
+      ],
+      "category": "classification",
+      "display_name": "Collagen",
+      "ui_group": "Classification Outputs"
+    },
+    "Apatite_Classification": {
+      "standard": "Apatite_Classification",
+      "variations": [
+        "Apatite_Classification", "Apatite", "Apatite type",
+        "Apatite preservation", "Bone apatite",
+        "APATITE", "apatite", "Bioapatite"
+      ],
+      "category": "classification",
+      "display_name": "Apatite",
+      "ui_group": "Classification Outputs"
+    },
+    "Trophic_Level": {
+      "standard": "Trophic_Level",
+      "variations": [
+        "Trophic_Level", "Trophic Level", "Trophic level",
+        "Dietary trophic", "Trophic position",
+        "TROPHIC LEVEL", "trophic level", "Food web position"
+      ],
+      "category": "classification",
+      "display_name": "Trophic Level",
+      "ui_group": "Classification Outputs"
+    },
+    "Dietary_Group": {
+      "standard": "Dietary_Group",
+      "variations": [
+        "Dietary_Group", "Dietary Group", "Diet group",
+        "Diet classification", "Diet type",
+        "DIET", "diet", "Paleodiet"
+      ],
+      "category": "classification",
+      "display_name": "Diet",
+      "ui_group": "Classification Outputs"
+    },
+    "Glass_Family_Type": {
+      "standard": "Glass_Family_Type",
+      "variations": [
+        "Glass_Family_Type", "Glass Family", "Glass family",
+        "Glass type", "Glass composition",
+        "GLASS FAMILY", "glass family", "Archaeological glass"
+      ],
+      "category": "classification",
+      "display_name": "Glass Family",
+      "ui_group": "Classification Outputs"
+    },
+    "Provenance_Fingerprint": {
+      "standard": "Provenance_Fingerprint",
+      "variations": [
+        "Provenance_Fingerprint", "Provenance", "Provenance fingerprint",
+        "Source fingerprint", "Provenance class",
+        "PROVENANCE", "provenance", "Geochemical source"
+      ],
+      "category": "classification",
+      "display_name": "Provenance",
+      "ui_group": "Classification Outputs"
+    },
+    "Tectonic_Setting": {
+      "standard": "Tectonic_Setting",
+      "variations": [
+        "Tectonic_Setting", "Tectonic Setting", "Tectonic setting",
+        "Tectonic environment", "Tectonic class",
+        "TECTONIC", "tectonic", "Plate tectonic setting"
+      ],
+      "category": "classification",
+      "display_name": "Tectonic",
+      "ui_group": "Classification Outputs"
+    },
+    "Planetary_Analog": {
+      "standard": "Planetary_Analog",
+      "variations": [
+        "Planetary_Analog", "Planetary Analog", "Planetary analog",
+        "Planetary body analog", "Planetary class",
+        "PLANETARY", "planetary", "Mars analog", "Lunar analog"
+      ],
+      "category": "classification",
+      "display_name": "Planetary",
+      "ui_group": "Classification Outputs"
+    },
+    "Chondrite_Class": {
+      "standard": "Chondrite_Class",
+      "variations": [
+        "Chondrite_Class", "Chondrite Class", "Chondrite type",
+        "Meteorite class", "Chondrite group",
+        "CHONDRITE", "chondrite", "Ordinary chondrite"
+      ],
+      "category": "classification",
+      "display_name": "Chondrite",
+      "ui_group": "Classification Outputs"
+    },
+    "Shock_Stage": {
+      "standard": "Shock_Stage",
+      "variations": [
+        "Shock_Stage", "Shock Stage", "Shock stage",
+        "Shock metamorphism stage", "Shock classification",
+        "SHOCK STAGE", "shock stage", "Stöffler stage"
+      ],
+      "category": "classification",
+      "display_name": "Shock Stage",
+      "ui_group": "Classification Outputs"
+    },
+    "Weathering_Grade": {
+      "standard": "Weathering_Grade",
+      "variations": [
+        "Weathering_Grade", "Weathering Grade", "Weathering grade",
+        "Terrestrial weathering grade", "Meteorite weathering",
+        "WEATHERING GRADE", "weathering grade", "Wlotzka grade"
+      ],
+      "category": "classification",
+      "display_name": "Weathering Grade",
+      "ui_group": "Classification Outputs"
+    },
+    "Exploration_Priority": {
+      "standard": "Exploration_Priority",
+      "variations": [
+        "Exploration_Priority", "Exploration Priority", "Exploration priority",
+        "Target priority", "Exploration class",
+        "EXPLORATION", "exploration", "Ore potential"
+      ],
+      "category": "classification",
+      "display_name": "Exploration",
+      "ui_group": "Classification Outputs"
+    },
+    "REE_Pattern_Type": {
+      "standard": "REE_Pattern_Type",
+      "variations": [
+        "REE_Pattern_Type", "REE Pattern", "REE pattern",
+        "Rare earth pattern", "REE classification",
+        "REE PATTERN", "ree pattern", "Chondrite-normalized pattern"
+      ],
+      "category": "classification",
+      "display_name": "REE Pattern",
+      "ui_group": "Classification Outputs"
+    },
+    "Wentworth_Class": {
+      "standard": "Wentworth_Class",
+      "variations": [
+        "Wentworth_Class", "Wentworth Class", "Wentworth class",
+        "Grain size class", "Sediment class",
+        "WENTWORTH", "wentworth", "Udden-Wentworth"
+      ],
+      "category": "classification",
+      "display_name": "Wentworth",
+      "ui_group": "Classification Outputs"
+    },
+    "Salinity_Class": {
+      "standard": "Salinity_Class",
+      "variations": [
+        "Salinity_Class", "Salinity Class", "Salinity class",
+        "EC classification", "Salt level",
+        "SALINITY", "salinity", "USDA salinity"
+      ],
+      "category": "classification",
+      "display_name": "Salinity",
+      "ui_group": "Classification Outputs"
+    },
+    "Sodicity_Class": {
+      "standard": "Sodicity_Class",
+      "variations": [
+        "Sodicity_Class", "Sodicity Class", "Sodicity class",
+        "SAR classification", "Sodium hazard",
+        "SODICITY", "sodicity", "USDA sodicity"
+      ],
+      "category": "classification",
+      "display_name": "Sodicity",
+      "ui_group": "Classification Outputs"
+    },
+    "USDA_Texture_Class": {
+      "standard": "USDA_Texture_Class",
+      "variations": [
+        "USDA_Texture_Class", "USDA Texture", "Texture Class",
+        "Soil texture", "USDA class",
+        "USDA TEXTURE", "usda texture", "Soil type"
+      ],
+      "category": "classification",
+      "display_name": "USDA Texture",
+      "ui_group": "Classification Outputs"
+    },
+    "Full_USDA_Class": {
+      "standard": "Full_USDA_Class",
+      "variations": [
+        "Full_USDA_Class", "USDA Full", "Full USDA",
+        "Complete texture class", "USDA triangle class",
+        "FULL USDA", "full usda", "USDA texture triangle"
+      ],
+      "category": "classification",
+      "display_name": "USDA Full",
+      "ui_group": "Classification Outputs"
+    },
+    "Hardness_Level": {
+      "standard": "Hardness_Level",
+      "variations": [
+        "Hardness_Level", "Hardness Level", "Hardness level",
+        "Water hardness level", "Hardness category",
+        "HARDNESS LEVEL", "hardness level", "CaCO3 level"
+      ],
+      "category": "classification",
+      "display_name": "Hardness Level",
+      "ui_group": "Classification Outputs"
+    },
+    "Carbonate_Type": {
+      "standard": "Carbonate_Type",
+      "variations": [
+        "Carbonate_Type", "Carbonate Type", "Carbonate type",
+        "Carbonate rock type", "Dunham class",
+        "CARBONATE", "carbonate", "Limestone type"
+      ],
+      "category": "classification",
+      "display_name": "Carbonate",
+      "ui_group": "Classification Outputs"
+    },
+    "Estimated_Firing_Temp": {
+      "standard": "Estimated_Firing_Temp",
+      "variations": [
+        "Estimated_Firing_Temp", "Firing Temp", "Firing temperature",
+        "Estimated firing temperature", "Ceramic firing temp",
+        "FIRING TEMP", "firing temp", "Vitrification temp"
+      ],
+      "category": "classification",
+      "display_name": "Firing Temp",
+      "ui_group": "Classification Outputs"
+    },
+    "Auto_Classification": {
+      "standard": "Auto_Classification",
+      "variations": [
+        "Auto_Classification", "Auto Class", "Classification",
+        "Automatic classification", "Auto result",
+        "AUTO CLASS", "auto class", "Predicted class",
+        "Classification result", "Class", "CLASS"
+      ],
+      "category": "output",
+      "display_name": "Auto Classification",
+      "ui_group": "Classification Outputs"
+    },
+    "Auto_Confidence": {
+      "standard": "Auto_Confidence",
+      "variations": [
+        "Auto_Confidence", "Confidence", "Auto confidence",
+        "Confidence score", "Confidence level",
+        "CONFIDENCE", "confidence", "Certainty",
+        "Auto score", "Score", "SCORE"
+      ],
+      "category": "output",
+      "display_name": "Confidence",
+      "ui_group": "Classification Outputs"
+    },
+    "Flag_For_Review": {
+      "standard": "Flag_For_Review",
+      "variations": [
+        "Flag_For_Review", "Flag", "Review", "Review flag",
+        "Needs review", "Flag for review",
+        "FLAG", "flag", "REVIEW", "review",
+        "Manual review", "QC flag"
+      ],
+      "category": "output",
+      "display_name": "Review Flag",
+      "ui_group": "Classification Outputs"
+    },
+    "Expected_Classification": {
+      "standard": "Expected_Classification",
+      "variations": [
+        "Expected_Classification", "Expected", "Expected Class",
+        "Expected result", "True class",
+        "EXPECTED", "expected", "Known class",
+        "Ground truth", "Reference class"
+      ],
+      "category": "output",
+      "display_name": "Expected",
+      "ui_group": "Classification Outputs"
+    }
+  },
+  "ui_groups": {
+    "Identifiers": ["Sample_ID", "Museum_Code", "Date"],
+    "Metadata": ["Notes"],
+    "Location": ["Latitude", "Longitude", "Wall_Thickness_mm"],
+    "Major Oxides": ["SiO2_wt", "TiO2_wt", "Al2O3_wt", "Fe2O3_T_wt", "Fe2O3_wt", "FeO_wt", "MgO_wt", "CaO_wt", "Na2O_wt", "K2O_wt", "P2O5_wt", "MnO_wt"],
+    "Major Elements": ["Ti_pct", "Fe_pct", "Metal_pct"],
+    "Trace Elements": ["Zr_ppm", "Nb_ppm", "Ba_ppm", "Rb_ppm", "Sr_ppm", "Y_ppm", "Cr_ppm", "Ni_ppm", "Co_ppm", "V_ppm", "Cu_ppm", "Zn_ppm", "Pb_ppm", "Th_ppm", "U_ppm", "Ti_ppm", "Mn_ppm", "Fe_ppm"],
+    "Rare Earth Elements": ["La_ppm", "Ce_ppm", "Nd_ppm", "Sm_ppm", "Eu_ppm", "Gd_ppm", "Yb_ppm", "Lu_ppm"],
+    "Normalized REE": ["La_N", "Sm_N", "Yb_N", "Eu_N", "Eu_star"],
+    "Analytical Errors": ["Zr_error", "Zr_RSD"],
+    "Elemental Analysis": ["C_pct", "N_pct", "C_N_Ratio"],
+    "Isotopes": ["d13C", "d15N"],
+    "Soil Properties": ["EC_dS_m", "SAR"],
+    "Soil Texture": ["Sand_pct", "Silt_pct", "Clay_pct"],
+    "Sedimentology": ["GrainSize_um", "Mud_pct", "Grain_pct", "Support_Type"],
+    "Water Chemistry": ["Hardness_mgL"],
+    "Environmental": ["Igeo", "EF", "Pb_EF"],
+    "Meteoritics": ["Shock_Features", "Weathering_Features"],
+    "Spectral Data": ["FTIR_CI", "MagSus_10e6_si"],
+    "Physical Properties": ["EC_dS_m", "SAR", "GrainSize_um", "Sand_pct", "Silt_pct", "Clay_pct", "Hardness_mgL", "Wall_Thickness_mm"],
+    "Calculated Ratios": ["Zr_Nb_Ratio", "Cr_Ni_Ratio", "Ti_V_Ratio", "Nb_Yb_Ratio", "Th_Yb_Ratio", "Fe_Mn_Ratio"],
+    "Calculated Indices": ["CIA_Value", "V_Ratio"],
+    "Classification Outputs": [
+      "CIA_Value", "Weathering_State", "TAS_Classification", "Magmatic_Series",
+      "IUGS_Volcanic_Class", "Enrichment_Status", "Anomaly_Status", "Pollution_Grade_Igeo",
+      "Eruption_Style", "CIPW_Category", "Slag_Basicity_Class", "Bone_Preservation_Status",
+      "Collagen_Status", "Apatite_Classification", "Trophic_Level", "Dietary_Group",
+      "Glass_Family_Type", "Provenance_Fingerprint", "Tectonic_Setting", "Planetary_Analog",
+      "Chondrite_Class", "Shock_Stage", "Weathering_Grade", "Exploration_Priority",
+      "REE_Pattern_Type", "Wentworth_Class", "Salinity_Class", "Sodicity_Class",
+      "USDA_Texture_Class", "Full_USDA_Class", "Hardness_Level", "Carbonate_Type",
+      "Estimated_Firing_Temp", "Auto_Classification", "Auto_Confidence", "Flag_For_Review",
+      "Expected_Classification"
+    ]
+  }
+}

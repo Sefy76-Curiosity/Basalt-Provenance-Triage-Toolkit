@@ -40,7 +40,7 @@ class DiscriminationDiagramsPlugin:
         self.app = main_app
         self.window = None
     
-    def open_diagrams_window(self):
+    def open_window(self):
         """Open the discrimination diagrams interface"""
         if not HAS_REQUIREMENTS:
             messagebox.showerror(
@@ -49,7 +49,7 @@ class DiscriminationDiagramsPlugin:
                 f"Error: {IMPORT_ERROR}\n\n"
                 f"Install with:\n"
                 f"pip install matplotlib numpy"
-            , parent=self.window)
+            )  # ← ADDED MISSING PARENTHESIS
             return
         
         if self.window and self.window.winfo_exists():
@@ -338,7 +338,9 @@ class DiscriminationDiagramsPlugin:
             messagebox.showwarning("No Data", 
                                   "No valid Ti-Zr-Y data found.\n\n"
                                   "Note: This diagram requires Ti and Y data which may not be\n"
-                                  "in your current dataset. This is a demonstration.", parent=self.window)
+                                  "in your current dataset. This is a demonstration."
+
+            )
             return
         
         # Clear frame
@@ -426,7 +428,7 @@ class DiscriminationDiagramsPlugin:
     def _plot_wood(self, frame):
         """Generate Wood Ti vs V diagram"""
         messagebox.showinfo("Feature Demonstration",
-                          "Wood (1980, parent=self.window) Ti vs V diagram requires Ti and V data.\n\n"
+                          "Wood (1980) Ti vs V diagram requires Ti and V data.\n\n"
                           "This would plot Ti (ppm) vs V (ppm) with discrimination fields for:\n"
                           "- MORB (Mid-Ocean Ridge Basalt)\n"
                           "- OIB (Ocean Island Basalt)\n"
@@ -467,7 +469,7 @@ class DiscriminationDiagramsPlugin:
     def _plot_shervais(self, frame):
         """Generate Shervais Ti/V diagram"""
         messagebox.showinfo("Feature Demonstration",
-                          "Shervais (1982, parent=self.window) Ti/V discrimination requires Ti and V data.\n\n"
+                          "Shervais (1982) Ti/V discrimination requires Ti and V data.\n\n"
                           "Ti/V ratios discriminate:\n"
                           "- Ti/V < 10: Arc basalts\n"
                           "- Ti/V 10-20: MORB\n"
@@ -571,7 +573,7 @@ class DiscriminationDiagramsPlugin:
                 continue
         
         if len(x_data) < 1:
-            messagebox.showwarning("No Data", "No valid data found for this plot type", parent=self.window)
+            messagebox.showwarning("No Data", "No valid data found for this plot type")
             return
         
         # Clear frame
@@ -708,3 +710,8 @@ For more information, consult standard petrology references or contact Sefy Levy
         
         text.insert("1.0", help_text)
         text.config(state=tk.DISABLED)
+
+def setup_plugin(main_app):
+    """Plugin setup function"""
+    plugin = DiscriminationDiagramsPlugin(main_app)
+    return plugin  # ← REMOVE ALL MENU CODE

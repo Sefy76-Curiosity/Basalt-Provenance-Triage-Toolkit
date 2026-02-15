@@ -1356,27 +1356,6 @@ class PetroPlotProPlugin:
 # ----------------------------------------------------------------------
 
 def setup_plugin(main_app):
-    """Plugin setup function"""
-    try:
-        plugin = PetroPlotProPlugin(main_app)
-
-        if hasattr(main_app, 'menu_bar'):
-            if not hasattr(main_app, 'plugins_menu'):
-                main_app.plugins_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-                main_app.menu_bar.add_cascade(label="Plugins", menu=main_app.plugins_menu)
-
-            main_app.plugins_menu.add_command(
-                label=f"{PLUGIN_INFO['icon']} {PLUGIN_INFO['name']}",
-                command=plugin.open_window
-            )
-            print(f"✓ PetroPlot Pro v{PLUGIN_INFO['version']} loaded - COMPLETE FIXED VERSION")
-        else:
-            print("⚠️ PetroPlot Pro: No menu_bar found")
-
-        return plugin
-
-    except Exception as e:
-        print(f"❌ PetroPlot Pro failed to load: {e}")
-        import traceback
-        traceback.print_exc()
-        return None
+    """Plugin setup function - FOLLOWING WORKING PATTERN"""
+    plugin = PetroPlotProPlugin(main_app)
+    return plugin  # ← JUST RETURN PLUGIN, NO MENU CREATION

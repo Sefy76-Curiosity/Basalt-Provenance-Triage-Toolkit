@@ -30,6 +30,8 @@ from pathlib import Path
 class PluginManager(tk.Toplevel):
     # Import name → pip package name
     IMPORT_MAPPING = {
+        # AI Stack
+        "google-generativeai": "google.generativeai",
         # Scientific stack - CORRECT import names
         "numpy": "numpy",
         "pandas": "pandas",
@@ -519,71 +521,34 @@ class PluginManager(tk.Toplevel):
 
         print(f"🗑️ Removing: {name}")
 
-        # Software → Advanced menu
-        if category == 'software' and hasattr(self.app, 'advanced_menu'):
+        # FIX: Check ALL possible menu locations
+        menus_to_check = []
+
+        # Advanced menu (for all software/add-on plugins)
+        if hasattr(self.app, 'advanced_menu'):
+            menus_to_check.append(('Advanced', self.app.advanced_menu))
+
+        # Hardware menus
+        if category == 'hardware':
+            for menu_name in ['xrf_menu', 'chemistry_menu', 'mineralogy_menu']:
+                if hasattr(self.app, menu_name):
+                    menus_to_check.append((menu_name, getattr(self.app, menu_name)))
+
+        # Also check if plugin added itself to other menus
+        for menu_name, menu in menus_to_check:
             try:
-                last = self.app.advanced_menu.index('end')
-                for i in range(last + 1):
+                last = menu.index('end')
+                # Delete in reverse to avoid index shifting issues
+                for i in range(last, -1, -1):
                     try:
-                        label = self.app.advanced_menu.entrycget(i, 'label')
+                        label = menu.entrycget(i, 'label')
                         if name in label or plugin_id in label:
-                            self.app.advanced_menu.delete(i)
-                            print(f"  ✓ Removed from Advanced menu")
-                            break
+                            menu.delete(i)
+                            print(f"  ✓ Removed from {menu_name} menu")
                     except:
                         continue
             except:
                 pass
-
-        # Hardware → XRF/Chemistry/Mineralogy menus
-        elif category == 'hardware':
-            # XRF menu
-            if hasattr(self.app, 'xrf_menu'):
-                try:
-                    last = self.app.xrf_menu.index('end')
-                    for i in range(last + 1):
-                        try:
-                            label = self.app.xrf_menu.entrycget(i, 'label')
-                            if name in label or plugin_id in label:
-                                self.app.xrf_menu.delete(i)
-                                print(f"  ✓ Removed from XRF menu")
-                                break
-                        except:
-                            continue
-                except:
-                    pass
-
-            # Chemistry menu
-            if hasattr(self.app, 'chemistry_menu'):
-                try:
-                    last = self.app.chemistry_menu.index('end')
-                    for i in range(last + 1):
-                        try:
-                            label = self.app.chemistry_menu.entrycget(i, 'label')
-                            if name in label or plugin_id in label:
-                                self.app.chemistry_menu.delete(i)
-                                print(f"  ✓ Removed from Chemistry menu")
-                                break
-                        except:
-                            continue
-                except:
-                    pass
-
-            # Mineralogy menu
-            if hasattr(self.app, 'mineralogy_menu'):
-                try:
-                    last = self.app.mineralogy_menu.index('end')
-                    for i in range(last + 1):
-                        try:
-                            label = self.app.mineralogy_menu.entrycget(i, 'label')
-                            if name in label or plugin_id in label:
-                                self.app.mineralogy_menu.delete(i)
-                                print(f"  ✓ Removed from Mineralogy menu")
-                                break
-                        except:
-                            continue
-                except:
-                    pass
 
     def _apply(self):
         """APPLY CHANGES - Enable/disable plugins, update menus in REAL TIME."""

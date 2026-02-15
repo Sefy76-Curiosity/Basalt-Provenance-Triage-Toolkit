@@ -861,78 +861,149 @@ class AgueHgMobilityPlugin:
             messagebox.showinfo("Export Complete", f"✅ Clean results saved to:\n{filename}")
 
     def _import_to_main(self):
-        """Import results to main app"""
+        """Import results to main app - USING WORKING PATTERN from geochem_advanced"""
         if self.df.empty:
             messagebox.showwarning("No Data", "No results to import!")
             return
 
-        # Create a clean import structure that works with dynamic headers
-        imported_samples = []
+        try:
+            # Prepare table data in the format expected by import_data_from_plugin
+            table_data = []
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        for idx, row in self.df.iterrows():
-            sample = {
-                'Sample_ID': row.get('Sample_ID', f"HG_{idx:04d}"),
-                'Hg_Total_mg_kg': f"{row.get('Hg_Total', 0):.3f}",
-                'Method': 'GB/T 25282-2010',
-                'Analysis_Date': datetime.now().strftime('%Y-%m-%d')
-            }
+            # Process each sample
+            for idx, row in self.df.iterrows():
+                sample_entry = {
+                    # REQUIRED: Sample_ID
+                    'Sample_ID': row.get('Sample_ID', f"HG-{idx+1:04d}"),
 
-            # Add fraction data
-            for fraction in self.GBT_FRACTIONS.keys():
-                conc_col = f"{fraction}_mg_kg"
-                if conc_col in row:
-                    name = self.GBT_FRACTIONS[fraction]["name"]
-                    sample[f"{name}_mg_kg"] = f"{row[conc_col]:.3f}"
+                    # Metadata
+                    'Timestamp': timestamp,
+                    'Source': 'Hg Speciation',
+                    'Analysis_Type': 'BCR/GB/T 25282-2010',
+                    'Plugin': PLUGIN_INFO['name'],
 
-            # Add RAC and MF
-            if 'RAC_%' in row:
-                sample['RAC_%'] = f"{row['RAC_%']:.1f}"
-            if 'RAC_Level' in row:
-                sample['Risk_Level'] = row['RAC_Level']
-            if 'MF_%' in row:
-                sample['MF_%'] = f"{row['MF_%']:.1f}"
-            if 'MF_Level' in row:
-                sample['Mobility_Level'] = row['MF_Level']
+                    # REQUIRED: Notes field
+                    'Notes': f"Method: GB/T 25282-2010 | Date: {timestamp}"
+                }
 
-            imported_samples.append(sample)
+                # Add Total Hg
+                if 'Hg_Total' in row:
+                    sample_entry['Hg_Total_mg_kg'] = f"{row['Hg_Total']:.3f}"
 
-        # Update main app samples
-        if hasattr(self.app, 'samples'):
-            if messagebox.askyesno("Import Options",
-                                 "Do you want to append to existing samples?\n"
-                                 "Select 'No' to replace existing data."):
-                self.app.samples.extend(imported_samples)
+                # Add all fraction data (mg/kg and percentages)
+                for fraction in self.GBT_FRACTIONS.keys():
+                    # Add concentration
+                    conc_col = f"{fraction}_mg_kg"
+                    if conc_col in row and pd.notna(row[conc_col]):
+                        # Use simplified column names for main app
+                        simple_name = self.GBT_FRACTIONS[fraction]["name"]
+                        sample_entry[f"{simple_name}_mg_kg"] = f"{row[conc_col]:.3f}"
+
+                    # Add percentage
+                    pct_col = f"{fraction}_%"
+                    if pct_col in row and pd.notna(row[pct_col]):
+                        simple_name = self.GBT_FRACTIONS[fraction]["name"]
+                        sample_entry[f"{simple_name}_pct"] = f"{row[pct_col]:.1f}"
+
+                # Add RAC data if available
+                if 'RAC_%' in row and pd.notna(row['RAC_%']):
+                    sample_entry['RAC_%'] = f"{row['RAC_%']:.1f}"
+                if 'RAC_Level' in row and pd.notna(row['RAC_Level']):
+                    sample_entry['Risk_Level'] = str(row['RAC_Level'])
+
+                # Add MF data if available
+                if 'MF_%' in row and pd.notna(row['MF_%']):
+                    sample_entry['MF_%'] = f"{row['MF_%']:.1f}"
+                if 'MF_Level' in row and pd.notna(row['MF_Level']):
+                    sample_entry['Mobility_Level'] = str(row['MF_Level'])
+
+                # Add regulatory info if available
+                if 'Exceeds_Limit' in row:
+                    sample_entry['Exceeds_Limit'] = 'Yes' if row['Exceeds_Limit'] else 'No'
+                if 'Regulatory_Standard' in row:
+                    sample_entry['Regulatory_Std'] = str(row['Regulatory_Standard'])
+
+                table_data.append(sample_entry)
+
+            # Send to main app using the STANDARDIZED method
+            if hasattr(self.app, 'import_data_from_plugin'):
+                # Ask user if they want to append or replace
+                from tkinter import simpledialog
+                choice = simpledialog.askstring(
+                    "Import Option",
+                    "Enter 'append' to add to existing data, or 'replace' to clear existing data:",
+                    initialvalue='append',
+                    parent=self.window
+                )
+
+                if choice and choice.lower() == 'replace':
+                    # Clear existing data first
+                    if hasattr(self.app, 'samples'):
+                        self.app.samples = []
+                    if hasattr(self.app, 'tree') and hasattr(self.app, 'setup_dynamic_columns'):
+                        self.app.setup_dynamic_columns([])
+
+                # Import the data
+                self.app.import_data_from_plugin(table_data)
+
+                # Update status
+                self.status_label.config(text=f"✅ Imported {len(table_data)} samples", fg="green")
+
+                # Log the import
+                self._log_message(f"✅ Imported {len(table_data)} Hg speciation samples to main table")
+
+                # Show success message
+                self.window.lift()
+                messagebox.showinfo(
+                    "Import Complete",
+                    f"✅ Successfully imported {len(table_data)} samples!\n\n"
+                    f"• Method: GB/T 25282-2010\n"
+                    f"• All 5 BCR fractions included\n"
+                    f"• RAC and MF indices added"
+                )
             else:
-                self.app.samples = imported_samples
+                # Fallback to legacy method if import_data_from_plugin doesn't exist
+                self._legacy_import(table_data)
 
-        # Refresh main app UI
-        if hasattr(self.app, 'refresh_tree'):
-            self.app.refresh_tree()
-        elif hasattr(self.app, 'update_tree'):
-            self.app.update_tree()
-        elif hasattr(self.app, '_refresh_table_page'):
-            self.app._refresh_table_page()
+        except Exception as e:
+            messagebox.showerror("Import Error", f"Failed to import data: {str(e)}")
+            self._log_message(f"ERROR during import: {str(e)}")
 
-        # If main app has dynamic headers, update them
-        if hasattr(self.app, 'setup_dynamic_columns') and self.app.samples:
-            # Get all unique column names from imported samples
-            all_columns = set()
-            for s in self.app.samples:
-                all_columns.update(s.keys())
-            # Convert to list and remove None/empty
-            all_columns = [c for c in all_columns if c]
-            # Update dynamic columns
-            self.app.setup_dynamic_columns(all_columns)
+    def _legacy_import(self, table_data):
+        """Fallback import method for older main app versions"""
+        try:
+            if hasattr(self.app, 'samples'):
+                if messagebox.askyesno("Import Options",
+                                    "Append to existing samples?\n"
+                                    "Select 'No' to replace existing data.",
+                                    parent=self.window):
+                    self.app.samples.extend(table_data)
+                else:
+                    self.app.samples = table_data
 
-        messagebox.showinfo(
-            "Import Complete",
-            f"✅ {len(imported_samples)} samples imported\n\n"
-            f"• Method: GB/T 25282-2010\n"
-            f"• All 5 BCR fractions\n"
-            f"• RAC + MF indices"
-        )
+            # Refresh main app UI
+            if hasattr(self.app, 'refresh_tree'):
+                self.app.refresh_tree()
+            elif hasattr(self.app, 'update_tree'):
+                self.app.update_tree()
+            elif hasattr(self.app, '_refresh_table_page'):
+                self.app._refresh_table_page()
 
-        self._log_message(f"✅ Imported {len(imported_samples)} samples to main application")
+            # Update dynamic columns if available
+            if hasattr(self.app, 'setup_dynamic_columns') and self.app.samples:
+                all_columns = set()
+                for s in self.app.samples:
+                    all_columns.update(s.keys())
+                all_columns = [c for c in all_columns if c]
+                self.app.setup_dynamic_columns(all_columns)
+
+            messagebox.showinfo("Import Complete",
+                            f"✅ {len(table_data)} samples imported (legacy mode)",
+                            parent=self.window)
+
+        except Exception as e:
+            messagebox.showerror("Legacy Import Error", str(e), parent=self.window)
 
     def _log_message(self, message):
         """Add to log"""
@@ -971,20 +1042,6 @@ class AgueHgMobilityPlugin:
         self._log_message("Results cleared")
 
 def setup_plugin(main_app):
-    """Plugin setup function"""
-    print("DEBUG: Loading Ague Hg Mobility Plugin v1.3 (Dynamic Table Compatible)")
+    """Plugin setup function - called by main app"""
     plugin = AgueHgMobilityPlugin(main_app)
-
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'advanced_menu'):
-            main_app.advanced_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="Advanced", menu=main_app.advanced_menu)
-
-        main_app.advanced_menu.add_command(
-            label="☿ Ague Hg Mobility",
-            command=plugin.open_window
-        )
-        print("DEBUG: ✓ Menu item added to Advanced menu")
-
-    print("✓ Loaded plugin: Ague Hg Mobility")
-    return plugin
+    return plugin  # ← REMOVE ALL MENU CODE AND PRINT STATEMENTS

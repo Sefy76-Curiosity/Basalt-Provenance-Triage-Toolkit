@@ -9,8 +9,28 @@ pXRF · LIBS · Benchtop XRF · ICP-OES/MS — 25+ INSTRUMENTS · 1 DRIVER · DI
 ✓ PLUGIN BROWSER · ✓ FULL WIDTH ROWS · ✓ MOUSE WHEEL · ✓ FIXED SCROLLING
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
+# ============================================================================
+# PLUGIN METADATA - HARDWARE MENU (CRITICAL!)
+# ============================================================================
+PLUGIN_INFO = {
+    "id": "elemental_geochemistry_unified_suite",
+    "name": "Elemental Geochemistry Unified Suite",
+    "category": "hardware",  # ← CRITICAL! Appears in Hardware menu ONLY
+    "icon": "🔬",
+    "version": "4.5.1",
+    "author": "Sefy Levy",
+    "description": "pXRF · LIBS · Benchtop XRF · ICP — SciAps · Olympus · Bruker · Thermo · 1 DRIVER",
+    "requires": ["numpy"],
+    "compact": True,
+    "direct_to_table": True,
+    "instruments": "25+ models"
+}
 
+# ============================================================================
+# PREVENT DOUBLE REGISTRATION
+# ============================================================================
 import tkinter as tk
+_ELEMENTAL_REGISTERED = False
 from tkinter import ttk, messagebox, filedialog
 import numpy as np
 from datetime import datetime
@@ -318,24 +338,6 @@ class MainApplication:
                 pass
 
         return DynamicTable()
-
-
-# ============================================================================
-# PLUGIN METADATA - HARDWARE MENU (CRITICAL!)
-# ============================================================================
-PLUGIN_INFO = {
-    "id": "elemental_geochemistry_unified_suite",
-    "name": "Elemental Geochemistry Unified Suite",
-    "category": "hardware",  # ← CRITICAL! Appears in Hardware menu ONLY
-    "icon": "🔬",
-    "version": "4.5.1",
-    "author": "Sefy Levy",
-    "description": "pXRF · LIBS · Benchtop XRF · ICP — SciAps · Olympus · Bruker · Thermo · 1 DRIVER",
-    "requires": ["numpy"],
-    "compact": True,
-    "direct_to_table": True,
-    "instruments": "25+ models"
-}
 
 # ============================================================================
 # DEPENDENCY MANAGER WITH FULL INSTALL BUTTONS
@@ -1937,6 +1939,9 @@ class ElementalGeochemistrySuitePlugin:
         self.thickness_entry = None
 
         self._check_dependencies()
+    def open_window(self):
+        """Alias for show_interface - for plugin manager compatibility"""
+        self.show_interface()
 
     def _check_dependencies(self):
         """Check core dependencies"""
@@ -3319,75 +3324,37 @@ class ElementalGeochemistrySuitePlugin:
 
 
 # ============================================================================
-# PLUGIN REGISTRATION - HARDWARE MENU ONLY!
+# STANDARD PLUGIN REGISTRATION - WITH DEBUG
 # ============================================================================
-def register_plugin(app):
-    """Register Elemental Geochemistry Unified Suite - HARDWARE MENU ONLY"""
+def setup_plugin(main_app):
+    """Register plugin - tries left panel first, falls back to hardware menu"""
+    print(f"\n>>> setup_plugin called for {PLUGIN_INFO.get('name')}")
 
-    if not HAS_NUMPY:
-        print("\n" + "="*60)
-        print("❌ ELEMENTAL GEOCHEMISTRY SUITE - LOAD FAILED")
-        print("="*60)
-        print("NumPy is required but not installed.")
-        print("\nInstall with:")
-        print("  pip install numpy")
-        print("\nThen restart the toolkit.")
-        print("="*60 + "\n")
+    plugin = ElementalGeochemistrySuitePlugin(main_app)
 
-        class DummyPlugin:
-            def __init__(self, app):
-                self.app = app
-            def show_interface(self):
-                messagebox.showerror(
-                    "Missing Dependency",
-                    "Elemental Geochemistry Suite requires NumPy.\n\n"
-                    "Install with: pip install numpy"
-                )
-        return DummyPlugin(app)
-
-    try:
-        plugin = ElementalGeochemistrySuitePlugin(app)
-
-        if hasattr(app, 'menu_bar'):
-            if not hasattr(app, 'hardware_menu'):
-                app.hardware_menu = tk.Menu(app.menu_bar, tearoff=0)
-                app.menu_bar.add_cascade(label="🔧 Hardware", menu=app.hardware_menu)
-
-            app.hardware_menu.add_command(
-                label="Elemental Geochemistry Unified Suite",
-                command=plugin.show_interface
-            )
-
-        # Register with plugin browser if available
-        if hasattr(app, 'plugin_browser'):
-            app.plugin_browser.register_plugin(PLUGIN_INFO)
-
+    # ===== TRY LEFT PANEL FIRST =====
+    if hasattr(main_app, 'left') and main_app.left is not None:
+        print(f">>> Left panel FOUND, adding button...")
+        main_app.left.add_hardware_button(
+            name=PLUGIN_INFO.get("name", "Elemental Geochemistry"),
+            icon=PLUGIN_INFO.get("icon", "🔬"),
+            command=plugin.show_interface
+        )
+        print(f"✅ Added to left panel: {PLUGIN_INFO.get('name')}")
+        print(f">>> Returning plugin, should stop here")
         return plugin
 
-    except Exception as e:
-        print(f"❌ Failed to create plugin instance: {e}")
+    # ===== FALLBACK TO HARDWARE MENU =====
+    print(f">>> Left panel NOT found, falling back to hardware menu")
+    if hasattr(main_app, 'menu_bar'):
+        if not hasattr(main_app, 'hardware_menu'):
+            main_app.hardware_menu = tk.Menu(main_app.menu_bar, tearoff=0)
+            main_app.menu_bar.add_cascade(label="🔧 Hardware", menu=main_app.hardware_menu)
 
-        class DummyPlugin:
-            def __init__(self, app):
-                self.app = app
-                self.error = str(e)
-            def show_interface(self):
-                messagebox.showerror(
-                    "Plugin Error",
-                    f"Failed to initialize Elemental Geochemistry Suite:\n\n{self.error}"
-                )
-        return DummyPlugin(app)
+        main_app.hardware_menu.add_command(
+            label=PLUGIN_INFO.get("name", "Elemental Geochemistry"),
+            command=plugin.show_interface
+        )
+        print(f"✅ Added to Hardware menu: {PLUGIN_INFO.get('name')}")
 
-
-# ============================================================================
-# MAIN ENTRY POINT - LAUNCH APPLICATION
-# ============================================================================
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = MainApplication(root)
-
-    # Register the Elemental Geochemistry plugin
-    plugin = register_plugin(app)
-
-    # Show the main window
-    root.mainloop()
+    return plugin

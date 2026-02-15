@@ -892,20 +892,5 @@ class LiteratureComparisonPlugin:
                          width=15).pack(pady=15)
 
 def setup_plugin(main_app):
-    """Plugin setup function"""
-    print("DEBUG: Loading Literature Comparison Plugin v2.2")
-    plugin = LiteratureComparisonPlugin(main_app)
-
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'advanced_menu'):
-            main_app.advanced_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="Advanced", menu=main_app.advanced_menu)
-
-        main_app.advanced_menu.add_command(
-            label="📚 Literature Comparison",
-            command=plugin.open_literature_comparison_window
-        )
-        print("DEBUG: ✓ Literature Comparison added to Advanced menu")
-
-    print("✓ Loaded plugin: Literature Comparison v2.2 (Full Database + Color + Copy All)")
+    plugin = LiteratureComparisonPlugin(main_app)  # ← CORRECT CLASS NAME
     return plugin

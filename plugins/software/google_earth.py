@@ -69,7 +69,7 @@ class GoogleEarthPlugin:
         self.app = main_app
         self.window = None
 
-    def open_google_earth_window(self):
+    def open_window(self):
         """Open the Google Earth export interface"""
         # Check minimum requirements
         if not HAS_REQUIREMENTS:
@@ -1098,3 +1098,8 @@ https://simplekml.readthedocs.io/
 
         # Set geometry
         self.window.geometry(f"{width}x{height}+{x}+{y}")
+
+def setup_plugin(main_app):
+    """Plugin setup function"""
+    plugin = GoogleEarthPlugin(main_app)
+    return plugin

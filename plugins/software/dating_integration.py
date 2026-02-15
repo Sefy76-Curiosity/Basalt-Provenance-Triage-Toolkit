@@ -1320,16 +1320,4 @@ class DatingIntegrationPlugin:
 def setup_plugin(main_app):
     """Plugin setup function - called by main app"""
     plugin = DatingIntegrationPlugin(main_app)
-
-    # Add to menu
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'advanced_menu'):
-            main_app.advanced_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="Advanced", menu=main_app.advanced_menu)
-
-        main_app.advanced_menu.add_command(
-            label=f"⏳ Calibration Curves (User-Supplied URLs) v7.0",
-            command=plugin.open_window
-        )
-
-    return plugin
+    return plugin  # ← REMOVE ALL MENU CODE

@@ -39,7 +39,7 @@ class ReportGeneratorPlugin:
         self.app = main_app
         self.window = None
     
-    def open_report_generator_window(self):
+    def open_window(self):
         """Open the report generator interface"""
         if not HAS_DOCX:
             messagebox.showerror(
@@ -385,3 +385,8 @@ class ReportGeneratorPlugin:
             doc.add_paragraph(f'• {classification}: {count}')
         
         doc.save(filename)
+
+def setup_plugin(main_app):
+    """Plugin setup function"""
+    plugin = ReportGeneratorPlugin(main_app)
+    return plugin

@@ -1,0 +1,85 @@
+{
+  "classification_colors": {
+    "EGYPTIAN (HADDADIN FLOW)": {
+      "background": "#cce5ff",
+      "foreground": "#0000FF",
+      "description": "Egyptian Haddadin Flow basalt"
+    },
+    "EGYPTIAN (ALKALINE / EXOTIC)": {
+      "background": "#f8d7da",
+      "foreground": "#FF0000",
+      "description": "Egyptian alkaline/exotic basalt"
+    },
+    "SINAI / TRANSITIONAL": {
+      "background": "#fff3cd",
+      "foreground": "#DAA520",
+      "description": "Sinai transitional basalt"
+    },
+    "SINAI OPHIOLITIC": {
+      "background": "#ffe5b4",
+      "foreground": "#FFA500",
+      "description": "Sinai ophiolitic basalt"
+    },
+    "LOCAL LEVANTINE": {
+      "background": "#d4edda",
+      "foreground": "#008000",
+      "description": "Local Levantine source"
+    },
+    "REVIEW REQUIRED": {
+      "background": "#e2e3e5",
+      "foreground": "#808080",
+      "description": "Manual review required"
+    },
+    "UNCLASSIFIED": {
+      "background": "#ffffff",
+      "foreground": "#A9A9A9",
+      "description": "Not classified"
+    },
+    "INSUFFICIENT_DATA": {
+      "background": "#f8f9fa",
+      "foreground": "#808080",
+      "description": "Insufficient data for classification"
+    },
+    "RESEARCH GRADE (RSD < 3%)": {
+      "background": "#d4edda",
+      "foreground": "#008000",
+      "description": "High precision data"
+    },
+    "SCREENING GRADE (3-7%)": {
+      "background": "#fff3cd",
+      "foreground": "#DAA520",
+      "description": "Medium precision data"
+    },
+    "NON-QUANTIFIABLE (RSD > 7%)": {
+      "background": "#f8d7da",
+      "foreground": "#FF0000",
+      "description": "Low precision data"
+    },
+    "NO ERROR DATA": {
+      "background": "#e2e3e5",
+      "foreground": "#808080",
+      "description": "No error information available"
+    }
+  },
+
+  "default_colors": {
+    "background": "#ffffff",
+    "foreground": "#000000",
+    "warning": "#FF0000",
+    "success": "#008000",
+    "info": "#0000FF"
+  },
+
+  "ui_colors": {
+    "header_bg": "#2c3e50",
+    "header_fg": "#ffffff",
+    "tab_active_bg": "#2c3e50",
+    "tab_inactive_bg": "#34495e",
+    "tab_active_fg": "#ffffff",
+    "tab_inactive_fg": "#bdc3c7",
+    "success_button": "#27ae60",
+    "warning_button": "#e67e22",
+    "danger_button": "#e74c3c",
+    "info_button": "#3498db"
+  }
+}

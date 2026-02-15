@@ -552,56 +552,71 @@ class AdvancedNormalizationPlugin:
     # ==================== IMPORT METHOD ====================
 
     def _import_to_main(self):
-        """Import processed data to main app - following working example pattern"""
+        """Import processed data to main app - using working pattern from geochem_advanced"""
         if self.df.empty:
             self.window.lift()
             messagebox.showwarning("No Data", "No processed data to import!")
             return
 
-        # Clear existing
-        self.app.samples = []
+        try:
+            # Prepare table data in the format expected by import_data_from_plugin
+            table_data = []
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Add each sample - EXACTLY like working example
-        for idx, row in self.df.iterrows():
-            sample = {}
+            # Process each sample
+            for idx, row in self.df.iterrows():
+                sample_entry = {
+                    # REQUIRED: Sample_ID
+                    'Sample_ID': row.get('Sample_ID', f"NOR-{idx+1:04d}"),
 
-            # Add all geochemical data
-            for col in self.df.columns:
-                val = row[col]
-                if not pd.isna(val):
-                    sample[col] = str(val)
+                    # Metadata
+                    'Timestamp': timestamp,
+                    'Source': 'Matrix Correction',
+                    'Analysis_Type': 'Normalized Data',
+                    'Plugin': PLUGIN_INFO['name'],
 
-            # REQUIRED: Sample_ID
-            sample['Sample_ID'] = f"CORR_{idx:04d}"
+                    # REQUIRED: Notes field
+                    'Notes': f"Method: {self.method_var.get()} | Ref: {self.ref_element_var.get()}"
+                }
 
-            # REQUIRED: Notes
-            if 'Correction_Method' in self.df.columns and not pd.isna(row['Correction_Method']):
-                sample['Notes'] = f"Database: {row['Correction_Method']}"
+                # Add all data columns
+                for col in self.df.columns:
+                    if col not in ['Sample_ID', 'Timestamp', 'Plugin']:  # Skip as we already set them
+                        val = row[col]
+                        if pd.notna(val):
+                            # Format numbers appropriately
+                            if isinstance(val, (int, float)):
+                                if '_ppm' in col.lower() or col in ['Zr', 'Nb', 'Ba', 'Rb', 'Cr', 'Ni']:
+                                    sample_entry[col] = f"{val:.1f}"
+                                elif '_pct' in col or 'ratio' in col.lower():
+                                    sample_entry[col] = f"{val:.2f}"
+                                else:
+                                    sample_entry[col] = f"{val:.3f}"
+                            else:
+                                sample_entry[col] = str(val)
+
+                table_data.append(sample_entry)
+
+            # Send to main app using the STANDARDIZED method
+            if hasattr(self.app, 'import_data_from_plugin'):
+                self.app.import_data_from_plugin(table_data)
+                self.status_label.config(text=f"✅ Imported {len(table_data)} samples", fg="green")
+
+                # Log the import
+                self.log_text.insert(tk.END, f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Imported {len(table_data)} normalized samples\n")
+                self.log_text.see(tk.END)
+
+                # Show success message
+                self.window.lift()
+                messagebox.showinfo("Success", f"✅ Imported {len(table_data)} normalized samples to main table!")
             else:
-                sample['Notes'] = "Matrix correction applied"
+                # Fallback if method doesn't exist
+                messagebox.showerror("Error", "Main application doesn't support plugin data import")
 
-            self.app.samples.append(sample)
-
-        # Refresh - don't setup columns, let main app handle it
-        if hasattr(self.app, 'refresh_tree'):
-            self.app.refresh_tree()
-
-        self.window.lift()
-        messagebox.showinfo("Done", f"Added {len(self.df)} samples")
+        except Exception as e:
+            messagebox.showerror("Import Error", f"Failed to import data: {str(e)}")
 
 def setup_plugin(main_app):
     """Plugin setup function"""
     plugin = AdvancedNormalizationPlugin(main_app)
-
-    # Add to Advanced menu
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'advanced_menu'):
-            main_app.advanced_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="Advanced", menu=main_app.advanced_menu)
-
-        main_app.advanced_menu.add_command(
-            label=f"{PLUGIN_INFO['icon']} {PLUGIN_INFO['name']}",
-            command=plugin.open_window
-        )
-
-    return plugin
+    return plugin  # ← REMOVE ALL MENU CODE

@@ -1095,24 +1095,7 @@ class LithicMorphometricsPlugin:
         except Exception as e:
             messagebox.showerror("Export Error", str(e))
 
-
 def setup_plugin(main_app):
     """Plugin setup function"""
-    print("🪨 Loading Lithic Morphometrics Plugin v1.0")
     plugin = LithicMorphometricsPlugin(main_app)
-
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'advanced_menu'):
-            main_app.advanced_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="Advanced", menu=main_app.advanced_menu)
-
-        main_app.advanced_menu.add_command(
-            label="🪨 Lithic Morphometrics",
-            command=plugin.open_window
-        )
-        print("🪨 ✓ Added to Advanced menu")
-
-    print("🪨 ✓ Loaded: Lithic Morphometrics v1.0")
-    print("    Features: Outline extraction • Elliptical Fourier • Edge Damage • Shape classification")
-    print("    Dependencies: opencv-python, scikit-image, scipy, matplotlib")
-    return plugin
+    return plugin  # ← JUST RETURN PLUGIN, NO MENU CODE!

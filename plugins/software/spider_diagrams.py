@@ -49,7 +49,7 @@ class SpiderDiagramsPlugin:
         self.app = main_app
         self.window = None
     
-    def open_spider_window(self):
+    def open_window(self):
         """Open spider diagram interface"""
         if not HAS_REQUIREMENTS:
             messagebox.showerror(
@@ -247,3 +247,8 @@ class SpiderDiagramsPlugin:
         toolbar = NavigationToolbar2Tk(canvas, self.plot_frame)
         toolbar.update()
         canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+def setup_plugin(main_app):
+    """Plugin setup function"""
+    plugin = SpiderDiagramsPlugin(main_app)
+    return plugin

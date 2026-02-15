@@ -50,7 +50,7 @@ class TernaryDiagramsPlugin:
         self.app = main_app
         self.window = None
     
-    def open_ternary_diagrams_window(self):
+    def open_window(self):
         """Open the ternary diagrams interface"""
         if not HAS_REQUIREMENTS:
             messagebox.showerror(
@@ -358,9 +358,7 @@ Other ternary diagrams may be added:
         text.insert('1.0', help_text)
         text.config(state='disabled')
 
-
-# Plugin interface for main app
-def activate(main_app):
-    """Called when plugin is loaded"""
+def setup_plugin(main_app):
+    """Plugin setup function"""
     plugin = TernaryDiagramsPlugin(main_app)
     return plugin

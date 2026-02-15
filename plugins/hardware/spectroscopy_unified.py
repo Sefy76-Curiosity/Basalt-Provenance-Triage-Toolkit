@@ -53,7 +53,12 @@ PLUGIN_INFO = {
     "compact": True,
 }
 
+# ============================================================================
+# PREVENT DOUBLE REGISTRATION
+# ============================================================================
+
 import tkinter as tk
+_SPECTROSCOPY_REGISTERED = False
 from tkinter import ttk, messagebox, filedialog
 import time
 import threading
@@ -438,6 +443,10 @@ class SpectroscopyUnifiedSuitePlugin:
 
         self.deps_ok = len(missing) == 0 or (HAS_NUMPY and len(missing) <= 2)
         self.missing_deps = missing
+
+    def show_interface(self):
+        """Alias for open_window - for plugin manager compatibility"""
+        self.open_window()
 
     # ============================================================================
     # MAIN INTERFACE - COMPACT DESIGN (LIKE MINERALOGY UNIFIED)
@@ -1092,22 +1101,42 @@ class SpectroscopyUnifiedSuitePlugin:
         lines.append(f"✅ Library: {sum(len(v) for v in SPECTRAL_LIBRARY.values())} compounds")
         return True, "\n".join(lines)
 
-
 # ============================================================================
-# PLUGIN REGISTRATION - EXACT PATTERN FROM MINERALOGY UNIFIED
+# STANDARD PLUGIN REGISTRATION - LEFT PANEL FIRST, MENU SECOND
 # ============================================================================
 def setup_plugin(main_app):
-    """Register Spectroscopy Unified Suite"""
+    """Register plugin - tries left panel first, falls back to hardware menu"""
+    global _SPECTROSCOPY_REGISTERED
+
+    # PREVENT DOUBLE REGISTRATION
+    if _SPECTROSCOPY_REGISTERED:
+        print(f"⏭️ Spectroscopy plugin already registered, skipping...")
+        return None
+
     plugin = SpectroscopyUnifiedSuitePlugin(main_app)
 
+    # ===== TRY LEFT PANEL FIRST (hardware buttons) =====
+    if hasattr(main_app, 'left') and main_app.left is not None:
+        main_app.left.add_hardware_button(
+            name=PLUGIN_INFO.get("name", "Plugin Name"),
+            icon=PLUGIN_INFO.get("icon", "🔌"),
+            command=plugin.show_interface
+        )
+        print(f"✅ Added to left panel: {PLUGIN_INFO.get('name')}")
+        _SPECTROSCOPY_REGISTERED = True
+        return plugin
+
+    # ===== FALLBACK TO HARDWARE MENU =====
     if hasattr(main_app, 'menu_bar'):
         if not hasattr(main_app, 'hardware_menu'):
             main_app.hardware_menu = tk.Menu(main_app.menu_bar, tearoff=0)
             main_app.menu_bar.add_cascade(label="🔧 Hardware", menu=main_app.hardware_menu)
 
-        main_app.mineralogy_menu.add_command(
-            label="Spectroscopy Unified Suite (Compact)",
-            command=plugin.open_window
+        main_app.hardware_menu.add_command(
+            label=PLUGIN_INFO.get("name", "Plugin Name"),
+            command=plugin.show_interface
         )
+        print(f"✅ Added to Hardware menu: {PLUGIN_INFO.get('name')}")
+        _SPECTROSCOPY_REGISTERED = True
 
     return plugin

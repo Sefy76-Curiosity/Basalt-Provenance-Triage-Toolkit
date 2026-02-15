@@ -55,7 +55,7 @@ class StatisticalAnalysisPlugin:
         self.feature_names = None
         self.sample_ids = None
     
-    def open_analysis_window(self):
+    def open_window(self):
         """Open the statistical analysis interface"""
         if not HAS_REQUIREMENTS:
             messagebox.showerror(
@@ -861,3 +861,8 @@ For more help, consult the main toolkit documentation or contact Sefy Levy.
                 return
         
         messagebox.showwarning("No Plot", "Generate a plot first before exporting", parent=self.window)
+
+def setup_plugin(main_app):
+    """Plugin setup function"""
+    plugin = StatisticalAnalysisPlugin(main_app)
+    return plugin

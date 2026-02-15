@@ -1282,27 +1282,6 @@ class Gis3dViewerPlugin:
 # ============================================================================
 
 def setup_plugin(main_app):
-    """Plugin setup - menu calls plugin.show()"""
+    """Plugin setup function"""
     plugin = Gis3dViewerPlugin(main_app)
-
-    if not hasattr(main_app, '_plugins'):
-        main_app._plugins = {}
-    main_app._plugins['gis_3d_viewer'] = plugin
-
-    try:
-        if not hasattr(main_app, 'menu_bar'):
-            main_app.menu_bar = tk.Menu(main_app.root)
-            main_app.root.config(menu=main_app.menu_bar)
-
-        if not hasattr(main_app, 'view_menu'):
-            main_app.view_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="View", menu=main_app.view_menu)
-
-        main_app.view_menu.add_command(
-            label="🌍 3D GIS Viewer v3.0",
-            command=plugin.show  # Calls plugin.show() -> open_window()
-        )
-    except Exception as e:
-        print(f"Menu error: {e}")
-
     return plugin

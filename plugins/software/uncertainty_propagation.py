@@ -1087,15 +1087,4 @@ Shows where the TRUE POPULATION MEAN for each group lies.
 def setup_plugin(main_app):
     """Plugin setup function"""
     plugin = UncertaintyPropagationPlugin(main_app)
-
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'advanced_menu'):
-            main_app.advanced_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="Advanced", menu=main_app.advanced_menu)
-
-        main_app.advanced_menu.add_command(
-            label="🎲 Uncertainty Propagation",
-            command=plugin.open_window
-        )
-
-    return plugin
+    return plugin  # ← REMOVE ALL MENU CODE

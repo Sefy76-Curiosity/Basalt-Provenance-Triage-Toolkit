@@ -1037,21 +1037,5 @@ class IsotopeMixingModelsPlugin:
 
 def setup_plugin(main_app):
     """Plugin setup function"""
-    print("🧪 Loading Isotope Mixing Models Plugin v1.0")
     plugin = IsotopeMixingModelsPlugin(main_app)
-
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'geochemistry_menu'):
-            main_app.geochemistry_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="Geochemistry", menu=main_app.geochemistry_menu)
-
-        main_app.geochemistry_menu.add_command(
-            label="🧪 Isotope Mixing Models",
-            command=plugin.open_window
-        )
-        print("🧪 ✓ Added to Geochemistry menu")
-
-    print("🧪 ✓ Loaded: Isotope Mixing Models v1.0")
-    print("    Features: Binary mixing • Monte Carlo • End-member estimation • Pb isotopes")
-    print("    Dependencies: numpy, scipy, matplotlib, pandas")
-    return plugin
+    return plugin  # ← REMOVE ALL MENU CODE AND PRINT STATEMENTS

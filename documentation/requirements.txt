@@ -1,0 +1,153 @@
+# Scientific Toolkit v2.0 - Python Dependencies
+# Installation: pip install -r requirements.txt
+
+# ============================================================================
+# CORE DATA SCIENCE STACK
+# ============================================================================
+numpy>=1.24.0,<2.0.0
+pandas>=2.0.0,<3.0.0
+scipy>=1.10.0,<2.0.0
+scikit-learn>=1.3.0,<2.0.0
+statsmodels>=0.14.0,<1.0.0
+
+# ============================================================================
+# VISUALIZATION & PLOTTING
+# ============================================================================
+matplotlib>=3.7.0,<4.0.0
+seaborn>=0.12.0,<1.0.0
+plotly>=5.14.0,<6.0.0
+pillow>=10.0.0,<11.0.0
+
+# Specialized plotting
+mpltern>=1.0.0,<2.0.0  # Ternary diagrams
+python-ternary>=1.0.8,<2.0.0  # Alternative ternary library
+
+# ============================================================================
+# GEOSPATIAL & GIS
+# ============================================================================
+geopandas>=0.13.0,<1.0.0
+shapely>=2.0.0,<3.0.0
+pyproj>=3.5.0,<4.0.0
+folium>=0.14.0,<1.0.0
+contextily>=1.3.0,<2.0.0
+rasterio>=1.3.0,<2.0.0
+mapclassify>=2.5.0,<3.0.0
+osmnx>=1.5.0,<2.0.0  # Optional: OpenStreetMap integration
+
+# 3D visualization
+pyvista>=0.41.0,<1.0.0  # 3D mesh visualization
+
+# ============================================================================
+# SCIENTIFIC COMPUTING & MODELING
+# ============================================================================
+lmfit>=1.2.0,<2.0.0  # Non-linear least-squares fitting
+pint>=0.21.0,<1.0.0  # Unit conversions
+pybaselines>=1.0.0,<2.0.0  # Baseline correction
+
+# ============================================================================
+# DATA PROCESSING & FILE I/O
+# ============================================================================
+openpyxl>=3.1.0,<4.0.0  # Excel files
+python-docx>=0.8.11,<1.0.0  # Word documents
+PyPDF2>=3.0.0,<4.0.0  # PDF processing
+reportlab>=4.0.0,<5.0.0  # PDF generation
+tabula-py>=2.7.0,<3.0.0  # Extract tables from PDFs
+
+# ============================================================================
+# INSTRUMENT COMMUNICATION & HARDWARE
+# ============================================================================
+pyserial>=3.5,<4.0  # Serial port communication
+pyvisa>=1.13.0,<2.0.0  # Instrument control (VISA)
+pyvisa-py>=0.7.0,<1.0.0  # Pure Python VISA backend
+hidapi>=0.14.0,<1.0.0  # USB HID devices
+bleak>=0.21.0,<1.0.0  # Bluetooth Low Energy
+
+# GPS
+pynmea2>=1.18.0,<2.0.0  # NMEA GPS parser
+
+# Optional instrument libraries (install if needed)
+# seabreeze>=2.0.0,<3.0.0  # Ocean Optics spectrometers
+
+# ============================================================================
+# NETWORK & API
+# ============================================================================
+requests>=2.31.0,<3.0.0
+urllib3>=2.0.0,<3.0.0
+
+# ============================================================================
+# AI INTEGRATIONS (Optional - install only needed ones)
+# ============================================================================
+# OpenAI (ChatGPT)
+openai>=1.12.0,<2.0.0
+
+# Anthropic (Claude)
+anthropic>=0.18.0,<1.0.0
+
+# Google (Gemini)
+google-generativeai>=0.3.0,<1.0.0
+
+# Note: Copilot, Grok, DeepSeek accessed via their respective APIs/SDKs
+# Ollama: Local installation required (see https://ollama.ai)
+
+# ============================================================================
+# COMPUTER VISION & IMAGE PROCESSING (Optional)
+# ============================================================================
+opencv-python>=4.8.0,<5.0.0  # Image processing
+scikit-image>=0.21.0,<1.0.0  # Scientific image processing
+
+# ============================================================================
+# NETWORK VISUALIZATION (Optional)
+# ============================================================================
+networkx>=3.1,<4.0  # Graph/network analysis
+
+# ============================================================================
+# DATA VISUALIZATION EXTRAS (Optional)
+# ============================================================================
+missingno>=0.5.2,<1.0.0  # Missing data visualization
+
+# ============================================================================
+# WEB & AUTOMATION (Optional)
+# ============================================================================
+selenium>=4.15.0,<5.0.0  # Browser automation
+watchdog>=3.0.0,<4.0.0  # File system monitoring
+
+# ============================================================================
+# GOOGLE EARTH ENGINE (Optional - requires authentication)
+# ============================================================================
+# earthengine-api>=0.1.380,<1.0.0  # Google Earth Engine
+
+# ============================================================================
+# GEOSPATIAL EXTRAS (Optional)
+# ============================================================================
+simplekml>=1.3.6,<2.0.0  # Google Earth KML files
+rioxarray>=0.15.0,<1.0.0  # Rasterio xarray extension
+
+# ============================================================================
+# WINDOWS-SPECIFIC (Optional - for Windows users only)
+# ============================================================================
+# pywin32>=305  # Windows COM automation
+# Uncomment above line if on Windows and using Excel automation
+
+# ============================================================================
+# NOTES
+# ============================================================================
+# 1. Some dependencies are marked as optional - install only if you need them
+# 2. AI integrations require API keys (see README.md for setup)
+# 3. Hardware plugins may require specific drivers (see docs/INSTRUMENTS.md)
+# 4. For development, add: pytest, black, flake8, mypy
+# 5. For minimal installation, see requirements-minimal.txt
+
+# ============================================================================
+# INSTALLATION TIPS
+# ============================================================================
+# Full installation:
+#   pip install -r requirements.txt
+#
+# Without optional packages:
+#   pip install -r requirements-minimal.txt
+#
+# Update all packages:
+#   pip install -r requirements.txt --upgrade
+#
+# Install in editable mode (for development):
+#   pip install -e .

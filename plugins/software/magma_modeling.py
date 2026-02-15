@@ -116,7 +116,7 @@ class MagmaModelingPlugin:
             }
         }
 
-    def open_modeling_window(self):
+    def open_window(self):
         """Open the magma modeling interface"""
         if not HAS_REQUIREMENTS:
             missing = []
@@ -2251,12 +2251,4 @@ Planned additions:
 def setup_plugin(main_app):
     """Setup function called by main application"""
     plugin = MagmaModelingPlugin(main_app)
-
-    # Add to menu - following your pattern
-    if hasattr(main_app, 'menu_bar'):
-        main_app.menu_bar.add_command(
-            label="Magma Modeling",
-            command=plugin.open_modeling_window
-        )
-
-    return plugin
+    return plugin  # ← REMOVE ALL MENU CODE
