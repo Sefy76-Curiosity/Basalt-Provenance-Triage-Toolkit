@@ -16,6 +16,7 @@ PLUGIN_INFO = {
     'name': 'Grok (xAI)',
     'category': 'add-ons',
     'icon': '🚀',
+    'version': '2.0',
     'requires': ['requests'],
     'description': 'xAI Grok AI assistant (requires API key from console.x.ai)'
 }

@@ -21,6 +21,7 @@ PLUGIN_INFO = {
     'name': 'Microsoft Copilot',
     'category': 'add-ons',
     'icon': '🅲',
+    'version': '2.0',
     'requires': ['requests'],
     'description': 'Copilot AI assistant (requires API key)'
 }

@@ -21,6 +21,7 @@ PLUGIN_INFO = {
     'name': 'Claude (Anthropic)',
     'category': 'add-ons',
     'icon': '🤖',
+    'version': '2.0',
     'requires': ['anthropic'],
     'description': 'Claude AI assistant by Anthropic (requires API key)'
 }

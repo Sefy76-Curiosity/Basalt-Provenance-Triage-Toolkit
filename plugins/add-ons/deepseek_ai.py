@@ -22,6 +22,7 @@ PLUGIN_INFO = {
     'name': 'DeepSeek AI Assistant',
     'category': 'add-ons',
     'icon': '🧠',
+    'version': '2.0',
     'requires': ['requests'],
     'description': 'AI chat assistant powered by DeepSeek'
 }

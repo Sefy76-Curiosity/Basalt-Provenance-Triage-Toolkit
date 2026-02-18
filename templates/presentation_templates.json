@@ -1,0 +1,26 @@
+{
+  "Poster_Large": {
+    "name": "🖼️ Poster (Large Format)",
+    "description": "Large fonts, bold lines for conference posters",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 2.5, "major_tick_len": 10},
+    "grid": {"enabled": true, "style": "--", "width": 1.5, "color": "#AAAAAA", "alpha": 0.5},
+    "fonts": {"family": "Arial", "label_size": 24, "tick_size": 18, "weight": "bold"},
+    "palette": ["#000000", "#D55E00", "#0072B2", "#009E73", "#CC79A7"]
+  },
+  "Talk_Slide": {
+    "name": "🎯 Talk/Slide",
+    "description": "Medium-large, high contrast for presentations",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 2.0, "major_tick_len": 8},
+    "grid": {"enabled": true, "style": "--", "width": 1.0, "color": "#AAAAAA", "alpha": 0.5},
+    "fonts": {"family": "Arial", "label_size": 18, "tick_size": 14, "weight": "bold"},
+    "palette": ["#000000", "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3"]
+  },
+  "Thesis_Consistent": {
+    "name": "📖 Thesis/Dissertation",
+    "description": "Consistent style across all thesis chapters",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.2, "major_tick_len": 6},
+    "grid": {"enabled": false},
+    "fonts": {"family": "Times New Roman", "label_size": 12, "tick_size": 10},
+    "palette": ["#1f78b4", "#33a02c", "#e31a23", "#ff7f00", "#6a3d9a"]
+  }
+}

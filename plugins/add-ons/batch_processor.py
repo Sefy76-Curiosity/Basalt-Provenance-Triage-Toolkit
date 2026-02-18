@@ -14,8 +14,9 @@ from pathlib import Path
 PLUGIN_INFO = {
     'id': 'batch_processor',
     'name': 'Batch Processor',
-    'category': 'add-on',
+    'category': 'add-ons',
     'icon': '📁',
+    'version': '2.0',
     'requires': [],
     'description': 'Process multiple CSV files in a directory at once'
 }

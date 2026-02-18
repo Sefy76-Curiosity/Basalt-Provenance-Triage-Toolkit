@@ -1,0 +1,45 @@
+{
+  "REE_Spider": {
+    "name": "📊 REE Spider Diagram",
+    "description": "Optimized for rare earth element plots with chondrite normalization",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.0, "major_tick_len": 5},
+    "geochem": {
+      "norm_source": "Sun & McDonough (1989)",
+      "norm_values": {"La": 0.237, "Ce": 0.612, "Pr": 0.095, "Nd": 0.467, "Sm": 0.153, "Eu": 0.058, "Gd": 0.205, "Tb": 0.037, "Dy": 0.254, "Ho": 0.056, "Er": 0.165, "Tm": 0.025, "Yb": 0.170, "Lu": 0.025}
+    },
+    "grid": {"enabled": true, "style": ":", "width": 0.3, "color": "#CCCCCC"},
+    "fonts": {"family": "Arial", "label_size": 10, "tick_size": 8}
+  },
+  "TAS_Diagram": {
+    "name": "🗻 TAS Diagram",
+    "description": "Total Alkali Silica for igneous rock classification",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.2, "major_tick_len": 5},
+    "grid": {"enabled": true, "style": "-", "width": 0.5, "color": "#CCCCCC"},
+    "fonts": {"family": "Arial", "label_size": 11, "tick_size": 9, "weight": "bold"},
+    "palette": ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00", "#ffff33", "#a65628"]
+  },
+  "Stable_Isotopes": {
+    "name": "⚛️ Stable Isotopes",
+    "description": "δ¹⁸O, δ¹³C plots with reference lines",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.0, "major_tick_len": 5},
+    "grid": {"enabled": true, "style": "--", "width": 0.5, "color": "#999999"},
+    "fonts": {"family": "Arial", "label_size": 11, "tick_size": 9},
+    "palette": ["#1b9e77", "#d95f02", "#7570b3", "#e7298a"]
+  },
+  "Geochronology": {
+    "name": "⏳ Geochronology",
+    "description": "Concordia diagrams, isochrons",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.0, "major_tick_len": 5},
+    "grid": {"enabled": true, "style": ":", "width": 0.3, "color": "#CCCCCC"},
+    "fonts": {"family": "Arial", "label_size": 11, "tick_size": 9},
+    "palette": ["#08519c", "#a50f15", "#006d2c", "#6a51a3"]
+  },
+  "Thermodynamic": {
+    "name": "🔥 Thermodynamic",
+    "description": "Phase diagrams, activity plots",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.0, "major_tick_len": 5},
+    "grid": {"enabled": true, "style": "-", "width": 0.3, "color": "#DDDDDD"},
+    "fonts": {"family": "Times New Roman", "label_size": 11, "tick_size": 9},
+    "palette": ["#b2182b", "#2166ac", "#1b7837", "#762a83"]
+  }
+}

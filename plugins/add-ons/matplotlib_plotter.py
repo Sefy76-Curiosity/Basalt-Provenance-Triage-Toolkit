@@ -20,6 +20,7 @@ PLUGIN_INFO = {
     'name': 'Matplotlib Plotter (High Quality)',
     'category': 'add-ons',
     'icon': '📊',
+    'version': '2.0',
     'requires': ['matplotlib'],
     'description': 'High-quality scientific plots with matplotlib'
 }

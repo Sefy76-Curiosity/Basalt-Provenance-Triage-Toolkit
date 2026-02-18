@@ -11,6 +11,7 @@ PLUGIN_INFO = {
     'name': 'ASCII Plotter (CLI)',
     'category': 'add-ons',
     'icon': '📟',
+    'version': '2.0',
     'requires': [],
     'description': 'Text-based plots (no graphics libraries needed)'
 }

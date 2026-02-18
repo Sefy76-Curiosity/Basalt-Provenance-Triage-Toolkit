@@ -1,0 +1,23 @@
+{
+  "REE_Spider_Standard": {
+    "name": "📈 REE Spider (Standard)",
+    "description": "Standard REE spider diagram with chondrite normalization",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.0},
+    "geochem": {"norm_source": "Sun & McDonough 1989", "norm_values": {"La":0.237,"Ce":0.612,"Pr":0.095,"Nd":0.467,"Sm":0.153,"Eu":0.058,"Gd":0.205,"Tb":0.037,"Dy":0.254,"Ho":0.056,"Er":0.165,"Tm":0.025,"Yb":0.170,"Lu":0.025}},
+    "fonts": {"family": "Arial", "label_size": 10}
+  },
+  "MORB_Normalized": {
+    "name": "🌊 MORB Normalized",
+    "description": "Mid-ocean ridge basalt normalization",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.0},
+    "geochem": {"norm_source": "N-MORB (Sun & McDonough)", "norm_values": {"La":2.5,"Ce":7.5,"Pr":1.1,"Nd":7.3,"Sm":2.6,"Eu":0.95,"Gd":3.4,"Tb":0.64,"Dy":4.2,"Ho":0.64,"Er":2.3,"Tm":0.42,"Yb":2.1,"Lu":0.42}},
+    "fonts": {"family": "Arial", "label_size": 10}
+  },
+  "Isotope_Ratio": {
+    "name": "⚖️ Isotope Ratio",
+    "description": "Pb-Sr-Nd isotope correlation plots",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.2},
+    "grid": {"enabled": true, "style": ":", "width": 0.3},
+    "fonts": {"family": "Arial", "label_size": 11}
+  }
+}

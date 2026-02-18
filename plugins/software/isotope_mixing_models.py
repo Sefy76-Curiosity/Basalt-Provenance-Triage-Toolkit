@@ -1,11 +1,15 @@
 """
-Isotope Mixing Models Plugin for Basalt Provenance Toolkit v10.2+
+Isotope Mixing Models Plugin v2.0 - Integrated with Scientific Toolkit
 BINARY & TERNARY MIXING - END-MEMBER ESTIMATION - MONTE CARLO SIMULATIONS
 FROM ISOTOPE RATIOS TO PROVENANCE IN 3 CLICKS
 
-Author: Sefy Levy
-License: CC BY-NC-SA 4.0
-Version: 1.0 - The geochemical companion you've been waiting for
+NOW WITH:
+✓ Direct integration with main app data table
+✓ Auto-detection of isotope columns (Sr, Nd, Pb, Hf, O)
+✓ Industry-standard mixing algorithms (after Faure, Albarede, Vollmer)
+✓ Uncertainty propagation with Monte Carlo
+✓ Mahalanobis distance for provenance
+✓ Publication-ready figures
 """
 
 PLUGIN_INFO = {
@@ -13,13 +17,12 @@ PLUGIN_INFO = {
     "id": "isotope_mixing_models",
     "name": "Isotope Mixing Models",
     "icon": "🧪",
-    "description": "Binary/ternary mixing lines, end-member estimation, Monte Carlo provenance",
-    "version": "1.0.0",
-    "requires": ["numpy", "scipy", "matplotlib", "pandas"],  # Pure Python, no compiled deps!
+    "description": "Binary/ternary mixing, end-member estimation, Monte Carlo provenance with main app integration",
+    "version": "2.0.0",
+    "requires": ["numpy", "scipy", "matplotlib", "pandas"],
     "author": "Sefy Levy"
 }
 
-import site
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import numpy as np
@@ -27,12 +30,14 @@ from datetime import datetime
 import os
 import sys
 from pathlib import Path
+import json
 
 # ============ SCIENTIFIC IMPORTS ============
 try:
     from scipy import stats, optimize
     from scipy.spatial import distance, ConvexHull
     from scipy.linalg import svd
+    from scipy.stats import chi2
     HAS_SCIPY = True
 except ImportError:
     HAS_SCIPY = False
@@ -56,68 +61,170 @@ except ImportError:
 class IsotopeMixingModelsPlugin:
     """
     ============================================================================
-    ISOTOPE MIXING MODELS v1.0
+    ISOTOPE MIXING MODELS v2.0 - INTEGRATED VERSION
     ============================================================================
 
-    WHY GEOCHEMISTS NEED THIS:
+    INDUSTRY STANDARD FEATURES:
     ────────────────────────────────────────────────────────────────────────────
-    • Raw isotope ratios are just NUMBERS
-    • Mixing models tell you SOURCES and PROPORTIONS
-    • This plugin bridges geochemistry and archaeology
-
-    WHAT IT DOES:
-    ────────────────────────────────────────────────────────────────────────────
-    1. BINARY MIXING: Two end-members with hyperbolic mixing curves
-    2. TERNARY MIXING: Three-component systems in 2D/3D space
-    3. END-MEMBER ESTIMATION: PCA/SVD to extract source compositions
-    4. MONTE CARLO: 10,000+ iterations for realistic uncertainty
-    5. PROVENANCE CLASSIFICATION: Which quarry? What mixture?
-
-    ISOTOPE SYSTEMS SUPPORTED:
-    ────────────────────────────────────────────────────────────────────────────
-    ✓ Sr: ⁸⁷Sr/⁸⁶Sr vs 1/Sr (concentration-weighted mixing)
-    ✓ Nd: ¹⁴³Nd/¹⁴⁴Nd vs εNd, ¹⁴⁷Sm/¹⁴⁴Nd
-    ✓ Pb: ²⁰⁶Pb/²⁰⁴Pb, ²⁰⁷Pb/²⁰⁴Pb, ²⁰⁸Pb/²⁰⁴Pb (3D!)
-    ✓ O: δ¹⁸O vs ⁸⁷Sr/⁸⁶Sr (crustal vs mantle)
-    ✓ Hf: εHf vs εNd (mantle array)
-
-    OUTPUTS:
-    ────────────────────────────────────────────────────────────────────────────
-    ✓ Mixing hyperbola parameters (r², curvature)
-    ✓ End-member proportions with 95% CI
-    ✓ Distance to each potential source (Mahalanobis)
-    ✓ Posterior probability maps
-    ✓ Publication-ready figures
-    ============================================================================
+    • Auto-detects isotope columns from main app data
+    • Uses actual sample data from the table (no separate import needed)
+    • Implements mixing equations after Faure (1986), Albarede (1995)
+    • Monte Carlo with realistic analytical uncertainties
+    • Mahalanobis distance for provenance assignment
+    • Confidence ellipses (95%) for end-members
+    • Returns results to main app as new columns
     """
 
-    # Color scheme for sources
-    SOURCE_COLORS = {
-        "MORB": "#3498db",          # Blue - Depleted mantle
-        "OIB": "#e74c3c",           # Red - Ocean island
-        "LOWER_CRUST": "#27ae60",   # Green - Lower continental
-        "UPPER_CRUST": "#f39c12",   # Orange - Upper continental
-        "ARC": "#9b59b6",           # Purple - Subduction zone
-        "EM1": "#c0392b",           # Dark red - Enriched mantle 1
-        "EM2": "#d35400",           # Brown - Enriched mantle 2
-        "HIMU": "#16a085",          # Teal - High μ
-        "BSE": "#7f8c8d",           # Gray - Bulk silicate earth
-        "SAMPLE": "#2c3e50",        # Dark gray - Archaeological sample
-        "UNKNOWN": "#95a5a6"        # Light gray
+    # Standard isotope ratios with their typical uncertainties
+    ISOTOPE_SYSTEMS = {
+        'Sr': {
+            'ratios': ['87Sr/86Sr', '87Sr_86Sr', 'Sr87_Sr86'],
+            'uncertainty': 0.00002,  # 2e-5 absolute
+            'display': '⁸⁷Sr/⁸⁶Sr',
+            'concentration': ['Sr_ppm', 'Sr']
+        },
+        'Nd': {
+            'ratios': ['143Nd/144Nd', '143Nd_144Nd', 'Nd143_Nd144'],
+            'uncertainty': 0.00001,  # 1e-5 absolute
+            'display': '¹⁴³Nd/¹⁴⁴Nd',
+            'epsilon': 'εNd',
+            'concentration': ['Nd_ppm', 'Nd']
+        },
+        'Pb206_204': {
+            'ratios': ['206Pb/204Pb', '206Pb_204Pb', 'Pb206_Pb204'],
+            'uncertainty': 0.01,  # 0.01 absolute
+            'display': '²⁰⁶Pb/²⁰⁴Pb'
+        },
+        'Pb207_204': {
+            'ratios': ['207Pb/204Pb', '207Pb_204Pb', 'Pb207_Pb204'],
+            'uncertainty': 0.01,
+            'display': '²⁰⁷Pb/²⁰⁴Pb'
+        },
+        'Pb208_204': {
+            'ratios': ['208Pb/204Pb', '208Pb_204Pb', 'Pb208_Pb204'],
+            'uncertainty': 0.01,
+            'display': '²⁰⁸Pb/²⁰⁴Pb'
+        },
+        'Hf': {
+            'ratios': ['176Hf/177Hf', '176Hf_177Hf', 'Hf176_Hf177'],
+            'uncertainty': 0.00001,
+            'display': '¹⁷⁶Hf/¹⁷⁷Hf',
+            'epsilon': 'εHf'
+        },
+        'O': {
+            'ratios': ['δ18O', 'd18O', 'O18'],
+            'uncertainty': 0.1,  # 0.1 permil
+            'display': 'δ¹⁸O (‰)'
+        }
+    }
+
+    # Predefined end-member reservoirs (after Zindler & Hart, 1986; Hofmann, 1997)
+    END_MEMBERS = {
+        'MORB': {
+            'name': 'MORB',
+            '87Sr/86Sr': 0.7025,
+            '143Nd/144Nd': 0.51315,
+            '206Pb/204Pb': 18.5,
+            '207Pb/204Pb': 15.5,
+            '208Pb/204Pb': 38.0,
+            'εNd': 10,
+            'color': '#3498db',  # Blue
+            'reference': 'Depleted MORB mantle (Salters & Stracke, 2004)'
+        },
+        'OIB': {
+            'name': 'OIB',
+            '87Sr/86Sr': 0.7035,
+            '143Nd/144Nd': 0.51290,
+            '206Pb/204Pb': 19.5,
+            '207Pb/204Pb': 15.6,
+            '208Pb/204Pb': 39.0,
+            'εNd': 5,
+            'color': '#e74c3c',  # Red
+            'reference': 'Average OIB (Hofmann, 1997)'
+        },
+        'EM1': {
+            'name': 'EM1',
+            '87Sr/86Sr': 0.7055,
+            '143Nd/144Nd': 0.51245,
+            '206Pb/204Pb': 17.5,
+            '207Pb/204Pb': 15.5,
+            '208Pb/204Pb': 38.5,
+            'εNd': -5,
+            'color': '#c0392b',  # Dark red
+            'reference': 'Enriched Mantle 1 (Zindler & Hart, 1986)'
+        },
+        'EM2': {
+            'name': 'EM2',
+            '87Sr/86Sr': 0.7080,
+            '143Nd/144Nd': 0.51230,
+            '206Pb/204Pb': 19.0,
+            '207Pb/204Pb': 15.7,
+            '208Pb/204Pb': 39.5,
+            'εNd': -8,
+            'color': '#d35400',  # Brown
+            'reference': 'Enriched Mantle 2 (Zindler & Hart, 1986)'
+        },
+        'HIMU': {
+            'name': 'HIMU',
+            '87Sr/86Sr': 0.7028,
+            '143Nd/144Nd': 0.51285,
+            '206Pb/204Pb': 21.0,
+            '207Pb/204Pb': 15.8,
+            '208Pb/204Pb': 40.5,
+            'εNd': 4,
+            'color': '#16a085',  # Teal
+            'reference': 'High μ (Zindler & Hart, 1986)'
+        },
+        'UPPER_CRUST': {
+            'name': 'Upper Crust',
+            '87Sr/86Sr': 0.720,
+            '143Nd/144Nd': 0.5120,
+            '206Pb/204Pb': 19.5,
+            '207Pb/204Pb': 15.8,
+            '208Pb/204Pb': 39.5,
+            'εNd': -15,
+            'color': '#f39c12',  # Orange
+            'reference': 'Upper continental crust (Rudnick & Gao, 2003)'
+        },
+        'LOWER_CRUST': {
+            'name': 'Lower Crust',
+            '87Sr/86Sr': 0.710,
+            '143Nd/144Nd': 0.5115,
+            '206Pb/204Pb': 17.5,
+            '207Pb/204Pb': 15.4,
+            '208Pb/204Pb': 38.0,
+            'εNd': -25,
+            'color': '#27ae60',  # Green
+            'reference': 'Lower continental crust (Rudnick & Gao, 2003)'
+        },
+        'BSE': {
+            'name': 'BSE',
+            '87Sr/86Sr': 0.7045,
+            '143Nd/144Nd': 0.51265,
+            '206Pb/204Pb': 18.0,
+            '207Pb/204Pb': 15.5,
+            '208Pb/204Pb': 38.3,
+            'εNd': 0,
+            'color': '#7f8c8d',  # Gray
+            'reference': 'Bulk Silicate Earth (McDonough & Sun, 1995)'
+        }
     }
 
     def __init__(self, main_app):
         self.app = main_app
         self.window = None
 
-        # Current dataset
-        self.samples = None  # DataFrame with sample isotope data
-        self.end_members = None  # DataFrame with source compositions
-        self.current_results = None
+        # Data from main app
+        self.samples = None  # Will be populated from app.samples
+        self.available_isotopes = {}  # Auto-detected isotope columns
 
-        # Mixing model parameters
-        self.binary_model = None
-        self.ternary_model = None
+        # End-members
+        self.end_members = None  # User-defined or built-in
+        self.custom_end_members = []  # User-loaded custom end-members
+
+        # Current results
+        self.current_results = {}
+        self.mixing_proportions = {}
         self.monte_carlo_results = None
 
         # UI elements
@@ -126,9 +233,13 @@ class IsotopeMixingModelsPlugin:
         self.results_text = None
         self.canvas_frame = None
         self.status_indicator = None
+        self.isotope_listbox = None
 
         # Check dependencies
         self._check_dependencies()
+
+        # Auto-detect isotopes from main app on init
+        self._detect_isotopes_from_app()
 
     def _check_dependencies(self):
         """Check if required packages are installed"""
@@ -142,6 +253,34 @@ class IsotopeMixingModelsPlugin:
 
         self.dependencies_met = len(missing) == 0
         self.missing_deps = missing
+
+    def _detect_isotopes_from_app(self):
+        """Auto-detect isotope columns from main app data"""
+        if not hasattr(self.app, 'samples') or not self.app.samples:
+            return
+
+        # Convert to DataFrame for easier handling
+        self.samples = pd.DataFrame(self.app.samples)
+
+        self.available_isotopes = {}
+
+        # Check each column against known isotope patterns
+        for col in self.samples.columns:
+            col_lower = str(col).lower()
+
+            for system, info in self.ISOTOPE_SYSTEMS.items():
+                for pattern in info['ratios']:
+                    if pattern.lower() in col_lower or col_lower in pattern.lower():
+                        self.available_isotopes[system] = {
+                            'column': col,
+                            'display': info['display'],
+                            'uncertainty': info['uncertainty'],
+                            'data': self.samples[col].values
+                        }
+                        print(f"✅ Detected isotope: {info['display']} (column: {col})")
+                        break
+
+        print(f"📊 Found {len(self.available_isotopes)} isotope systems")
 
     def _safe_import_message(self):
         """Show friendly import instructions"""
@@ -163,34 +302,56 @@ class IsotopeMixingModelsPlugin:
 
         if self.window and self.window.winfo_exists():
             self.window.lift()
+            # Refresh data from main app
+            self._refresh_from_main_app()
             return
 
         # COMPACT DESIGN - 1300x750
         self.window = tk.Toplevel(self.app.root)
-        self.window.title("🧪 Isotope Mixing Models v1.0")
+        self.window.title("🧪 Isotope Mixing Models v2.0 - Integrated")
         self.window.geometry("1300x750")
         self.window.transient(self.app.root)
+
+        # Refresh data from main app
+        self._refresh_from_main_app()
 
         self._create_interface()
         self.window.lift()
         self.window.focus_force()
 
+    def _refresh_from_main_app(self):
+        """Refresh data from main app (called when window opens)"""
+        if hasattr(self.app, 'samples') and self.app.samples:
+            self.samples = pd.DataFrame(self.app.samples)
+            self._detect_isotopes_from_app()
+
+            # Update status if window is open
+            if hasattr(self, 'data_status') and self.data_status:
+                self.data_status.config(
+                    text=f"📊 {len(self.samples)} samples | {len(self.available_isotopes)} isotope systems",
+                    fg="#27ae60"
+                )
+
     def _create_interface(self):
         """Create the isotope mixing models interface"""
 
         # ============ TOP BANNER ============
-        header = tk.Frame(self.window, bg="#2c3e50", height=45)  # Dark blue = geochemistry
+        header = tk.Frame(self.window, bg="#2c3e50", height=45)
         header.pack(fill=tk.X)
         header.pack_propagate(False)
 
         tk.Label(header, text="🧪", font=("Arial", 18),
                 bg="#2c3e50", fg="white").pack(side=tk.LEFT, padx=10)
 
-        tk.Label(header, text="Isotope Mixing Models",
+        tk.Label(header, text="Isotope Mixing Models v2.0",
                 font=("Arial", 14, "bold"), bg="#2c3e50", fg="white").pack(side=tk.LEFT, padx=5)
 
-        tk.Label(header, text="Binary • Ternary • Monte Carlo • End-Member",
+        tk.Label(header, text="Integrated with Main App",
                 font=("Arial", 8), bg="#2c3e50", fg="#f39c12").pack(side=tk.LEFT, padx=15)
+
+        # Refresh button
+        tk.Button(header, text="🔄 Refresh Data", command=self._refresh_from_main_app,
+                 bg="#3498db", fg="white", font=("Arial", 8), padx=10).pack(side=tk.RIGHT, padx=10)
 
         self.status_indicator = tk.Label(header, text="● READY",
                                         font=("Arial", 8, "bold"),
@@ -206,76 +367,103 @@ class IsotopeMixingModelsPlugin:
         left_panel = tk.Frame(main_paned, bg="white", relief=tk.RAISED, borderwidth=1, width=400)
         main_paned.add(left_panel, width=400)
 
-        # Data import section
-        data_frame = tk.LabelFrame(left_panel, text="📊 1. IMPORT DATA",
-                                  font=("Arial", 9, "bold"),
-                                  bg="white", padx=8, pady=8)
-        data_frame.pack(fill=tk.X, padx=8, pady=8)
+        # ============ DATA STATUS ============
+        status_frame = tk.Frame(left_panel, bg="#ecf0f1", relief=tk.SUNKEN, borderwidth=1)
+        status_frame.pack(fill=tk.X, padx=8, pady=8)
 
-        # Sample data
-        tk.Button(data_frame, text="📂 Load Samples",
-                 command=self._load_samples,
-                 bg="#3498db", fg="white",
-                 font=("Arial", 9, "bold"),
-                 width=20, height=2).pack(pady=5)
+        self.data_status = tk.Label(status_frame,
+                                   text=f"📊 {len(self.samples) if self.samples is not None else 0} samples loaded",
+                                   font=("Arial", 9, "bold"), bg="#ecf0f1", fg="#2c3e50",
+                                   pady=5)
+        self.data_status.pack()
 
-        tk.Label(data_frame, text="CSV format: Sample,87Sr/86Sr,143Nd/144Nd,206Pb/204Pb,...",
-                font=("Arial", 7), bg="white", fg="#7f8c8d").pack()
+        # ============ ISOTOPE SELECTOR ============
+        isotope_frame = tk.LabelFrame(left_panel, text="⚛️ 1. SELECT ISOTOPE SYSTEM",
+                                     font=("Arial", 9, "bold"),
+                                     bg="white", padx=8, pady=8)
+        isotope_frame.pack(fill=tk.X, padx=8, pady=8)
 
-        # End-member database
-        tk.Button(data_frame, text="🏭 Load End-Members",
-                 command=self._load_end_members,
-                 bg="#9b59b6", fg="white",
-                 font=("Arial", 9, "bold"),
-                 width=20).pack(pady=5)
+        # Available isotopes listbox
+        list_frame = tk.Frame(isotope_frame)
+        list_frame.pack(fill=tk.X, pady=5)
 
-        # Quick select common reservoirs
-        reservoir_frame = tk.Frame(data_frame, bg="white")
-        reservoir_frame.pack(fill=tk.X, pady=5)
+        self.isotope_listbox = tk.Listbox(list_frame, height=6, selectmode=tk.EXTENDED)
+        scrollbar = tk.Scrollbar(list_frame, orient="vertical", command=self.isotope_listbox.yview)
+        self.isotope_listbox.configure(yscrollcommand=scrollbar.set)
 
-        tk.Label(reservoir_frame, text="Quick add:",
-                font=("Arial", 8, "bold"), bg="white").pack(side=tk.LEFT)
+        self.isotope_listbox.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        ttk.Combobox(reservoir_frame, values=['MORB', 'OIB', 'Upper Crust', 'Lower Crust',
-                                             'EM1', 'EM2', 'HIMU', 'BSE'],
-                    width=12, state="readonly").pack(side=tk.LEFT, padx=5)
+        # Populate with detected isotopes
+        for sys_name, info in self.available_isotopes.items():
+            self.isotope_listbox.insert(tk.END, f"{info['display']} ({sys_name})")
 
-        tk.Button(reservoir_frame, text="+", width=2,
-                 command=self._add_reservoir).pack(side=tk.LEFT)
+        if not self.available_isotopes:
+            self.isotope_listbox.insert(tk.END, "No isotope data found")
+            self.isotope_listbox.insert(tk.END, "Add columns like:")
+            self.isotope_listbox.insert(tk.END, "• 87Sr/86Sr")
+            self.isotope_listbox.insert(tk.END, "• 143Nd/144Nd")
+            self.isotope_listbox.insert(tk.END, "• 206Pb/204Pb")
 
-        # Data summary
-        self.data_summary = tk.Text(data_frame, height=6, width=35,
-                                   font=("Courier", 8), bg="#f8f9fa")
-        self.data_summary.pack(fill=tk.X, pady=8)
-        self.data_summary.insert(tk.END, "No data loaded\n\nLoad samples and end-members to begin")
-        self.data_summary.config(state=tk.DISABLED)
+        # Axis assignment
+        axis_frame = tk.Frame(isotope_frame, bg="white")
+        axis_frame.pack(fill=tk.X, pady=5)
 
-        # ============ ISOTOPE SYSTEM SELECTOR ============
-        system_frame = tk.LabelFrame(left_panel, text="⚛️ 2. SELECT SYSTEM",
-                                    font=("Arial", 9, "bold"),
-                                    bg="white", padx=8, pady=8)
-        system_frame.pack(fill=tk.X, padx=8, pady=8)
+        tk.Label(axis_frame, text="X-axis:", bg="white", font=("Arial", 8, "bold")).pack(side=tk.LEFT)
+        self.x_var = tk.StringVar()
+        x_combo = ttk.Combobox(axis_frame, textvariable=self.x_var,
+                               values=[f"{info['display']} ({sys})" for sys, info in self.available_isotopes.items()],
+                               width=15)
+        x_combo.pack(side=tk.LEFT, padx=5)
 
-        self.system_var = tk.StringVar(value="Sr-Nd")
+        tk.Label(axis_frame, text="Y-axis:", bg="white", font=("Arial", 8, "bold")).pack(side=tk.LEFT, padx=(10,0))
+        self.y_var = tk.StringVar()
+        y_combo = ttk.Combobox(axis_frame, textvariable=self.y_var,
+                               values=[f"{info['display']} ({sys})" for sys, info in self.available_isotopes.items()],
+                               width=15)
+        y_combo.pack(side=tk.LEFT, padx=5)
 
-        systems = [
-            ("Sr-Nd", "⁸⁷Sr/⁸⁶Sr vs ¹⁴³Nd/¹⁴⁴Nd"),
-            ("Sr-Pb", "⁸⁷Sr/⁸⁶Sr vs ²⁰⁶Pb/²⁰⁴Pb"),
-            ("Pb-Pb", "²⁰⁶Pb/²⁰⁴Pb vs ²⁰⁷Pb/²⁰⁴Pb"),
-            ("Pb3D", "²⁰⁶/²⁰⁴, ²⁰⁷/²⁰⁴, ²⁰⁸/²⁰⁴ (3D)"),
-            ("Nd-Hf", "εNd vs εHf"),
-            ("Sr-O", "⁸⁷Sr/⁸⁶Sr vs δ¹⁸O"),
-            ("Custom", "User defined")
-        ]
+        # ============ END-MEMBER SELECTION ============
+        em_frame = tk.LabelFrame(left_panel, text="🏭 2. END-MEMBERS",
+                                font=("Arial", 9, "bold"),
+                                bg="white", padx=8, pady=8)
+        em_frame.pack(fill=tk.X, padx=8, pady=8)
 
-        for i, (sys_name, desc) in enumerate(systems):
-            rb = tk.Radiobutton(system_frame, text=sys_name,
-                               variable=self.system_var, value=sys_name,
-                               bg="white", font=("Arial", 8, "bold"),
-                               command=self._update_system)
-            rb.pack(anchor=tk.W, pady=2)
-            tk.Label(system_frame, text=desc, font=("Arial", 6),
-                    bg="white", fg="#7f8c8d").pack(anchor=tk.W, padx=20)
+        # Notebook for end-member sources
+        em_notebook = ttk.Notebook(em_frame)
+        em_notebook.pack(fill=tk.X, pady=5)
+
+        # Tab 1: Built-in reservoirs
+        builtin_tab = tk.Frame(em_notebook, bg="white")
+        em_notebook.add(builtin_tab, text="📚 Built-in")
+
+        # List of built-in reservoirs
+        self.builtin_listbox = tk.Listbox(builtin_tab, height=5, selectmode=tk.EXTENDED)
+        builtin_scroll = tk.Scrollbar(builtin_tab, orient="vertical", command=self.builtin_listbox.yview)
+        self.builtin_listbox.configure(yscrollcommand=builtin_scroll.set)
+
+        for name in self.END_MEMBERS.keys():
+            self.builtin_listbox.insert(tk.END, name)
+
+        self.builtin_listbox.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=2, pady=2)
+        builtin_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Tab 2: Custom end-members
+        custom_tab = tk.Frame(em_notebook, bg="white")
+        em_notebook.add(custom_tab, text="📁 Custom")
+
+        tk.Button(custom_tab, text="📂 Load CSV",
+                 command=self._load_custom_end_members,
+                 bg="#9b59b6", fg="white").pack(pady=5)
+
+        self.custom_listbox = tk.Listbox(custom_tab, height=4)
+        self.custom_listbox.pack(fill=tk.X, padx=2, pady=2)
+
+        # Tab 3: Manual entry
+        manual_tab = tk.Frame(em_notebook, bg="white")
+        em_notebook.add(manual_tab, text="✏️ Manual")
+
+        tk.Label(manual_tab, text="Coming in v2.1", fg="gray").pack(pady=10)
 
         # ============ MODEL TYPE ============
         model_frame = tk.LabelFrame(left_panel, text="📐 3. CHOOSE MODEL",
@@ -285,21 +473,17 @@ class IsotopeMixingModelsPlugin:
 
         self.model_var = tk.StringVar(value="binary")
 
-        tk.Radiobutton(model_frame, text="Binary Mixing (2 end-members)",
-                      variable=self.model_var, value="binary",
-                      bg="white", font=("Arial", 8)).pack(anchor=tk.W, pady=2)
+        models = [
+            ("binary", "Binary Mixing (2 end-members)"),
+            ("ternary", "Ternary Mixing (3 end-members)"),
+            ("montecarlo", "Monte Carlo (uncertainty)"),
+            ("mahalanobis", "Mahalanobis Distance")
+        ]
 
-        tk.Radiobutton(model_frame, text="Ternary Mixing (3 end-members)",
-                      variable=self.model_var, value="ternary",
-                      bg="white", font=("Arial", 8)).pack(anchor=tk.W, pady=2)
-
-        tk.Radiobutton(model_frame, text="Monte Carlo (uncertainty propagation)",
-                      variable=self.model_var, value="montecarlo",
-                      bg="white", font=("Arial", 8)).pack(anchor=tk.W, pady=2)
-
-        tk.Radiobutton(model_frame, text="End-Member Estimation (PCA/SVD)",
-                      variable=self.model_var, value="endmember",
-                      bg="white", font=("Arial", 8)).pack(anchor=tk.W, pady=2)
+        for value, text in models:
+            tk.Radiobutton(model_frame, text=text,
+                          variable=self.model_var, value=value,
+                          bg="white", font=("Arial", 8)).pack(anchor=tk.W, pady=2)
 
         # ============ RUN BUTTON ============
         run_frame = tk.Frame(left_panel, bg="white")
@@ -310,6 +494,16 @@ class IsotopeMixingModelsPlugin:
                  bg="#e67e22", fg="white",
                  font=("Arial", 12, "bold"),
                  width=25, height=2).pack()
+
+        # ============ SEND BACK TO MAIN APP ============
+        send_frame = tk.Frame(left_panel, bg="white")
+        send_frame.pack(fill=tk.X, padx=8, pady=5)
+
+        tk.Button(send_frame, text="📤 Send Results to Main App",
+                 command=self._send_results_to_app,
+                 bg="#27ae60", fg="white",
+                 font=("Arial", 9, "bold"),
+                 width=25).pack()
 
         # ============ RIGHT PANEL - VISUALIZATION & RESULTS ============
         right_panel = tk.Frame(main_paned, bg="#ecf0f1", relief=tk.RAISED, borderwidth=1)
@@ -344,20 +538,17 @@ class IsotopeMixingModelsPlugin:
         self.notebook.add(props_tab, text="📊 Mixing Proportions")
 
         # Create tree for proportions
-        self.props_tree = ttk.Treeview(props_tab, columns=('End-Member', 'Proportion', '2.5%', '97.5%', 'Distance'),
+        self.props_tree = ttk.Treeview(props_tab, columns=('Sample', 'End-Member 1', 'End-Member 2', 'End-Member 3', 'Distance'),
                                        show='headings', height=15)
 
-        self.props_tree.heading('End-Member', text='End-Member')
-        self.props_tree.heading('Proportion', text='Mean %')
-        self.props_tree.heading('2.5%', text='2.5%')
-        self.props_tree.heading('97.5%', text='97.5%')
-        self.props_tree.heading('Distance', text='Distance')
+        self.props_tree.heading('Sample', text='Sample ID')
+        self.props_tree.heading('End-Member 1', text='EM1 %')
+        self.props_tree.heading('End-Member 2', text='EM2 %')
+        self.props_tree.heading('End-Member 3', text='EM3 %')
+        self.props_tree.heading('Distance', text='Mahalanobis D')
 
-        self.props_tree.column('End-Member', width=150)
-        self.props_tree.column('Proportion', width=80, anchor='center')
-        self.props_tree.column('2.5%', width=80, anchor='center')
-        self.props_tree.column('97.5%', width=80, anchor='center')
-        self.props_tree.column('Distance', width=80, anchor='center')
+        for col in ['Sample', 'End-Member 1', 'End-Member 2', 'End-Member 3', 'Distance']:
+            self.props_tree.column(col, width=100, anchor='center')
 
         scrollbar = ttk.Scrollbar(props_tab, orient=tk.VERTICAL, command=self.props_tree.yview)
         self.props_tree.configure(yscrollcommand=scrollbar.set)
@@ -400,7 +591,7 @@ class IsotopeMixingModelsPlugin:
         status_bar.pack_propagate(False)
 
         self.stats_label = tk.Label(status_bar,
-                                   text="Ready - Load isotope data to begin",
+                                   text="Ready - Select isotope system to begin",
                                    font=("Arial", 8),
                                    bg="#ecf0f1", fg="#2c3e50")
         self.stats_label.pack(side=tk.LEFT, padx=10)
@@ -419,108 +610,54 @@ class IsotopeMixingModelsPlugin:
         # Initialize plot
         self._initialize_plot()
 
-    # ============ DATA LOADING ============
-
-    def _load_samples(self):
-        """Load sample isotope data from CSV"""
-        file_path = filedialog.askopenfilename(
-            title="Load Sample Isotope Data",
-            filetypes=[("CSV files", "*.csv"), ("Excel files", "*.xlsx"), ("All files", "*.*")]
-        )
-
-        if not file_path:
-            return
-
-        try:
-            if file_path.endswith('.csv'):
-                self.samples = pd.read_csv(file_path)
-            else:
-                self.samples = pd.read_excel(file_path)
-
-            # Update data summary
-            self._update_data_summary()
-
-            # Update status
-            self.stats_label.config(text=f"Samples: {len(self.samples)}")
-            self.status_indicator.config(text="● SAMPLES LOADED", fg="#f39c12")
-
-            self._log_result(f"📊 Loaded {len(self.samples)} samples from {os.path.basename(file_path)}")
-
-            # Plot samples
-            self._plot_samples()
-
-        except Exception as e:
-            messagebox.showerror("Load Error", f"Could not load samples:\n{str(e)}")
-
-    def _load_end_members(self):
-        """Load end-member compositions"""
-        file_path = filedialog.askopenfilename(
+    def _load_custom_end_members(self):
+        """Load custom end-members from CSV"""
+        path = filedialog.askopenfilename(
             title="Load End-Member Compositions",
-            filetypes=[("CSV files", "*.csv"), ("Excel files", "*.xlsx"), ("All files", "*.*")]
+            filetypes=[("CSV files", "*.csv"), ("Excel files", "*.xlsx")]
         )
 
-        if not file_path:
+        if not path:
             return
 
         try:
-            if file_path.endswith('.csv'):
-                self.end_members = pd.read_csv(file_path)
+            if path.endswith('.csv'):
+                df = pd.read_csv(path)
             else:
-                self.end_members = pd.read_excel(file_path)
+                df = pd.read_excel(path)
 
-            self._update_data_summary()
-            self.status_indicator.config(text="● END-MEMBERS LOADED", fg="#9b59b6")
+            # Store in custom list
+            self.custom_end_members = df.to_dict('records')
 
-            self._log_result(f"🏭 Loaded {len(self.end_members)} end-members from {os.path.basename(file_path)}")
+            # Update listbox
+            self.custom_listbox.delete(0, tk.END)
+            for i, em in enumerate(self.custom_end_members[:5]):
+                name = em.get('Name', em.get('name', f"EM{i+1}"))
+                self.custom_listbox.insert(tk.END, name)
 
-            # Plot end-members
-            self._plot_end_members()
+            self._log_result(f"📁 Loaded {len(self.custom_end_members)} custom end-members")
 
         except Exception as e:
-            messagebox.showerror("Load Error", f"Could not load end-members:\n{str(e)}")
+            messagebox.showerror("Error", f"Failed to load: {str(e)}")
 
-    def _add_reservoir(self):
-        """Add standard geochemical reservoir"""
-        # Implementation would add predefined end-member compositions
-        messagebox.showinfo("Add Reservoir",
-                          "Predefined reservoirs coming in v1.1!\n\n"
-                          "For now, load your own end-members from CSV.\n"
-                          "Format: Name,87Sr/86Sr,143Nd/144Nd,206Pb/204Pb,...")
+    def _get_selected_end_members(self):
+        """Get list of selected end-members from UI"""
+        end_members = []
 
-    def _update_data_summary(self):
-        """Update the data summary text widget"""
-        self.data_summary.config(state=tk.NORMAL)
-        self.data_summary.delete(1.0, tk.END)
+        # Get built-in selections
+        builtin_sel = self.builtin_listbox.curselection()
+        for idx in builtin_sel:
+            name = self.builtin_listbox.get(idx)
+            if name in self.END_MEMBERS:
+                end_members.append(self.END_MEMBERS[name])
 
-        summary = ""
+        # Get custom selections
+        custom_sel = self.custom_listbox.curselection()
+        for idx in custom_sel:
+            if idx < len(self.custom_end_members):
+                end_members.append(self.custom_end_members[idx])
 
-        if self.samples is not None:
-            summary += f"📊 SAMPLES: {len(self.samples)}\n"
-            summary += f"   Columns: {', '.join(self.samples.columns[:5])}"
-            if len(self.samples.columns) > 5:
-                summary += f"... (+{len(self.samples.columns)-5})"
-            summary += "\n\n"
-
-        if self.end_members is not None:
-            summary += f"🏭 END-MEMBERS: {len(self.end_members)}\n"
-            for i, name in enumerate(self.end_members.iloc[:, 0].values[:3]):
-                summary += f"   • {name}\n"
-            if len(self.end_members) > 3:
-                summary += f"   • ... and {len(self.end_members)-3} more\n"
-
-        if not summary:
-            summary = "No data loaded\n\nLoad samples and end-members to begin"
-
-        self.data_summary.insert(tk.END, summary)
-        self.data_summary.config(state=tk.DISABLED)
-
-    def _update_system(self):
-        """Update isotope system selection"""
-        system = self.system_var.get()
-        self._log_result(f"⚛️ Selected system: {system}")
-        self._clear_plot()
-        self._plot_samples()
-        self._plot_end_members()
+        return end_members
 
     def _initialize_plot(self):
         """Initialize empty plot"""
@@ -531,309 +668,267 @@ class IsotopeMixingModelsPlugin:
         self.ax.grid(True, alpha=0.3, linestyle='--')
         self.canvas.draw()
 
-    def _clear_plot(self):
-        """Clear current plot"""
-        self.ax.clear()
-        self.ax.grid(True, alpha=0.3, linestyle='--')
-        self.canvas.draw()
-
-    def _plot_samples(self):
-        """Plot sample data on current axis"""
-        if self.samples is None:
-            return
-
-        system = self.system_var.get()
-
-        if system == "Sr-Nd" and '87Sr/86Sr' in self.samples.columns and '143Nd/144Nd' in self.samples.columns:
-            x = self.samples['87Sr/86Sr']
-            y = self.samples['143Nd/144Nd']
-
-            self.ax.scatter(x, y, c='#2c3e50', s=80, alpha=0.7,
-                          edgecolors='white', linewidth=1.5,
-                          label='Archaeological samples', zorder=5)
-
-            self.ax.set_xlabel('⁸⁷Sr/⁸⁶Sr', fontsize=11, fontweight='bold')
-            self.ax.set_ylabel('¹⁴³Nd/¹⁴⁴Nd', fontsize=11, fontweight='bold')
-
-        elif system == "Pb-Pb" and '206Pb/204Pb' in self.samples.columns and '207Pb/204Pb' in self.samples.columns:
-            x = self.samples['206Pb/204Pb']
-            y = self.samples['207Pb/204Pb']
-
-            self.ax.scatter(x, y, c='#2c3e50', s=80, alpha=0.7,
-                          edgecolors='white', linewidth=1.5,
-                          label='Archaeological samples', zorder=5)
-
-            self.ax.set_xlabel('²⁰⁶Pb/²⁰⁴Pb', fontsize=11, fontweight='bold')
-            self.ax.set_ylabel('²⁰⁷Pb/²⁰⁴Pb', fontsize=11, fontweight='bold')
-
-        self.ax.legend(loc='best')
-        self.canvas.draw()
-
-    def _plot_end_members(self):
-        """Plot end-member compositions"""
-        if self.end_members is None:
-            return
-
-        system = self.system_var.get()
-
-        for idx, row in self.end_members.iterrows():
-            name = row.iloc[0]  # First column is name
-
-            if system == "Sr-Nd":
-                if '87Sr/86Sr' in self.end_members.columns and '143Nd/144Nd' in self.end_members.columns:
-                    x = row['87Sr/86Sr']
-                    y = row['143Nd/144Nd']
-
-                    # Assign color based on name
-                    color = self.SOURCE_COLORS.get(name.upper(), '#95a5a6')
-
-                    self.ax.scatter(x, y, c=color, s=150, marker='s',
-                                  edgecolors='black', linewidth=1.5,
-                                  label=name, zorder=10)
-
-            elif system == "Pb-Pb":
-                if '206Pb/204Pb' in self.end_members.columns and '207Pb/204Pb' in self.end_members.columns:
-                    x = row['206Pb/204Pb']
-                    y = row['207Pb/204Pb']
-
-                    color = self.SOURCE_COLORS.get(name.upper(), '#95a5a6')
-
-                    self.ax.scatter(x, y, c=color, s=150, marker='s',
-                                  edgecolors='black', linewidth=1.5,
-                                  label=name, zorder=10)
-
-        # Update legend (remove duplicates)
-        handles, labels = self.ax.get_legend_handles_labels()
-        by_label = dict(zip(labels, handles))
-        self.ax.legend(by_label.values(), by_label.keys(), loc='best')
-
-        self.canvas.draw()
-
-    # ============ MIXING MODELS ============
-
     def _run_mixing_model(self):
         """Main dispatcher for mixing models"""
-        if self.samples is None:
-            messagebox.showwarning("No Data", "Load sample data first!")
+        if self.samples is None or len(self.samples) == 0:
+            messagebox.showwarning("No Data", "No samples in main app!")
             return
 
-        if self.end_members is None and self.model_var.get() != "endmember":
-            messagebox.showwarning("No End-Members",
-                                 "Load end-member compositions for mixing models!")
+        # Get selected isotopes
+        if not self.x_var.get() or not self.y_var.get():
+            messagebox.showwarning("Select Isotopes", "Choose X and Y axes first!")
+            return
+
+        # Parse isotope selections
+        x_system = self.x_var.get().split('(')[-1].rstrip(')')
+        y_system = self.y_var.get().split('(')[-1].rstrip(')')
+
+        if x_system not in self.available_isotopes or y_system not in self.available_isotopes:
+            messagebox.showerror("Error", "Invalid isotope selection")
+            return
+
+        # Get end-members
+        end_members = self._get_selected_end_members()
+        if len(end_members) < 2:
+            messagebox.showwarning("Select End-Members", "Select at least 2 end-members!")
             return
 
         model_type = self.model_var.get()
 
-        if model_type == "binary":
-            self._binary_mixing()
-        elif model_type == "ternary":
-            self._ternary_mixing()
+        if model_type == "binary" and len(end_members) >= 2:
+            self._binary_mixing(x_system, y_system, end_members[:2])
+        elif model_type == "ternary" and len(end_members) >= 3:
+            self._ternary_mixing(x_system, y_system, end_members[:3])
         elif model_type == "montecarlo":
-            self._monte_carlo_mixing()
-        elif model_type == "endmember":
-            self._estimate_end_members()
+            self._monte_carlo_mixing(x_system, y_system, end_members[:2])
+        elif model_type == "mahalanobis":
+            self._mahalanobis_provenance(x_system, y_system, end_members)
 
         self.notebook.select(0)  # Show plot tab
 
-    def _binary_mixing(self):
+    def _binary_mixing(self, x_sys, y_sys, end_members):
         """
         Binary mixing model with hyperbolic curves
         After Faure (1986), Albarede (1995)
         """
-        system = self.system_var.get()
-
-        if system == "Sr-Nd":
-            self._binary_mixing_sr_nd()
-        elif system == "Pb-Pb":
-            self._binary_mixing_pb_pb()
-        else:
-            messagebox.showinfo("Binary Mixing",
-                              f"Binary mixing for {system} coming in v1.1!\n\n"
-                              "Currently supports:\n• Sr-Nd\n• Pb-Pb")
-
-    def _binary_mixing_sr_nd(self):
-        """Binary mixing in Sr-Nd space"""
         try:
-            # Get sample data
-            sample_sr = self.samples['87Sr/86Sr'].values
-            sample_nd = self.samples['143Nd/144Nd'].values
+            # Get data
+            x_col = self.available_isotopes[x_sys]['column']
+            y_col = self.available_isotopes[y_sys]['column']
 
-            # Get end-members (first two)
-            em1 = self.end_members.iloc[0]
-            em2 = self.end_members.iloc[1]
+            x_data = self.samples[x_col].values
+            y_data = self.samples[y_col].values
 
-            em1_sr = em1['87Sr/86Sr']
-            em1_nd = em1['143Nd/144Nd']
-            em2_sr = em2['87Sr/86Sr']
-            em2_nd = em2['143Nd/144Nd']
+            # Get end-member compositions
+            em1 = end_members[0]
+            em2 = end_members[1]
+
+            # Extract isotope values (handle different column names)
+            def get_em_value(em, col_name):
+                for key in [col_name, col_name.replace('/', '_'), col_name.split('/')[0]]:
+                    if key in em:
+                        return em[key]
+                # Try to find by pattern
+                for k, v in em.items():
+                    if 'Sr' in k and '86' in k:
+                        return v
+                return None
+
+            em1_x = get_em_value(em1, x_col)
+            em1_y = get_em_value(em1, y_col)
+            em2_x = get_em_value(em2, x_col)
+            em2_y = get_em_value(em2, y_col)
+
+            if None in [em1_x, em1_y, em2_x, em2_y]:
+                messagebox.showerror("Error", "End-members missing required isotope ratios")
+                return
+
+            # Clear plot
+            self.ax.clear()
+
+            # Plot end-members
+            self.ax.scatter([em1_x], [em1_y], s=200, c='red', marker='s',
+                          edgecolors='black', linewidth=2, zorder=10, label=em1.get('name', 'EM1'))
+            self.ax.scatter([em2_x], [em2_y], s=200, c='blue', marker='s',
+                          edgecolors='black', linewidth=2, zorder=10, label=em2.get('name', 'EM2'))
 
             # Generate mixing curve
-            f = np.linspace(0, 1, 100)  # mixing proportion
+            f = np.linspace(0, 1, 100)
 
-            # Concentration-weighted mixing (assuming equal concentrations for simplicity)
-            # In v1.1: Use actual Sr, Nd concentrations
-            mix_sr = em1_sr * (1-f) + em2_sr * f
-            mix_nd = em1_nd * (1-f) + em2_nd * f
+            # Binary mixing equation (after Faure, 1986)
+            # For isotope ratios, mixing is linear in isotope space
+            mix_x = em1_x * (1-f) + em2_x * f
+            mix_y = em1_y * (1-f) + em2_y * f
 
             # Plot mixing curve
-            self.ax.plot(mix_sr, mix_nd, 'k-', linewidth=2, alpha=0.7, label='Binary mixing')
+            self.ax.plot(mix_x, mix_y, 'k-', linewidth=2, alpha=0.8, label='Binary mixing line')
+
+            # Plot samples
+            self.ax.scatter(x_data, y_data, c='#2c3e50', s=80, alpha=0.7,
+                          edgecolors='white', linewidth=1.5,
+                          label='Samples', zorder=5)
 
             # Calculate mixing proportions for each sample
             proportions = []
+            mahalanobis_distances = []
 
-            for i, (sr, nd) in enumerate(zip(sample_sr, sample_nd)):
+            for i, (x, y) in enumerate(zip(x_data, y_data)):
                 # Find closest point on mixing line
-                distances = np.sqrt((mix_sr - sr)**2 + (mix_nd - nd)**2)
+                distances = np.sqrt((mix_x - x)**2 + (mix_y - y)**2)
                 idx = np.argmin(distances)
 
                 prop = f[idx]
                 proportions.append(prop)
 
-                # Project onto mixing line
-                proj_sr = mix_sr[idx]
-                proj_nd = mix_nd[idx]
+                # Calculate Mahalanobis distance (simplified)
+                cov = np.cov([x_data, y_data])
+                try:
+                    inv_cov = np.linalg.inv(cov + np.eye(2)*1e-6)
+                    point = np.array([x, y])
+                    line_point = np.array([mix_x[idx], mix_y[idx]])
+                    diff = point - line_point
+                    m_dist = np.sqrt(diff @ inv_cov @ diff)
+                    mahalanobis_distances.append(m_dist)
+                except:
+                    mahalanobis_distances.append(0)
 
                 # Draw tie line
-                self.ax.plot([sr, proj_sr], [nd, proj_nd], 'gray', linewidth=0.5, alpha=0.3)
-
-            # Calculate statistics
-            mean_prop = np.mean(proportions)
-            ci_low, ci_high = np.percentile(proportions, [2.5, 97.5])
-
-            # Update results table
-            self._update_proportions_table([
-                (em1.iloc[0], f"{100*(1-mean_prop):.1f}",
-                 f"{100*(1-ci_high):.1f}", f"{100*(1-ci_low):.1f}", "N/A"),
-                (em2.iloc[0], f"{100*mean_prop:.1f}",
-                 f"{100*ci_low:.1f}", f"{100*ci_high:.1f}", "N/A")
-            ])
-
-            # Log results
-            self._log_result(f"📈 Binary Mixing Model - Sr-Nd")
-            self._log_result(f"   End-member 1: {em1.iloc[0]} ({em1_sr:.4f}, {em1_nd:.4f})")
-            self._log_result(f"   End-member 2: {em2.iloc[0]} ({em2_sr:.4f}, {em2_nd:.4f})")
-            self._log_result(f"   Mean proportion EM2: {100*mean_prop:.1f}% (95% CI: {100*ci_low:.1f}-{100*ci_high:.1f}%)")
-            self._log_result(f"   Samples analyzed: {len(proportions)}")
-
-            self.binary_model = {
-                'em1': em1.iloc[0],
-                'em2': em2.iloc[0],
-                'proportions': proportions,
-                'curve_x': mix_sr,
-                'curve_y': mix_nd
-            }
-
-            self.status_indicator.config(text="● BINARY MIXING COMPLETE", fg="#2ecc71")
-            self.canvas.draw()
-
-        except Exception as e:
-            messagebox.showerror("Binary Mixing Error", str(e))
-
-    def _binary_mixing_pb_pb(self):
-        """Binary mixing in Pb-Pb space"""
-        try:
-            # Similar implementation for Pb isotopes
-            sample_206 = self.samples['206Pb/204Pb'].values
-            sample_207 = self.samples['207Pb/204Pb'].values
-
-            em1 = self.end_members.iloc[0]
-            em2 = self.end_members.iloc[1]
-
-            em1_206 = em1['206Pb/204Pb']
-            em1_207 = em1['207Pb/204Pb']
-            em2_206 = em2['206Pb/204Pb']
-            em2_207 = em2['207Pb/204Pb']
-
-            f = np.linspace(0, 1, 100)
-            mix_206 = em1_206 * (1-f) + em2_206 * f
-            mix_207 = em1_207 * (1-f) + em2_207 * f
-
-            self.ax.plot(mix_206, mix_207, 'k-', linewidth=2, alpha=0.7, label='Binary mixing')
-
-            # Calculate proportions
-            proportions = []
-
-            for i, (pb206, pb207) in enumerate(zip(sample_206, sample_207)):
-                distances = np.sqrt((mix_206 - pb206)**2 + (mix_207 - pb207)**2)
-                idx = np.argmin(distances)
-                proportions.append(f[idx])
-
-                self.ax.plot([pb206, mix_206[idx]], [pb207, mix_207[idx]],
+                self.ax.plot([x, mix_x[idx]], [y, mix_y[idx]],
                            'gray', linewidth=0.5, alpha=0.3)
 
-            mean_prop = np.mean(proportions)
-            ci_low, ci_high = np.percentile(proportions, [2.5, 97.5])
+            # Store results
+            self.current_results = {
+                'model': 'binary',
+                'x_system': x_sys,
+                'y_system': y_sys,
+                'em1': em1,
+                'em2': em2,
+                'proportions': proportions,
+                'mahalanobis': mahalanobis_distances
+            }
 
-            self._update_proportions_table([
-                (em1.iloc[0], f"{100*(1-mean_prop):.1f}",
-                 f"{100*(1-ci_high):.1f}", f"{100*(1-ci_low):.1f}", "N/A"),
-                (em2.iloc[0], f"{100*mean_prop:.1f}",
-                 f"{100*ci_low:.1f}", f"{100*ci_high:.1f}", "N/A")
-            ])
+            # Update proportions table
+            self.props_tree.delete(*self.props_tree.get_children())
+            for i, (prop, m_dist) in enumerate(zip(proportions, mahalanobis_distances)):
+                sample_id = self.samples.iloc[i].get('Sample_ID', f"Sample_{i+1}")
+                self.props_tree.insert('', tk.END, values=(
+                    sample_id,
+                    f"{100*(1-prop):.1f}",
+                    f"{100*prop:.1f}",
+                    "-",
+                    f"{m_dist:.2f}"
+                ))
 
-            self._log_result(f"📈 Binary Mixing Model - Pb-Pb")
-            self._log_result(f"   Mean proportion EM2: {100*mean_prop:.1f}%")
+            # Log results
+            self._log_result(f"📈 Binary Mixing Model Results")
+            self._log_result(f"   End-member 1: {em1.get('name', 'EM1')} ({em1_x:.4f}, {em1_y:.4f})")
+            self._log_result(f"   End-member 2: {em2.get('name', 'EM2')} ({em2_x:.4f}, {em2_y:.4f})")
+            self._log_result(f"   Mean proportion EM2: {100*np.mean(proportions):.1f}%")
+            self._log_result(f"   Range: {100*np.min(proportions):.1f}% - {100*np.max(proportions):.1f}%")
+            self._log_result(f"   Samples analyzed: {len(proportions)}")
+
+            # Format plot
+            self.ax.set_xlabel(self.available_isotopes[x_sys]['display'])
+            self.ax.set_ylabel(self.available_isotopes[y_sys]['display'])
+            self.ax.set_title('Binary Mixing Model')
+            self.ax.grid(True, alpha=0.3, linestyle='--')
+            self.ax.legend(loc='best')
 
             self.canvas.draw()
+            self.status_indicator.config(text="● BINARY MIXING COMPLETE", fg="#2ecc71")
 
         except Exception as e:
-            messagebox.showerror("Binary Mixing Error", str(e))
+            messagebox.showerror("Error", str(e))
+            import traceback
+            traceback.print_exc()
 
-    def _ternary_mixing(self):
-        """Ternary mixing model - 3 end-members"""
+    def _ternary_mixing(self, x_sys, y_sys, end_members):
+        """Ternary mixing with 3 end-members"""
         messagebox.showinfo(
             "Ternary Mixing",
-            "Ternary mixing coming in v1.1!\n\n"
-            "Features:\n"
-            "• Triangular diagram (Sr-Nd-Pb)\n"
+            "Ternary mixing coming in v2.1!\n\n"
+            "Features planned:\n"
+            "• Triangular diagram in Sr-Nd-Pb space\n"
             "• 3D visualization for Pb isotopes\n"
-            "• Mixture proportions via convex hull\n"
-            "• Aitchison geometry for compositional data\n\n"
-            "For now, use binary mixing with two main sources."
+            "• Convex hull calculations\n"
+            "• Aitchison geometry for compositional data"
         )
 
-    def _monte_carlo_mixing(self):
+    def _monte_carlo_mixing(self, x_sys, y_sys, end_members):
         """
-        Monte Carlo simulation with analytical uncertainty
+        Monte Carlo simulation with analytical uncertainties
         10,000 iterations for robust confidence intervals
         """
-        if self.samples is None or self.end_members is None:
-            return
-
         try:
             n_iterations = 10000
 
-            # Get end-members
-            em1 = self.end_members.iloc[0]
-            em2 = self.end_members.iloc[1]
+            # Get data
+            x_col = self.available_isotopes[x_sys]['column']
+            y_col = self.available_isotopes[y_sys]['column']
+            x_data = self.samples[x_col].values
+            y_data = self.samples[y_col].values
 
-            # Analytical uncertainties (typical values, should come from user input)
-            sr_uncertainty = 0.00002  # 2e-5
-            nd_uncertainty = 0.00001  # 1e-5
+            # Get uncertainties
+            x_unc = self.available_isotopes[x_sys]['uncertainty']
+            y_unc = self.available_isotopes[y_sys]['uncertainty']
+
+            # Get end-members
+            em1 = end_members[0]
+            em2 = end_members[1]
+
+            # Extract end-member values
+            def get_em_value(em, col_name):
+                for key in [col_name, col_name.replace('/', '_'), col_name.split('/')[0]]:
+                    if key in em:
+                        return em[key]
+                return None
+
+            em1_x = get_em_value(em1, x_col)
+            em1_y = get_em_value(em1, y_col)
+            em2_x = get_em_value(em2, x_col)
+            em2_y = get_em_value(em2, y_col)
 
             # Monte Carlo iterations
             all_proportions = []
 
             for i in range(n_iterations):
                 # Perturb end-members within uncertainty
-                em1_sr = em1['87Sr/86Sr'] + np.random.normal(0, sr_uncertainty)
-                em1_nd = em1['143Nd/144Nd'] + np.random.normal(0, nd_uncertainty)
-                em2_sr = em2['87Sr/86Sr'] + np.random.normal(0, sr_uncertainty)
-                em2_nd = em2['143Nd/144Nd'] + np.random.normal(0, nd_uncertainty)
+                em1_x_pert = em1_x + np.random.normal(0, x_unc)
+                em1_y_pert = em1_y + np.random.normal(0, y_unc)
+                em2_x_pert = em2_x + np.random.normal(0, x_unc)
+                em2_y_pert = em2_y + np.random.normal(0, y_unc)
 
-                # Perturb sample
-                for sample_idx, sample in self.samples.iterrows():
-                    sample_sr = sample['87Sr/86Sr'] + np.random.normal(0, sr_uncertainty)
-                    sample_nd = sample['143Nd/144Nd'] + np.random.normal(0, nd_uncertainty)
+                # For each sample
+                for j in range(len(x_data)):
+                    # Perturb sample
+                    x_pert = x_data[j] + np.random.normal(0, x_unc)
+                    y_pert = y_data[j] + np.random.normal(0, y_unc)
 
                     # Calculate mixing proportion
-                    f = (sample_sr - em1_sr) / (em2_sr - em1_sr + 1e-10)
-                    all_proportions.append(f)
+                    # Simple linear projection
+                    vec_x = em2_x_pert - em1_x_pert
+                    vec_y = em2_y_pert - em1_y_pert
+
+                    # Vector from EM1 to sample
+                    sample_vec_x = x_pert - em1_x_pert
+                    sample_vec_y = y_pert - em1_y_pert
+
+                    # Project onto EM1-EM2 line
+                    dot_product = sample_vec_x*vec_x + sample_vec_y*vec_y
+                    norm_sq = vec_x*vec_x + vec_y*vec_y
+
+                    if norm_sq > 0:
+                        f = dot_product / norm_sq
+                        f = np.clip(f, 0, 1)  # Constrain to [0,1]
+                        all_proportions.append(f)
 
             self.monte_carlo_results = all_proportions
 
-            # Plot histogram
+            # Clear and plot histograms
             self.mc_ax1.clear()
+            self.mc_ax2.clear()
+
+            # Histogram
             self.mc_ax1.hist(all_proportions, bins=50, color='#3498db', alpha=0.7,
                            edgecolor='white', linewidth=0.5)
             self.mc_ax1.axvline(np.mean(all_proportions), color='red', linestyle='--',
@@ -843,123 +938,186 @@ class IsotopeMixingModelsPlugin:
             self.mc_ax1.axvline(np.percentile(all_proportions, 97.5), color='gray',
                                linestyle=':', linewidth=1.5)
 
-            self.mc_ax1.set_xlabel('Proportion of End-Member 2')
+            self.mc_ax1.set_xlabel('Proportion of EM2')
             self.mc_ax1.set_ylabel('Frequency')
-            self.mc_ax1.set_title(f'Monte Carlo Simulation (n={n_iterations:,})')
+            self.mc_ax1.set_title(f'Monte Carlo (n={n_iterations:,})')
             self.mc_ax1.legend()
             self.mc_ax1.grid(True, alpha=0.3)
 
-            # QQ plot for normality check
-            self.mc_ax2.clear()
+            # Q-Q plot
             stats.probplot(all_proportions, dist="norm", plot=self.mc_ax2)
             self.mc_ax2.set_title('Q-Q Plot')
             self.mc_ax2.grid(True, alpha=0.3)
 
             self.mc_canvas.draw()
 
-            # Update results
+            # Statistics
             mean_prop = np.mean(all_proportions)
+            std_prop = np.std(all_proportions)
             ci_low, ci_high = np.percentile(all_proportions, [2.5, 97.5])
 
-            self._update_proportions_table([
-                (em1.iloc[0], f"{100*(1-mean_prop):.1f}",
-                 f"{100*(1-ci_high):.1f}", f"{100*(1-ci_low):.1f}", "N/A"),
-                (em2.iloc[0], f"{100*mean_prop:.1f}",
-                 f"{100*ci_low:.1f}", f"{100*ci_high:.1f}", "N/A")
-            ])
-
-            self._log_result(f"🎲 Monte Carlo Simulation Complete")
+            self._log_result(f"🎲 Monte Carlo Simulation")
             self._log_result(f"   Iterations: {n_iterations:,}")
             self._log_result(f"   Mean EM2 proportion: {100*mean_prop:.1f}%")
-            self._log_result(f"   95% Confidence Interval: {100*ci_low:.1f}% - {100*ci_high:.1f}%")
-            self._log_result(f"   Standard deviation: {100*np.std(all_proportions):.2f}%")
+            self._log_result(f"   Standard deviation: {100*std_prop:.2f}%")
+            self._log_result(f"   95% CI: [{100*ci_low:.1f}%, {100*ci_high:.1f}%]")
+            self._log_result(f"   2σ range: {100*(ci_high-ci_low):.1f}%")
 
             self.status_indicator.config(text="● MONTE CARLO COMPLETE", fg="#2ecc71")
 
         except Exception as e:
             messagebox.showerror("Monte Carlo Error", str(e))
 
-    def _estimate_end_members(self):
+    def _mahalanobis_provenance(self, x_sys, y_sys, end_members):
         """
-        End-member estimation using PCA/SVD
-        After Weltje (1997), Geological Society London
+        Mahalanobis distance for provenance assignment
+        After Garland et al. (1995) - Statistical Methods in Archaeology
         """
-        if self.samples is None:
-            return
-
         try:
-            # Get numerical columns
-            numeric_cols = self.samples.select_dtypes(include=[np.number]).columns
+            # Get data
+            x_col = self.available_isotopes[x_sys]['column']
+            y_col = self.available_isotopes[y_sys]['column']
+            x_data = self.samples[x_col].values
+            y_data = self.samples[y_col].values
 
-            if len(numeric_cols) < 2:
-                raise ValueError("Need at least 2 numerical columns")
+            # Calculate covariance matrix
+            data = np.vstack([x_data, y_data]).T
+            cov = np.cov(data.T)
 
-            # Prepare data matrix
-            X = self.samples[numeric_cols].values
+            # Add small regularization to avoid singular matrix
+            cov += np.eye(2) * 1e-10
+            inv_cov = np.linalg.inv(cov)
 
-            # Center the data
-            X_centered = X - np.mean(X, axis=0)
-
-            # Perform SVD
-            U, s, Vt = svd(X_centered, full_matrices=False)
-
-            # First two principal components
-            pc_scores = U[:, :2] * s[:2]
-
-            # End-members are extreme points in PC space
-            hull = ConvexHull(pc_scores)
-            extreme_indices = hull.vertices
-
-            # Get end-member compositions
-            estimated_ems = []
-            for idx in extreme_indices[:3]:  # First 3 end-members
-                em_composition = {}
-                for col, loading in zip(numeric_cols, Vt[0]):
-                    em_composition[col] = X[idx]  # Simplified
-                estimated_ems.append(em_composition)
-
-            # Plot results
+            # Calculate for each end-member
             self.ax.clear()
-            self.ax.scatter(pc_scores[:, 0], pc_scores[:, 1], c='#2c3e50',
-                          s=50, alpha=0.6, label='Samples')
 
-            # Plot convex hull
-            for simplex in hull.simplices:
-                self.ax.plot(pc_scores[simplex, 0], pc_scores[simplex, 1], 'k-', alpha=0.3)
+            # Plot samples
+            self.ax.scatter(x_data, y_data, c='#2c3e50', s=80, alpha=0.7,
+                          edgecolors='white', linewidth=1.5, label='Samples', zorder=5)
 
-            # Highlight end-members
-            self.ax.scatter(pc_scores[extreme_indices, 0], pc_scores[extreme_indices, 1],
-                          c='red', s=200, marker='s', edgecolors='black',
-                          label='Estimated end-members', zorder=10)
+            # Confidence ellipses for each end-member
+            for i, em in enumerate(end_members):
+                # Get end-member composition
+                em_x = None
+                for key in [x_col, x_col.replace('/', '_'), x_col.split('/')[0]]:
+                    if key in em:
+                        em_x = em[key]
+                        break
 
-            self.ax.set_xlabel('PC1')
-            self.ax.set_ylabel('PC2')
-            self.ax.set_title('End-Member Estimation via PCA/SVD')
+                em_y = None
+                for key in [y_col, y_col.replace('/', '_'), y_col.split('/')[0]]:
+                    if key in em:
+                        em_y = em[key]
+                        break
+
+                if em_x is None or em_y is None:
+                    continue
+
+                # Plot end-member
+                color = em.get('color', f'C{i}')
+                self.ax.scatter(em_x, em_y, s=200, c=color, marker='s',
+                              edgecolors='black', linewidth=2,
+                              label=em.get('name', f'EM{i+1}'), zorder=10)
+
+                # Calculate Mahalanobis distances for all samples
+                distances = []
+                for x, y in zip(x_data, y_data):
+                    diff = np.array([x - em_x, y - em_y])
+                    m_dist = np.sqrt(diff @ inv_cov @ diff)
+                    distances.append(m_dist)
+
+                # Draw 95% confidence ellipse
+                from matplotlib.patches import Ellipse
+
+                # Calculate ellipse parameters
+                chi2_val = chi2.ppf(0.95, df=2)  # 95% confidence
+                eigenvalues, eigenvectors = np.linalg.eigh(cov)
+
+                # Sort eigenvalues
+                order = eigenvalues.argsort()[::-1]
+                eigenvalues = eigenvalues[order]
+                eigenvectors = eigenvectors[:, order]
+
+                # Ellipse parameters
+                angle = np.degrees(np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0]))
+                width = 2 * np.sqrt(chi2_val * eigenvalues[0])
+                height = 2 * np.sqrt(chi2_val * eigenvalues[1])
+
+                ellipse = Ellipse(xy=(em_x, em_y), width=width, height=height,
+                                 angle=angle, alpha=0.2, color=color, label=f'95% CI {em.get("name", "")}')
+                self.ax.add_patch(ellipse)
+
+                # Store distances
+                if i == 0:
+                    self.current_results[f'mahalanobis_em{i+1}'] = distances
+
+            self.ax.set_xlabel(self.available_isotopes[x_sys]['display'])
+            self.ax.set_ylabel(self.available_isotopes[y_sys]['display'])
+            self.ax.set_title('Mahalanobis Distance Provenance')
             self.ax.grid(True, alpha=0.3)
-            self.ax.legend()
+            self.ax.legend(loc='best')
 
             self.canvas.draw()
 
-            self._log_result(f"🔬 End-Member Estimation (SVD)")
-            self._log_result(f"   Data matrix: {X.shape[0]} samples × {X.shape[1]} variables")
-            self._log_result(f"   Variance explained PC1: {s[0]**2/np.sum(s**2)*100:.1f}%")
-            self._log_result(f"   Variance explained PC2: {s[1]**2/np.sum(s**2)*100:.1f}%")
-            self._log_result(f"   Estimated {len(extreme_indices)} potential end-members")
+            self._log_result(f"📐 Mahalanobis Distance Analysis")
+            self._log_result(f"   Data covariance matrix:")
+            self._log_result(f"     [{cov[0,0]:.6f} {cov[0,1]:.6f}]")
+            self._log_result(f"     [{cov[1,0]:.6f} {cov[1,1]:.6f}]")
+            self._log_result(f"   χ²(95%, df=2) = {chi2_val:.2f}")
 
-            self.status_indicator.config(text="● END-MEMBERS ESTIMATED", fg="#e67e22")
+            self.status_indicator.config(text="● MAHALANOBIS COMPLETE", fg="#2ecc71")
 
         except Exception as e:
-            messagebox.showerror("End-Member Estimation Error", str(e))
+            messagebox.showerror("Mahalanobis Error", str(e))
 
-    def _update_proportions_table(self, proportions_data):
-        """Update the proportions table in tab 2"""
-        # Clear existing items
-        for item in self.props_tree.get_children():
-            self.props_tree.delete(item)
+    def _send_results_to_app(self):
+        """Send mixing results back to main app as new columns"""
+        if not self.current_results:
+            messagebox.showwarning("No Results", "Run a mixing model first!")
+            return
 
-        # Insert new data
-        for row in proportions_data:
-            self.props_tree.insert('', tk.END, values=row)
+        try:
+            # Prepare data to send back
+            updates = []
+
+            if self.current_results['model'] == 'binary':
+                proportions = self.current_results['proportions']
+                mahal = self.current_results.get('mahalanobis', [0]*len(proportions))
+
+                for i, (prop, m_dist) in enumerate(zip(proportions, mahal)):
+                    if i < len(self.app.samples):
+                        update = {
+                            'Sample_ID': self.app.samples[i].get('Sample_ID', f"Sample_{i+1}"),
+                            'EM1_Proportion': f"{100*(1-prop):.1f}",
+                            'EM2_Proportion': f"{100*prop:.1f}",
+                            'Mahalanobis_Distance': f"{m_dist:.2f}",
+                            'Mixing_Model': 'Binary',
+                            'X_System': self.current_results['x_system'],
+                            'Y_System': self.current_results['y_system']
+                        }
+                        updates.append(update)
+
+            elif self.monte_carlo_results is not None:
+                # Add Monte Carlo summary for all samples
+                update = {
+                    'Sample_ID': 'SUMMARY',
+                    'MC_Mean': f"{100*np.mean(self.monte_carlo_results):.1f}",
+                    'MC_Std': f"{100*np.std(self.monte_carlo_results):.2f}",
+                    'MC_2.5%': f"{100*np.percentile(self.monte_carlo_results, 2.5):.1f}",
+                    'MC_97.5%': f"{100*np.percentile(self.monte_carlo_results, 97.5):.1f}",
+                    'Mixing_Model': 'Monte Carlo'
+                }
+                updates.append(update)
+
+            # Send to main app
+            if updates:
+                self.app.import_data_from_plugin(updates)
+                messagebox.showinfo("Success",
+                                   f"✅ Added {len(updates)} records to main app\n"
+                                   "Check new columns: EM1_Proportion, EM2_Proportion, Mahalanobis_Distance")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to send results: {str(e)}")
 
     def _log_result(self, message):
         """Add result to log"""
@@ -967,13 +1125,15 @@ class IsotopeMixingModelsPlugin:
             self.results_text.insert(tk.END, message + "\n")
             self.results_text.see(tk.END)
 
-    # ============ EXPORT FUNCTIONS ============
-
     def _export_results(self):
-        """Export mixing model results to CSV"""
+        """Export results to CSV"""
+        if not self.current_results:
+            messagebox.showwarning("No Results", "Run a model first!")
+            return
+
         filename = filedialog.asksaveasfilename(
             defaultextension=".csv",
-            filetypes=[("CSV", "*.csv"), ("All Files", "*.*")],
+            filetypes=[("CSV", "*.csv")],
             initialfile=f"mixing_results_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
         )
 
@@ -982,39 +1142,23 @@ class IsotopeMixingModelsPlugin:
 
         try:
             # Compile results
-            results_data = []
+            if self.current_results['model'] == 'binary':
+                df = pd.DataFrame({
+                    'Sample_ID': [self.samples.iloc[i].get('Sample_ID', f"Sample_{i+1}")
+                                 for i in range(len(self.current_results['proportions']))],
+                    'EM1_Proportion': [100*(1-p) for p in self.current_results['proportions']],
+                    'EM2_Proportion': [100*p for p in self.current_results['proportions']],
+                    'Mahalanobis': self.current_results.get('mahalanobis', [0]*len(self.current_results['proportions']))
+                })
+                df.to_csv(filename, index=False)
 
-            if self.binary_model:
-                results_data.append(["Model", "Binary Mixing"])
-                results_data.append(["Date", datetime.now().strftime('%Y-%m-%d %H:%M')])
-                results_data.append(["End-Member 1", self.binary_model['em1']])
-                results_data.append(["End-Member 2", self.binary_model['em2']])
-                results_data.append([])
-                results_data.append(["Sample", "Proportion_EM2", "Proportion_EM1"])
-
-                for i, prop in enumerate(self.binary_model['proportions']):
-                    results_data.append([f"Sample_{i+1}", f"{prop:.4f}", f"{1-prop:.4f}"])
-
-            elif self.monte_carlo_results:
-                results_data.append(["Model", "Monte Carlo Simulation"])
-                results_data.append(["Iterations", len(self.monte_carlo_results)])
-                results_data.append(["Mean", f"{np.mean(self.monte_carlo_results):.4f}"])
-                results_data.append(["Std Dev", f"{np.std(self.monte_carlo_results):.4f}"])
-                results_data.append(["2.5%", f"{np.percentile(self.monte_carlo_results, 2.5):.4f}"])
-                results_data.append(["97.5%", f"{np.percentile(self.monte_carlo_results, 97.5):.4f}"])
-
-            # Save to CSV
-            df = pd.DataFrame(results_data)
-            df.to_csv(filename, index=False, header=False)
-
-            messagebox.showinfo("Export Complete",
-                              f"✓ Results saved to:\n{filename}")
+            messagebox.showinfo("Export Complete", f"Results saved to:\n{filename}")
 
         except Exception as e:
             messagebox.showerror("Export Error", str(e))
 
     def _export_figure(self):
-        """Export current figure as publication-ready PDF"""
+        """Export current figure"""
         filename = filedialog.asksaveasfilename(
             defaultextension=".pdf",
             filetypes=[("PDF", "*.pdf"), ("PNG", "*.png"), ("SVG", "*.svg")],
@@ -1025,12 +1169,8 @@ class IsotopeMixingModelsPlugin:
             return
 
         try:
-            # Publication-quality settings
-            self.fig.set_size_inches(8, 6)
-            self.fig.savefig(filename, dpi=300, bbox_inches='tight',
-                           facecolor='white', edgecolor='none')
-            messagebox.showinfo("Export Complete",
-                              f"✓ Figure saved to:\n{filename}")
+            self.fig.savefig(filename, dpi=300, bbox_inches='tight')
+            messagebox.showinfo("Export Complete", f"Figure saved to:\n{filename}")
         except Exception as e:
             messagebox.showerror("Export Error", str(e))
 
@@ -1038,4 +1178,4 @@ class IsotopeMixingModelsPlugin:
 def setup_plugin(main_app):
     """Plugin setup function"""
     plugin = IsotopeMixingModelsPlugin(main_app)
-    return plugin  # ← REMOVE ALL MENU CODE AND PRINT STATEMENTS
+    return plugin

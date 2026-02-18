@@ -1,0 +1,865 @@
+[
+  {
+    "id": "ascii_plotter",
+    "name": "ASCII Plotter (CLI)",
+    "version": "2.0",
+    "description": "Text-based plots (no graphics libraries needed)",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83d\udcdf",
+    "requires": [],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/ascii_plotter.py?ref_type=heads"
+  },
+  {
+    "id": "batch_processor",
+    "name": "Batch Processor",
+    "version": "2.0",
+    "description": "Process multiple CSV files in a directory at once",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83d\udcc1",
+    "requires": [],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/batch_processor.py?ref_type=heads"
+  },
+  {
+    "id": "chatgpt_ai",
+    "name": "ChatGPT",
+    "version": "2.0",
+    "description": "ChatGPT AI assistant (requires OpenAI API key)",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83e\udd16",
+    "requires": [
+      "openai"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/chatgpt_ai.py?ref_type=heads"
+  },
+  {
+    "id": "claude_ai",
+    "name": "Claude (Anthropic)",
+    "version": "2.0",
+    "description": "Claude AI assistant by Anthropic (requires API key)",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83e\udd16",
+    "requires": [
+      "anthropic"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/claude_ai.py?ref_type=heads"
+  },
+  {
+    "id": "copilot_ai",
+    "name": "Microsoft Copilot",
+    "version": "2.0",
+    "description": "Copilot AI assistant (requires API key)",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83c\udd72",
+    "requires": [
+      "requests"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/copilot_ai.py?ref_type=heads"
+  },
+  {
+    "id": "deepseek_ai",
+    "name": "DeepSeek AI Assistant",
+    "version": "2.0",
+    "description": "AI chat assistant powered by DeepSeek",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83e\udde0",
+    "requires": [
+      "requests"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/deepseek_ai.py?ref_type=heads"
+  },
+  {
+    "id": "demo_data_generator",
+    "name": "Demo Data Generator",
+    "version": "2.0",
+    "description": "Robust Geochemical Data Generator for Tel Hazor",
+    "author": "Sefy Levy",
+    "category": "add-ons",
+    "icon": "\ud83e\uddea",
+    "requires": [],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/demo_data_generator.py?ref_type=heads"
+  },
+  {
+    "id": "gemini_ai",
+    "name": "Google Gemini",
+    "version": "2.0",
+    "description": "Google Gemini AI assistant (requires API key)",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83d\udd2e",
+    "requires": [
+      "google-generativeai"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/gemini_ai.py?ref_type=heads"
+  },
+  {
+    "id": "geopandas_plotter",
+    "name": "Geopandas Archaeological Mapper",
+    "version": "2.0",
+    "description": "Map archaeological sites with basemaps",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83d\uddfa\ufe0f",
+    "requires": [
+      "geopandas",
+      "matplotlib",
+      "contextily",
+      "shapely"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/geopandas_plotter.py?ref_type=heads"
+  },
+  {
+    "id": "geoplot_pro",
+    "name": "GeoPlot Pro",
+    "version": "2.0",
+    "description": "GeoPlot Pro: Specialized Geochemical Graphics - IUGS diagrams, mineral classification, AFC modeling, thermobarometry plots, and machine learning visualization",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83e\udea8",
+    "requires": [
+      "matplotlib",
+      "scipy",
+      "pillow",
+      "pandas",
+      "openpyxl",
+      "mplcursors",
+      "scikit-learn",
+      "compositional"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/geoplot_pro.py?ref_type=heads"
+  },
+  {
+    "id": "grok_ai",
+    "name": "Grok (xAI)",
+    "version": "2.0",
+    "description": "xAI Grok AI assistant (requires API key from console.x.ai)",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83d\ude80",
+    "requires": [
+      "requests"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/grok_ai.py?ref_type=heads"
+  },
+  {
+    "id": "matplotlib_plotter",
+    "name": "Matplotlib Plotter (High Quality)",
+    "version": "2.0",
+    "description": "High-quality scientific plots with matplotlib",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83d\udcca",
+    "requires": [
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/matplotlib_plotter.py?ref_type=heads"
+  },
+  {
+    "id": "missingno_plotter",
+    "name": "Missing Data Visualizer",
+    "version": "2.0",
+    "description": "Visualize missing data patterns and data quality",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83d\udd0d",
+    "requires": [
+      "missingno",
+      "matplotlib",
+      "pandas",
+      "numpy"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/missingno_plotter.py?ref_type=heads"
+  },
+  {
+    "id": "ollama_ai",
+    "name": "Ollama AI (Free Local)",
+    "version": "2.0",
+    "description": "Free AI assistant running locally on your computer",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83e\udd99",
+    "requires": [
+      "requests"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/ollama_ai.py?ref_type=heads"
+  },
+  {
+    "id": "pillow_plotter",
+    "name": "Pillow Plotter (Basic)",
+    "version": "2.0",
+    "description": "Basic plots with PIL/Pillow",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83d\udcc8",
+    "requires": [
+      "pillow"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/pillow_plotter.py?ref_type=heads"
+  },
+  {
+    "id": "seaborn_plotter",
+    "name": "Seaborn Statistical Plotter",
+    "version": "2.0",
+    "description": "Beautiful statistical plots with seaborn",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83d\udcc8",
+    "requires": [
+      "seaborn",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/seaborn_plotter.py?ref_type=heads"
+  },
+  {
+    "id": "ternary_plotter",
+    "name": "Ternary Diagram Plotter",
+    "version": "2.0",
+    "description": "Ternary diagrams for geochemical classification",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83d\udd3a",
+    "requires": [
+      "matplotlib",
+      "numpy"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/ternary_plotter.py?ref_type=heads"
+  },
+  {
+    "id": "laicpms_pro",
+    "name": "LA-ICP-MS Pro",
+    "version": "1.0",
+    "description": "Signal processing, U-Pb dating, elemental analysis, and data reduction",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\u269b\ufe0f",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib",
+      "pandas",
+      "openpyxl"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/laicpms_pro.py?ref_type=heads"
+  },
+  {
+    "id": "advanced_export",
+    "name": "Publication Export",
+    "version": "1.0",
+    "description": "High-resolution PDF/EPS/SVG export for publications",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\ud83d\udcbe",
+    "requires": [
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/advanced_export.py?ref_type=heads"
+  },
+  {
+    "id": "advanced_normalization",
+    "name": "Advanced Normalization",
+    "version": "1.2",
+    "description": "Lucas-Tooth & Compton normalization for pXRF/ICP with comparison tables",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\u2696\ufe0f",
+    "requires": [
+      "numpy",
+      "pandas",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/advanced_normalization.py?ref_type=heads"
+  },
+  {
+    "id": "advanced_normative_calculations",
+    "name": "Advanced Normative Calculations",
+    "version": "1.1",
+    "description": "Calculate CIPW norms from major oxides",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\u2696\ufe0f",
+    "requires": [
+      "pandas",
+      "numpy"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/advanced_normative_calculations.py?ref_type=heads"
+  },
+  {
+    "id": "advanced_petrogenetic_models",
+    "name": "Advanced Petrogenetic Models",
+    "version": "1.0.0",
+    "description": "AFC \u00b7 Zone Refining \u00b7 In-Situ Crystallization \u2014 Complete magma evolution models",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83c\udf0b\u2697\ufe0f",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/advanced_petrogenetic_models.py?ref_type=heads"
+  },
+  {
+    "id": "ague_hg_mobility",
+    "name": "Ague Hg Mobility",
+    "version": "1.3",
+    "description": "FULL BCR/GBT 25282-2010 sequential extraction, FULL mobility indices, RAC, MF, PRODUCTION GRADE",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\u263f",
+    "requires": [
+      "numpy",
+      "pandas",
+      "matplotlib",
+      "scipy"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/ague_hg_mobility.py?ref_type=heads"
+  },
+  {
+    "id": "compositional_stats_pro",
+    "name": "Compositional Data Analysis PRO",
+    "version": "3.4.0",
+    "description": "ULTIMATE: Pyrolite \u2022 Drillhole \u2022 Norms \u2022 Bootstrap \u2022 Tooltips \u2022 10+ Diagrams",
+    "author": "Community Enhanced",
+    "category": "software",
+    "icon": "\ud83d\udcca",
+    "requires": [
+      "numpy",
+      "scipy",
+      "sklearn",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/compositional_stats_pro.py?ref_type=heads"
+  },
+  {
+    "id": "data_validation_filter",
+    "name": "Data Quality & Filter",
+    "version": "1.0",
+    "description": "IoGAS-style validation + advanced filtering in one tool",
+    "author": "Merged from Sefy Levy",
+    "category": "software",
+    "icon": "\u2713",
+    "requires": [
+      "numpy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/data_validation_filter.py?ref_type=heads"
+  },
+  {
+    "id": "dating_integration",
+    "name": "Chronological Dating (Enhanced)",
+    "version": "8.0",
+    "description": "Bayesian age-depth with MCMC, parallel processing, user-supplied curves",
+    "author": "Enhanced from Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\u23f3\ud83d\udd2c",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib",
+      "pandas",
+      "emcee",
+      "corner",
+      "joblib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/dating_integration.py?ref_type=heads"
+  },
+  {
+    "id": "geochemical_explorer",
+    "name": "Geochemical Explorer",
+    "version": "1.0.0",
+    "description": "PCA \u00b7 LDA \u00b7 Clustering \u00b7 Statistical Tests \u2014 Complete multivariate toolkit",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83d\udcca",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib",
+      "pandas",
+      "scikit-learn"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/geochemical_explorer.py?ref_type=heads"
+  },
+  {
+    "id": "geochem_advanced",
+    "name": "Advanced GeoExplorer",
+    "version": "3.0",
+    "description": "Fetch geochemical data from online databases with dynamic import",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83c\udf10",
+    "requires": [
+      "pandas",
+      "numpy"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/geochem_advanced.py?ref_type=heads"
+  },
+  {
+    "id": "geochronology_suite",
+    "name": "Geochronology Suite",
+    "version": "1.0.0",
+    "description": "U-Pb \u00b7 Ar-Ar \u00b7 Detrital \u00b7 Isochrons \u2014 Complete geochronology toolkit",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\u23f3",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib",
+      "pandas",
+      "scikit-learn"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/geochronology_suite.py?ref_type=heads"
+  },
+  {
+    "id": "gis_3d_viewer",
+    "name": "3D GIS Viewer",
+    "version": "3.0",
+    "description": "LIVE preview: 2D maps, 3D scenes, SRTM terrain IN-PANEL",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83c\udf0d",
+    "requires": [
+      "matplotlib",
+      "numpy"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/gis_3d_viewer.py?ref_type=heads"
+  },
+  {
+    "id": "google_earth_pro",
+    "name": "Google Earth Pro",
+    "version": "2.0.0",
+    "description": "Advanced 3D visualization - geochemical extrusion, time animation, photo integration, Quartz sync",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83c\udf0f",
+    "requires": [
+      "simplekml",
+      "numpy",
+      "scipy",
+      "pillow"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/google_earth_pro.py?ref_type=heads"
+  },
+  {
+    "id": "interactive_contouring",
+    "name": "Interactive Contouring",
+    "version": "1.0",
+    "description": "Interactive contouring and density estimation for scatter plots",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83d\uddfa\ufe0f",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/interactive_contouring.py?ref_type=heads"
+  },
+  {
+    "id": "isotope_mixing_models",
+    "name": "Isotope Mixing Models",
+    "version": "2.0.0",
+    "description": "Binary/ternary mixing, end-member estimation, Monte Carlo provenance with main app integration",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\ud83e\uddea",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib",
+      "pandas"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/isotope_mixing_models.py?ref_type=heads"
+  },
+  {
+    "id": "literature_comparison",
+    "name": "Literature Comparison",
+    "version": "2.2",
+    "description": "Find published basalt samples similar to yours - 9 references, 45+ samples, color-coded matches",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\ud83d\udcda",
+    "requires": [
+      "numpy"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/literature_comparison.py?ref_type=heads"
+  },
+  {
+    "id": "lithic_morphometrics",
+    "name": "Lithic Morphometrics",
+    "version": "1.0.2",
+    "description": "Extract artifact outlines, quantify edge damage, Fourier shape analysis",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\ud83e\udea8",
+    "requires": [
+      "cv2",
+      "skimage",
+      "numpy",
+      "scipy",
+      "matplotlib",
+      "PIL"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/lithic_morphometrics.py?ref_type=heads"
+  },
+  {
+    "id": "magma_modeling",
+    "name": "Magma Modeling",
+    "version": "1.0",
+    "description": "Complete magma evolution modeling with working implementations",
+    "author": "Your Name",
+    "category": "software",
+    "icon": "\ud83c\udf0b",
+    "requires": [
+      "numpy",
+      "matplotlib",
+      "scipy"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/magma_modeling.py?ref_type=heads"
+  },
+  {
+    "id": "museum_import",
+    "name": "Museum Database Pro",
+    "version": "2.0.0",
+    "description": "Import artifacts from 15+ museums - Europeana default, pagination support",
+    "author": "Unknown",
+    "category": "software",
+    "icon": "\ud83c\udfdb\ufe0f",
+    "requires": [
+      "requests",
+      "bs4"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/museum_import.py?ref_type=heads"
+  },
+  {
+    "id": "pca_lda_explorer",
+    "name": "PCA+LDA Explorer Pro",
+    "version": "2.1",
+    "description": "Complete statistical suite - PCA, LDA, PLS-DA, RF, SVM, t-SNE, Clustering, Correlation, Regression, Statistical Tests",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\ud83d\udcca",
+    "requires": [
+      "scikit-learn",
+      "matplotlib",
+      "numpy",
+      "pandas",
+      "scipy",
+      "seaborn"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/pca_lda_explorer.py?ref_type=heads"
+  },
+  {
+    "id": "petrogenetic_suite",
+    "name": "Petrogenetic Suite",
+    "version": "1.0.0",
+    "description": "AFC \u00b7 Fractional \u00b7 Zone Refining \u00b7 Mixing \u2014 Complete magma evolution models",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83c\udf0b",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib",
+      "pandas"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/petrogenetic_suite.py?ref_type=heads"
+  },
+  {
+    "id": "photo_manager",
+    "name": "Photo Manager",
+    "version": "1.0",
+    "description": "Link sample photos, organize field photography, and open photo folders directly",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\ud83d\udcf7",
+    "requires": [],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/photo_manager.py?ref_type=heads"
+  },
+  {
+    "id": "publication_layouts",
+    "name": "Publication Layouts Pro",
+    "version": "2.0.0",
+    "description": "Professional multi-panel figure designer with main app integration",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83d\udcd0",
+    "requires": [
+      "matplotlib",
+      "numpy",
+      "pillow",
+      "seaborn"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/publication_layouts.py?ref_type=heads"
+  },
+  {
+    "id": "quartz_gis_pro",
+    "name": "Quartz GIS",
+    "version": "1.4.0",
+    "description": "Ultimate GIS for archaeologists - Measure, viewshed, attribute table, QGIS export!",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83c\udf0d",
+    "requires": [
+      "geopandas",
+      "shapely",
+      "pyproj",
+      "matplotlib",
+      "contextily",
+      "osmnx",
+      "descartes",
+      "mapclassify",
+      "rasterio",
+      "rioxarray",
+      "scipy"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/quartz_gis_pro.py?ref_type=heads"
+  },
+  {
+    "id": "report_generator",
+    "name": "Report Generator",
+    "version": "1.0",
+    "description": "Auto-generate excavation season reports, IAA submissions, and provenance summaries",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\ud83d\udcc4",
+    "requires": [
+      "python-docx"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/report_generator.py?ref_type=heads"
+  },
+  {
+    "id": "scripting_console",
+    "name": "Python Console",
+    "version": "1.0.0",
+    "description": "Interactive Python console, script editor, batch processing",
+    "author": "Scientific Toolkit",
+    "category": "software",
+    "icon": "\ud83d\udc0d",
+    "requires": [
+      "tkinter"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/scripting_console.py?ref_type=heads"
+  },
+  {
+    "id": "spatial_kriging",
+    "name": "Spatial Kriging & Density",
+    "version": "3.2",
+    "description": "Industry-standard spatial interpolation with variogram analysis + KDE contouring",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83d\uddfa\ufe0f",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/spatial_kriging.py?ref_type=heads"
+  },
+  {
+    "id": "spectral_toolbox",
+    "name": "Spectral Processing Toolbox",
+    "version": "2.0",
+    "description": "MATLAB-like spectral analysis: peak detection, baseline correction, smoothing, derivatives, peak fitting",
+    "author": "Sefy Levy / AI Enhanced",
+    "category": "software",
+    "icon": "\ud83d\udcc9",
+    "requires": [
+      "numpy",
+      "scipy",
+      "pybaselines",
+      "lmfit",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/spectral_toolbox.py?ref_type=heads"
+  },
+  {
+    "id": "structural_geology",
+    "name": "Structural Geology Suite",
+    "version": "1.0.0",
+    "description": "Stereonets \u00b7 Schmidt nets \u00b7 Wulff nets \u00b7 Rose diagrams \u00b7 Structural analysis",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83e\udded",
+    "requires": [
+      "numpy",
+      "matplotlib",
+      "scipy"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/structural_geology.py?ref_type=heads"
+  },
+  {
+    "id": "structural_suite",
+    "name": "Structural Suite",
+    "version": "1.0.0",
+    "description": "Stereonets \u00b7 Rose Diagrams \u00b7 Contouring \u2014 Complete structural toolkit",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83e\udded",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib",
+      "pandas"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/structural_suite.py?ref_type=heads"
+  },
+  {
+    "id": "thermobarometry_suite",
+    "name": "Thermobarometry Suite",
+    "version": "1.0.0",
+    "description": "Pyroxene \u00b7 Feldspar \u00b7 Amphibole \u00b7 Olivine \u00b7 Garnet \u2014 Complete P-T toolkit",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83c\udf21\ufe0f",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib",
+      "pandas"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/thermobarometry_suite.py?ref_type=heads"
+  },
+  {
+    "id": "uncertainty_propagation",
+    "name": "Uncertainty Propagation",
+    "version": "1.0.2",
+    "description": "Monte Carlo classification, confidence ellipses, error propagation - NOW with Fast Mode & Safe Fallback!",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\ud83c\udfb2",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/uncertainty_propagation.py?ref_type=heads"
+  },
+  {
+    "id": "virtual_microscopy_pro",
+    "name": "Virtual Microscopy Pro",
+    "version": "4.0.0",
+    "description": "Petrographic analysis + 3D archaeological mesh analysis",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83d\udd2c",
+    "requires": [
+      "numpy",
+      "matplotlib",
+      "pillow",
+      "scipy",
+      "pandas",
+      "trimesh"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/virtual_microscopy_pro.py?ref_type=heads"
+  },
+  {
+    "id": "zooarchaeology_analytics_suite",
+    "name": "Zooarchaeology Analytics Suite",
+    "version": "1.0.0",
+    "description": "NISP \u00b7 MNI \u00b7 Taphonomy \u00b7 Butchery \u00b7 Aging \u00b7 FTIR \u00b7 Behrensmeyer \u00b7 von den Driesch",
+    "author": "Zooarch Team",
+    "category": "software",
+    "icon": "\ud83d\udcca",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/zooarchaeology_analytics_suite.py?ref_type=heads"
+  },
+  {
+    "id": "elemental_geochemistry_unified_suite",
+    "name": "Elemental Geochemistry Unified Suite",
+    "version": "4.5.1",
+    "description": "pXRF \u00b7 LIBS \u00b7 Benchtop XRF \u00b7 ICP \u2014 SciAps \u00b7 Olympus \u00b7 Bruker \u00b7 Thermo \u00b7 1 DRIVER",
+    "author": "Sefy Levy",
+    "category": "hardware",
+    "icon": "\ud83d\udd2c",
+    "requires": [
+      "numpy"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/elemental_geochemistry_unified_suite.py?ref_type=heads"
+  },
+  {
+    "id": "mineralogy_unified_suite",
+    "name": "Mineralogy Unified Suite",
+    "version": "2.2.0",
+    "description": "5,185 STABLE RRUFF minerals \u00b7 3-tier download \u00b7 Smart button",
+    "author": "Mineralogy Unified Team",
+    "category": "hardware",
+    "icon": "\ud83d\udc8e",
+    "requires": [
+      "numpy"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/mineralogy_unified_suite.py?ref_type=heads"
+  },
+  {
+    "id": "physical_properties_unified_suite",
+    "name": "Physical Properties Unified Suite",
+    "version": "3.1.0",
+    "description": "MagSus \u00b7 Granulometer \u00b7 Caliper \u2014 PRODUCTION READY \u00b7 Thread-safe \u00b7 Real SPC",
+    "author": "Sefy Levy",
+    "category": "hardware",
+    "icon": "\ud83e\uddf2",
+    "requires": [
+      "numpy",
+      "pandas",
+      "matplotlib",
+      "pyserial"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/physical_properties_unified_suite.py?ref_type=heads"
+  },
+  {
+    "id": "solution_chemistry_unified_suite",
+    "name": "Solution Chemistry Unified Suite",
+    "version": "3.0.0",
+    "description": "45+ REAL drivers \u00b7 NIST/USGS \u00b7 PDF \u00b7 API \u00b7 Debye-H\u00fcckel",
+    "author": "Sefy Levy",
+    "category": "hardware",
+    "icon": "\ud83c\udf0a",
+    "requires": [
+      "numpy",
+      "pandas",
+      "matplotlib",
+      "pyserial",
+      "scipy"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/solution_chemistry_unified_suite.py?ref_type=heads"
+  },
+  {
+    "id": "spectroscopy_unified",
+    "name": "Spectroscopy Unified Suite",
+    "version": "4.0.0",
+    "description": "FTIR \u00b7 RAMAN \u00b7 UV-VIS-NIR \u2014 Thermo \u00b7 Bruker \u00b7 PerkinElmer \u00b7 B&W Tek \u00b7 Ocean \u00b7 Agilent \u00b7 Avantes \u00b7 50+ MODELS",
+    "author": "Sefy Levy",
+    "category": "hardware",
+    "icon": "\ud83e\uddea",
+    "requires": [
+      "numpy"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/spectroscopy_unified.py?ref_type=heads"
+  },
+  {
+    "id": "zooarchaeology_unified_suite",
+    "name": "Zooarchaeology Unified Suite",
+    "version": "1.0.0",
+    "description": "Digital calipers \u00b7 3D scanners \u00b7 pXRF \u00b7 Microscopes \u00b7 Balances \u00b7 GNSS \u2014 40+ REAL drivers",
+    "author": "Zooarchaeology Unified Team",
+    "category": "hardware",
+    "icon": "\ud83e\uddb4",
+    "requires": [
+      "numpy",
+      "pandas",
+      "pyserial"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/zooarchaeology_unified_suite.py?ref_type=heads"
+  }
+]

@@ -29,6 +29,7 @@ PLUGIN_INFO = {
     'name': 'Ternary Diagram Plotter',
     'category': 'add-on',
     'icon': '🔺',
+    'version': '2.0',
     'requires': ['matplotlib', 'numpy'],
     'description': 'Ternary diagrams for geochemical classification',
     'exclusive_group': 'plotter'

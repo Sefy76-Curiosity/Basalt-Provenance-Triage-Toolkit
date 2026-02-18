@@ -1,0 +1,18 @@
+Sample_ID,Strike,Dip,Trend,Plunge,Type,Notes
+Site_001,045,30,,,plane,Bedding
+Site_001,120,65,,,plane,Joint set
+Site_001,,,130,45,line,Mineral lineation
+Site_002,050,35,,,plane,Folded bedding
+Site_002,058,42,,,plane,Folded bedding
+Site_002,065,48,,,plane,Folded bedding
+Site_002,072,52,,,plane,Folded bedding
+Site_002,080,55,,,plane,Folded bedding
+Site_003,010,70,,,plane,Cleavage
+Site_003,015,72,,,plane,Cleavage
+Site_003,020,68,,,plane,Cleavage
+Site_003,,,045,60,line,Stretching lineation
+Site_004,350,25,,,plane,Bedding
+Site_004,355,28,,,plane,Bedding
+Site_004,002,30,,,plane,Bedding
+Site_004,008,32,,,plane,Bedding
+Site_004,,,080,20,line,Current ripple crests

@@ -22,6 +22,7 @@ PLUGIN_INFO = {
     'name': 'Google Gemini',
     'category': 'add-ons',
     'icon': '🔮',
+    'version': '2.0',
     'requires': ['google-generativeai'],
     'description': 'Google Gemini AI assistant (requires API key)'
 }

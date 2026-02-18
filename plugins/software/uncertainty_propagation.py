@@ -30,20 +30,38 @@ import os
 from pathlib import Path
 
 # ============ FIXED: PROPER IMPORT OF CLASSIFICATION ENGINE ============
+# ============ FIXED: PROPER IMPORT OF CLASSIFICATION ENGINE ============
 current_dir = Path(__file__).parent  # plugins/software/
-main_dir = current_dir.parent.parent  # Basalt-Provenance-Triage-Toolkit/
+main_dir = current_dir.parent.parent  # Scientific-Toolkit
 
 if str(main_dir) not in sys.path:
     sys.path.insert(0, str(main_dir))
 
-# Try to import the REAL classification engine
+# Try multiple import strategies
+HAS_ENGINE = False
 try:
+    # Strategy 1: Direct import (if in Python path)
     from classification_engine import ClassificationEngine
     HAS_ENGINE = True
-except ImportError as e:
-    HAS_ENGINE = False
-    print(f"🎲 ⚠ Could not load classification_engine.py: {e}")
-    print(f"🎲   Using safe fallback classifier (rule-based)")
+    print("🎲 ✓ Loaded ClassificationEngine (direct import)")
+except ImportError:
+    try:
+        # Strategy 2: Import from engines.classification_engine
+        from engines.classification_engine import ClassificationEngine
+        HAS_ENGINE = True
+        print("🎲 ✓ Loaded ClassificationEngine (from engines)")
+    except ImportError:
+        try:
+            # Strategy 3: Import from engines.classification.classification_engine
+            from engines.classification.classification_engine import ClassificationEngine
+            HAS_ENGINE = True
+            print("🎲 ✓ Loaded ClassificationEngine (from engines/classification)")
+        except ImportError as e:
+            HAS_ENGINE = False
+            print(f"🎲 ⚠ Could not load classification_engine.py: {e}")
+            print(f"🎲   Current sys.path: {sys.path}")
+            print(f"🎲   Looking in: {main_dir}")
+            print(f"🎲   Using safe fallback classifier (rule-based)")
 # =========================================================================
 
 try:

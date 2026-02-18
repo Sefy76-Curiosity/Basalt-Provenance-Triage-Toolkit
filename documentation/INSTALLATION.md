@@ -1,579 +1,401 @@
-# Installation Guide
+# 📥 Installation Guide
 
-Complete guide to installing Scientific Toolkit v2.0 on Windows, macOS, and Linux.
-
----
-
-## Table of Contents
-
-1. [System Requirements](#system-requirements)
-2. [Quick Installation](#quick-installation)
-3. [Detailed Installation](#detailed-installation)
-   - [Windows](#windows)
-   - [macOS](#macos)
-   - [Linux](#linux)
-4. [Installing Dependencies](#installing-dependencies)
-5. [Verifying Installation](#verifying-installation)
-6. [Optional Components](#optional-components)
-7. [Troubleshooting](#troubleshooting)
+Complete installation instructions for Windows, macOS, and Linux.
 
 ---
 
-## System Requirements
+## ⚠️ Disclaimer
 
-### Minimum Requirements
-- **OS**: Windows 10+, macOS 10.14+, or Linux (Ubuntu 20.04+, Fedora 34+)
-- **Python**: 3.8 or higher
-- **RAM**: 4 GB
-- **Storage**: 2 GB free space
-- **Display**: 1280×720 resolution
+**This software is provided "AS IS" without any warranty.**
 
-### Recommended
-- **Python**: 3.10 or higher
-- **RAM**: 8 GB or more
-- **Storage**: 5 GB free space
-- **Display**: 1920×1080 or higher
-- **Internet**: For AI integrations and map tiles
+You are responsible for:
+- Validating all results
+- Verifying methods are appropriate for your data
+- Reporting bugs and issues
+
+**Found a problem?** → https://gitlab.com/sefy76/scientific-toolkit/-/issues
 
 ---
 
-## Quick Installation
+## Requirements
 
-For experienced users who already have Python installed:
+- **Python**: 3.8 or higher (3.10+ recommended)
+- **Operating System**: Windows 10/11, macOS 10.14+, or modern Linux
+- **Disk Space**: ~50 MB for core files, +200 MB for full dependencies
+- **RAM**: 2 GB minimum, 4 GB recommended
+- **Display**: 1280x800 minimum resolution
+
+---
+
+## Quick Install (All Platforms)
 
 ```bash
-# Clone repository
-git clone https://github.com/sefy-levy/scientific-toolkit.git
+# 1. Clone repository
+git clone https://gitlab.com/sefy76/scientific-toolkit.git
 cd scientific-toolkit
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# 2. Install core dependencies
+pip install numpy pandas matplotlib
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Run
+# 3. Launch
 python Scientific-Toolkit.py
 ```
 
+That's it for basic functionality!
+
 ---
 
-## Detailed Installation
+## Full Installation (All Features)
+
+For complete functionality including all plugins:
+
+```bash
+pip install -r requirements.txt
+```
+
+**Note:** This installs ~20 packages. Internet connection required.
+
+---
+
+## Platform-Specific Instructions
 
 ### Windows
 
-#### Step 1: Install Python
+**Option 1: Using Python from python.org**
 
-1. Download Python from [python.org/downloads](https://www.python.org/downloads/)
-2. Run installer and **check "Add Python to PATH"**
-3. Verify installation:
-```cmd
-python --version
-pip --version
-```
+1. Download Python from [python.org](https://www.python.org/downloads/)
+   - Check "Add Python to PATH" during installation
+2. Open Command Prompt (cmd)
+3. Run installation commands above
 
-#### Step 2: Install Git (Optional but Recommended)
+**Option 2: Using Anaconda**
 
-Download from [git-scm.com](https://git-scm.com/download/win) or use GitHub Desktop.
-
-#### Step 3: Download Scientific Toolkit
-
-**Option A: Using Git**
-```cmd
-git clone https://github.com/sefy-levy/scientific-toolkit.git
-cd scientific-toolkit
-```
-
-**Option B: Download ZIP**
-1. Go to [GitHub repository](https://github.com/sefy-levy/scientific-toolkit)
-2. Click "Code" → "Download ZIP"
-3. Extract to your desired location
-4. Open Command Prompt in that folder
-
-#### Step 4: Create Virtual Environment
-
-```cmd
-python -m venv venv
-venv\Scripts\activate
-```
-
-You should see `(venv)` in your prompt.
-
-#### Step 5: Install Dependencies
-
-**Full installation:**
-```cmd
+```bash
+conda create -n scitoolkit python=3.10
+conda activate scitoolkit
 pip install -r requirements.txt
-```
-
-**Minimal installation (faster, fewer features):**
-```cmd
-pip install -r requirements-minimal.txt
-```
-
-#### Step 6: Run the Toolkit
-
-```cmd
 python Scientific-Toolkit.py
 ```
+
+**Troubleshooting Windows:**
+- If `python` command not found, try `py` instead
+- Tkinter should be included with Python on Windows
+- For hardware devices, may need device-specific USB drivers
 
 ---
 
 ### macOS
 
-#### Step 1: Install Python
-
-**Option A: Using Homebrew (Recommended)**
+**Prerequisites:**
 ```bash
-# Install Homebrew if not already installed
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Install Python
-brew install python@3.10
+# Install Xcode Command Line Tools (if not already installed)
+xcode-select --install
 ```
 
-**Option B: Download from python.org**
-Download from [python.org/downloads](https://www.python.org/downloads/)
-
-Verify installation:
+**Installation:**
 ```bash
-python3 --version
-pip3 --version
+# Using system Python (macOS 10.14+)
+python3 -m pip install --user -r requirements.txt
+python3 Scientific-Toolkit.py
+
+# Or using Homebrew Python
+brew install python
+pip3 install -r requirements.txt
+python3 Scientific-Toolkit.py
 ```
 
-#### Step 2: Install Git
-
-```bash
-# Using Homebrew
-brew install git
-
-# Or download from git-scm.com
-```
-
-#### Step 3: Download Scientific Toolkit
-
-```bash
-git clone https://github.com/sefy-levy/scientific-toolkit.git
-cd scientific-toolkit
-```
-
-#### Step 4: Create Virtual Environment
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-#### Step 5: Install Dependencies
-
-```bash
-# Full installation
-pip install -r requirements.txt
-
-# Or minimal
-pip install -r requirements-minimal.txt
-```
-
-#### Step 6: Run the Toolkit
-
-```bash
-python Scientific-Toolkit.py
-```
-
-**Note**: If you encounter permission issues, you may need to install tkinter:
-```bash
-brew install python-tk@3.10
-```
+**macOS-specific notes:**
+- Tkinter is included with Python on macOS
+- For GPS devices, may need to grant location permissions
+- Hardware devices typically "just work" via USB
 
 ---
 
 ### Linux
 
-#### Ubuntu/Debian
-
+**Ubuntu/Debian:**
 ```bash
-# Update package list
-sudo apt update
-
-# Install Python and dependencies
-sudo apt install python3 python3-pip python3-venv python3-tk git
-
-# Clone repository
-git clone https://github.com/sefy-levy/scientific-toolkit.git
-cd scientific-toolkit
-
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
+# Install Python and Tkinter
+sudo apt-get update
+sudo apt-get install python3 python3-pip python3-tk
 
 # Install dependencies
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 
-# Run
+# Launch
+python3 Scientific-Toolkit.py
+```
+
+**Fedora/RHEL:**
+```bash
+sudo dnf install python3 python3-pip python3-tkinter
+pip3 install -r requirements.txt
+python3 Scientific-Toolkit.py
+```
+
+**Arch Linux:**
+```bash
+sudo pacman -S python python-pip tk
+pip install -r requirements.txt
 python Scientific-Toolkit.py
 ```
 
-#### Fedora/RHEL/CentOS
-
-```bash
-# Install Python and dependencies
-sudo dnf install python3 python3-pip python3-tkinter git
-
-# Clone repository
-git clone https://github.com/sefy-levy/scientific-toolkit.git
-cd scientific-toolkit
-
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run
-python Scientific-Toolkit.py
-```
-
-#### Arch Linux
-
-```bash
-# Install Python and dependencies
-sudo pacman -S python python-pip tk git
-
-# Clone and setup (same as above)
-```
-
----
-
-## Installing Dependencies
-
-### Understanding the Requirements Files
-
-The toolkit provides two requirements files:
-
-1. **requirements.txt** (Full installation)
-   - All features enabled
-   - ~60 packages
-   - ~500 MB download
-   - Includes AI integrations, advanced plotting, hardware support
-
-2. **requirements-minimal.txt** (Basic installation)
-   - Core features only
-   - ~15 packages
-   - ~150 MB download
-   - Suitable for data analysis without hardware
-
-### Installation Options
-
-**Option 1: Full Installation (Recommended)**
-```bash
-pip install -r requirements.txt
-```
-
-**Option 2: Minimal Installation**
-```bash
-pip install -r requirements-minimal.txt
-```
-
-**Option 3: Custom Installation**
-
-Install only what you need:
-
-```bash
-# Install core
-pip install -r requirements-minimal.txt
-
-# Add AI support
-pip install openai anthropic google-generativeai
-
-# Add hardware support
-pip install pyserial pyvisa hidapi
-
-# Add advanced plotting
-pip install plotly python-ternary pyvista
-```
-
-### Troubleshooting Dependency Installation
-
-**Issue: Compilation errors (especially on Windows)**
-
-Some packages require C compilers. Solutions:
-
-1. **Install Visual Studio Build Tools** (Windows)
-   - Download from [visualstudio.microsoft.com](https://visualstudio.microsoft.com/downloads/)
-   - Install "Desktop development with C++"
-
-2. **Use pre-compiled wheels**
-   ```bash
-   pip install --only-binary :all: package-name
-   ```
-
-3. **Use conda instead of pip**
-   ```bash
-   conda install -c conda-forge package-name
-   ```
-
-**Issue: "No module named 'tkinter'"**
-
-Tkinter is Python's built-in GUI library but may not be included:
-
-- **Ubuntu/Debian**: `sudo apt install python3-tk`
-- **Fedora**: `sudo dnf install python3-tkinter`
-- **macOS**: `brew install python-tk@3.10`
-- **Windows**: Reinstall Python with "tcl/tk" option checked
-
-**Issue: Permission denied**
-
-On Linux/macOS, don't use `sudo pip`. Use virtual environments instead:
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
+**Linux-specific notes:**
+- For hardware devices, may need to add user to dialout group:
+  ```bash
+  sudo usermod -a -G dialout $USER
+  # Log out and back in
+  ```
+- Some USB devices may require udev rules
 
 ---
 
 ## Verifying Installation
 
-### Test Basic Functionality
+After installation, test that everything works:
 
 ```bash
-# Activate virtual environment if not already active
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Run toolkit
 python Scientific-Toolkit.py
 ```
 
 You should see:
-1. Splash screen with loading progress
-2. Main window with three panels
-3. No error messages in terminal
+1. Splash screen with "Scientific Toolkit" logo
+2. Main window loads
+3. Menu bar shows: File, Classify, Visualize, Hardware, Advanced
 
-### Test Imports
+**Test basic functionality:**
+1. File → Import Data → CSV
+2. Navigate to `samples/master_test_list.csv`
+3. Data should load in the table
+4. Try: Classify → Geochemistry → TAS Volcanic Classification
 
-Run this test script:
+If this works, installation is successful!
 
+---
+
+## Dependency List
+
+### Core (Required)
+```
+numpy>=1.20.0
+pandas>=1.3.0
+matplotlib>=3.4.0
+```
+
+### Standard (Recommended)
+```
+scipy>=1.7.0
+scikit-learn>=0.24.0
+pillow>=8.0.0
+```
+
+### Optional (For Specific Features)
+
+**Geospatial:**
+```
+geopandas>=0.10.0
+rasterio>=1.2.0
+shapely>=1.8.0
+```
+
+**Advanced Plotting:**
+```
+seaborn>=0.11.0
+plotly>=5.0.0
+```
+
+**Hardware Devices:**
+```
+pyserial>=3.5      # XRF, GPS, EC meters
+watchdog>=2.1.0    # File monitoring
+```
+
+**AI Assistants:**
+```
+anthropic>=0.3.0   # Claude AI
+openai>=0.27.0     # ChatGPT
+google-generativeai  # Gemini
+```
+
+**Statistical:**
+```
+statsmodels>=0.13.0
+```
+
+---
+
+## Installation Issues & Solutions
+
+### "No module named 'tkinter'"
+
+**Windows:** Reinstall Python with Tkinter option checked
+
+**Linux:**
+```bash
+sudo apt-get install python3-tk  # Ubuntu/Debian
+sudo dnf install python3-tkinter  # Fedora
+```
+
+**macOS:** Tkinter should be included; if not, reinstall Python from python.org
+
+---
+
+### "Permission denied" errors
+
+**Linux/macOS:**
+```bash
+pip install --user -r requirements.txt
+# Instead of sudo pip (don't use sudo with pip)
+```
+
+---
+
+### Dependencies fail to install
+
+**Try upgrading pip first:**
+```bash
+python -m pip install --upgrade pip
+```
+
+**Install minimal dependencies only:**
+```bash
+pip install numpy pandas matplotlib
+```
+
+Then add others as needed.
+
+---
+
+### Hardware devices not recognized
+
+**Serial devices (XRF, GPS, meters):**
+- Windows: Install device-specific USB drivers
+- Linux: Add user to dialout group (see above)
+- macOS: Usually works without drivers
+
+**Check device connection:**
 ```python
-# test_installation.py
-import sys
-
-print("Testing Scientific Toolkit installation...\n")
-
-required = {
-    'numpy': 'NumPy',
-    'pandas': 'Pandas',
-    'matplotlib': 'Matplotlib',
-    'scipy': 'SciPy',
-    'sklearn': 'Scikit-learn',
-    'geopandas': 'GeoPandas',
-}
-
-optional = {
-    'plotly': 'Plotly',
-    'openai': 'OpenAI',
-    'anthropic': 'Anthropic',
-    'serial': 'PySerial',
-}
-
-print("Required packages:")
-for module, name in required.items():
-    try:
-        __import__(module)
-        print(f"  ✓ {name}")
-    except ImportError:
-        print(f"  ✗ {name} - MISSING!")
-
-print("\nOptional packages:")
-for module, name in optional.items():
-    try:
-        __import__(module)
-        print(f"  ✓ {name}")
-    except ImportError:
-        print(f"  - {name} - Not installed")
-
-print("\nInstallation test complete!")
-```
-
-Run it:
-```bash
-python test_installation.py
+# In Python console
+import serial.tools.list_ports
+list(serial.tools.list_ports.comports())
 ```
 
 ---
 
-## Optional Components
+### Application crashes on startup
 
-### AI Integrations
-
-To use AI assistants, you need API keys:
-
-1. **OpenAI (ChatGPT)**
-   - Sign up at [platform.openai.com](https://platform.openai.com/)
-   - Get API key from dashboard
-   - Set environment variable:
-     ```bash
-     export OPENAI_API_KEY="sk-..."  # Linux/macOS
-     set OPENAI_API_KEY=sk-...       # Windows
-     ```
-
-2. **Anthropic (Claude)**
-   - Sign up at [console.anthropic.com](https://console.anthropic.com/)
-   - Set `ANTHROPIC_API_KEY`
-
-3. **Google (Gemini)**
-   - Get key from [makersuite.google.com](https://makersuite.google.com/)
-   - Set `GOOGLE_API_KEY`
-
-4. **Ollama (Local models)**
-   - Download from [ollama.ai](https://ollama.ai/)
-   - No API key needed
-
-### Hardware Drivers
-
-For instrument integration:
-
-1. **Serial devices**: Usually work out-of-box on Linux/macOS
-   - Windows: May need driver from manufacturer
-
-2. **USB devices**: May need specific drivers
-   - Check docs/INSTRUMENTS.md for specific requirements
-
-3. **VISA instruments**: Install NI-VISA or pyvisa-py
-   ```bash
-   pip install pyvisa-py
+1. Check Python version: `python --version` (need 3.8+)
+2. Try launching from terminal to see error messages
+3. Check that Tkinter works:
+   ```python
+   python -m tkinter
    ```
+   Should show a test window
 
-### Google Earth Engine
-
-For satellite data access:
-
-```bash
-pip install earthengine-api
-earthengine authenticate
-```
-
----
-
-## Troubleshooting
-
-### Common Issues
-
-#### 1. "Python not found" or "pip not found"
-
-**Solution**: Python not in PATH
-
-- **Windows**: Reinstall Python, check "Add to PATH"
-- **macOS/Linux**: Use `python3` and `pip3` instead
-
-#### 2. "ModuleNotFoundError: No module named 'X'"
-
-**Solution**: Package not installed
-
-```bash
-pip install package-name
-```
-
-Or reinstall requirements:
-```bash
-pip install -r requirements.txt --force-reinstall
-```
-
-#### 3. Toolkit window doesn't appear
-
-**Solution**: Check terminal for errors
-
-- Missing tkinter: Install python3-tk
-- Display issues: Try setting `export DISPLAY=:0`
-
-#### 4. ImportError: DLL load failed (Windows)
-
-**Solution**: Visual C++ Redistributable needed
-
-Download from [Microsoft](https://support.microsoft.com/help/2977003/the-latest-supported-visual-c-downloads)
-
-#### 5. Permission denied (Linux/macOS)
-
-**Solution**: Don't use sudo with pip
-
-```bash
-# Instead of: sudo pip install ...
-# Do:
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-#### 6. Slow installation
-
-**Solutions**:
-- Use minimal requirements: `pip install -r requirements-minimal.txt`
-- Use conda: `conda install -c conda-forge package-name`
-- Use faster mirror: `pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt`
-
-### Getting Help
-
-If you encounter issues not covered here:
-
-1. Check [docs/TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-2. Search [GitHub Issues](https://github.com/sefy-levy/scientific-toolkit/issues)
-3. Create new issue with:
-   - Your OS and Python version
-   - Full error message
-   - Steps to reproduce
-
----
-
-## Next Steps
-
-After successful installation:
-
-1. Read [USER_GUIDE.md](USER_GUIDE.md) for usage instructions
-2. Try example workflows with sample data in `samples/`
-3. Configure your instruments (if applicable)
-4. Set up AI assistants (optional)
-5. Join discussions on GitHub
-
----
-
-## Updating
-
-To update to the latest version:
-
-```bash
-# Navigate to toolkit directory
-cd scientific-toolkit
-
-# Pull latest changes
-git pull origin main
-
-# Update dependencies
-pip install -r requirements.txt --upgrade
-
-# Restart toolkit
-python Scientific-Toolkit.py
-```
+4. Delete any existing .toolkit cache files
+5. Try with minimal dependencies (just numpy, pandas, matplotlib)
 
 ---
 
 ## Uninstallation
 
-To completely remove the toolkit:
+To remove Scientific Toolkit:
 
 ```bash
-# Deactivate virtual environment
-deactivate
-
 # Remove directory
 cd ..
-rm -rf scientific-toolkit  # Linux/macOS
-# Or delete folder in Windows Explorer
+rm -rf scientific-toolkit
 
-# Remove API keys from environment (optional)
-# Edit your .bashrc/.zshrc (Linux/macOS) or Environment Variables (Windows)
+# Remove Python packages (optional)
+pip uninstall numpy pandas matplotlib scipy scikit-learn
+# ... etc for any others you want to remove
+```
+
+No registry entries or system modifications are made.
+
+---
+
+## Updating
+
+To update to a new version:
+
+```bash
+cd scientific-toolkit
+git pull origin main
+
+# Update dependencies
+pip install --upgrade -r requirements.txt
+```
+
+Your data and projects remain untouched.
+
+---
+
+## Development Installation
+
+For contributors wanting to modify the code:
+
+```bash
+git clone https://gitlab.com/sefy76/scientific-toolkit.git
+cd scientific-toolkit
+
+# Create development environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install in development mode
+pip install -e .
+pip install -r requirements.txt
 ```
 
 ---
 
-**Need help?** Email: sefy76@gmail.com or open an issue on GitHub!
+## Offline Installation
+
+For computers without internet access:
+
+1. On a computer WITH internet:
+   ```bash
+   pip download -r requirements.txt -d packages/
+   ```
+
+2. Copy `scientific-toolkit/` folder and `packages/` folder to offline computer
+
+3. On offline computer:
+   ```bash
+   pip install --no-index --find-links=packages/ -r requirements.txt
+   ```
+
+---
+
+## Docker Installation (Advanced)
+
+For isolated environment:
+
+```dockerfile
+# Dockerfile
+FROM python:3.10-slim
+
+RUN apt-get update && apt-get install -y python3-tk
+COPY . /app
+WORKDIR /app
+RUN pip install -r requirements.txt
+
+CMD ["python", "Scientific-Toolkit.py"]
+```
+
+**Note:** GUI applications in Docker require X11 forwarding.
+
+---
+
+## Need Help?
+
+- Check [FAQ](FAQ.md) for common issues
+- Check [Troubleshooting Guide](TROUBLESHOOTING.md)
+- Open an issue: https://gitlab.com/sefy76/scientific-toolkit/-/issues
+
+Include in your issue:
+- Operating system and version
+- Python version (`python --version`)
+- Full error message
+- What you were trying to do

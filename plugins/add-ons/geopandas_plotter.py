@@ -27,8 +27,9 @@ except ImportError:
 PLUGIN_INFO = {
     'id': 'geopandas_plotter',
     'name': 'Geopandas Archaeological Mapper',
-    'category': 'add-on',
+    'category': 'add-ons',
     'icon': '🗺️',
+    'version': '2.0',
     'requires': ['geopandas', 'matplotlib', 'contextily', 'shapely'],
     'description': 'Map archaeological sites with basemaps',
     'exclusive_group': 'plotter'

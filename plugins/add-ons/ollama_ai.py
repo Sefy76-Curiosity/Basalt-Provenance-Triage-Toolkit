@@ -24,6 +24,7 @@ PLUGIN_INFO = {
     'name': 'Ollama AI (Free Local)',
     'category': 'add-ons',
     'icon': '🦙',
+    'version': '2.0',
     'requires': ['requests'],
     'description': 'Free AI assistant running locally on your computer'
 }

@@ -1,0 +1,66 @@
+{
+  "Nature_Style": {
+    "name": "🌿 Nature",
+    "description": "Clean, minimal style used in Nature publications",
+    "axes": {"direction": "out", "mirror": false, "spine_width": 0.5, "major_tick_len": 4},
+    "grid": {"enabled": false},
+    "fonts": {"family": "Arial", "label_size": 9, "tick_size": 7},
+    "palette": ["#000000", "#E69F00", "#56B4E9", "#009E73"]
+  },
+  "Science_Style": {
+    "name": "🔬 Science",
+    "description": "High-contrast style for Science magazine",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.0, "major_tick_len": 5},
+    "grid": {"enabled": true, "style": ":", "width": 0.3, "color": "#CCCCCC"},
+    "fonts": {"family": "Times New Roman", "label_size": 10, "tick_size": 8},
+    "palette": ["#000000", "#D55E00", "#0072B2", "#009E73"]
+  },
+  "AGU_Style": {
+    "name": "🌎 AGU (JGR, GRL)",
+    "description": "American Geophysical Union standard",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.5, "major_tick_len": 6},
+    "grid": {"enabled": true, "style": "--", "width": 0.5, "color": "#999999"},
+    "fonts": {"family": "Times New Roman", "label_size": 11, "tick_size": 9},
+    "palette": ["#000000", "#E41A1C", "#377EB8", "#4DAF4A"]
+  },
+  "Elsevier_Style": {
+    "name": "📘 Elsevier (Chem Geol)",
+    "description": "Standard for Elsevier geochemistry journals",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.0, "major_tick_len": 5},
+    "grid": {"enabled": false},
+    "fonts": {"family": "Arial", "label_size": 10, "tick_size": 8},
+    "palette": ["#1f78b4", "#33a02c", "#e31a23", "#ff7f00"]
+  },
+  "GSA_Style": {
+    "name": "⛰️ GSA (Geology)",
+    "description": "Geological Society of America",
+    "axes": {"direction": "in", "mirror": false, "spine_width": 1.2, "major_tick_len": 5},
+    "grid": {"enabled": true, "style": "-", "width": 0.3, "color": "#DDDDDD"},
+    "fonts": {"family": "Arial", "label_size": 9, "tick_size": 7, "weight": "bold"},
+    "palette": ["#252525", "#cb181d", "#2171b5", "#238b45"]
+  },
+  "Wiley_Style": {
+    "name": "📓 Wiley (JGR)",
+    "description": "Wiley journals standard",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.0, "major_tick_len": 5},
+    "grid": {"enabled": true, "style": "--", "width": 0.4, "color": "#AAAAAA"},
+    "fonts": {"family": "Arial", "label_size": 10, "tick_size": 8},
+    "palette": ["#000000", "#cc4c02", "#045a8d", "#4d9221"]
+  },
+  "Springer_Style": {
+    "name": "📚 Springer (CMP)",
+    "description": "Springer journals standard",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 0.8, "major_tick_len": 4},
+    "grid": {"enabled": false},
+    "fonts": {"family": "Times New Roman", "label_size": 10, "tick_size": 8},
+    "palette": ["#000000", "#b2182b", "#2166ac", "#1b7837"]
+  },
+  "PNAS_Style": {
+    "name": "🏛️ PNAS",
+    "description": "Proceedings of the National Academy of Sciences",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 0.8, "major_tick_len": 4},
+    "grid": {"enabled": false},
+    "fonts": {"family": "Arial", "label_size": 9, "tick_size": 7},
+    "palette": ["#000000", "#99000d", "#084594", "#006d2c"]
+  }
+}

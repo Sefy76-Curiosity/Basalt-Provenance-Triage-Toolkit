@@ -23,8 +23,9 @@ except ImportError:
 PLUGIN_INFO = {
     'id': 'seaborn_plotter',
     'name': 'Seaborn Statistical Plotter',
-    'category': 'add-on',
+    'category': 'add-ons',
     'icon': '📈',
+    'version': '2.0',
     'requires': ['seaborn', 'matplotlib'],
     'description': 'Beautiful statistical plots with seaborn',
     'exclusive_group': 'plotter'

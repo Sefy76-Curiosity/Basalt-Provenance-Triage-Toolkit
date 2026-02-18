@@ -1,0 +1,34 @@
+{
+  "Minimal_BW": {
+    "name": "⚫ B&W Print",
+    "description": "Grayscale only for black-and-white printing",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.0, "major_tick_len": 5},
+    "grid": {"enabled": true, "style": ":", "width": 0.3, "color": "#888888"},
+    "fonts": {"family": "Times New Roman", "label_size": 10, "tick_size": 8},
+    "palette": ["#000000", "#333333", "#666666", "#999999", "#CCCCCC"]
+  },
+  "Color_Blind_Safe": {
+    "name": "🌈 Color Blind Safe",
+    "description": "Accessible palettes for color vision deficiency",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.0, "major_tick_len": 5},
+    "grid": {"enabled": true, "style": "--", "width": 0.5, "color": "#999999"},
+    "fonts": {"family": "Arial", "label_size": 10, "tick_size": 8},
+    "palette": ["#0072B2", "#D55E00", "#009E73", "#CC79A7", "#F0E442", "#56B4E9"]
+  },
+  "High_Contrast": {
+    "name": "👁️ High Contrast",
+    "description": "Maximum visibility for accessibility",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 2.0, "major_tick_len": 8},
+    "grid": {"enabled": true, "style": "-", "width": 1.0, "color": "#000000", "alpha": 0.8},
+    "fonts": {"family": "Arial", "label_size": 14, "tick_size": 12, "weight": "bold"},
+    "palette": ["#000000", "#FF0000", "#0000FF", "#008000", "#FF00FF"]
+  },
+  "Classic_Academic": {
+    "name": "🎓 Classic Academic",
+    "description": "Traditional serif fonts with subtle grid",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.0, "major_tick_len": 5},
+    "grid": {"enabled": true, "style": ":", "width": 0.3, "color": "#CCCCCC"},
+    "fonts": {"family": "Times New Roman", "label_size": 11, "tick_size": 9},
+    "palette": ["#8c510a", "#01665e", "#8e0152", "#276419", "#762a83"]
+  }
+}

@@ -26,8 +26,9 @@ except ImportError:
 PLUGIN_INFO = {
     'id': 'missingno_plotter',
     'name': 'Missing Data Visualizer',
-    'category': 'add-on',
+    'category': 'add-ons',
     'icon': '🔍',
+    'version': '2.0',
     'requires': ['missingno', 'matplotlib', 'pandas', 'numpy'],
     'description': 'Visualize missing data patterns and data quality',
     'exclusive_group': 'plotter'

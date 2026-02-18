@@ -1,0 +1,41 @@
+{
+  "auto_save": {
+    "enabled": false,
+    "interval": 300,
+    "notify_on_save": true
+  },
+  "macro_recorder": {
+    "enabled": true,
+    "max_macros": 50,
+    "confirm_delete": true
+  },
+  "project_manager": {
+    "enabled": false,
+    "auto_load_recent": true,
+    "max_recent_projects": 10
+  },
+  "script_exporter": {
+    "enabled": true,
+    "default_language": "python",
+    "include_comments": true
+  },
+  "recent_files": {
+    "enabled": true,
+    "max_files": 10,
+    "show_in_menu": true
+  },
+  "tooltips": {
+    "enabled": true,
+    "delay": 500
+  },
+  "ui": {
+    "show_unsaved_indicator": false,
+    "auto_size_columns": true,
+    "confirm_deletes": true
+  },
+  "last_session": {
+    "last_project": null,
+    "window_geometry": "1400x850+254+55",
+    "last_accessed": "2026-02-18T09:34:00.807791"
+  }
+}

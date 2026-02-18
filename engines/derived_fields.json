@@ -1,0 +1,198 @@
+{
+  "scheme_name": "Derived Field Calculator Registry",
+  "version": "2.0",
+  "description": "Defines all derived fields needed for classification schemes",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-17",
+  "fields": [
+    {
+      "name": "Zr_RSD",
+      "description": "Relative standard deviation of Zr",
+      "requires": ["Zr_ppm", "Zr_error"],
+      "formula": "Zr_error / Zr_ppm",
+      "used_by": ["analytical_precision_filter"]
+    },
+    {
+      "name": "Zr_Nb_Ratio",
+      "description": "Zr/Nb ratio for provenance",
+      "requires": ["Zr_ppm", "Nb_ppm"],
+      "formula": "Zr_ppm / Nb_ppm",
+      "used_by": ["regional_triage", "provenance_fingerprinting"]
+    },
+    {
+      "name": "Cr_Ni_Ratio",
+      "description": "Cr/Ni ratio for mantle sources",
+      "requires": ["Cr_ppm", "Ni_ppm"],
+      "formula": "Cr_ppm / Ni_ppm",
+      "used_by": ["regional_triage"]
+    },
+    {
+      "name": "Ba_Rb_Ratio",
+      "description": "Ba/Rb ratio for enrichment",
+      "requires": ["Ba_ppm", "Rb_ppm"],
+      "formula": "Ba_ppm / Rb_ppm",
+      "used_by": ["regional_triage"]
+    },
+    {
+      "name": "Ti_V_Ratio",
+      "description": "Ti/V ratio for tectonic discrimination",
+      "requires": ["Ti_ppm", "V_ppm"],
+      "formula": "Ti_ppm / V_ppm",
+      "used_by": ["provenance_fingerprinting"]
+    },
+    {
+      "name": "Nb_Yb_Ratio",
+      "description": "Nb/Yb ratio for mantle array",
+      "requires": ["Nb_ppm", "Yb_ppm"],
+      "formula": "Nb_ppm / Yb_ppm",
+      "used_by": ["pearce_mantle_array"]
+    },
+    {
+      "name": "Th_Yb_Ratio",
+      "description": "Th/Yb ratio for crustal contamination",
+      "requires": ["Th_ppm", "Yb_ppm"],
+      "formula": "Th_ppm / Yb_ppm",
+      "used_by": ["pearce_mantle_array"]
+    },
+    {
+      "name": "Fe_Mn_Ratio",
+      "description": "Fe/Mn ratio for planetary analogs",
+      "requires": ["Fe_ppm", "Mn_ppm"],
+      "formula": "Fe_ppm / Mn_ppm",
+      "used_by": ["planetary_analog_ratio"]
+    },
+    {
+      "name": "CIA_Value",
+      "description": "Chemical Index of Alteration",
+      "requires": ["Al2O3_wt", "CaO_wt", "Na2O_wt", "K2O_wt"],
+      "formula": "(Al2O3_wt / (Al2O3_wt + CaO_wt + Na2O_wt + K2O_wt)) * 100",
+      "used_by": ["chemical_index_alteration"]
+    },
+    {
+      "name": "V_Ratio",
+      "description": "Slag basicity index (CaO+MgO)/(SiO2+Al2O3)",
+      "requires": ["CaO_wt", "MgO_wt", "SiO2_wt", "Al2O3_wt"],
+      "formula": "(CaO_wt + MgO_wt) / (SiO2_wt + Al2O3_wt)",
+      "used_by": ["slag_basicity_index"]
+    },
+    {
+      "name": "Basicity_Quaternary",
+      "description": "Quaternary basicity for K₂O–SiO₂ scheme",
+      "requires": ["CaO_wt", "MgO_wt", "SiO2_wt", "Al2O3_wt"],
+      "formula": "(CaO_wt + MgO_wt) / (SiO2_wt + Al2O3_wt)",
+      "used_by": ["K₂O–SiO₂_volcanic_series"]
+    },
+    {
+      "name": "Total_Alkali",
+      "description": "Na2O + K2O for TAS diagrams",
+      "requires": ["Na2O_wt", "K2O_wt"],
+      "formula": "Na2O_wt + K2O_wt",
+      "used_by": [
+        "anhydrous_normalization",
+        "tas_full_volcanic_classification",
+        "total_alkali_vs_silica_(tas_polygons)"
+      ]
+    },
+    {
+      "name": "Eu_star",
+      "description": "Europium anomaly (Eu/Eu*)",
+      "requires": ["Eu_ppm", "Sm_ppm", "Gd_ppm"],
+      "formula": "Eu_ppm / ((Sm_ppm * Gd_ppm) ** 0.5)",
+      "used_by": ["rare_earth_element"]
+    },
+    {
+      "name": "La_Sm_Ratio",
+      "description": "LREE fractionation",
+      "requires": ["La_ppm", "Sm_ppm"],
+      "formula": "La_ppm / Sm_ppm",
+      "used_by": ["rare_earth_element"]
+    },
+    {
+      "name": "La_Yb_Ratio",
+      "description": "Overall REE fractionation",
+      "requires": ["La_ppm", "Yb_ppm"],
+      "formula": "La_ppm / Yb_ppm",
+      "used_by": ["rare_earth_element"]
+    },
+    {
+      "name": "Sm_Yb_Ratio",
+      "description": "MREE/HREE fractionation",
+      "requires": ["Sm_ppm", "Yb_ppm"],
+      "formula": "Sm_ppm / Yb_ppm",
+      "used_by": ["rare_earth_element"]
+    },
+    {
+      "name": "Pb_EF",
+      "description": "Lead enrichment factor (simplified)",
+      "requires": ["Pb_ppm"],
+      "formula": "Pb_ppm / 20.0",
+      "used_by": ["enrichment_factor_screening"]
+    },
+    {
+      "name": "Mg_Number",
+      "description": "Magnesium number (Mg#)",
+      "requires": ["MgO_wt", "Fe2O3_T_wt"],
+      "formula": "100 * MgO_wt / (MgO_wt + (Fe2O3_T_wt * 0.9))",
+      "used_by": ["afm_irvine–baragar_series"]
+    },
+    {
+      "name": "ACNK",
+      "description": "Alumina saturation index (A/CNK)",
+      "requires": ["Al2O3_wt", "CaO_wt", "Na2O_wt", "K2O_wt"],
+      "formula": "(Al2O3_wt / 101.96) / ((CaO_wt / 56.08) + (Na2O_wt / 61.98) + (K2O_wt / 94.20))",
+      "used_by": ["afm_irvine–baragar_series"]
+    },
+    {
+      "name": "Fe2O3_TiO2_Ratio",
+      "description": "Iron/Titanium ratio for firing temperature",
+      "requires": ["Fe2O3_T_wt", "TiO2_wt"],
+      "formula": "Fe2O3_T_wt / TiO2_wt",
+      "used_by": ["ceramic_firing_temperature_proxies"]
+    },
+    {
+      "name": "CaO_P2O5_Ratio",
+      "description": "Calcium/Phosphorus ratio for bone diagenesis",
+      "requires": ["CaO_wt", "P2O5_wt"],
+      "formula": "CaO_wt / P2O5_wt",
+      "used_by": ["bone_diagenesis_apatite"]
+    },
+    {
+      "name": "Sr_Ca_Ratio",
+      "description": "Strontium/Calcium ratio for trophic level",
+      "requires": ["Sr_ppm", "Ca_ppm"],
+      "formula": "Sr_ppm / Ca_ppm",
+      "used_by": ["bone_trophic_diet"]
+    },
+    {
+      "name": "C_N_Ratio",
+      "description": "Carbon/Nitrogen ratio for collagen preservation",
+      "requires": ["C_pct", "N_pct"],
+      "formula": "C_pct / N_pct",
+      "used_by": ["bone_collagen_qc"]
+    },
+    {
+      "name": "Total_Sum",
+      "description": "Total percentage check for texture classification",
+      "requires": ["Sand_pct", "Silt_pct", "Clay_pct"],
+      "formula": "Sand_pct + Silt_pct + Clay_pct",
+      "used_by": [
+        "usda_soil_texture_classification",
+        "usda_soil_texture_triangle_(full)"
+      ]
+    },
+    {
+      "name": "AFM_Boundary_Value",
+      "description": "Position relative to Irvine-Baragar line",
+      "requires": ["Na2O_wt", "K2O_wt", "Fe2O3_T_wt", "MgO_wt"],
+      "formula": "(Na2O_wt + K2O_wt) / ((Fe2O3_T_wt * 0.9) + MgO_wt)",
+      "used_by": ["afm_irvine–baragar_series"]
+    },
+    {
+      "name": "MagSus_Threshold",
+      "description": "Magnetic susceptibility check",
+      "requires": ["MagSus_10e6_si"],
+      "formula": "MagSus_10e6_si",
+      "used_by": ["ceramic_firing_temperature_proxies"]
+    }
+  ]
+}

@@ -111,6 +111,117 @@ class CenterPanel:
 
         self._configure_row_colors()
 
+    def show_progress(self, operation, current=None, total=None, message=""):
+        """
+        Show progress for any operation
+        operation: str - type of operation (import, export, classification, etc.)
+        current: int - current progress count
+        total: int - total items to process
+        message: str - custom message
+        """
+        icons = {
+            "import": "📥",
+            "export": "📤",
+            "classification": "🔬",
+            "save": "💾",
+            "load": "📂",
+            "delete": "🗑️",
+            "filter": "🔍",
+            "plot": "📈",
+            "macro": "🎬",
+            "plugin": "🔌",
+            "processing": "🔄",
+            "complete": "✅",
+            "error": "❌",
+            "warning": "⚠️"
+        }
+
+        icon = icons.get(operation, "🔄")
+
+        if current is not None and total is not None and total > 0:
+            # Show progress bar style
+            percentage = (current / total) * 100
+            bar_length = 20
+            filled = int(bar_length * current // total)
+            bar = "█" * filled + "░" * (bar_length - filled)
+
+            status = f"{icon} {operation.title()}: [{bar}] {current}/{total} ({percentage:.1f}%)"
+            if message:
+                status += f" - {message}"
+        else:
+            # Show simple status
+            if message:
+                status = f"{icon} {message}"
+            else:
+                status = f"{icon} {operation.title()} in progress..."
+
+        self.status_var.set(status)
+        self.last_operation = {
+            'type': operation,
+            'current': current,
+            'total': total,
+            'message': message,
+            'icon': icon
+        }
+        self.app.root.update_idletasks()
+
+    def show_operation_complete(self, operation, details=""):
+        """Show completion message for an operation"""
+        icons = {
+            "import": "📥",
+            "export": "📤",
+            "classification": "🔬",
+            "save": "💾",
+            "load": "📂",
+            "delete": "🗑️",
+            "filter": "🔍",
+            "plot": "📈",
+            "macro": "🎬",
+            "plugin": "🔌"
+        }
+
+        icon = icons.get(operation, "✅")
+
+        if details:
+            status = f"{icon} {operation.title()} complete: {details}"
+        else:
+            status = f"{icon} {operation.title()} complete"
+
+        self.status_var.set(status)
+        self.last_operation = {
+            'type': operation,
+            'complete': True,
+            'details': details
+        }
+        self.app.root.update_idletasks()
+
+        # Auto-clear after 5 seconds
+        self.app.root.after(5000, self._clear_if_complete)
+
+    def _clear_if_complete(self):
+        """Clear status if it's still showing a completion message"""
+        current = self.status_var.get()
+        if "complete" in current.lower() or "✅" in current:
+            self.clear_status()
+
+    def show_error(self, operation, error_message):
+        """Show error message"""
+        self.status_var.set(f"❌ {operation} failed: {error_message[:50]}...")
+        self.last_operation = {
+            'type': operation,
+            'error': error_message
+        }
+        self.app.root.update_idletasks()
+
+    def show_warning(self, operation, warning_message):
+        """Show warning message"""
+        self.status_var.set(f"⚠️ {operation}: {warning_message[:50]}...")
+        self.last_operation = {
+            'type': operation,
+            'warning': warning_message
+        }
+        self.app.root.update_idletasks()
+
     def _configure_row_colors(self):
         """Configure row colors from color manager"""
         configured_tags = set()
@@ -125,7 +236,7 @@ class CenterPanel:
                 configured_tags.add(upper)
 
     def _build_plots_tab(self):
-        """Build the plots tab"""
+        """Build the plots tab with immediate plotter UI loading"""
         ctrl_frame = ttk.Frame(self.plots_tab)
         ctrl_frame.pack(fill=tk.X, padx=5, pady=5)
 
@@ -133,20 +244,51 @@ class CenterPanel:
 
         self.plot_type_var = tk.StringVar()
         self.plot_type_combo = ttk.Combobox(ctrl_frame, textvariable=self.plot_type_var,
-                                           state="readonly", width=30)
+                                            state="readonly", width=30)
         self.plot_type_combo.pack(side=tk.LEFT, padx=5)
 
-        self.plot_btn = ttk.Button(ctrl_frame, text="Generate Plot",
-                                   command=self._generate_plot, state="disabled")
+        # ADD BACK THE GENERATE PLOT BUTTON
+        self.plot_btn = ttk.Button(ctrl_frame, text="🎨 Generate Plot",
+                                command=self._generate_plot,
+                                style='Accent.TButton')
         self.plot_btn.pack(side=tk.LEFT, padx=5)
+
+        # Bind selection to immediately load the plotter UI
+        self.plot_type_combo.bind('<<ComboboxSelected>>', self._load_plotter_ui)
 
         self.plot_area = tk.Frame(self.plots_tab, bg="white", relief=tk.SUNKEN, borderwidth=1)
         self.plot_area.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        placeholder = tk.Label(self.plot_area, text="Select a plot type and click Generate",
-                               font=("Arial", 12), fg="gray")
-        placeholder.pack(expand=True)
-        self.plot_placeholder = placeholder
+    def _load_plotter_ui(self, event=None):
+        """Immediately load the selected plotter's UI"""
+        if not self.plot_types or not self.plot_type_var.get():
+            return
+
+        selected = self.plot_type_var.get()
+        plot_func = None
+        for name, func in self.plot_types:
+            if name == selected:
+                plot_func = func
+                break
+
+        if plot_func:
+            # Clear the plot area
+            for widget in self.plot_area.winfo_children():
+                widget.destroy()
+
+            # Get current samples
+            samples = self.app.data_hub.get_page(self.current_page, self.page_size)
+
+            try:
+                # Call the plotter function - it should create its own UI
+                # including its own "Generate" button
+                plot_func(self.plot_area, samples)
+            except Exception as e:
+                error_label = tk.Label(self.plot_area, text=f"Error loading plotter: {e}",
+                                    fg="red", font=("Arial", 10))
+                error_label.pack(expand=True)
+                import traceback
+                traceback.print_exc()
 
     def update_plot_types(self, plot_types):
         """Update available plot types from plugins"""
@@ -155,8 +297,16 @@ class CenterPanel:
             values = [name for name, func in plot_types]
             self.plot_type_combo['values'] = values
             if values:
-                self.plot_type_combo.current(0)
-                self.plot_btn.config(state="normal")
+                # Don't auto-select first one - let user choose
+                self.plot_type_combo.set("")
+                # Clear plot area
+                for widget in self.plot_area.winfo_children():
+                    widget.destroy()
+                placeholder = tk.Label(self.plot_area,
+                                    text="Select a plot type from the dropdown above",
+                                    font=("Arial", 12), fg="gray")
+                placeholder.pack(expand=True)
+                self.plot_placeholder = placeholder
 
     def _generate_plot(self):
         """Generate the selected plot"""
@@ -223,41 +373,71 @@ class CenterPanel:
         # Get ALL columns from DataHub (already normalized)
         all_columns = self.app.data_hub.get_column_names()
 
-        # ============ FIXED COLUMNS (ALWAYS FIRST IN THIS ORDER) ============
-        fixed_columns = ["Sample_ID", "Notes", "Museum_Code", "Date", "Latitude", "Longitude"]
+        print(f"🔄 Refreshing table with columns: {all_columns}")
 
-        # Also include any other "wordy" metadata columns that should appear early
-        metadata_keywords = ["Context", "Location", "Site", "Area", "Square", "Locus",
-                            "Basket", "Bag", "Field", "Description", "Comment"]
+        # ============ PRIORITY COLUMN ORDER ============
+        # These must be the first columns in EXACT order
+        priority_order = [
+            "Sample_ID",      # MUST be first
+            "Notes",          # MUST be second
+            "Museum_Code",    # Third
+            "Date",           # Fourth
+            "Latitude",       # Fifth
+            "Longitude",      # Sixth
+        ]
 
-        # Separate fixed columns from chemical data
-        priority = []
-        chemical = []
+        # Additional metadata that should appear early
+        early_metadata = [
+            "Depth_cm", "C14_age_BP", "C14_error",  # Chronology data
+            "Zr_ppm", "Nb_ppm", "Ba_ppm", "Rb_ppm", "Cr_ppm", "Ni_ppm",  # Key trace elements
+            "SiO2_wt", "TiO2_wt", "Al2O3_wt", "Fe2O3_T_wt",  # Major oxides
+        ]
 
-        for col in all_columns:
-            if col in fixed_columns:
-                priority.append(col)
-            elif any(keyword.lower() in col.lower() for keyword in metadata_keywords):
-                priority.append(col)
-            elif col not in ["☐", "Display_Color", "Auto_Classification_Color"]:
-                chemical.append(col)
+        # ============ ALL CLASSIFICATION COLUMNS ============
+        # These need to be visible in the table!
+        classification_columns = [
+            # Primary classification columns
+            "Auto_Classification", "TAS_Classification", "Weathering_State",
+            "Enrichment_Status", "Planetary_Analog", "Provenance_Fingerprint",
+            "CIPW_Category", "Anomaly_Status", "Eruption_Style",
+            "Slag_Basicity_Class", "Magmatic_Series", "Collagen_Status",
+            "Apatite_Classification", "Trophic_Level", "Estimated_Firing_Temp",
+            "Chondrite_Class", "Carbonate_Type", "Bone_Preservation_Status",
+            "Pollution_Grade_Igeo", "Glass_Family_Type", "Shock_Stage",
+            "Weathering_Grade", "Exploration_Priority", "REE_Pattern_Type",
+            "Wentworth_Class", "Salinity_Class", "Sodicity_Class",
+            "USDA_Texture_Class", "Full_USDA_Class", "Hardness_Level",
+            "Dietary_Group", "IUGS_Volcanic_Class", "TAS_Magmatic_Series",
 
-        # Remove duplicates while preserving order
-        seen = set()
-        priority_deduped = []
-        for col in priority:
-            if col not in seen:
-                seen.add(col)
-                priority_deduped.append(col)
+            # Metadata columns
+            "Auto_Confidence", "Flag_For_Review", "Display_Color"
+        ]
 
-        chemical_deduped = []
-        for col in chemical:
-            if col not in seen:
-                seen.add(col)
-                chemical_deduped.append(col)
+        # Build final column order
+        final_cols = ["☐"]  # Checkbox first
 
-        # Final column order: Checkbox + priority + chemical
-        final_cols = ["☐"] + priority_deduped + chemical_deduped
+        # Add priority columns that exist
+        for col in priority_order:
+            if col in all_columns and col not in final_cols:
+                final_cols.append(col)
+
+        # Add early metadata that exist and aren't already added
+        for col in early_metadata:
+            if col in all_columns and col not in final_cols:
+                final_cols.append(col)
+
+        # Add classification columns that exist (these are important!)
+        for col in classification_columns:
+            if col in all_columns and col not in final_cols:
+                final_cols.append(col)
+
+        # Add all remaining columns in alphabetical order
+        remaining = sorted([col for col in all_columns
+                        if col not in final_cols
+                        and col not in ["☐", "Display_Color", "Auto_Classification_Color"]])
+        final_cols.extend(remaining)
+
+        print(f"📊 Final column order: {final_cols}")
 
         # Update column configuration if changed
         if list(self.tree["columns"]) != final_cols:
@@ -268,20 +448,20 @@ class CenterPanel:
                     self.tree.column(col, width=30, anchor=tk.CENTER, stretch=False)
                 else:
                     # Create display name
-                    display_name = col.replace("_", " ")
-                    if col == "Sample_ID":
-                        display_name = "ID"
-                    elif col == "Museum_Code":
-                        display_name = "Museum"
-                    elif col.endswith("_ppm"):
-                        display_name = col.replace("_ppm", " (ppm)")
-                    elif col.endswith("_pct") or col.endswith("_wt"):
-                        display_name = col.replace("_pct", "%").replace("_wt", "%")
-
+                    display_name = self._get_display_name(col)
                     self.tree.heading(col, text=display_name, anchor=tk.CENTER)
-                    # Set reasonable default width
-                    if col in priority_deduped:
+
+                    # Set column width based on type
+                    if col in priority_order[:2]:  # Sample_ID and Notes
+                        self.tree.column(col, width=150, anchor=tk.W, minwidth=100)
+                    elif col in priority_order[2:]:  # Other priority
                         self.tree.column(col, width=120, anchor=tk.W, minwidth=80)
+                    elif col in classification_columns:  # Classification columns
+                        self.tree.column(col, width=130, anchor=tk.W, minwidth=100)
+                    elif col in ["Auto_Confidence"]:  # Confidence column
+                        self.tree.column(col, width=70, anchor=tk.CENTER, minwidth=50)
+                    elif col in ["Flag_For_Review"]:  # Flag column
+                        self.tree.column(col, width=50, anchor=tk.CENTER, minwidth=40)
                     else:
                         self.tree.column(col, width=100, anchor=tk.CENTER, minwidth=60)
 
@@ -294,48 +474,83 @@ class CenterPanel:
 
             values = [checkbox]
 
-            # Add priority columns
-            for col in priority_deduped:
+            # Add values in the same order as columns
+            for col in final_cols[1:]:  # Skip checkbox
                 val = sample.get(col, "")
-                if val is None:
-                    val = ""
-                values.append(str(val))
-
-            # Add chemical columns
-            for col in chemical_deduped:
-                val = sample.get(col, "")
-                if val is None:
-                    val = ""
-                # Format numbers nicely
-                if isinstance(val, (int, float)):
-                    if abs(val) < 0.01 or abs(val) > 1000:
-                        values.append(f"{val:.2e}")
-                    elif val == int(val):
-                        values.append(str(int(val)))
-                    else:
-                        values.append(f"{val:.2f}")
+                if val is None or val == "":
+                    values.append("")
                 else:
-                    values.append(str(val))
+                    # Format numbers nicely
+                    if isinstance(val, (int, float)):
+                        if abs(val) < 0.01 or abs(val) > 1000:
+                            values.append(f"{val:.2e}")
+                        elif val == int(val):
+                            values.append(str(int(val)))
+                        else:
+                            values.append(f"{val:.2f}")
+                    else:
+                        # For classification names, don't truncate
+                        if col in classification_columns and len(str(val)) > 30:
+                            values.append(str(val)[:27] + "...")
+                        else:
+                            values.append(str(val))
 
             item_id = self.tree.insert("", tk.END, values=tuple(values))
 
             # Apply color tag if classification exists
-            if 'Auto_Classification' in sample:
-                tag = sample['Auto_Classification']
-                self.tree.item(item_id, tags=(tag,))
-            else:
-                self.tree.item(item_id, tags=("UNCLASSIFIED",))
+            # Try to get the most relevant classification for coloring
+            tag = "UNCLASSIFIED"
+            for class_col in ["Auto_Classification", "TAS_Classification", "Weathering_State"]:
+                if class_col in sample and sample[class_col] and sample[class_col] != "UNCLASSIFIED":
+                    tag = sample[class_col]
+                    break
 
-        # Auto-size columns (only on first refresh, unless forced)
+            self.tree.item(item_id, tags=(tag,))
+
+        # Auto-size columns
         if self._first_refresh:
             self.app.auto_size_columns(self.tree, samples, force=False)
             self._first_refresh = False
-        # After first refresh, columns retain their size (user can manually adjust)
 
         # Update pagination
         pages = (total + self.page_size - 1) // self.page_size if total > 0 else 1
         self.app.update_pagination(self.current_page, pages, total)
         self.sel_label.config(text=f"Selected: {len(self.selected_rows)}")
+
+    def auto_size_columns(self, tree, samples, force=False):
+        """Auto-size columns based on content"""
+        if not samples or not tree.get_children():
+            return
+
+        columns = tree["columns"]
+        for col in columns:
+            if col == "☐":
+                tree.column(col, width=30, minwidth=30)
+                continue
+
+            # Get header width from display name
+            header_text = self._get_display_name(col)
+            max_width = len(header_text) * 8
+
+            # Check content
+            for item in tree.get_children()[:50]:  # Check first 50 rows
+                values = tree.item(item, "values")
+                col_idx = columns.index(col)
+                if col_idx < len(values):
+                    text = str(values[col_idx])
+                    width = len(text) * 7
+                    if width > max_width:
+                        max_width = width
+
+            # Set width with reasonable limits
+            if col in ["Sample_ID", "Notes"]:
+                new_width = min(max(100, max_width), 300)
+            elif col in ["Weathering_Features", "Support_Type", "Expected_Classification"]:
+                new_width = min(max(120, max_width), 250)
+            else:
+                new_width = min(max(80, max_width), 200)
+
+            tree.column(col, width=new_width)
 
     # ============ SELECTION ============
     def _on_click(self, event):
@@ -403,6 +618,27 @@ class CenterPanel:
             self.current_page += 1
             self._refresh()
 
+    def _get_display_name(self, column_name):
+        """Get display name from chemical_elements.json"""
+        # First, try to find in chemical_elements
+        if hasattr(self.app, 'chemical_elements'):
+            for elem_key, elem_info in self.app.chemical_elements.items():
+                if elem_info.get('standard') == column_name:
+                    return elem_info.get('display_name', column_name.replace('_', ' '))
+
+        # If not found, fall back to a clean version
+        # Remove common suffixes
+        name = column_name
+        if name.endswith('_ppm'):
+            name = name[:-4] + ' (ppm)'
+        elif name.endswith('_pct'):
+            name = name[:-4] + '%'
+        elif name.endswith('_wt'):
+            name = name[:-3] + '%'
+        else:
+            name = name.replace('_', ' ')
+
+        return name
     # ============ FILTER ============
     def _apply_filter(self):
         self._refresh()
@@ -606,6 +842,9 @@ class CenterPanel:
         sample = self.app.data_hub.get_all()[sample_idx]
 
         menu = tk.Menu(self.tree, tearoff=0)
+        # ADD THIS LINE 👇
+        menu.add_command(label="🔍 Classify This Sample",
+                        command=lambda: self._classify_selected_sample(sample_idx))
         menu.add_command(label="Edit Cell",
                         command=lambda: self._edit_selected_cell(event, item, sample_idx))
         menu.add_separator()
@@ -618,6 +857,142 @@ class CenterPanel:
             menu.tk_popup(event.x_root, event.y_root)
         finally:
             menu.grab_release()
+
+    def _classify_selected_sample(self, sample_idx):
+        """Classify a single selected sample"""
+        print(f"\n🔍 CLASSIFY SELECTED SAMPLE - Index: {sample_idx}")
+
+        samples = self.app.data_hub.get_all()
+        if sample_idx >= len(samples):
+            print(f"❌ Sample index {sample_idx} out of range (max: {len(samples)-1})")
+            return
+
+        sample = samples[sample_idx]
+        print(f"📋 Sample ID: {sample.get('Sample_ID', 'Unknown')}")
+
+        # Get current classification scheme from right panel
+        if hasattr(self.app, 'right') and hasattr(self.app.right, 'scheme_var'):
+            display_name = self.app.right.scheme_var.get()
+            print(f"🎯 Selected scheme display name: '{display_name}'")
+
+            if not display_name:
+                messagebox.showinfo("No Scheme", "Please select a classification scheme first")
+                return
+
+            # Find scheme ID
+            scheme_id = None
+            if hasattr(self.app.right, 'schemes'):
+                print("🔍 Checking right panel schemes:")
+                for sid, info in self.app.right.schemes.items():
+                    print(f"   {sid} -> {info.get('name', '')}")
+                    if info.get('name') == display_name or info.get('scheme_name') == display_name:
+                        scheme_id = sid
+                        print(f"✓ Found in right panel: {scheme_id}")
+                        break
+
+            if not scheme_id and self.app.classification_engine:
+                print("🔍 Checking engine schemes directly:")
+                for sid, scheme in self.app.classification_engine.schemes.items():
+                    print(f"   {sid} -> {scheme.get('scheme_name', '')}")
+                    if scheme.get('scheme_name') == display_name:
+                        scheme_id = sid
+                        print(f"✓ Found in engine: {scheme_id}")
+                        break
+
+            if not scheme_id:
+                import re
+                clean_name = re.sub(r'[✅🔬🏛🌍🪐🏺💎⚒🌋🎯]', '', display_name).strip()
+                print(f"🔍 Trying clean name: '{clean_name}'")
+
+                if self.app.classification_engine:
+                    for sid, scheme in self.app.classification_engine.schemes.items():
+                        scheme_clean = re.sub(r'[✅🔬🏛🌍🪐🏺💎⚒🌋🎯]', '', scheme.get('scheme_name', '')).strip()
+                        if scheme_clean == clean_name:
+                            scheme_id = sid
+                            print(f"✓ Found via clean name: {scheme_id}")
+                            break
+
+            if not scheme_id:
+                print(f"❌ Could not find scheme ID for '{display_name}'")
+                messagebox.showerror("Error", f"Could not find scheme ID for '{display_name}'")
+                return
+
+            if self.app.classification_engine:
+                try:
+                    print(f"🚀 Running classification with scheme: {scheme_id}")
+
+                    # Run classification
+                    result, confidence, color = self.app.classification_engine.classify_sample(sample, scheme_id)
+                    print(f"✅ Classification result: {result}")
+                    print(f"   Confidence: {confidence}")
+                    print(f"   Color: {color}")
+
+                    # ============ FIX: SAVE THE RESULT ============
+                    # Get scheme info to know which column to update
+                    scheme_info = self.app.classification_engine.get_scheme_info(scheme_id)
+                    output_column = scheme_info.get('output_column', 'Auto_Classification')
+                    confidence_column = scheme_info.get('confidence_column_name', 'Auto_Confidence')
+                    flag_column = scheme_info.get('flag_column_name', 'Flag_For_Review')
+
+                    print(f"📌 Output column: {output_column}")
+                    print(f"📌 Confidence column: {confidence_column}")
+
+                    # Create updates dictionary
+                    updates = {
+                        output_column: result,
+                        confidence_column: confidence,
+                        'Display_Color': color
+                    }
+
+                    print(f"📝 Updates to apply: {updates}")
+
+                    # Add flag if scheme uses it
+                    if scheme_info.get('flag_uncertain', False):
+                        uncertain_threshold = scheme_info.get('uncertain_threshold', 0.7)
+                        updates[flag_column] = (confidence < uncertain_threshold)
+                        print(f"🚩 Flag set to: {updates[flag_column]}")
+
+                    # Also add any computed ratios that might be useful
+                    ratio_keys = ['Zr_Nb_Ratio', 'Cr_Ni_Ratio', 'Ba_Rb_Ratio',
+                                'Ti_V_Ratio', 'Nb_Yb_Ratio', 'Th_Yb_Ratio',
+                                'Fe_Mn_Ratio', 'CIA_Value', 'V_Ratio',
+                                'Total_Alkali', 'Mg_Number', 'ACNK']
+
+                    for key in ratio_keys:
+                        if key in sample and sample[key] is not None:
+                            updates[key] = sample[key]
+                            print(f"📊 Adding computed ratio: {key} = {sample[key]}")
+
+                    # Update the sample in DataHub
+                    print(f"💾 Updating DataHub row {sample_idx}")
+                    self.app.data_hub.update_row(sample_idx, updates)
+
+                    # Force a refresh of the table to show the new classification
+                    print(f"🔄 Refreshing table...")
+                    self._refresh()
+
+                    # Also update the HUD in right panel
+                    if hasattr(self.app, 'right') and hasattr(self.app.right, '_update_hud'):
+                        print(f"🔄 Updating HUD...")
+                        self.app.right._update_hud()
+
+                    # Show result popup
+                    print(f"📊 Showing result popup...")
+                    self._show_classification_result(result, confidence, color, sample)
+
+                    # Show success in status bar
+                    self.set_status(f"✅ Classified as: {result}", "success")
+
+                    print(f"✅ Classification complete!")
+
+                except Exception as e:
+                    print(f"❌ Classification error: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    messagebox.showerror("Error", f"Classification failed: {e}")
+            else:
+                print(f"❌ Classification engine not available")
+                messagebox.showerror("Error", "Classification engine not available")
 
     def _edit_selected_cell(self, event, item, sample_idx):
         column = self.tree.identify_column(event.x)
@@ -632,6 +1007,67 @@ class CenterPanel:
         if col_idx < len(values):
             current = values[col_idx]
             self._create_edit_popup(event, item, col_name, current, sample_idx)
+
+    def _show_classification_result(self, result, confidence, color, sample):
+        """Show classification result in a popup"""
+        win = tk.Toplevel(self.app.root)
+        win.title("Classification Result")
+        win.geometry("500x400")
+        win.transient(self.app.root)
+
+        main = ttk.Frame(win, padding=15)
+        main.pack(fill=tk.BOTH, expand=True)
+
+        # Sample ID
+        sample_id = sample.get('Sample_ID', 'Unknown')
+        ttk.Label(main, text=f"Sample: {sample_id}",
+                font=("Arial", 12, "bold")).pack(pady=(0, 10))
+
+        # Result with color
+        result_frame = tk.Frame(main, bg=color, height=40, relief=tk.RAISED, bd=1)
+        result_frame.pack(fill=tk.X, pady=10)
+        result_frame.pack_propagate(False)
+
+        tk.Label(result_frame, text=result, bg=color,
+                font=("Arial", 14, "bold")).pack(expand=True)
+
+        # Confidence
+        conf_text = f"{confidence:.1%}" if isinstance(confidence, (int, float)) else str(confidence)
+        ttk.Label(main, text=f"Confidence: {conf_text}").pack(pady=5)
+
+        # Sample values
+        values_frame = ttk.LabelFrame(main, text="Sample Values", padding=10)
+        values_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+
+        # Create text widget with scrollbar
+        text_frame = ttk.Frame(values_frame)
+        text_frame.pack(fill=tk.BOTH, expand=True)
+
+        text_widget = tk.Text(text_frame, wrap=tk.WORD, font=("Courier", 9), height=10)
+        scrollbar = ttk.Scrollbar(text_frame, command=text_widget.yview)
+        text_widget.configure(yscrollcommand=scrollbar.set)
+
+        text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Add values
+        for key, value in sample.items():
+            if key not in ['Sample_ID', 'Notes'] and value not in [None, '', 'None']:
+                if isinstance(value, float):
+                    text_widget.insert(tk.END, f"{key}: {value:.2f}\n")
+                else:
+                    text_widget.insert(tk.END, f"{key}: {value}\n")
+
+        text_widget.config(state=tk.DISABLED)
+
+        # Close button
+        ttk.Button(main, text="Close", command=win.destroy).pack(pady=10)
+
+        # Center window
+        win.update_idletasks()
+        x = (win.winfo_screenwidth() // 2) - (win.winfo_width() // 2)
+        y = (win.winfo_screenheight() // 2) - (win.winfo_height() // 2)
+        win.geometry(f"+{x}+{y}")
 
     def _create_edit_popup(self, event, item, col_name, current_value, sample_idx):
         x, y, width, height = self.tree.bbox(item, column=col_name)

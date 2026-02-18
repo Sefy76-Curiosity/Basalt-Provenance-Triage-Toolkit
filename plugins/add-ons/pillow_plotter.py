@@ -17,6 +17,7 @@ PLUGIN_INFO = {
     'name': 'Pillow Plotter (Basic)',
     'category': 'add-ons',
     'icon': '📈',
+    'version': '2.0',
     'requires': ['pillow'],
     'description': 'Basic plots with PIL/Pillow'
 }

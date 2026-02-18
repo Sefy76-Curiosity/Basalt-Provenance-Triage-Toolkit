@@ -1,0 +1,26 @@
+{
+  "Quick_Draft": {
+    "name": "✏️ Quick Draft",
+    "description": "Fast, informal for internal use",
+    "axes": {"direction": "in", "mirror": false, "spine_width": 0.5},
+    "grid": {"enabled": true, "style": "-", "width": 0.3, "color": "#DDDDDD"},
+    "fonts": {"family": "Arial", "label_size": 8, "tick_size": 6},
+    "palette": ["#ff0000", "#00ff00", "#0000ff", "#ff00ff"]
+  },
+  "Lab_Meeting": {
+    "name": "👥 Lab Meeting",
+    "description": "Clear, informal for group discussions",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.0},
+    "grid": {"enabled": true, "style": "--", "width": 0.5, "color": "#CCCCCC"},
+    "fonts": {"family": "Arial", "label_size": 12, "tick_size": 10},
+    "palette": ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
+  },
+  "Preliminary_Results": {
+    "name": "🔬 Preliminary Results",
+    "description": "For internal reports and drafts",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 0.8},
+    "grid": {"enabled": true, "style": "-", "width": 0.3, "color": "#EEEEEE"},
+    "fonts": {"family": "Arial", "label_size": 10, "tick_size": 8},
+    "palette": ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3"]
+  }
+}

@@ -23,6 +23,7 @@ PLUGIN_INFO = {
     "name": "ChatGPT",
     "category": "add-ons",
     "icon": "🤖",
+    'version': '2.0',
     "requires": ["openai"],
     "description": "ChatGPT AI assistant (requires OpenAI API key)"
 }

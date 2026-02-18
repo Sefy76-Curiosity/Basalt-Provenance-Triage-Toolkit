@@ -3,12 +3,34 @@ data_hub.py - The Heart of the application
 Holds all data, notifies observers of changes
 """
 
+from datetime import datetime
+
 class DataHub:
     def __init__(self):
         self.samples = []
         self.columns = set()
         self.observers = []
+        # Add these for auto-save tracking
+        self._unsaved_changes = False
+        self._last_save_time = None
+        self._change_count = 0
         self.id_to_index = {}
+        self._column_order = []
+
+    def mark_unsaved(self):
+        """Mark that there are unsaved changes"""
+        self._unsaved_changes = True
+        self._change_count += 1
+        self._last_save_time = datetime.now()
+
+    def mark_saved(self):
+        """Mark that changes have been saved"""
+        self._unsaved_changes = False
+        self._change_count = 0
+
+    def has_unsaved_changes(self):
+        """Check if there are unsaved changes"""
+        return self._unsaved_changes
 
     def add_samples(self, new_samples):
         """Add samples - keep column names as-is (already normalized)"""
@@ -26,6 +48,7 @@ class DataHub:
             self.samples.append(sample)
             self.columns.update(sample.keys())
 
+        self.mark_unsaved()
         self._notify('samples_added', start_idx, len(new_samples))
         return len(new_samples)
 
@@ -34,17 +57,30 @@ class DataHub:
             if i < len(self.samples):
                 self.samples[i] = sample
                 self.columns.update(sample.keys())
+        self.mark_unsaved()
         self._notify('samples_updated')
 
     def update_row(self, index, updates):
-        if 0 <= index < len(self.samples):
-            current = self.samples[index]
-            for key, value in updates.items():
-                if key in current:
-                    current[key] = value
-                else:
-                    print(f"⚠️ Ignoring new column '{key}'")
-            self._notify('row_updated', index)
+        """Update a row with new values, adding new columns if needed"""
+        if 0 <= index < len(self.samples):  # ← FIX: use self.samples, not self.data
+            # Add any new columns to the master column list
+            for key in updates.keys():
+                if key not in self.columns:
+                    self.columns.add(key)  # ← FIX: columns is a set, use .add() not .append()
+                    print(f"📝 Added new column: {key}")
+
+            # Update the row
+            self.samples[index].update(updates)  # ← FIX: use self.samples, not self.data
+
+            # Mark as unsaved
+            self.mark_unsaved()
+
+            # Notify observers
+            self._notify('update', index)  # ← FIX: use _notify, not notify_observers
+
+            print(f"✅ Updated row {index} with: {list(updates.keys())}")
+        else:
+            print(f"❌ Index {index} out of range (max: {len(self.samples)-1})")
 
     def delete_rows(self, indices):
         for idx in sorted(indices, reverse=True):
@@ -54,6 +90,7 @@ class DataHub:
                     del self.id_to_index[sample_id]
                 del self.samples[idx]
         self._rebuild_columns()
+        self.mark_unsaved()
         self._notify('samples_deleted', len(indices))
 
     def get_all(self):
@@ -92,3 +129,24 @@ class DataHub:
         self.columns.clear()
         for sample in self.samples:
             self.columns.update(sample.keys())
+
+    def clear_all(self):
+        """Clear all samples and reset state"""
+        self.samples = []
+        self.columns = set()
+        self.id_to_index = {}
+        self._column_order = []
+        self.mark_unsaved()
+        self._notify('samples_cleared')
+
+    @property
+    def column_order(self):
+        """Get column order (auto-generates if not set)"""
+        if not self._column_order:
+            self._column_order = sorted(self.columns)
+        return self._column_order
+
+    @column_order.setter
+    def column_order(self, order):
+        """Set column order"""
+        self._column_order = order

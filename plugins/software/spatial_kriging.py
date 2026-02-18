@@ -1,27 +1,29 @@
 """
-Spatial Interpolation & Kriging Plugin
-Professional geostatistical interpolation with optimized performance
+Spatial Interpolation & Density Estimation Plugin
+Professional geostatistical interpolation with optimized performance + KDE contouring
 """
 
 PLUGIN_INFO = {
     "category": "software",
     "id": "spatial_kriging",
-    "name": "Spatial Kriging",
-    "description": "Industry-standard spatial interpolation with variogram analysis",
-    "icon": "📍",
-    "version": "3.1",
+    "name": "Spatial Kriging & Density",
+    "description": "Industry-standard spatial interpolation with variogram analysis + KDE contouring",
+    "icon": "🗺️",
+    "version": "3.2",
     "requires": ["numpy", "scipy", "matplotlib"],
     "author": "Sefy Levy & DeepSeek",
 
     "item": {
         "type": "plugin",
         "subtype": "spatial_analysis",
-        "tags": ["kriging", "geostatistics", "variogram", "provenance"],
+        "tags": ["kriging", "geostatistics", "variogram", "provenance", "contouring", "density", "kde"],
         "compatibility": ["main_app_v2+"],
         "dependencies": ["numpy>=1.19.0", "scipy>=1.6.0", "matplotlib>=3.3.0"],
         "settings": {
             "default_method": "ordinary_kriging",
-            "auto_fit_variogram": True
+            "auto_fit_variogram": True,
+            "default_kde_bandwidth": "scott",
+            "contour_levels": 8
         }
     }
 }
@@ -35,6 +37,8 @@ import time
 from datetime import datetime
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from scipy.stats import gaussian_kde
+from scipy.ndimage import gaussian_filter
 from scipy.spatial.distance import pdist
 from scipy.optimize import curve_fit
 from scipy.linalg import solve
@@ -50,11 +54,22 @@ class SpatialKrigingPlugin:
         self.is_processing = False
         self.cancelled = False
         self.progress = None
+        self.aspect_ratio = 1.0
+        self.sample_coords = None
+        self.interpolation_result = None
+        self.density_result = None
 
-        # Industry-standard methods
+        # Industry-standard interpolation methods
         self.INTERPOLATION_METHODS = {
             "Ordinary Kriging": "Best linear unbiased estimator with variogram",
             "Inverse Distance Weighting": "Distance-weighted average"
+        }
+
+        # Contouring methods from interactive_contouring
+        self.CONTOUR_METHODS = {
+            "Gaussian KDE": "Gaussian Kernel Density Estimation",
+            "2D Histogram": "Histogram-based density estimation",
+            "Distance-based": "Nearest neighbor density estimation"
         }
 
         # Variogram models
@@ -65,7 +80,17 @@ class SpatialKrigingPlugin:
         }
 
         # Color maps
-        self.COLORMAPS = ["viridis", "plasma", "YlOrRd", "RdYlBu", "Spectral"]
+        self.COLORMAPS = ["viridis", "plasma", "inferno", "magma", "cividis", "coolwarm", "RdYlBu", "Spectral"]
+
+        # Common suggestions for geochemical elements
+        self.ELEMENT_SUGGESTIONS = [
+            "SiO2", "TiO2", "Al2O3", "Fe2O3", "MgO", "CaO", "Na2O", "K2O", "P2O5",
+            "La", "Ce", "Nd", "Sm", "Eu", "Gd", "Yb", "Lu",
+            "Rb", "Sr", "Ba", "Zr", "Nb", "Y", "Cr", "Ni", "V", "Sc"
+        ]
+
+        # Bandwidth options
+        self.BANDWIDTH_OPTIONS = ["scott", "silverman", "0.1", "0.2", "0.5", "1.0"]
 
         # Default parameters
         self.DEFAULT_PARAMS = {
@@ -77,8 +102,51 @@ class SpatialKrigingPlugin:
             "nugget": 0.1
         }
 
+        # ============ INITIALIZE ALL VARIABLES ============
+        # Interpolation variables
+        self.lon_var = tk.StringVar(value="")
+        self.lat_var = tk.StringVar(value="")
+        self.value_var = tk.StringVar(value="")
+        self.method_var = tk.StringVar(value="Ordinary Kriging")
+        self.grid_size_var = tk.IntVar(value=80)
+        self.cmap_var = tk.StringVar(value="viridis")
+        self.preserve_aspect_var = tk.BooleanVar(value=True)
+        self.show_samples_var = tk.BooleanVar(value=True)
+        self.auto_fit_var = tk.BooleanVar(value=True)
+
+        # Kriging specific
+        self.variogram_var = tk.StringVar(value="Spherical")
+        self.nugget_var = tk.DoubleVar(value=self.DEFAULT_PARAMS["nugget"])
+        self.sill_var = tk.DoubleVar(value=self.DEFAULT_PARAMS["sill"])
+        self.range_var = tk.DoubleVar(value=self.DEFAULT_PARAMS["range_val"])
+        self.min_neighbors_var = tk.IntVar(value=self.DEFAULT_PARAMS["min_neighbors"])
+
+        # IDW specific
+        self.idw_power_var = tk.DoubleVar(value=self.DEFAULT_PARAMS["idw_power"])
+        self.search_radius_var = tk.DoubleVar(value=self.DEFAULT_PARAMS["search_radius"])
+
+        # Density variables
+        self.density_x_var = tk.StringVar(value="")
+        self.density_y_var = tk.StringVar(value="")
+        self.density_method_var = tk.StringVar(value="Gaussian KDE")
+        self.density_grid_var = tk.IntVar(value=100)
+        self.levels_var = tk.IntVar(value=8)
+        self.bw_var = tk.StringVar(value="scott")
+        self.density_cmap_var = tk.StringVar(value="viridis")
+        self.show_points_var = tk.BooleanVar(value=True)
+        self.fill_contours_var = tk.BooleanVar(value=True)
+        self.show_colorbar_var = tk.BooleanVar(value=True)
+
+        # UI elements (will be set during UI creation)
+        self.lon_combo = None
+        self.lat_combo = None
+        self.value_combo = None
+        self.density_x_combo = None
+        self.density_y_combo = None
+        self.params_frame = None
+
     def open_window(self):
-        """Open compact main window"""
+        """Open compact main window with density tab"""
         if self.window and self.window.winfo_exists():
             self.window.lift()
             return
@@ -89,6 +157,7 @@ class SpatialKrigingPlugin:
         self.window.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self._create_ui()
+        self.window.after(100, self._import_from_main)
 
     def _on_close(self):
         """Handle window closing safely"""
@@ -102,11 +171,11 @@ class SpatialKrigingPlugin:
         self.window.destroy()
 
     def _create_ui(self):
-        """Create compact user interface"""
+        """Create compact user interface with density tab"""
         # Header
         header = tk.Frame(self.window, bg="#2c3e50")
         header.pack(fill=tk.X)
-        tk.Label(header, text="📍 Professional Spatial Interpolation",
+        tk.Label(header, text="📍 Professional Spatial Analysis & Density",
                 font=("Arial", 14, "bold"),
                 bg="#2c3e50", fg="white", pady=10).pack()
 
@@ -114,193 +183,22 @@ class SpatialKrigingPlugin:
         main_paned = tk.PanedWindow(self.window, orient=tk.HORIZONTAL, sashwidth=6)
         main_paned.pack(fill=tk.BOTH, expand=True, padx=3, pady=3)
 
-        # Left panel
+        # Left panel - Controls
         left_panel = tk.Frame(main_paned, bg="#ecf0f1", relief=tk.RAISED, borderwidth=1)
         main_paned.add(left_panel, minsize=360)
 
-        # Right panel
+        # Right panel - Results with notebook
         right_panel = tk.Frame(main_paned, bg="white")
         main_paned.add(right_panel, minsize=750)
 
-        self._setup_left_panel(left_panel)
-        self._setup_right_panel(right_panel)
-
-    def _setup_left_panel(self, parent):
-        """Setup compact control panel"""
-        # Data info
-        info_frame = tk.LabelFrame(parent, text="📊 Data", padx=8, pady=8, bg="#ecf0f1")
-        info_frame.pack(fill=tk.X, padx=8, pady=8)
-
-        self.data_info_label = tk.Label(info_frame, text="No data loaded", bg="#ecf0f1", font=("Arial", 9))
-        self.data_info_label.pack(anchor=tk.W)
-
-        # Coordinate selection
-        coord_frame = tk.LabelFrame(parent, text="🌍 Coordinates", padx=8, pady=8, bg="#ecf0f1")
-        coord_frame.pack(fill=tk.X, padx=8, pady=8)
-
-        tk.Label(coord_frame, text="X column:", bg="#ecf0f1", font=("Arial", 9)).grid(row=0, column=0, sticky=tk.W, pady=3)
-        self.lon_var = tk.StringVar(value="")
-        self.lon_combo = ttk.Combobox(coord_frame, textvariable=self.lon_var, width=18, font=("Arial", 9))
-        self.lon_combo.grid(row=0, column=1, padx=3, pady=3)
-
-        tk.Label(coord_frame, text="Y column:", bg="#ecf0f1", font=("Arial", 9)).grid(row=1, column=0, sticky=tk.W, pady=3)
-        self.lat_var = tk.StringVar(value="")
-        self.lat_combo = ttk.Combobox(coord_frame, textvariable=self.lat_var, width=18, font=("Arial", 9))
-        self.lat_combo.grid(row=1, column=1, padx=3, pady=3)
-
-        tk.Label(coord_frame, text="Value column:", bg="#ecf0f1", font=("Arial", 9)).grid(row=2, column=0, sticky=tk.W, pady=3)
-        self.value_var = tk.StringVar(value="")
-        self.value_combo = ttk.Combobox(coord_frame, textvariable=self.value_var, width=18, font=("Arial", 9))
-        self.value_combo.grid(row=2, column=1, padx=3, pady=3)
-
-        # Method selection
-        method_frame = tk.LabelFrame(parent, text="🔄 Method", padx=8, pady=8, bg="#ecf0f1")
-        method_frame.pack(fill=tk.X, padx=8, pady=8)
-
-        self.method_var = tk.StringVar(value="Ordinary Kriging")
-        for method in self.INTERPOLATION_METHODS.keys():
-            tk.Radiobutton(method_frame, text=method, variable=self.method_var,
-                          value=method, bg="#ecf0f1", font=("Arial", 9),
-                          command=self._update_method_params).pack(anchor=tk.W, pady=1)
-
-        # Parameters frame
-        self.params_frame = tk.LabelFrame(parent, text="⚙️ Parameters", padx=8, pady=8, bg="#ecf0f1")
-        self.params_frame.pack(fill=tk.X, padx=8, pady=8)
-        self._setup_kriging_params()
-
-        # Grid settings
-        grid_frame = tk.LabelFrame(parent, text="📐 Grid", padx=8, pady=8, bg="#ecf0f1")
-        grid_frame.pack(fill=tk.X, padx=8, pady=8)
-
-        tk.Label(grid_frame, text="Grid cells:", bg="#ecf0f1", font=("Arial", 9)).grid(row=0, column=0, sticky=tk.W, pady=3)
-        self.grid_size_var = tk.IntVar(value=80)
-        tk.Spinbox(grid_frame, from_=30, to=200, textvariable=self.grid_size_var,
-                  width=10, font=("Arial", 9)).grid(row=0, column=1, padx=3, pady=3)
-
-        # Aspect ratio checkbox
-        self.preserve_aspect_var = tk.BooleanVar(value=True)
-        tk.Checkbutton(grid_frame, text="Preserve aspect ratio",
-                      variable=self.preserve_aspect_var, bg="#ecf0f1", font=("Arial", 9)
-                      ).grid(row=1, column=0, columnspan=2, sticky=tk.W, pady=3)
-
-        tk.Label(grid_frame, text="Color map:", bg="#ecf0f1", font=("Arial", 9)).grid(row=2, column=0, sticky=tk.W, pady=3)
-        self.cmap_var = tk.StringVar(value="viridis")
-        ttk.Combobox(grid_frame, textvariable=self.cmap_var,
-                    values=self.COLORMAPS, width=12, font=("Arial", 9)).grid(row=2, column=1, padx=3, pady=3)
-
-        # Options
-        options_frame = tk.Frame(parent, bg="#ecf0f1")
-        options_frame.pack(fill=tk.X, padx=8, pady=8)
-
-        self.show_samples_var = tk.BooleanVar(value=True)
-        tk.Checkbutton(options_frame, text="Show points", variable=self.show_samples_var,
-                      bg="#ecf0f1", font=("Arial", 9)).pack(side=tk.LEFT, padx=3)
-
-        self.auto_fit_var = tk.BooleanVar(value=True)
-        tk.Checkbutton(options_frame, text="Auto-fit", variable=self.auto_fit_var,
-                      bg="#ecf0f1", font=("Arial", 9)).pack(side=tk.LEFT, padx=3)
-
-        # Buttons
-        button_frame = tk.Frame(parent, bg="#ecf0f1", pady=8)
-        button_frame.pack(fill=tk.X, padx=8)
-
-        row1_frame = tk.Frame(button_frame, bg="#ecf0f1")
-        row1_frame.pack(fill=tk.X, pady=2)
-
-        self.load_btn = tk.Button(row1_frame, text="📥 Load", bg="#3498db", fg="white",
-                                 width=10, font=("Arial", 9), command=self._load_data)
-        self.load_btn.pack(side=tk.LEFT, padx=2)
-
-        self.interpolate_btn = tk.Button(row1_frame, text="📍 Run", bg="#9b59b6", fg="white",
-                                        width=10, font=("Arial", 9), command=self._start_interpolation)
-        self.interpolate_btn.pack(side=tk.LEFT, padx=2)
-
-        row2_frame = tk.Frame(button_frame, bg="#ecf0f1")
-        row2_frame.pack(fill=tk.X, pady=2)
-
-        self.export_btn = tk.Button(row2_frame, text="💾 Export", bg="#2ecc71", fg="white",
-                                   width=10, font=("Arial", 9), command=self._export_results)
-        self.export_btn.pack(side=tk.LEFT, padx=2)
-
-        self.import_btn = tk.Button(row2_frame, text="📤 Import", bg="#e67e22", fg="white",
-                           width=10, font=("Arial", 9), command=self._import_to_main)  # Changed here
-        self.import_btn.pack(side=tk.LEFT, padx=2)
-
-        # Status
-        self.status_label = tk.Label(parent, text="Ready", bg="#ecf0f1",
-                                    fg="#7f8c8d", font=("Arial", 9))
-        self.status_label.pack(fill=tk.X, padx=8, pady=(8, 3))
-
-        # Progress
-        self.progress = ttk.Progressbar(parent, mode='determinate', length=100)
-        self.progress.pack(fill=tk.X, padx=8, pady=3)
-
-    def _setup_kriging_params(self):
-        """Setup kriging parameters"""
-        for widget in self.params_frame.winfo_children():
-            widget.destroy()
-
-        tk.Label(self.params_frame, text="Model:", bg="#ecf0f1", font=("Arial", 9)).grid(row=0, column=0, sticky=tk.W, pady=2)
-        self.variogram_var = tk.StringVar(value="Spherical")
-        ttk.Combobox(self.params_frame, textvariable=self.variogram_var,
-                    values=list(self.VARIOGRAM_MODELS.keys()), width=12, font=("Arial", 9)).grid(row=0, column=1, padx=3, pady=2)
-
-        tk.Label(self.params_frame, text="Nugget:", bg="#ecf0f1", font=("Arial", 9)).grid(row=1, column=0, sticky=tk.W, pady=2)
-        self.nugget_var = tk.DoubleVar(value=self.DEFAULT_PARAMS["nugget"])
-        tk.Spinbox(self.params_frame, from_=0.0, to=10.0, increment=0.1,
-                  textvariable=self.nugget_var, width=10, font=("Arial", 9)).grid(row=1, column=1, padx=3, pady=2)
-
-        tk.Label(self.params_frame, text="Sill:", bg="#ecf0f1", font=("Arial", 9)).grid(row=2, column=0, sticky=tk.W, pady=2)
-        self.sill_var = tk.DoubleVar(value=self.DEFAULT_PARAMS["sill"])
-        tk.Spinbox(self.params_frame, from_=0.01, to=100.0, increment=0.5,
-                  textvariable=self.sill_var, width=10, font=("Arial", 9)).grid(row=2, column=1, padx=3, pady=2)
-
-        tk.Label(self.params_frame, text="Range:", bg="#ecf0f1", font=("Arial", 9)).grid(row=3, column=0, sticky=tk.W, pady=2)
-        self.range_var = tk.DoubleVar(value=self.DEFAULT_PARAMS["range_val"])
-        tk.Spinbox(self.params_frame, from_=10.0, to=1000.0, increment=10.0,
-                  textvariable=self.range_var, width=10, font=("Arial", 9)).grid(row=3, column=1, padx=3, pady=2)
-
-        tk.Label(self.params_frame, text="Min neighbors:", bg="#ecf0f1", font=("Arial", 9)).grid(row=4, column=0, sticky=tk.W, pady=2)
-        self.min_neighbors_var = tk.IntVar(value=self.DEFAULT_PARAMS["min_neighbors"])
-        tk.Spinbox(self.params_frame, from_=1, to=20, textvariable=self.min_neighbors_var,
-                  width=10, font=("Arial", 9)).grid(row=4, column=1, padx=3, pady=2)
-
-    def _setup_idw_params(self):
-        """Setup IDW parameters"""
-        for widget in self.params_frame.winfo_children():
-            widget.destroy()
-
-        tk.Label(self.params_frame, text="Power:", bg="#ecf0f1", font=("Arial", 9)).grid(row=0, column=0, sticky=tk.W, pady=2)
-        self.idw_power_var = tk.DoubleVar(value=self.DEFAULT_PARAMS["idw_power"])
-        tk.Spinbox(self.params_frame, from_=0.5, to=5.0, increment=0.5,
-                  textvariable=self.idw_power_var, width=10, font=("Arial", 9)).grid(row=0, column=1, padx=3, pady=2)
-
-        tk.Label(self.params_frame, text="Min neighbors:", bg="#ecf0f1", font=("Arial", 9)).grid(row=1, column=0, sticky=tk.W, pady=2)
-        self.min_neighbors_var = tk.IntVar(value=self.DEFAULT_PARAMS["min_neighbors"])
-        tk.Spinbox(self.params_frame, from_=1, to=20, textvariable=self.min_neighbors_var,
-                  width=10, font=("Arial", 9)).grid(row=1, column=1, padx=3, pady=2)
-
-        tk.Label(self.params_frame, text="Search radius:", bg="#ecf0f1", font=("Arial", 9)).grid(row=2, column=0, sticky=tk.W, pady=2)
-        self.search_radius_var = tk.DoubleVar(value=self.DEFAULT_PARAMS["search_radius"])
-        tk.Spinbox(self.params_frame, from_=10.0, to=1000.0, increment=50.0,
-                  textvariable=self.search_radius_var, width=10, font=("Arial", 9)).grid(row=2, column=1, padx=3, pady=2)
-
-    def _update_method_params(self):
-        """Update parameters based on method"""
-        if "Kriging" in self.method_var.get():
-            self._setup_kriging_params()
-        else:
-            self._setup_idw_params()
-
-    def _setup_right_panel(self, parent):
-        """Setup results panel"""
+        # Create notebook for right panel (Map, Variogram, Stats, Density)
         style = ttk.Style()
         style.configure("TNotebook.Tab", font=("Arial", 9))
 
-        self.notebook = ttk.Notebook(parent)
+        self.notebook = ttk.Notebook(right_panel)
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=3, pady=3)
 
-        # Map tab
+        # Map tab (for interpolation)
         map_tab = tk.Frame(self.notebook)
         self.notebook.add(map_tab, text="🗺️ Map")
 
@@ -330,110 +228,314 @@ class SpatialKrigingPlugin:
                                                    font=("Courier", 9), height=15)
         self.stats_text.pack(fill=tk.BOTH, expand=True, padx=3, pady=3)
 
-    def _load_data(self):
-        """Load data from main app's dynamic table"""
-        if not hasattr(self.app, 'samples') or not self.app.samples:
-            messagebox.showwarning("No Data", "Load data in main app first!")
-            return
+        # NEW: Density tab (from interactive_contouring)
+        density_tab = tk.Frame(self.notebook)
+        self.notebook.add(density_tab, text="🗺️ Density Contours")
 
-        try:
-            # Convert main app samples to DataFrame
-            self.df = pd.DataFrame(self.app.samples)
+        self.density_figure = plt.Figure(figsize=(8, 5), dpi=100)
+        self.density_ax = self.density_figure.add_subplot(111)
+        self.density_canvas = FigureCanvasTkAgg(self.density_figure, density_tab)
 
-            # Debug: Print available columns
-            print(f"Available columns: {list(self.df.columns)}")
+        density_toolbar = NavigationToolbar2Tk(self.density_canvas, density_tab)
+        density_toolbar.update()
 
-            # Convert numeric columns - but preserve original for mapping
-            numeric_cols = []
-            text_cols = []
+        self.density_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=3, pady=3)
 
-            for col in self.df.columns:
-                if col in ['Sample_ID', 'Notes', 'Timestamp', 'Plugin', 'Source', 'Analysis_Type']:
-                    text_cols.append(col)
-                    continue
+        # Log tab (from contouring)
+        log_tab = tk.Frame(self.notebook)
+        self.notebook.add(log_tab, text="📝 Log")
 
-                try:
-                    # Try to convert to numeric
-                    self.df[col] = pd.to_numeric(self.df[col], errors='coerce')
-                    # Check if column has at least some numeric values
-                    if not self.df[col].isna().all():
-                        numeric_cols.append(col)
-                    else:
-                        text_cols.append(col)
-                except:
-                    text_cols.append(col)
+        self.log_text = scrolledtext.ScrolledText(log_tab, wrap=tk.WORD, font=("Courier", 9))
+        self.log_text.pack(fill=tk.BOTH, expand=True, padx=3, pady=3)
 
-            # Update info
-            sample_count = len(self.df)
-            self.data_info_label.config(text=f"Samples: {sample_count} | Numeric: {len(numeric_cols)}")
+        self._setup_left_panel(left_panel)
 
-            # Auto-detect coordinate columns
-            for col in numeric_cols:
-                col_lower = col.lower()
+    def _setup_left_panel(self, parent):
+        """Setup compact control panel with both interpolation and density controls"""
+        # Data info
+        info_frame = tk.LabelFrame(parent, text="📊 Data", padx=8, pady=8, bg="#ecf0f1")
+        info_frame.pack(fill=tk.X, padx=8, pady=8)
 
-                # Check for longitude/X columns
-                if any(term in col_lower for term in ['lon', 'long', 'x', 'easting']):
-                    if not self.lon_var.get():
-                        self.lon_var.set(col)
-                        print(f"Auto-detected X column: {col}")
+        self.data_info_label = tk.Label(info_frame, text="No data loaded", bg="#ecf0f1", font=("Arial", 9))
+        self.data_info_label.pack(anchor=tk.W)
 
-                # Check for latitude/Y columns
-                if any(term in col_lower for term in ['lat', 'y', 'northing']):
-                    if not self.lat_var.get():
-                        self.lat_var.set(col)
-                        print(f"Auto-detected Y column: {col}")
+        # Main notebook for control modes
+        self.control_notebook = ttk.Notebook(parent)
+        self.control_notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=2)
 
-            # Update all comboboxes with available columns
-            all_columns = numeric_cols + text_cols
-            self.lon_combo['values'] = all_columns
-            self.lat_combo['values'] = all_columns
-            self.value_combo['values'] = numeric_cols  # Only numeric for value
+        # Tab 1: Interpolation controls
+        interp_frame = tk.Frame(self.control_notebook, bg="#ecf0f1")
+        self.control_notebook.add(interp_frame, text="📍 Interpolation")
+        self._setup_interpolation_controls(interp_frame)
 
-            # Auto-select first numeric column for value if not set
-            if not self.value_var.get() and numeric_cols:
-                self.value_var.set(numeric_cols[0])
-                print(f"Auto-selected value column: {numeric_cols[0]}")
+        # Tab 2: Density/Contour controls (from interactive_contouring)
+        density_frame = tk.Frame(self.control_notebook, bg="#ecf0f1")
+        self.control_notebook.add(density_frame, text="🗺️ Density Contours")
+        self._setup_density_controls(density_frame)
 
-            # Calculate aspect ratio if both coordinates are selected
-            if self.lon_var.get() and self.lat_var.get():
-                lon_col = self.lon_var.get()
-                lat_col = self.lat_var.get()
+        # Common buttons at bottom
+        button_frame = tk.Frame(parent, bg="#ecf0f1", pady=8)
+        button_frame.pack(fill=tk.X, padx=8)
 
-                if lon_col in self.df.columns and lat_col in self.df.columns:
-                    # Get valid coordinates
-                    valid = ~(self.df[lon_col].isna() | self.df[lat_col].isna())
-                    if valid.sum() > 1:
-                        x_vals = self.df[lon_col][valid].values
-                        y_vals = self.df[lat_col][valid].values
+        row1_frame = tk.Frame(button_frame, bg="#ecf0f1")
+        row1_frame.pack(fill=tk.X, pady=2)
 
-                        x_min, x_max = x_vals.min(), x_vals.max()
-                        y_min, y_max = y_vals.min(), y_vals.max()
+        self.load_btn = tk.Button(row1_frame, text="📥 Load", bg="#3498db", fg="white",
+                                 width=10, font=("Arial", 9), command=self._import_from_main)
+        self.load_btn.pack(side=tk.LEFT, padx=2)
 
-                        x_range = x_max - x_min
-                        y_range = y_max - y_min
+        self.interpolate_btn = tk.Button(row1_frame, text="📍 Run Interp", bg="#9b59b6", fg="white",
+                                        width=12, font=("Arial", 9), command=self._start_interpolation)
+        self.interpolate_btn.pack(side=tk.LEFT, padx=2)
 
-                        if x_range > 0 and y_range > 0:
-                            self.aspect_ratio = x_range / y_range
-                            print(f"Aspect ratio: {self.aspect_ratio:.2f}")
+        self.density_btn = tk.Button(row1_frame, text="🗺️ Run Density", bg="#e67e22", fg="white",
+                                    width=12, font=("Arial", 9), command=self._start_density)
+        self.density_btn.pack(side=tk.LEFT, padx=2)
 
-                            # Store sample coordinates for later use
-                            self.sample_coords = np.column_stack([x_vals, y_vals])
+        row2_frame = tk.Frame(button_frame, bg="#ecf0f1")
+        row2_frame.pack(fill=tk.X, pady=2)
 
-            # Update status
-            self.status_label.config(text=f"✅ Loaded {sample_count} samples from main app", fg="green")
+        self.export_btn = tk.Button(row2_frame, text="💾 Export", bg="#2ecc71", fg="white",
+                                   width=10, font=("Arial", 9), command=self._export_results)
+        self.export_btn.pack(side=tk.LEFT, padx=2)
 
-            # Enable interpolation button if we have required columns
-            if self.lon_var.get() and self.lat_var.get() and self.value_var.get():
-                self.interpolate_btn.config(state=tk.NORMAL)
-                self.status_label.config(text=f"Ready - {sample_count} samples loaded", fg="green")
-            else:
-                self.interpolate_btn.config(state=tk.DISABLED)
-                self.status_label.config(text="Select X, Y, and Value columns", fg="orange")
+        self.import_btn = tk.Button(row2_frame, text="📤 Import", bg="#e67e22", fg="white",
+                                   width=10, font=("Arial", 9), command=self._import_from_main)
+        self.import_btn.pack(side=tk.LEFT, padx=2)
 
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            messagebox.showerror("Error", f"Failed to load data:\n{str(e)}")
+        # Status
+        self.status_label = tk.Label(parent, text="Ready", bg="#ecf0f1",
+                                    fg="#7f8c8d", font=("Arial", 9))
+        self.status_label.pack(fill=tk.X, padx=8, pady=(8, 3))
+
+        # Progress
+        self.progress = ttk.Progressbar(parent, mode='determinate', length=100)
+        self.progress.pack(fill=tk.X, padx=8, pady=3)
+
+    def _setup_interpolation_controls(self, parent):
+        """Setup interpolation-specific controls - compact version"""
+        # Coordinate selection - compact
+        coord_frame = tk.LabelFrame(parent, text="🌍 Coordinates", padx=5, pady=3, bg="#ecf0f1")
+        coord_frame.pack(fill=tk.X, padx=3, pady=2)
+
+        tk.Label(coord_frame, text="X:", bg="#ecf0f1", font=("Arial", 8)).grid(row=0, column=0, sticky=tk.W, pady=1)
+        # REMOVE the line below - it's already created in __init__
+        # self.lon_var = tk.StringVar(value="")
+        self.lon_combo = ttk.Combobox(coord_frame, textvariable=self.lon_var, width=15, font=("Arial", 8))
+        self.lon_combo.grid(row=0, column=1, padx=2, pady=1, sticky="ew")
+
+        tk.Label(coord_frame, text="Y:", bg="#ecf0f1", font=("Arial", 8)).grid(row=1, column=0, sticky=tk.W, pady=1)
+        # REMOVE
+        # self.lat_var = tk.StringVar(value="")
+        self.lat_combo = ttk.Combobox(coord_frame, textvariable=self.lat_var, width=15, font=("Arial", 8))
+        self.lat_combo.grid(row=1, column=1, padx=2, pady=1, sticky="ew")
+
+        tk.Label(coord_frame, text="Value:", bg="#ecf0f1", font=("Arial", 8)).grid(row=2, column=0, sticky=tk.W, pady=1)
+        # REMOVE
+        # self.value_var = tk.StringVar(value="")
+        self.value_combo = ttk.Combobox(coord_frame, textvariable=self.value_var, width=15, font=("Arial", 8))
+        self.value_combo.grid(row=2, column=1, padx=2, pady=1, sticky="ew")
+
+        coord_frame.columnconfigure(1, weight=1)
+
+        # Method selection - compact
+        method_frame = tk.LabelFrame(parent, text="🔄 Method", padx=5, pady=3, bg="#ecf0f1")
+        method_frame.pack(fill=tk.X, padx=3, pady=2)
+
+        # REMOVE - already set in __init__
+        # self.method_var = tk.StringVar(value="Ordinary Kriging")
+        for method in self.INTERPOLATION_METHODS.keys():
+            tk.Radiobutton(method_frame, text=method, variable=self.method_var,
+                        value=method, bg="#ecf0f1", font=("Arial", 8),
+                        command=self._update_method_params).pack(anchor=tk.W, pady=0)
+
+        # Parameters frame
+        self.params_frame = tk.LabelFrame(parent, text="⚙️ Params", padx=5, pady=3, bg="#ecf0f1")
+        self.params_frame.pack(fill=tk.X, padx=3, pady=2)
+        self._setup_kriging_params()
+
+        # Grid settings - compact
+        grid_frame = tk.LabelFrame(parent, text="📐 Grid", padx=5, pady=3, bg="#ecf0f1")
+        grid_frame.pack(fill=tk.X, padx=3, pady=2)
+
+        # Two-column layout for grid settings
+        inner = tk.Frame(grid_frame, bg="#ecf0f1")
+        inner.pack(fill=tk.X)
+
+        tk.Label(inner, text="Cells:", bg="#ecf0f1", font=("Arial", 8)).grid(row=0, column=0, sticky=tk.W, pady=1)
+        # REMOVE - already set
+        # self.grid_size_var = tk.IntVar(value=80)
+        tk.Spinbox(inner, from_=30, to=200, textvariable=self.grid_size_var,
+                width=6, font=("Arial", 8)).grid(row=0, column=1, padx=2, pady=1, sticky="w")
+
+        tk.Label(inner, text="Cmap:", bg="#ecf0f1", font=("Arial", 8)).grid(row=1, column=0, sticky=tk.W, pady=1)
+        # REMOVE - already set
+        # self.cmap_var = tk.StringVar(value="viridis")
+        ttk.Combobox(inner, textvariable=self.cmap_var,
+                    values=self.COLORMAPS, width=8, font=("Arial", 8)).grid(row=1, column=1, padx=2, pady=1, sticky="w")
+
+        # Checkboxes in a single row
+        check_frame = tk.Frame(grid_frame, bg="#ecf0f1")
+        check_frame.pack(fill=tk.X)
+
+        # REMOVE - already set
+        # self.preserve_aspect_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(check_frame, text="Aspect", variable=self.preserve_aspect_var,
+                    bg="#ecf0f1", font=("Arial", 7)).pack(side=tk.LEFT, padx=1)
+
+        # self.show_samples_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(check_frame, text="Points", variable=self.show_samples_var,
+                    bg="#ecf0f1", font=("Arial", 7)).pack(side=tk.LEFT, padx=1)
+
+        # self.auto_fit_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(check_frame, text="Auto-fit", variable=self.auto_fit_var,
+                    bg="#ecf0f1", font=("Arial", 7)).pack(side=tk.LEFT, padx=1)
+
+    def _setup_density_controls(self, parent):
+        """Setup density/contour controls - compact version"""
+        # Axis selection
+        axis_frame = tk.LabelFrame(parent, text="🎯 Axis", padx=5, pady=3, bg="#ecf0f1")
+        axis_frame.pack(fill=tk.X, padx=3, pady=2)
+
+        tk.Label(axis_frame, text="X:", bg="#ecf0f1", font=("Arial", 8)).grid(row=0, column=0, sticky=tk.W, pady=1)
+        self.density_x_var = tk.StringVar(value="")
+        self.density_x_combo = ttk.Combobox(axis_frame, textvariable=self.density_x_var,
+                                        values=self.ELEMENT_SUGGESTIONS, width=15, font=("Arial", 8))
+        self.density_x_combo.grid(row=0, column=1, padx=2, pady=1)
+
+        tk.Label(axis_frame, text="Y:", bg="#ecf0f1", font=("Arial", 8)).grid(row=1, column=0, sticky=tk.W, pady=1)
+        self.density_y_var = tk.StringVar(value="")
+        self.density_y_combo = ttk.Combobox(axis_frame, textvariable=self.density_y_var,
+                                        values=self.ELEMENT_SUGGESTIONS, width=15, font=("Arial", 8))
+        self.density_y_combo.grid(row=1, column=1, padx=2, pady=1)
+
+        # Method
+        method_frame = tk.LabelFrame(parent, text="🔄 Method", padx=5, pady=3, bg="#ecf0f1")
+        method_frame.pack(fill=tk.X, padx=3, pady=2)
+
+        self.density_method_var = tk.StringVar(value="Gaussian KDE")
+        row = 0
+        for method in self.CONTOUR_METHODS.keys():
+            tk.Radiobutton(method_frame, text=method[:12], variable=self.density_method_var,
+                        value=method, bg="#ecf0f1", font=("Arial", 7)).grid(row=row, column=0, sticky=tk.W, pady=0)
+            row += 1
+
+        # Parameters in a single line
+        params_frame = tk.LabelFrame(parent, text="⚙️ Params", padx=5, pady=3, bg="#ecf0f1")
+        params_frame.pack(fill=tk.X, padx=3, pady=2)
+
+        # Grid size with scale
+        size_frame = tk.Frame(params_frame, bg="#ecf0f1")
+        size_frame.pack(fill=tk.X)
+        tk.Label(size_frame, text="Grid:", bg="#ecf0f1", font=("Arial", 8)).pack(side=tk.LEFT)
+        self.density_grid_var = tk.IntVar(value=100)
+        tk.Scale(size_frame, from_=50, to=200, variable=self.density_grid_var,
+                orient=tk.HORIZONTAL, length=120, bg="#ecf0f1", showvalue=0).pack(side=tk.LEFT, padx=2)
+        tk.Label(size_frame, textvariable=self.density_grid_var, bg="#ecf0f1", font=("Arial", 7), width=3).pack(side=tk.LEFT)
+
+        # Second row of params
+        param_row = tk.Frame(params_frame, bg="#ecf0f1")
+        param_row.pack(fill=tk.X)
+
+        tk.Label(param_row, text="Levels:", bg="#ecf0f1", font=("Arial", 8)).pack(side=tk.LEFT)
+        self.levels_var = tk.IntVar(value=8)
+        tk.Spinbox(param_row, from_=3, to=20, textvariable=self.levels_var,
+                width=3, font=("Arial", 8)).pack(side=tk.LEFT, padx=2)
+
+        tk.Label(param_row, text="BW:", bg="#ecf0f1", font=("Arial", 8)).pack(side=tk.LEFT, padx=(5,0))
+        self.bw_var = tk.StringVar(value="scott")
+        ttk.Combobox(param_row, textvariable=self.bw_var,
+                    values=self.BANDWIDTH_OPTIONS, width=6, font=("Arial", 8)).pack(side=tk.LEFT, padx=2)
+
+        tk.Label(param_row, text="Cmap:", bg="#ecf0f1", font=("Arial", 8)).pack(side=tk.LEFT, padx=(5,0))
+        self.density_cmap_var = tk.StringVar(value="viridis")
+        ttk.Combobox(param_row, textvariable=self.density_cmap_var,
+                    values=self.COLORMAPS, width=6, font=("Arial", 8)).pack(side=tk.LEFT, padx=2)
+
+        # Display options in one row
+        display_frame = tk.Frame(parent, bg="#ecf0f1")
+        display_frame.pack(fill=tk.X, padx=3, pady=1)
+
+        self.show_points_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(display_frame, text="Points", variable=self.show_points_var,
+                    bg="#ecf0f1", font=("Arial", 7)).pack(side=tk.LEFT, padx=1)
+
+        self.fill_contours_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(display_frame, text="Fill", variable=self.fill_contours_var,
+                    bg="#ecf0f1", font=("Arial", 7)).pack(side=tk.LEFT, padx=1)
+
+        self.show_colorbar_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(display_frame, text="Colorbar", variable=self.show_colorbar_var,
+                    bg="#ecf0f1", font=("Arial", 7)).pack(side=tk.LEFT, padx=1)
+
+    def _setup_kriging_params(self):
+        """Setup kriging parameters - compact grid layout"""
+        for widget in self.params_frame.winfo_children():
+            widget.destroy()
+
+        # Create a grid for parameters
+        params = [
+            ("Model:", self.variogram_var, list(self.VARIOGRAM_MODELS.keys()), 8),
+            ("Nugget:", self.nugget_var, None, 6),
+            ("Sill:", self.sill_var, None, 6),
+            ("Range:", self.range_var, None, 6),
+            ("Min nbr:", self.min_neighbors_var, None, 6)
+        ]
+
+        row = 0
+        col = 0
+        for label, var, values, width in params:
+            # Label
+            tk.Label(self.params_frame, text=label, bg="#ecf0f1", font=("Arial", 8)).grid(
+                row=row, column=col*2, sticky=tk.W, padx=(2,0), pady=1)
+
+            # Value widget
+            if values:  # Combobox
+                widget = ttk.Combobox(self.params_frame, textvariable=var,
+                                    values=values, width=width, font=("Arial", 8))
+            elif isinstance(var, tk.DoubleVar):  # Double spinbox
+                widget = tk.Spinbox(self.params_frame, from_=0.0, to=100.0, increment=0.1,
+                                textvariable=var, width=width, font=("Arial", 8))
+            else:  # Int spinbox
+                widget = tk.Spinbox(self.params_frame, from_=1, to=20,
+                                textvariable=var, width=width, font=("Arial", 8))
+
+            widget.grid(row=row, column=col*2+1, padx=2, pady=1, sticky="w")
+
+            col += 1
+            if col > 1:  # Two columns
+                col = 0
+                row += 1
+
+    def _setup_idw_params(self):
+        """Setup IDW parameters"""
+        for widget in self.params_frame.winfo_children():
+            widget.destroy()
+
+        tk.Label(self.params_frame, text="Power:", bg="#ecf0f1", font=("Arial", 9)).grid(row=0, column=0, sticky=tk.W, pady=2)
+        self.idw_power_var = tk.DoubleVar(value=self.DEFAULT_PARAMS["idw_power"])
+        tk.Spinbox(self.params_frame, from_=0.5, to=5.0, increment=0.5,
+                  textvariable=self.idw_power_var, width=10, font=("Arial", 9)).grid(row=0, column=1, padx=3, pady=2)
+
+        tk.Label(self.params_frame, text="Min neighbors:", bg="#ecf0f1", font=("Arial", 9)).grid(row=1, column=0, sticky=tk.W, pady=2)
+        self.min_neighbors_var = tk.IntVar(value=self.DEFAULT_PARAMS["min_neighbors"])
+        tk.Spinbox(self.params_frame, from_=1, to=20, textvariable=self.min_neighbors_var,
+                  width=10, font=("Arial", 9)).grid(row=1, column=1, padx=3, pady=2)
+
+        tk.Label(self.params_frame, text="Search radius:", bg="#ecf0f1", font=("Arial", 9)).grid(row=2, column=0, sticky=tk.W, pady=2)
+        self.search_radius_var = tk.DoubleVar(value=self.DEFAULT_PARAMS["search_radius"])
+        tk.Spinbox(self.params_frame, from_=10.0, to=1000.0, increment=50.0,
+                  textvariable=self.search_radius_var, width=10, font=("Arial", 9)).grid(row=2, column=1, padx=3, pady=2)
+
+    def _update_method_params(self):
+        """Update parameters based on method"""
+        if "Kriging" in self.method_var.get():
+            self._setup_kriging_params()
+        else:
+            self._setup_idw_params()
+
+
+
     def _validate_inputs(self):
         """Validate all inputs before processing"""
         errors = []
@@ -473,6 +575,62 @@ class SpatialKrigingPlugin:
 
         return None
 
+    def _validate_density_inputs(self):
+        """Validate density inputs"""
+        x_col = self.density_x_var.get().strip()
+        y_col = self.density_y_var.get().strip()
+
+        if not x_col or not y_col:
+            return "Select both X and Y columns"
+
+        # Check columns exist
+        x_found, _ = self._get_column_data(x_col)
+        y_found, _ = self._get_column_data(y_col)
+
+        if x_found is None:
+            return f"Column '{x_col}' not found"
+        if y_found is None:
+            return f"Column '{y_col}' not found"
+
+        # Get valid data
+        x_data, _ = self._get_column_data(x_col)
+        y_data, _ = self._get_column_data(y_col)
+
+        if x_data is None or y_data is None:
+            return "Could not find valid data columns"
+
+        valid_mask = ~(pd.isna(x_data) | pd.isna(y_data))
+        valid_count = valid_mask.sum()
+
+        if valid_count < 10:
+            return f"Need at least 10 valid points (have {valid_count})"
+
+        return None
+
+    def _get_column_data(self, col_name):
+        """Get column data with flexible matching (from interactive_contouring)"""
+        # Try exact match
+        if col_name in self.df.columns:
+            return self.df[col_name].values, col_name
+
+        # Try case-insensitive match
+        for col in self.df.columns:
+            if col.lower() == col_name.lower():
+                return self.df[col].values, col
+
+        # Try partial match
+        for col in self.df.columns:
+            if col_name.lower() in col.lower():
+                return self.df[col].values, col
+
+        # Try without common suffixes
+        base_name = col_name.rstrip('_0123456789()% ')
+        for col in self.df.columns:
+            if base_name.lower() in col.lower():
+                return self.df[col].values, col
+
+        return None, col_name
+
     def _start_interpolation(self):
         """Start interpolation with performance warnings"""
         if self.is_processing:
@@ -508,9 +666,28 @@ class SpatialKrigingPlugin:
         self.cancelled = False
         self.interpolate_btn.config(state=tk.DISABLED, text="Running...")
         self.progress['value'] = 0
-        self.status_label.config(text="Starting...", fg="orange")
+        self.status_label.config(text="Starting interpolation...", fg="orange")
 
         thread = threading.Thread(target=self._run_interpolation, daemon=True)
+        thread.start()
+
+    def _start_density(self):
+        """Start density contour generation (from interactive_contouring)"""
+        if self.is_processing:
+            return
+
+        error = self._validate_density_inputs()
+        if error:
+            messagebox.showerror("Input Error", error)
+            return
+
+        self.is_processing = True
+        self.cancelled = False
+        self.density_btn.config(state=tk.DISABLED, text="Running...")
+        self.progress['value'] = 0
+        self.status_label.config(text="Generating density contours...", fg="orange")
+
+        thread = threading.Thread(target=self._run_density, daemon=True)
         thread.start()
 
     def _run_interpolation(self):
@@ -544,67 +721,225 @@ class SpatialKrigingPlugin:
                 result = self._run_optimized_kriging(x, y, z, lon_col, lat_col, value_col)
             else:
                 # IDW
-                result = self._run_optimized_idw(XI, YI, z, lon_col, lat_col, value_col)
+                result = self._run_optimized_idw(x, y, z, XI, YI, lon_col, lat_col, value_col)
 
             if self.cancelled:
                 return
 
             # Update UI
-            self.window.after(0, lambda: self._update_results_ui(result))
+            self.window.after(0, lambda: self._update_interpolation_results(result))
 
         except Exception as e:
             if not self.cancelled:
                 self.window.after(0, lambda: messagebox.showerror("Error", f"Failed: {str(e)}"))
         finally:
             self.window.after(0, self._reset_processing_ui)
-        def _run_optimized_idw(self, x_grid, y_grid, values, power=2.0, max_distance=0.0, n_neighbors=12):
-            """
-            Optimized Inverse Distance Weighting (IDW) interpolation.
-            Industry standard parameters + performance optimizations.
 
-            Parameters:
-            - x_grid, y_grid: meshgrid coordinates for output grid (np arrays)
-            - values: array of known values at sample locations
-            - power: distance weighting exponent (2.0 = standard, 1.0–3.0 common)
-            - max_distance: cutoff radius (0 = no cutoff)
-            - n_neighbors: max neighbors to consider (12–20 typical balance)
+    def _run_density(self):
+        """Run density contour generation (from interactive_contouring)"""
+        try:
+            x_col = self.density_x_var.get()
+            y_col = self.density_y_var.get()
 
-            Returns:
-            - interpolated grid (same shape as x_grid/y_grid)
-            """
-            # Flatten grid for easier calculation
-            grid_points = np.column_stack((x_grid.ravel(), y_grid.ravel()))
+            # Get column data with flexible matching
+            x_data, x_label = self._get_column_data(x_col)
+            y_data, y_label = self._get_column_data(y_col)
 
-            # Build KD-tree once for fast neighbor search
-            tree = cKDTree(self.sample_coords)
+            # Remove NaN values
+            valid_mask = ~(pd.isna(x_data) | pd.isna(y_data))
+            x_clean = x_data[valid_mask]
+            y_clean = y_data[valid_mask]
 
-            # Query nearest neighbors for all grid points at once
-            distances, indices = tree.query(grid_points, k=n_neighbors, distance_upper_bound=max_distance if max_distance > 0 else np.inf)
+            self._update_progress(20, f"Generating with {len(x_clean)} points...")
 
-            # Prepare output array
-            interpolated = np.full(grid_points.shape[0], np.nan)
+            # Generate based on method
+            method = self.density_method_var.get()
+            if method == "Gaussian KDE":
+                result = self._generate_kde(x_clean, y_clean, x_label, y_label)
+            elif method == "2D Histogram":
+                result = self._generate_histogram(x_clean, y_clean, x_label, y_label)
+            else:
+                result = self._generate_distance(x_clean, y_clean, x_label, y_label)
 
-            # IDW calculation per grid point
-            for i in range(len(grid_points)):
-                dists = distances[i]
-                idxs = indices[i]
+            if self.cancelled:
+                return
 
-                # Remove invalid neighbors (distance = inf)
-                valid_mask = np.isfinite(dists)
-                if not np.any(valid_mask):
-                    continue  # no neighbors within cutoff
+            # Update UI
+            self.window.after(0, lambda: self._update_density_results(result))
 
-                valid_dists = dists[valid_mask]
-                valid_vals = values[idxs[valid_mask]]
+        except Exception as e:
+            if not self.cancelled:
+                self.window.after(0, lambda: messagebox.showerror("Error", f"Density failed: {str(e)}"))
+        finally:
+            self.window.after(0, self._reset_processing_ui)
 
-                # Avoid division by zero
-                weights = 1.0 / (valid_dists ** power + 1e-12)  # small epsilon
+    def _generate_kde(self, x_data, y_data, x_label, y_label):
+        """Generate Gaussian KDE contours (from interactive_contouring)"""
+        self._update_progress(30, "Computing KDE...")
 
-                # Weighted average
-                interpolated[i] = np.sum(weights * valid_vals) / np.sum(weights)
+        # Prepare data
+        values = np.vstack([x_data, y_data])
 
-            # Reshape back to grid
-            return interpolated.reshape(x_grid.shape)
+        # Set bandwidth
+        bw = self.bw_var.get()
+        if bw in ["scott", "silverman"]:
+            bandwidth = bw
+        else:
+            try:
+                bandwidth = float(bw)
+            except:
+                bandwidth = "scott"
+
+        # Create KDE
+        try:
+            kde = gaussian_kde(values, bw_method=bandwidth)
+        except:
+            kde = gaussian_kde(values)
+
+        # Create grid
+        grid_size = self.density_grid_var.get()
+        x_min, x_max = x_data.min(), x_data.max()
+        y_min, y_max = y_data.min(), y_data.max()
+
+        # Add padding
+        x_pad = (x_max - x_min) * 0.1
+        y_pad = (y_max - y_min) * 0.1
+
+        x_grid = np.linspace(x_min - x_pad, x_max + x_pad, grid_size)
+        y_grid = np.linspace(y_min - y_pad, y_max + y_pad, grid_size)
+        X, Y = np.meshgrid(x_grid, y_grid)
+
+        self._update_progress(60, "Evaluating density...")
+
+        # Evaluate
+        positions = np.vstack([X.ravel(), Y.ravel()])
+        Z = kde(positions).reshape(X.shape)
+
+        return {
+            'X': X, 'Y': Y, 'Z': Z,
+            'x_data': x_data, 'y_data': y_data,
+            'x_label': x_label, 'y_label': y_label,
+            'method': 'Gaussian KDE'
+        }
+
+    def _generate_histogram(self, x_data, y_data, x_label, y_label):
+        """Generate 2D histogram contours (from interactive_contouring)"""
+        self._update_progress(30, "Creating 2D histogram...")
+
+        grid_size = self.density_grid_var.get()
+
+        # Create histogram
+        H, x_edges, y_edges = np.histogram2d(x_data, y_data, bins=grid_size)
+
+        self._update_progress(60, "Smoothing...")
+
+        # Smooth
+        H_smooth = gaussian_filter(H.T, sigma=1.0)
+
+        # Create grid
+        X, Y = np.meshgrid(x_edges[:-1], y_edges[:-1])
+        Z = H_smooth
+
+        return {
+            'X': X, 'Y': Y, 'Z': Z,
+            'x_data': x_data, 'y_data': y_data,
+            'x_label': x_label, 'y_label': y_label,
+            'method': '2D Histogram'
+        }
+
+    def _generate_distance(self, x_data, y_data, x_label, y_label):
+        """Generate distance-based contours (from interactive_contouring)"""
+        self._update_progress(30, "Computing distance-based density...")
+
+        grid_size = self.density_grid_var.get()
+
+        # Create grid
+        x_min, x_max = x_data.min(), x_data.max()
+        y_min, y_max = y_data.min(), y_data.max()
+        x_pad = (x_max - x_min) * 0.1
+        y_pad = (y_max - y_min) * 0.1
+
+        x_grid = np.linspace(x_min - x_pad, x_max + x_pad, grid_size)
+        y_grid = np.linspace(y_min - y_pad, y_max + y_pad, grid_size)
+        X, Y = np.meshgrid(x_grid, y_grid)
+
+        # Distance-based density
+        Z = np.zeros_like(X)
+        for i in range(len(x_data)):
+            if i % 100 == 0:
+                self._update_progress(50 + int(40 * i / len(x_data)), f"Processing point {i}/{len(x_data)}")
+            dist = np.sqrt((X - x_data[i])**2 + (Y - y_data[i])**2)
+            Z += np.exp(-dist**2 / (2 * (x_pad/2)**2))
+
+        # Normalize
+        Z = Z / Z.max() if Z.max() > 0 else Z
+
+        return {
+            'X': X, 'Y': Y, 'Z': Z,
+            'x_data': x_data, 'y_data': y_data,
+            'x_label': x_label, 'y_label': y_label,
+            'method': 'Distance-based'
+        }
+
+    def _run_optimized_idw(self, x, y, z, X_grid, Y_grid, x_label, y_label, z_label):
+        """Optimized Inverse Distance Weighting interpolation"""
+        self._update_progress(10, "Creating grid...")
+
+        # Get parameters
+        power = self.idw_power_var.get()
+        min_neighbors = self.min_neighbors_var.get()
+        search_radius = self.search_radius_var.get()
+
+        self._update_progress(30, "Building search tree...")
+
+        # Build KD-tree for fast searches
+        tree = cKDTree(np.column_stack([x, y]))
+
+        self._update_progress(50, "Performing IDW interpolation...")
+
+        # Initialize grid
+        grid_y, grid_x = X_grid.shape
+        ZI = np.full((grid_y, grid_x), np.nan)
+
+        # Process grid points
+        total_points = grid_x * grid_y
+        processed = 0
+
+        for i in range(grid_y):
+            for j in range(grid_x):
+                if self.cancelled:
+                    return None
+
+                # Find nearest neighbors
+                point = np.array([[X_grid[i, j], Y_grid[i, j]]])
+                distances, indices = tree.query(point,
+                                               k=min(15, len(x)),
+                                               distance_upper_bound=search_radius)
+
+                # Get valid neighbors
+                valid = distances[0] < np.inf
+                if np.sum(valid) >= min_neighbors:
+                    z_near = z[indices[0][valid]]
+                    d_near = distances[0][valid]
+
+                    # IDW weights
+                    weights = 1.0 / (d_near**power + 1e-10)
+                    ZI[i, j] = np.sum(weights * z_near) / np.sum(weights)
+
+                processed += 1
+                if processed % 100 == 0:
+                    progress = 50 + 45 * (processed / total_points)
+                    self._update_progress(int(progress), f"Processed {processed}/{total_points}")
+
+        self._update_progress(95, "Finalizing...")
+
+        return {
+            'X': X_grid, 'Y': Y_grid, 'Z': ZI,
+            'x_samples': x, 'y_samples': y, 'z_samples': z,
+            'x_label': x_label, 'y_label': y_label, 'z_label': z_label,
+            'method': 'Inverse Distance Weighting',
+            'params': f'power={power}, search_radius={search_radius}'
+        }
 
     def _run_optimized_kriging(self, x, y, z, x_label, y_label, z_label):
         """Optimized Ordinary Kriging implementation"""
@@ -829,97 +1164,18 @@ class SpatialKrigingPlugin:
             weights = 1.0 / (d_near**2 + 1e-10)
             return np.sum(weights * z_near) / np.sum(weights)
 
-    def _run_optimized_idw(self, x, y, z, x_label, y_label, z_label):
-        """COMPLETE Inverse Distance Weighting implementation"""
-        self._update_progress(10, "Creating grid...")
-
-        # Get parameters
-        power = self.idw_power_var.get()
-        min_neighbors = self.min_neighbors_var.get()
-        search_radius = self.search_radius_var.get()
-
-        # Create grid with aspect ratio preservation
-        grid_x = self.grid_size_var.get()
-        if self.preserve_aspect_var.get() and hasattr(self, 'aspect_ratio') and self.aspect_ratio > 0:
-            grid_y = int(grid_x / self.aspect_ratio)
-            if grid_y < 20:
-                grid_y = 20
-            elif grid_y > 200:
-                grid_y = 200
-        else:
-            grid_y = grid_x
-
-        x_min, x_max = x.min(), x.max()
-        y_min, y_max = y.min(), y.max()
-
-        # Add padding
-        x_pad = (x_max - x_min) * 0.05
-        y_pad = (y_max - y_min) * 0.05
-
-        xi = np.linspace(x_min - x_pad, x_max + x_pad, grid_x)
-        yi = np.linspace(y_min - y_pad, y_max + y_pad, grid_y)
-        XI, YI = np.meshgrid(xi, yi)
-
-        self._update_progress(30, "Building search tree...")
-
-        # Build KD-tree for fast searches
-        tree = cKDTree(np.column_stack([x, y]))
-
-        self._update_progress(50, "Performing IDW interpolation...")
-
-        # Initialize grid
-        ZI = np.full((grid_y, grid_x), np.nan)
-
-        # Process grid points
-        total_points = grid_x * grid_y
-        processed = 0
-
-        for i in range(grid_y):
-            for j in range(grid_x):
-                if self.cancelled:
-                    return None
-
-                # Find nearest neighbors
-                point = np.array([[XI[i, j], YI[i, j]]])
-                distances, indices = tree.query(point,
-                                               k=min(10, len(x)),
-                                               distance_upper_bound=search_radius)
-
-                # Get valid neighbors
-                valid = distances[0] < np.inf
-                if np.sum(valid) >= min_neighbors:
-                    z_near = z[indices[0][valid]]
-                    d_near = distances[0][valid]
-
-                    # IDW weights
-                    weights = 1.0 / (d_near**power + 1e-10)
-                    ZI[i, j] = np.sum(weights * z_near) / np.sum(weights)
-
-                processed += 1
-                if processed % 100 == 0:
-                    progress = 50 + 45 * (processed / total_points)
-                    self._update_progress(int(progress), f"Processed {processed}/{total_points}")
-
-        self._update_progress(95, "Finalizing...")
-
-        return {
-            'X': XI, 'Y': YI, 'Z': ZI,
-            'x_samples': x, 'y_samples': y, 'z_samples': z,
-            'x_label': x_label, 'y_label': y_label, 'z_label': z_label,
-            'method': 'Inverse Distance Weighting',
-            'params': f'power={power}, search_radius={search_radius}'
-        }
-
     def _update_progress(self, value, message):
         """Update progress bar and label"""
         if not self.cancelled:
             self.window.after(0, lambda: self.progress.configure(value=value))
             self.window.after(0, lambda: self.status_label.config(text=message, fg="orange"))
 
-    def _update_results_ui(self, result):
-        """Update UI with results"""
+    def _update_interpolation_results(self, result):
+        """Update UI with interpolation results"""
         if result is None or self.cancelled:
             return
+
+        self.interpolation_result = result  # Store result
 
         # Update map
         self._update_map(result)
@@ -933,6 +1189,25 @@ class SpatialKrigingPlugin:
 
         self.status_label.config(text=f"Completed {result['method']}", fg="green")
         self.notebook.select(0)
+
+        # Log
+        self._log(f"[{datetime.now().strftime('%H:%M:%S')}] Completed {result['method']}")
+
+    def _update_density_results(self, result):
+        """Update UI with density results"""
+        if result is None or self.cancelled:
+            return
+
+        self.density_result = result  # Store result
+
+        # Update density plot
+        self._update_density_plot(result)
+
+        self.status_label.config(text=f"Completed {result['method']}", fg="green")
+        self.notebook.select(3)  # Density tab index
+
+        # Log
+        self._log(f"[{datetime.now().strftime('%H:%M:%S')}] Generated {result['method']}: {result['x_label']} vs {result['y_label']}")
 
     def _update_map(self, result):
         """Update the interpolation map"""
@@ -955,7 +1230,7 @@ class SpatialKrigingPlugin:
                            origin='lower', cmap=cmap, alpha=0.8, aspect='auto')
 
         if self.show_samples_var.get():
-            self.ax.scatter(x_samples, y_samples, c=z_samples,
+            scatter = self.ax.scatter(x_samples, y_samples, c=z_samples,
                            cmap=cmap, edgecolor='black', s=30, alpha=0.8)
 
         self.figure.colorbar(im, ax=self.ax, label=z_label)
@@ -967,6 +1242,51 @@ class SpatialKrigingPlugin:
 
         self.figure.tight_layout()
         self.canvas.draw()
+
+    def _update_density_plot(self, result):
+        """Update the density contour plot (from interactive_contouring)"""
+        self.density_ax.clear()
+
+        X = result['X']
+        Y = result['Y']
+        Z = result['Z']
+        x_data = result['x_data']
+        y_data = result['y_data']
+        x_label = result['x_label']
+        y_label = result['y_label']
+        method = result['method']
+
+        # Create contours
+        levels = self.levels_var.get()
+        cmap = self.density_cmap_var.get()
+
+        if self.fill_contours_var.get():
+            contour = self.density_ax.contourf(X, Y, Z, levels=levels, cmap=cmap, alpha=0.8)
+        else:
+            contour = self.density_ax.contour(X, Y, Z, levels=levels, cmap=cmap, linewidths=2)
+
+        # Colorbar
+        if self.show_colorbar_var.get():
+            self.density_figure.colorbar(contour, ax=self.density_ax, label='Density')
+
+        # Data points
+        if self.show_points_var.get():
+            self.density_ax.scatter(x_data, y_data, c='white', edgecolor='black',
+                          alpha=0.6, s=30, label='Data Points')
+
+        # Labels and title
+        self.density_ax.set_xlabel(x_label, fontsize=10)
+        self.density_ax.set_ylabel(y_label, fontsize=10)
+        self.density_ax.set_title(f"{method}: {x_label} vs {y_label}\n{len(x_data)} points", fontsize=10)
+
+        # Grid and legend
+        self.density_ax.grid(True, alpha=0.3)
+        if self.show_points_var.get():
+            self.density_ax.legend()
+
+        # Redraw
+        self.density_figure.tight_layout()
+        self.density_canvas.draw()
 
     def _update_variogram_plot(self, result):
         """Update variogram plot"""
@@ -1036,124 +1356,114 @@ class SpatialKrigingPlugin:
     def _reset_processing_ui(self):
         """Reset UI after processing"""
         self.is_processing = False
-        self.interpolate_btn.config(state=tk.NORMAL, text="📍 Run")
+        self.interpolate_btn.config(state=tk.NORMAL, text="📍 Run Interp")
+        self.density_btn.config(state=tk.NORMAL, text="🗺️ Run Density")
         self.progress['value'] = 0
 
-    def _import_to_main(self):
-        """Import interpolated data to main app - using working pattern from geochem_advanced"""
-        if self.df.empty:
-            messagebox.showwarning("No Data", "No interpolated data to import!")
+    def _log(self, message):
+        """Add message to log"""
+        self.log_text.insert(tk.END, message + "\n")
+        self.log_text.see(tk.END)
+
+    def _import_from_main(self):
+        """Import data from main app into plugin for analysis"""
+        if not hasattr(self.app, 'samples') or not self.app.samples:
+            messagebox.showwarning("No Data", "No data in main application!")
             return
 
         try:
-            # Prepare table data in the format expected by import_data_from_plugin
-            table_data = []
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Convert main app samples to DataFrame
+            self.df = pd.DataFrame(self.app.samples)
 
-            interpolation_method = self.method_var.get()
-            value_column = self.value_var.get()
+            sample_count = len(self.df)
+            self.status_label.config(text=f"✅ Imported {sample_count} samples from main app", fg="green")
 
-            # Process each interpolated point
-            for idx, row in self.df.iterrows():
-                sample_entry = {
-                    # REQUIRED: Sample_ID
-                    'Sample_ID': row.get('Sample_ID', f"KRIG-{idx+1:04d}"),
+            # Update data info
+            self.data_info_label.config(text=f"Samples: {sample_count}")
 
-                    # Metadata
-                    'Timestamp': timestamp,
-                    'Source': 'Spatial Interpolation',
-                    'Analysis_Type': interpolation_method,
-                    'Plugin': PLUGIN_INFO['name'],
+            # Convert numeric columns
+            numeric_cols = []
+            for col in self.df.columns:
+                try:
+                    self.df[col] = pd.to_numeric(self.df[col], errors='coerce')
+                    if not self.df[col].isna().all():
+                        numeric_cols.append(col)
+                except:
+                    pass
 
-                    # REQUIRED: Notes field
-                    'Notes': f"Spatial interpolation of {value_column} using {interpolation_method}"
-                }
+            # Update all comboboxes with available columns
+            all_columns = list(self.df.columns)
 
-                # Add all data columns
-                for col in self.df.columns:
-                    if col not in ['Sample_ID', 'Timestamp', 'Plugin']:  # Skip as we already set them
-                        val = row[col]
-                        if pd.notna(val):
-                            # Format numbers appropriately
-                            if isinstance(val, (int, float)):
-                                if 'Latitude' in col or 'Longitude' in col:
-                                    sample_entry[col] = f"{val:.6f}"
-                                else:
-                                    sample_entry[col] = f"{val:.3f}"
-                            else:
-                                sample_entry[col] = str(val)
+            # Interpolation combos
+            self.lon_combo['values'] = all_columns
+            self.lat_combo['values'] = all_columns
+            self.value_combo['values'] = numeric_cols  # Only numeric for value
 
-                table_data.append(sample_entry)
+            # Density combos - include all columns + element suggestions
+            density_options = list(set(all_columns[:20] + self.ELEMENT_SUGGESTIONS))
+            self.density_x_combo['values'] = density_options
+            self.density_y_combo['values'] = density_options
 
-            # Ask user if they want to append or replace
-            from tkinter import simpledialog
-            choice = simpledialog.askstring(
-                "Import Option",
-                "Enter 'append' to add to existing data, or 'replace' to clear existing data:",
-                initialvalue='append',
-                parent=self.window
-            )
+            # Auto-select first two numeric columns for density if empty
+            if len(numeric_cols) > 0 and not self.density_x_var.get():
+                self.density_x_var.set(numeric_cols[0])
+            if len(numeric_cols) > 1 and not self.density_y_var.get():
+                self.density_y_var.set(numeric_cols[1])
 
-            # Send to main app using the STANDARDIZED method
-            if hasattr(self.app, 'import_data_from_plugin'):
-                if choice and choice.lower() == 'replace':
-                    # Clear existing data first by importing empty list
-                    self.app.import_data_from_plugin([])
+            # Auto-detect coordinate columns for interpolation
+            for col in numeric_cols:
+                col_lower = col.lower()
+                if any(term in col_lower for term in ['lon', 'long', 'x', 'easting']):
+                    if not self.lon_var.get():
+                        self.lon_var.set(col)
+                if any(term in col_lower for term in ['lat', 'y', 'northing']):
+                    if not self.lat_var.get():
+                        self.lat_var.set(col)
 
-                self.app.import_data_from_plugin(table_data)
-                self.status_label.config(text=f"✅ Imported {len(table_data)} interpolated points", fg="green")
+            # Auto-select first numeric column for value if not set
+            if numeric_cols and not self.value_var.get():
+                self.value_var.set(numeric_cols[0])
 
-                # Log the import
-                if hasattr(self, 'log_text'):
-                    self.log_text.insert(tk.END, f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Imported {len(table_data)} interpolated samples\n")
-                    self.log_text.see(tk.END)
+            # Calculate aspect ratio if both coordinates are selected
+            if self.lon_var.get() and self.lat_var.get():
+                lon_col = self.lon_var.get()
+                lat_col = self.lat_var.get()
 
-                # Show success message
-                self.window.lift()
-                messagebox.showinfo("Success", f"✅ Imported {len(table_data)} interpolated points to main table!")
-            else:
-                # Fallback to legacy method if import_data_from_plugin doesn't exist
-                self._legacy_import(table_data, interpolation_method, value_column, choice)
+                if lon_col in self.df.columns and lat_col in self.df.columns:
+                    valid = ~(self.df[lon_col].isna() | self.df[lat_col].isna())
+                    if valid.sum() > 1:
+                        x_vals = self.df[lon_col][valid].values
+                        y_vals = self.df[lat_col][valid].values
 
-        except Exception as e:
-            messagebox.showerror("Import Error", f"Failed to import data: {str(e)}")
+                        x_range = x_vals.max() - x_vals.min()
+                        y_range = y_vals.max() - y_vals.min()
 
-    def _legacy_import(self, table_data, interpolation_method, value_column, choice):
-        """Fallback import method for older main app versions"""
-        try:
-            if hasattr(self.app, 'samples'):
-                if choice and choice.lower() == 'replace':
-                    self.app.samples = table_data
-                else:
-                    self.app.samples.extend(table_data)
+                        if x_range > 0 and y_range > 0:
+                            self.aspect_ratio = x_range / y_range
+                            self.sample_coords = np.column_stack([x_vals, y_vals])
 
-            # Refresh main app UI
-            if hasattr(self.app, 'refresh_tree'):
-                self.app.refresh_tree()
-            elif hasattr(self.app, 'update_tree'):
-                self.app.update_tree()
-            elif hasattr(self.app, '_refresh_table_page'):
-                self.app._refresh_table_page()
+            # Enable buttons
+            if self.lon_var.get() and self.lat_var.get() and self.value_var.get():
+                self.interpolate_btn.config(state=tk.NORMAL)
 
-            # Update dynamic columns if available
-            if hasattr(self.app, 'setup_dynamic_columns') and self.app.samples:
-                all_columns = set()
-                for s in self.app.samples:
-                    all_columns.update(s.keys())
-                all_columns = [c for c in all_columns if c]
-                self.app.setup_dynamic_columns(all_columns)
+            if self.density_x_var.get() and self.density_y_var.get():
+                self.density_btn.config(state=tk.NORMAL)
 
-            messagebox.showinfo("Import Complete",
-                            f"✅ {len(table_data)} interpolated samples imported (legacy mode)",
-                            parent=self.window)
+            # Log the import
+            self._log(f"[{datetime.now().strftime('%H:%M:%S')}] Imported {sample_count} samples from main app")
+
+            # Show success
+            messagebox.showinfo("Success", f"✅ Imported {sample_count} samples from main app")
 
         except Exception as e:
-            messagebox.showerror("Legacy Import Error", str(e), parent=self.window)
+            import traceback
+            traceback.print_exc()
+            messagebox.showerror("Error", f"Failed to import data:\n{str(e)}")
 
     def _export_results(self):
         """Export results"""
         if not hasattr(self, 'figure'):
-            messagebox.showwarning("No Results", "Run interpolation first!")
+            messagebox.showwarning("No Results", "Run analysis first!")
             return
 
         filename = filedialog.asksaveasfilename(
@@ -1166,12 +1476,21 @@ class SpatialKrigingPlugin:
 
         if filename:
             try:
-                self.figure.savefig(filename, dpi=300, bbox_inches='tight')
+                # Export current tab
+                current_tab = self.notebook.index(self.notebook.select())
+                if current_tab == 0:  # Map tab
+                    self.figure.savefig(filename, dpi=300, bbox_inches='tight')
+                elif current_tab == 1:  # Variogram tab
+                    self.vario_figure.savefig(filename, dpi=300, bbox_inches='tight')
+                elif current_tab == 3:  # Density tab
+                    self.density_figure.savefig(filename, dpi=300, bbox_inches='tight')
+
                 messagebox.showinfo("Success", f"Exported to:\n{filename}")
+                self._log(f"[{datetime.now().strftime('%H:%M:%S')}] Exported: {filename}")
             except Exception as e:
                 messagebox.showerror("Error", f"Export failed: {str(e)}")
 
 def setup_plugin(main_app):
     """Plugin setup"""
     plugin = SpatialKrigingPlugin(main_app)
-    return plugin  # ← REMOVE ALL MENU CODE
+    return plugin

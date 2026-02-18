@@ -1,0 +1,216 @@
+{
+  "Nature_Style": {
+    "name": "🌿 Nature Journal",
+    "description": "Clean, minimal style used in Nature publications. Thin spines, outward ticks, sans-serif.",
+    "axes": {
+      "direction": "out",
+      "mirror": false,
+      "spine_width": 0.5,
+      "spine_color": "#000000",
+      "major_tick_len": 4,
+      "minor_ticks": false
+    },
+    "grid": {
+      "enabled": false
+    },
+    "fonts": {
+      "family": "Arial",
+      "label_size": 9,
+      "tick_size": 7,
+      "weight": "normal"
+    },
+    "palette": ["#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7"]
+  },
+
+  "Science_Style": {
+    "name": "🔬 Science Magazine",
+    "description": "Bold, high-contrast style for Science. Inward ticks, thin grid, serif fonts.",
+    "axes": {
+      "direction": "in",
+      "mirror": true,
+      "spine_width": 1.0,
+      "spine_color": "#000000",
+      "major_tick_len": 5,
+      "minor_ticks": true
+    },
+    "grid": {
+      "enabled": true,
+      "style": ":",
+      "width": 0.3,
+      "color": "#CCCCCC",
+      "alpha": 0.5
+    },
+    "fonts": {
+      "family": "Times New Roman",
+      "label_size": 10,
+      "tick_size": 8,
+      "weight": "normal"
+    },
+    "palette": ["#000000", "#D55E00", "#0072B2", "#009E73", "#CC79A7", "#F0E442", "#56B4E9"]
+  },
+
+  "AGU_Style": {
+    "name": "🌎 AGU (JGR, GRL)",
+    "description": "American Geophysical Union standard. Thick frames, mirrored ticks, serif.",
+    "axes": {
+      "direction": "in",
+      "mirror": true,
+      "spine_width": 1.5,
+      "spine_color": "#000000",
+      "major_tick_len": 6,
+      "minor_ticks": true
+    },
+    "grid": {
+      "enabled": true,
+      "style": "--",
+      "width": 0.5,
+      "color": "#999999",
+      "alpha": 0.3
+    },
+    "fonts": {
+      "family": "Times New Roman",
+      "label_size": 11,
+      "tick_size": 9,
+      "weight": "normal"
+    },
+    "palette": ["#000000", "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33"]
+  },
+
+  "Elsevier_Style": {
+    "name": "📘 Elsevier (Chemical Geology)",
+    "description": "Standard for Elsevier geochemistry journals. Balanced, professional.",
+    "axes": {
+      "direction": "in",
+      "mirror": true,
+      "spine_width": 1.0,
+      "spine_color": "#000000",
+      "major_tick_len": 5,
+      "minor_ticks": true
+    },
+    "grid": {
+      "enabled": false
+    },
+    "fonts": {
+      "family": "Arial",
+      "label_size": 10,
+      "tick_size": 8,
+      "weight": "normal"
+    },
+    "palette": ["#1f78b4", "#33a02c", "#e31a23", "#ff7f00", "#6a3d9a", "#b15928", "#a6cee3"]
+  },
+
+  "GS_Style": {
+    "name": "⛰️ GSA (Geology)",
+    "description": "Geological Society of America. Compact, bold, efficient.",
+    "axes": {
+      "direction": "in",
+      "mirror": false,
+      "spine_width": 1.2,
+      "spine_color": "#000000",
+      "major_tick_len": 5,
+      "minor_ticks": true
+    },
+    "grid": {
+      "enabled": true,
+      "style": "-",
+      "width": 0.3,
+      "color": "#DDDDDD",
+      "alpha": 0.8
+    },
+    "fonts": {
+      "family": "Arial",
+      "label_size": 9,
+      "tick_size": 7,
+      "weight": "bold"
+    },
+    "palette": ["#252525", "#cb181d", "#2171b5", "#238b45", "#994d00", "#807dba", "#cc4c02"]
+  },
+
+  "Presentation_Bold": {
+    "name": "🎤 Presentation (Large)",
+    "description": "Large fonts, bold lines for talks and posters.",
+    "axes": {
+      "direction": "in",
+      "mirror": true,
+      "spine_width": 2.0,
+      "spine_color": "#000000",
+      "major_tick_len": 8,
+      "minor_ticks": true
+    },
+    "grid": {
+      "enabled": true,
+      "style": "--",
+      "width": 1.0,
+      "color": "#AAAAAA",
+      "alpha": 0.5
+    },
+    "fonts": {
+      "family": "Arial",
+      "label_size": 18,
+      "tick_size": 14,
+      "weight": "bold"
+    },
+    "palette": ["#000000", "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#A65628"]
+  },
+
+  "Geochem_Spider": {
+    "name": "📊 REE Spider Standard",
+    "description": "Optimized for REE spider diagrams with chondrite normalization.",
+    "axes": {
+      "direction": "in",
+      "mirror": true,
+      "spine_width": 1.0,
+      "spine_color": "#000000",
+      "major_tick_len": 5,
+      "minor_ticks": true
+    },
+    "geochem": {
+      "norm_source": "Sun & McDonough (1989)",
+      "norm_values": {
+        "La": 0.237, "Ce": 0.612, "Pr": 0.095, "Nd": 0.467, "Sm": 0.153,
+        "Eu": 0.058, "Gd": 0.205, "Tb": 0.037, "Dy": 0.254, "Ho": 0.056,
+        "Er": 0.165, "Tm": 0.025, "Yb": 0.170, "Lu": 0.025
+      }
+    },
+    "grid": {
+      "enabled": true,
+      "style": ":",
+      "width": 0.3,
+      "color": "#CCCCCC",
+      "alpha": 0.5
+    },
+    "fonts": {
+      "family": "Arial",
+      "label_size": 10,
+      "tick_size": 8,
+      "weight": "normal"
+    }
+  },
+
+  "Minimal_Black_White": {
+    "name": "⚫ B&W Publication",
+    "description": "Grayscale only, for black-and-white printing.",
+    "axes": {
+      "direction": "in",
+      "mirror": true,
+      "spine_width": 1.0,
+      "spine_color": "#000000",
+      "major_tick_len": 5,
+      "minor_ticks": true
+    },
+    "grid": {
+      "enabled": true,
+      "style": ":",
+      "width": 0.3,
+      "color": "#888888",
+      "alpha": 0.5
+    },
+    "fonts": {
+      "family": "Times New Roman",
+      "label_size": 10,
+      "tick_size": 8,
+      "weight": "normal"
+    },
+    "palette": ["#000000", "#333333", "#666666", "#999999", "#CCCCCC", "#111111", "#444444"]
+  }
+}

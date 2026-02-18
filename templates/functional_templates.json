@@ -1,0 +1,26 @@
+{
+  "Data_Exploration": {
+    "name": "🔍 Data Exploration",
+    "description": "Grid on, many ticks for detailed analysis",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 0.8, "major_tick_len": 4, "minor_ticks": true},
+    "grid": {"enabled": true, "style": "--", "width": 0.5, "color": "#AAAAAA"},
+    "fonts": {"family": "Arial", "label_size": 9, "tick_size": 7},
+    "palette": ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"]
+  },
+  "Publication_Ready": {
+    "name": "📰 Publication Ready",
+    "description": "Final camera-ready format",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.0, "major_tick_len": 5},
+    "grid": {"enabled": false},
+    "fonts": {"family": "Times New Roman", "label_size": 10, "tick_size": 8},
+    "palette": ["#000000", "#b2182b", "#2166ac", "#1b7837", "#762a83"]
+  },
+  "Reviewer_Friendly": {
+    "name": "👓 Reviewer Friendly",
+    "description": "Extra space for annotations and comments",
+    "axes": {"direction": "in", "mirror": true, "spine_width": 1.2, "major_tick_len": 6},
+    "grid": {"enabled": true, "style": "-", "width": 0.5, "color": "#CCCCCC"},
+    "fonts": {"family": "Arial", "label_size": 12, "tick_size": 10},
+    "palette": ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00"]
+  }
+}

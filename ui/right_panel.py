@@ -400,12 +400,14 @@ class RightPanel:
         """Run selected classification scheme"""
         # Validate classification engine
         if not hasattr(self.app, 'classification_engine') or self.app.classification_engine is None:
-            messagebox.showerror("Error", "Classification engine not available")
+            self.app.center.show_error('classification', "Classification engine not available")
+            messagebox.showerror("Error", "Classification engine not available", parent=self.app.root)
             return
 
         # Validate scheme selection
         if not self.scheme_list or not self.scheme_var.get():
-            messagebox.showwarning("No Scheme", "Please select a classification scheme")
+            self.app.center.show_warning('classification', "No scheme selected")
+            messagebox.showwarning("No Scheme", "Please select a classification scheme", parent=self.app.root)
             return
 
         selected_display = self.scheme_var.get()
@@ -427,15 +429,24 @@ class RightPanel:
             samples = [self.app.data_hub.get_all()[i] for i in indices if i < len(self.app.data_hub.get_all())]
 
         if not samples:
-            messagebox.showinfo("Info", "No samples to classify")
+            self.app.center.show_warning('classification', "No samples to classify")
+            messagebox.showinfo("Info", "No samples to classify", parent=self.app.root)
             return
 
         try:
-            # Show processing status in center panel
-            self.app.center.set_status(f"Processing {len(samples)} samples using {selected_display}...", "processing")
+            # Get scheme info BEFORE running
+            scheme_info = self.app.classification_engine.get_scheme_info(scheme_id)
+            output_column = scheme_info.get('output_column', 'Auto_Classification')
+            confidence_column = scheme_info.get('confidence_column_name', 'Auto_Confidence')
+            flag_column = scheme_info.get('flag_column_name', 'Flag_For_Review')
+
+            # Show processing status
+            total_samples = len(samples)
+            self.app.center.show_progress('classification', 0, total_samples,
+                                        f"Starting classification with {selected_display}...")
 
             # Store original classifications to track changes
-            original_classifications = [s.get('Auto_Classification', 'UNCLASSIFIED') for s in samples]
+            original_classifications = [s.get(output_column, 'UNCLASSIFIED') for s in samples]
 
             # Run classification
             classified = self.app.classification_engine.classify_all_samples(samples, scheme_id)
@@ -444,47 +455,68 @@ class RightPanel:
             newly_classified = 0
             classification_counts = {}
 
+            # Process each sample with progress updates
             for i, sample in enumerate(classified):
-                new_class = sample.get('Auto_Classification', 'UNCLASSIFIED')
+                if i % 10 == 0 or i == total_samples - 1:
+                    sample_id = sample.get('Sample_ID', 'Unknown')
+                    self.app.center.show_progress('classification', i+1, total_samples,
+                                                f"Processing {sample_id[:20]}...")
+
+                new_class = sample.get(output_column, 'UNCLASSIFIED')
                 if new_class != 'UNCLASSIFIED':
                     if new_class != original_classifications[i]:
                         newly_classified += 1
                     classification_counts[new_class] = classification_counts.get(new_class, 0) + 1
 
             # Update data hub
+            self.app.center.show_progress('classification', total_samples, total_samples,
+                                        "Updating data...")
+
             if self.run_target.get() == "all":
                 for i, classified_sample in enumerate(classified):
                     if i < len(self.app.data_hub.get_all()):
                         updates = {}
-                        if 'Auto_Classification' in classified_sample:
-                            updates['Auto_Classification'] = classified_sample['Auto_Classification']
-                        if 'Auto_Confidence' in classified_sample:
-                            updates['Auto_Confidence'] = classified_sample['Auto_Confidence']
-                        if 'Flag_For_Review' in classified_sample:
-                            updates['Flag_For_Review'] = classified_sample['Flag_For_Review']
-                        for key in ['Zr_Nb_Ratio', 'Cr_Ni_Ratio', 'Ba_Rb_Ratio']:
+                        # Use scheme-specific columns
+                        if output_column in classified_sample:
+                            updates[output_column] = classified_sample[output_column]
+                        if confidence_column in classified_sample:
+                            updates[confidence_column] = classified_sample[confidence_column]
+                        if flag_column in classified_sample:
+                            updates[flag_column] = classified_sample[flag_column]
+
+                        # Add any ratio columns that might have been calculated
+                        for key in ['Zr_Nb_Ratio', 'Cr_Ni_Ratio', 'Ba_Rb_Ratio',
+                                'Ti_V_Ratio', 'Nb_Yb_Ratio', 'Th_Yb_Ratio',
+                                'Fe_Mn_Ratio', 'CIA_Value', 'V_Ratio',
+                                'Total_Alkali', 'Mg_Number', 'ACNK']:
                             if key in classified_sample and key not in self.app.data_hub.get_all()[i]:
                                 updates[key] = classified_sample[key]
+
                         if updates:
                             self.app.data_hub.update_row(i, updates)
             else:
                 for i, idx in enumerate(indices):
                     if i < len(classified) and idx < len(self.app.data_hub.get_all()):
                         updates = {}
-                        if 'Auto_Classification' in classified[i]:
-                            updates['Auto_Classification'] = classified[i]['Auto_Classification']
-                        if 'Auto_Confidence' in classified[i]:
-                            updates['Auto_Confidence'] = classified[i]['Auto_Confidence']
-                        if 'Flag_For_Review' in classified[i]:
-                            updates['Flag_For_Review'] = classified[i]['Flag_For_Review']
+                        if output_column in classified[i]:
+                            updates[output_column] = classified[i][output_column]
+                        if confidence_column in classified[i]:
+                            updates[confidence_column] = classified[i][confidence_column]
+                        if flag_column in classified[i]:
+                            updates[flag_column] = classified[i][flag_column]
+
                         current_sample = self.app.data_hub.get_all()[idx]
-                        for key in ['Zr_Nb_Ratio', 'Cr_Ni_Ratio', 'Ba_Rb_Ratio']:
+                        for key in ['Zr_Nb_Ratio', 'Cr_Ni_Ratio', 'Ba_Rb_Ratio',
+                                'Ti_V_Ratio', 'Nb_Yb_Ratio', 'Th_Yb_Ratio',
+                                'Fe_Mn_Ratio', 'CIA_Value', 'V_Ratio',
+                                'Total_Alkali', 'Mg_Number', 'ACNK']:
                             if key in classified[i] and key not in current_sample:
                                 updates[key] = classified[i][key]
+
                         if updates:
                             self.app.data_hub.update_row(idx, updates)
 
-            # Update status in center panel
+            # Update status with scheme name
             self.app.center.show_classification_status(
                 scheme_name=selected_display,
                 total_samples=len(samples),
@@ -492,8 +524,12 @@ class RightPanel:
                 classification_counts=classification_counts
             )
 
-            # Also print detailed info to console for debugging
+            self.app.center.show_operation_complete('classification',
+                                                f"{newly_classified}/{total_samples} classified")
+
+            # Print results with correct column name
             print(f"\n📊 Classification Results for '{selected_display}':")
+            print(f"   Output column: '{output_column}'")
             print(f"   Total samples: {len(samples)}")
             print(f"   New classifications: {newly_classified}")
             print(f"   Unclassified: {len(samples) - newly_classified}")
@@ -503,8 +539,8 @@ class RightPanel:
                     print(f"     • {class_name}: {count}")
 
         except Exception as e:
-            self.app.center.set_status(f"Classification failed: {str(e)[:50]}", "error")
+            self.app.center.show_error('classification', str(e)[:50])
             print(f"❌ Classification error: {e}")
             import traceback
             traceback.print_exc()
-            messagebox.showerror("Classification Error", f"Failed to classify: {e}")
+            messagebox.showerror("Classification Error", f"Failed to classify: {e}", parent=self.app.root)

@@ -2,493 +2,339 @@
 
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/sefy-levy/scientific-toolkit)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://gitlab.com/sefy76/scientific-toolkit)
+[![GitLab](https://img.shields.io/badge/GitLab-Repository-orange.svg)](https://gitlab.com/sefy76/scientific-toolkit)
 
-> **A comprehensive, modular toolkit for scientific data analysis across geochemistry, archaeology, material science, and more.**
+> **Free integrated platform for multi-domain scientific analysis**
 
-Based on the Basalt Provenance Triage Toolkit v10.2, this open-source platform integrates hardware instruments, advanced analytics, AI assistants, and publication-ready visualizations in one unified interface.
+Scientific Toolkit combines geochemistry, archaeology, spectroscopy, GIS, statistical analysis, and hardware integration in one free tool. Built for researchers, students, and institutions with limited software budgets.
 
-![Scientific Toolkit Interface](docs/images/interface_preview.png)
-*Main interface showing data management, classification engines, and real-time analysis*
-
----
-
-## 🌟 Key Features
-
-### 📊 Multi-Domain Scientific Analysis
-- **Geochemistry**: XRF, ICP-MS, LA-ICP-MS data processing with drift correction
-- **Archaeology**: Zooarchaeology, stable isotopes, lithic morphometrics, bone diagenesis
-- **Material Science**: FTIR, Raman, XRD spectroscopy and powder diffraction
-- **Mineralogy**: Normative calculations, mineral identification, phase analysis
-- **GIS & Spatial**: 3D visualization, kriging interpolation, Google Earth integration
-- **Statistics & ML**: PCA, clustering, classification, uncertainty propagation
-
-### 🔌 80+ Plugins
-- **Hardware Integration** (7 unified suites + 19 instruments): Direct acquisition from benchtop XRF, FTIR, digital calipers, GPS, EC meters, and more
-- **Software Analytics** (37 plugins): Advanced statistics, machine learning, GIS tools, publication layouts
-- **Add-ons** (17 plugins): Visualization libraries, batch processing, demo data generators
-- **AI Assistants** (7 providers): ChatGPT, Claude, Gemini, Copilot, DeepSeek, Grok, Ollama
-
-### ⚙️ 37 Classification Systems
-Automated classification for volcanic rocks (TAS, AFM), meteorites, soils, ceramics, bone preservation, water quality, REE patterns, stable isotopes, and more.
-
-### 🤖 AI-Powered Workflows
-Natural language queries and automated analysis suggestions through integrated AI assistants. Ask questions about your data in plain English.
-
-### 📈 Publication-Ready Outputs
-High-quality plots, ternary diagrams, spider diagrams, discrimination plots, contour maps, and statistical reports ready for journals.
+Based on Basalt Provenance Triage Toolkit v10.2, expanded to cover multiple scientific disciplines.
 
 ---
 
-## 🚀 Quick Start
+## 🎯 What Is This?
 
-### Prerequisites
+**Scientific Toolkit** is a Python/Tkinter desktop application that integrates tools for:
+- Geochemical data analysis and classification
+- Archaeological material analysis
+- Hardware instrument integration (XRF, FTIR, XRD, GPS, etc.)
+- Statistical analysis and machine learning
+- GIS visualization and spatial analysis
+- Publication-ready figure generation
+
+**Key features:**
+- 41 classification engines implementing published methods
+- 26 hardware device integrations
+- Multiple plotting and visualization options
+- Import/export for common data formats
+- Template system for journal-specific figures
+- Completely free and open source
+
+**Who might find this useful:**
+- Students learning geochemistry or archaeology
+- Researchers with limited software budgets
+- Teaching labs needing multi-topic coverage
+- Field scientists needing portable instrument integration
+- Museums managing collections and analysis data
+- Anyone working across geology and archaeology
+
+**What this is NOT:**
+- Not a replacement for specialized commercial tools in single domains
+- Not optimized for massive datasets (10,000+ samples)
+- Not a web application (desktop only)
+- Not a programming language (GUI-based)
+
+---
+
+## 📊 What's Included?
+
+### Classification Engines (41)
+
+Implementations of published classification methods across multiple fields:
+
+**Geochemistry:** TAS volcanic classification (Le Bas et al. 1986), AFM diagrams (Irvine & Baragar 1971), REE patterns (Sun & McDonough 1989), Chemical Index of Alteration, mantle array discrimination, normative calculations
+
+**Archaeology:** Bone collagen QC, bone diagenesis (Ca/P ratios), ceramic firing temperature proxies, glass composition, stable isotope dietary reconstruction
+
+**Environmental:** Geoaccumulation index (Müller 1969, 1981), enrichment factors, soil texture (USDA), soil salinity/sodicity, water hardness
+
+**Sedimentology:** Grain size (Wentworth 1922), Dunham carbonate classification
+
+**Meteoritics:** Chondrite classification, shock stages (Stöffler et al. 1991), weathering grades
+
+See [CITATIONS.md](CITATIONS.md) for complete references.
+
+### Hardware Integrations (26)
+
+Plugins for connecting scientific instruments:
+- XRF/pXRF analyzers (Bruker Tracer, Niton, Vanta, benchtop XRF)
+- FTIR spectrometers (Bruker, PerkinElmer, Thermo)
+- XRD powder diffraction
+- ICP-MS data import
+- Raman spectrometers
+- GPS/GNSS devices (NMEA protocol)
+- Digital calipers (USB HID)
+- EC meters, ion-selective electrodes
+- Magnetic susceptibility meters
+- Laser granulometers
+- Universal file monitor (works with any device that saves files)
+
+### Software Plugins (28)
+
+Advanced analysis tools:
+- LA-ICP-MS data reduction and U-Pb dating
+- PCA/LDA/ML Explorer (Random Forest, SVM, t-SNE, clustering)
+- Compositional statistics (pyrolite integration)
+- Spatial kriging and interpolation
+- 3D GIS viewer with terrain
+- Google Earth Pro export
+- Magma modeling (fractional crystallization, AFC)
+- Isotope mixing models
+- Literature comparison (published reference matching)
+- Advanced normalization schemes
+- Publication layout tools
+
+### Visualization Options
+
+- Matplotlib (standard plots)
+- Seaborn (statistical visualization)
+- Ternary diagrams (three-component)
+- GeoP
+
+---
+
+## 💡 Who Is This For?
+
+✅ **Graduate students** working across geology + archaeology  
+✅ **University professors** teaching multi-topic courses  
+✅ **Museum researchers** managing collections + analysis  
+✅ **Field scientists** needing portable instrument integration  
+✅ **Developing-world researchers** with limited software budgets  
+✅ **Independent researchers** and citizen scientists  
+✅ **Small institution labs** without commercial licenses  
+✅ **Environmental consultants** needing flexible tools  
+✅ **Anyone** who can't afford $8,000/year in software subscriptions  
+
+---
+
+## 📦 What's Included?
+
+### **Core Components**
+- **153 files** of production-ready code
+- **77,000 lines** across Python, JSON, documentation
+- **Modular plugin architecture** - enable only what you need
+- **Observer pattern data hub** - all plugins stay synchronized
+- **Comprehensive error handling** - professional UX
+
+### **Plugin Categories**
+
+**🔧 Hardware Plugins (26)**
+- Unified suites for geochemistry, mineralogy, spectroscopy, zooarchaeology
+- Single-device controllers for XRF, FTIR, XRD, GPS, etc.
+- Universal file monitor fallback
+
+**💻 Software Plugins (28)**
+- Advanced normalization, CIPW norms, isotope mixing
+- LA-ICP-MS Pro, geochronology, magma modeling
+- PCA/LDA/ML Explorer, kriging, 3D GIS
+- Literature comparison, publication layouts
+
+**🎨 Add-on Plugins (17)**
+- Matplotlib, Seaborn, Ternary plotters
+- ASCII art plots, batch processing
+- 6 AI assistants (Claude, ChatGPT, Gemini, DeepSeek, Grok, Ollama)
+
+**🧬 Classification Engines (41)**
+- Geochemistry: TAS, AFM, REE, mantle arrays
+- Archaeology: bone QC, ceramics, glass, lithics
+- Environmental: Igeo, enrichment factors, soil texture
+- Meteoritics: chondrites, shock stages, weathering
+- Each engine includes citations to source literature
+
+**🎨 Templates (8 categories)**
+- Journal styles: Nature, Science, AGU, Elsevier, GSA
+- Aesthetic: Color-blind safe, high contrast, B&W print
+- Functional: Publication-ready, reviewer-friendly
+- Discipline-specific: REE spider, TAS, stable isotopes
+
+---
+
+## 🎓 Academic Use
+
+### **Citation**
+If you use Scientific Toolkit in research, please cite:
+```
+Scientific Toolkit v2.0 (2024-2026)
+Free integrated platform for multi-domain scientific analysis
+https://gitlab.com/sefy76/scientific-toolkit
+License: CC BY-NC-SA 4.0
+```
+
+### **Validation**
+Classification engines implement published methods with citations:
+- Sun & McDonough (1989) - REE normalization
+- Le Bas et al. (1986) - TAS classification
+- Irvine & Baragar (1971) - AFM diagrams
+- Pearce (2008) - Mantle array discrimination
+- Stöffler et al. (1991) - Meteorite shock stages
+- *[40+ additional references in classification files]*
+
+### **Teaching**
+Free for educational use. Example datasets included in `/samples/`
+
+---
+
+## 🛠️ Installation
+
+### **Requirements**
 - Python 3.8 or higher
-- pip package manager
-- (Optional) Virtual environment tool (venv, conda)
+- Operating System: Windows, macOS, or Linux
+- Disk space: ~50 MB
+- RAM: 2 GB minimum, 4 GB recommended
 
-### Installation
-
-1. **Clone the repository**
+### **Core Dependencies**
 ```bash
-git clone https://github.com/sefy-levy/scientific-toolkit.git
-cd scientific-toolkit
+pip install numpy pandas matplotlib tkinter
 ```
 
-2. **Create a virtual environment (recommended)**
+### **Optional Dependencies**
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# For full functionality
+pip install scipy scikit-learn seaborn pillow geopandas rasterio
 ```
 
-3. **Install dependencies**
-```bash
-pip install -r requirements.txt
-```
-
-4. **Run the toolkit**
-```bash
-python Scientific-Toolkit.py
-```
-
-### First Launch
-On first launch, the toolkit will:
-- Initialize the configuration files
-- Load available plugins
-- Create sample data directories
-- Display the splash screen and main interface
+See [detailed installation guide](docs/INSTALLATION.md) for platform-specific instructions.
 
 ---
 
 ## 📚 Documentation
 
-### Core Guides
-- [**Installation Guide**](docs/INSTALLATION.md) - Detailed setup instructions for all platforms
-- [**User Manual**](docs/USER_GUIDE.md) - Comprehensive guide to all features
-- [**Plugin Development**](docs/PLUGIN_DEVELOPMENT.md) - Create your own plugins
-- [**Troubleshooting**](docs/TROUBLESHOOTING.md) - Common issues and solutions
-
-### Quick References
-- [**Supported Instruments**](docs/INSTRUMENTS.md) - Full list of hardware integrations
-- [**Classification Systems**](docs/CLASSIFICATIONS.md) - Description of all 37 classification schemes
-- [**Data Formats**](docs/DATA_FORMATS.md) - Supported file formats and structures
-- [**API Reference**](docs/API.md) - Programming interface documentation
-
-### Video Tutorials
-- [Getting Started (5 min)](docs/tutorials/getting-started.md)
-- [XRF Data Processing (10 min)](docs/tutorials/xrf-processing.md)
-- [Creating Custom Classifications (15 min)](docs/tutorials/custom-classifications.md)
-
----
-
-## 🔧 Usage Examples
-
-### Load and Analyze Data
-```python
-# Import your data
-df = toolkit.load_data("my_samples.csv")
-
-# Auto-detect and standardize column names
-df = toolkit.standardize_columns(df)
-
-# Apply classification
-results = toolkit.classify("TAS_diagram", df)
-
-# Generate publication plot
-toolkit.plot_tas(df, save_path="tas_plot.png", dpi=300)
-```
-
-### Hardware Integration
-```python
-# Connect to benchtop XRF
-xrf = toolkit.connect_instrument("Bruker_XRF")
-
-# Acquire spectrum
-spectrum = xrf.acquire(integration_time=30)
-
-# Apply drift correction
-corrected = toolkit.apply_drift_correction(spectrum)
-```
-
-### AI-Assisted Analysis
-```python
-# Ask questions about your data
-ai = toolkit.get_ai_assistant("Claude")
-response = ai.query("What's the most likely source region for these basalts?")
-
-# Get analysis suggestions
-suggestions = ai.suggest_analyses(df)
-```
-
----
-
-## 🗂️ Project Structure
-
-```
-scientific-toolkit/
-│
-├── Scientific-Toolkit.py          # Main entry point
-├── data_hub.py                    # Central data management
-├── requirements.txt               # Python dependencies
-├── README.md                      # This file
-├── LICENSE                        # CC BY-NC-SA 4.0
-│
-├── config/                        # Configuration files
-│   ├── chemical_elements.json     # Element name variations
-│   ├── enabled_plugins.json       # Active plugin list
-│   └── scatter_colors.json        # Default plot colors
-│
-├── engines/                       # Classification & protocol engines
-│   ├── classification_engine.py   # Core classification logic
-│   ├── protocol_engine.py         # Workflow automation
-│   ├── classification/            # 37 classification systems
-│   └── protocols/                 # Standard protocols
-│
-├── plugins/                       # Modular plugin system
-│   ├── hardware/                  # Instrument integration (7 suites)
-│   ├── software/                  # Analysis tools (37 plugins)
-│   ├── add-ons/                   # Extended features (17 plugins)
-│   └── other/                     # Specialized tools (19 plugins)
-│
-├── ui/                            # User interface components
-│   ├── left_panel.py              # Data browser
-│   ├── center_panel.py            # Main workspace
-│   ├── right_panel.py             # Controls & settings
-│   └── results_dialog.py          # Results display
-│
-├── samples/                       # Example datasets
-│   ├── master_test_list.csv       # Sample geochemical data
-│   └── classifications_master_test.csv
-│
-└── docs/                          # Documentation
-    ├── USER_GUIDE.md              # User manual
-    ├── INSTALLATION.md            # Setup guide
-    ├── PLUGIN_DEVELOPMENT.md      # Developer docs
-    └── tutorials/                 # Video tutorials
-```
-
----
-
-## 🔌 Plugin Ecosystem
-
-### Hardware Plugins (26 total)
-
-**Unified Suites** (7):
-- Elemental Geochemistry (XRF, ICP-MS, LA-ICP-MS)
-- Mineralogy (XRD, modal analysis)
-- Physical Properties (dimensions, density, magnetic susceptibility)
-- Solution Chemistry (pH, EC, TDS, ions)
-- Spectroscopy (FTIR, Raman, UV-Vis)
-- Zooarchaeology (bone measurements, species ID)
-
-**Specialized Instruments** (19):
-- Benchtop XRF (Bruker, Thermo, Vanta)
-- Portable XRF (Niton, Bruker Tracer)
-- FTIR Spectrometers (Bruker, PerkinElmer, Thermo)
-- Digital Calipers
-- GPS (NMEA)
-- EC/pH/Ion Meters
-- Magnetic Susceptibility Meter
-- Laser Granulometer
-- Raman Spectrometer
-- XRD Powder Diffraction
-
-### Software Plugins (37)
-
-**Data Processing**:
-- Advanced Export, Filter, Normalization
-- Data Validation & Quality Control
-- Compositional Statistics
-
-**Visualization**:
-- Ternary Diagrams
-- Spider Diagrams
-- Discrimination Plots
-- Interactive Contouring
-- Publication Layouts
-
-**Statistical Analysis**:
-- PCA Explorer (comprehensive)
-- Machine Learning
-- Advanced Statistics
-- Uncertainty Propagation
-
-**Geospatial**:
-- GIS 3D Viewer
-- Google Earth Integration
-- Spatial Kriging
-- Quartz GIS Pro
-
-**Domain-Specific**:
-- Petro Plot Pro
-- Magma Modeling
-- LA-ICP-MS Pro
-- Isotope Mixing Models
-- Zooarchaeology Analytics
-- Lithic Morphometrics
-- Virtual Microscopy
-
-### Add-on Plugins (17)
-
-**Visualization Libraries**:
-- Matplotlib Plotter
-- Seaborn Plotter
-- Ternary Plotter
-- ASCII Plotter
-- GeoPandas Plotter
-- Missingno Plotter
-- NetworkX Plotter
-- Pillow Plotter
-
-**AI Assistants**:
-- ChatGPT AI
-- Claude AI
-- Copilot AI
-- DeepSeek AI
-- Gemini AI
-- Grok AI
-- Ollama AI (local models)
-
-**Utilities**:
-- Batch Processor
-- Demo Data Generator
-
----
-
-## 🛠️ Configuration
-
-### Enabling/Disabling Plugins
-Edit `config/enabled_plugins.json`:
-```json
-{
-  "hardware": ["elemental_geochemistry_unified_suite"],
-  "software": ["pca_explorer", "machine_learning"],
-  "add-ons": ["claude_ai", "matplotlib_plotter"]
-}
-```
-
-### Custom Element Mapping
-Add your lab's naming conventions to `config/chemical_elements.json`:
-```json
-{
-  "Zr": {
-    "standard": "Zr_ppm",
-    "variations": ["Zr", "Zirconium", "Zr (ppm)", "Zr_conc"]
-  }
-}
-```
-
-### AI Assistant Setup
-Store API keys as environment variables:
-```bash
-export OPENAI_API_KEY="your-key-here"
-export ANTHROPIC_API_KEY="your-key-here"
-export GOOGLE_API_KEY="your-key-here"
-```
-
-Or configure in the GUI: **Settings → AI Assistants → Configure Keys**
-
----
-
-## 📊 Supported Data Formats
-
-### Input Formats
-- **CSV** (comma, tab, semicolon delimited)
-- **Excel** (.xlsx, .xls)
-- **JSON** (structured data)
-- **Instrument-specific**: PDZ (Bruker), Vanta XML, Niton CSV, FTIR SPA
-
-### Output Formats
-- CSV, Excel, JSON (data)
-- PNG, SVG, PDF (plots)
-- KML (Google Earth)
-- Shapefile (GIS)
-- LaTeX tables (publications)
+- **[Installation Guide](INSTALLATION.md)** - Platform-specific setup
+- **[Quick Start](QUICK_START.md)** - Get running in 5 minutes
+- **[Citations](CITATIONS.md)** - All published methods and references
+- **[Plugin Guide](PLUGIN_GUIDE.md)** - How to use plugins
+- **[FAQ](FAQ.md)** - Common questions
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Whether you're fixing bugs, adding features, or improving documentation:
+Contributions welcome! Ways to help:
+- Report bugs via GitLab Issues
+- Add new classification engines
+- Create hardware plugins for new instruments
+- Improve documentation
+- Share example workflows
 
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Commit your changes**: `git commit -m 'Add amazing feature'`
-4. **Push to the branch**: `git push origin feature/amazing-feature`
-5. **Open a Pull Request**
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
-### Ways to Contribute
-- 🐛 Report bugs or request features (Issues)
-- 📝 Improve documentation
-- 🔌 Create new plugins for instruments or analyses
-- 🧪 Test with your own data and provide feedback
-- 🌍 Add internationalization support
-- 🎨 Improve UI/UX design
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
-## 📖 Citation
+## 📊 How This Compares to Other Tools
 
-If you use Scientific Toolkit in your research, please cite:
+**GCDkit** (Free, R-based): Focused on igneous petrology and geochemistry. Scientific Toolkit adds archaeology, hardware integration, and GUI accessibility.
 
-```bibtex
-@software{levy2026scientific,
-  author = {Levy, Sefy},
-  title = {Scientific Toolkit v2.0},
-  year = {2026},
-  note = {Based on Basalt Provenance Triage Toolkit v10.2},
-  url = {https://github.com/sefy-levy/scientific-toolkit},
-  doi = {10.5281/zenodo.18499129}
-}
-```
+**ioGAS** (Commercial, ~$2,000+/year estimated): Professional geochemistry tool for mining industry. More polished UI, but Scientific Toolkit is free and covers archaeology/museums.
 
-**APA Format**:
-Levy, S. (2026). *Scientific Toolkit v2.0* [Computer software]. Based on Basalt Provenance Triage Toolkit v10.2. https://doi.org/10.5281/zenodo.18499129
+**Python/R scripts** (Free): Maximum flexibility, requires programming. Scientific Toolkit provides GUI for non-programmers.
 
-### Citing Specific Classification Systems
+**Commercial archaeology tools** (Varied pricing): Specialized but expensive. Scientific Toolkit integrates multiple capabilities in one free package.
 
-If you use specific classification systems (TAS, AFM, etc.), **please also cite the original scientific papers**. See [REFERENCES.md](REFERENCES.md) for a complete list of citations for all 37 classification systems implemented in this toolkit.
+**This toolkit is best for:** Students, teaching labs, budget-constrained researchers, museums, cross-disciplinary projects, field work with portable instruments.
 
-**Example**:
-> "Samples were classified using the TAS diagram (Le Bas et al., 1986) as implemented in Scientific Toolkit v2.0 (Levy, 2026)."
+**This toolkit is NOT for:** Large-scale industrial mining operations, users needing enterprise support contracts, datasets exceeding 10,000+ samples.
 
 ---
 
-## 📜 License
+## 🗺️ Current Status & Roadmap
 
-This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0)**.
+**Current Version: 2.0** (February 2026)
 
-**You are free to**:
-- ✅ Share — copy and redistribute the material
-- ✅ Adapt — remix, transform, and build upon the material
+**Stable features:**
+- 41 classification engines
+- 26 hardware integrations
+- Basic statistical analysis
+- Publication templates
+- Data import/export
 
-**Under the following terms**:
-- 📝 Attribution — You must give appropriate credit
-- 🚫 NonCommercial — Not for commercial use
-- 🔄 ShareAlike — Distribute derivatives under the same license
+**Known limitations:**
+- Tkinter UI may look dated on modern systems
+- Large datasets (>10,000 samples) may be slow
+- No automated testing suite yet
+- Documentation could use more examples
 
-See [LICENSE](LICENSE) for full details.
+**Future plans:**
+- Video tutorials
+- More classification engines
+- Performance optimization for large datasets
+- Possible web interface option
+- Peer-reviewed methods publication
 
-For commercial licensing inquiries, contact: sefy76@gmail.com
+---
+
+## 📜 License & Disclaimer
+
+**Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International**
+
+✅ **Free to use** - research, education, museums, companies, anyone  
+✅ **Modify and improve** - adapt to your needs  
+✅ **Share with attribution** - credit the original work  
+❌ **Cannot sell this software** - don't charge money for the toolkit itself  
+❌ **Cannot profit from the code** - don't incorporate it into commercial products you sell  
+🔄 **Derivatives must use same license** - keep it free
+
+**In plain English:** Use it freely for your work (even commercial work). Just don't sell the software itself or use the code in products you're selling.
+
+### ⚠️ IMPORTANT DISCLAIMER
+
+**This software is provided "AS IS" without warranty of any kind.**
+
+- **You are responsible for validating all results** - Always verify classifications and calculations are appropriate for your samples
+- **Check your data carefully** - Garbage in = garbage out
+- **Don't trust blindly** - This is a tool to assist analysis, not replace expert judgment
+- **Scientific responsibility is yours** - Verify methods are appropriate for your research
+- **Report bugs and issues!** - Help improve the software by testing and reporting problems
+
+**Found a bug? Results don't look right?** → [Report it on GitLab](https://gitlab.com/sefy76/scientific-toolkit/-/issues)
+
+We need users to test thoroughly and report issues. Your feedback makes this better for everyone.
+
+See [LICENSE](LICENSE) for legal details.
+
+---
+
+## 📞 Contact & Support
+
+- **GitLab Issues**: [Report bugs or request features](https://gitlab.com/sefy76/scientific-toolkit/-/issues)
+- **Email**: sefy76@protonmail.com
+
+**Need help?** Open an issue on GitLab with:
+1. Your operating system
+2. Python version
+3. Error message or description
+4. What you were trying to do
 
 ---
 
 ## 🙏 Acknowledgments
 
-**Development**: Sefy Levy (2026)
+This toolkit implements published scientific methods developed by researchers worldwide. See [CITATIONS.md](CITATIONS.md) for complete references.
 
-**Implementation with generous help from**:
-Gemini • Copilot • ChatGPT • Claude • DeepSeek • Mistral • Grok
+Built with: NumPy, Pandas, Matplotlib, Scikit-learn, and the entire open-source Python scientific computing ecosystem.
 
-**Dedicated to**:
-- My beloved **Camila Portes Salles** ❤️
-- Special thanks to my sister **Or Levy**
-- In loving memory of my mother **Chaya Levy**
-
-**Special Thanks**:
-- The open-source scientific community
-- Contributors to NumPy, Pandas, Matplotlib, and SciPy
-- Beta testers and early adopters
-- Everyone who provides feedback and suggestions
+Based on Basalt Provenance Triage Toolkit v10.2, expanded for multi-domain use.
 
 ---
 
-## 💬 Support & Contact
+<p align="center">
+  <b>Free software for science</b><br>
+  <i>Because research shouldn't require expensive licenses</i>
+</p>
 
-### Get Help
-- 📚 Read the [User Guide](docs/USER_GUIDE.md)
-- ❓ Check [Troubleshooting](docs/TROUBLESHOOTING.md)
-- 🐛 Report bugs via [GitHub Issues](https://github.com/sefy-levy/scientific-toolkit/issues)
-- 💬 Join discussions on [GitHub Discussions](https://github.com/sefy-levy/scientific-toolkit/discussions)
-
-### Contact
-- **Email**: sefy76@gmail.com
-- **GitHub**: [@sefy-levy](https://github.com/sefy-levy)
-
-### Support Development
-If this toolkit has helped your research:
-
-- ⭐ Star this repository
-- 🐛 Report issues or suggest features
-- 🤝 Contribute code or documentation
-- ☕ [Buy me a coffee](https://ko-fi.com/sefy76)
-- 💝 [PayPal](https://paypal.me/sefy76)
-- 💚 [Liberapay](https://liberapay.com/sefy76)
-
----
-
-## 🗺️ Roadmap
-
-### v2.1 (Q2 2026)
-- [ ] Web interface (Flask/Django)
-- [ ] Database backend (SQLite/PostgreSQL)
-- [ ] Real-time collaborative features
-- [ ] Mobile companion app
-
-### v2.2 (Q3 2026)
-- [ ] Cloud deployment option
-- [ ] Automated report generation
-- [ ] Integration with more AI models
-- [ ] Enhanced GIS capabilities
-
-### Future
-- [ ] R integration
-- [ ] MATLAB bridge
-- [ ] Jupyter notebook support
-- [ ] REST API
-
-See [ROADMAP.md](ROADMAP.md) for detailed plans.
-
----
-
-## ⚠️ Disclaimer
-
-This software is provided "as is" without warranty. While extensively tested, users should validate results for their specific applications. Not certified for regulatory compliance.
-
----
-
-## 📈 Project Stats
-
-![GitHub stars](https://img.shields.io/github/stars/sefy-levy/scientific-toolkit?style=social)
-![GitHub forks](https://img.shields.io/github/forks/sefy-levy/scientific-toolkit?style=social)
-![GitHub issues](https://img.shields.io/github/issues/sefy-levy/scientific-toolkit)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/sefy-levy/scientific-toolkit)
-
-**Lines of Code**: 65,098  
-**Files**: 135  
-**Classes**: 204  
-**Functions**: 1,875  
-**Plugins**: 80+  
-**Classification Systems**: 37
-
----
-
-<div align="center">
-
-**Made with ❤️ for the scientific community**
-
-[⬆ Back to Top](#-scientific-toolkit-v20)
-
-</div>
+<p align="center">
+  <a href="QUICK_START.md">Get Started</a> •
+  <a href="INSTALLATION.md">Install</a> •
+  <a href="CITATIONS.md">Citations</a> •
+  <a href="CONTRIBUTING.md">Contribute</a>
+</p>

@@ -1,6 +1,7 @@
 """
 Classification Engine for Basalt Provenance Triage Toolkit v10.2
 Dynamically loads classification schemes from JSON files
+Derived fields loaded from engines/derived_fields.json
 """
 
 import json
@@ -20,9 +21,28 @@ class ClassificationEngine:
             schemes_dir = base_dir / "classification"  # Look in classification subfolder
         self.schemes_dir = Path(schemes_dir)
 
-        self.schemes_dir = Path(schemes_dir)
         self.schemes: Dict[str, Dict[str, Any]] = {}
+
+        # Load derived fields from parent directory
+        self.derived_fields_path = Path(__file__).parent / "derived_fields.json"
+        self.derived_fields = self._load_derived_fields()
+
         self.load_all_schemes()
+
+    def _load_derived_fields(self) -> Dict[str, Any]:
+        """Load derived field calculations from JSON"""
+        if not self.derived_fields_path.exists():
+            print(f"⚠️ Derived fields file not found: {self.derived_fields_path}")
+            return {"fields": []}
+
+        try:
+            with open(self.derived_fields_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            print(f"✅ Loaded {len(data.get('fields', []))} derived field calculators")
+            return data
+        except Exception as e:
+            print(f"⚠️ Error loading derived fields: {e}")
+            return {"fields": []}
 
     def load_all_schemes(self):
         """Auto-discover and load all JSON classification schemes"""
@@ -94,15 +114,72 @@ class ClassificationEngine:
         # Anything else is invalid for this engine
         return None
 
+    def _compute_derived_fields(self, sample: Dict) -> Dict:
+        """
+        Compute all derived fields needed for classification schemes
+        Loads formulas from derived_fields.json
+        """
+        fields = self.derived_fields.get('fields', [])
+
+        for field_def in fields:
+            field_name = field_def.get('name')
+            requires = field_def.get('requires', [])
+            formula = field_def.get('formula', '')
+
+            # Skip if formula is missing
+            if not formula or not requires:
+                continue
+
+            # Check if we have all required fields
+            if all(req in sample for req in requires):
+                try:
+                    # Create a safe evaluation context with all required values
+                    eval_context = {}
+                    for req in requires:
+                        eval_context[req] = float(sample[req])
+
+                    # Safely evaluate the formula
+                    # Note: Using eval is safe here because we control the formulas
+                    result = eval(formula, {"__builtins__": {}}, eval_context)
+
+                    # Store the computed value
+                    sample[field_name] = result
+                    print(f"    Computed {field_name}: {result:.4f}")
+
+                except Exception as e:
+                    print(f"    Warning: Could not compute {field_name}: {e}")
+                    sample[field_name] = None
+            else:
+                # Check if this field is critical for any scheme that might run
+                # We'll just skip silently for now
+                pass
+
+        return sample
+
+    def _clean_error_fields(self, sample: Dict) -> Dict:
+        """Clean up error fields that might have symbols"""
+        error_fields = ["Zr_error"]
+
+        for field in error_fields:
+            if field in sample and sample[field] is not None:
+                try:
+                    raw = str(sample[field])
+                    raw = raw.replace("±", "").replace("%", "").replace("ppm", "").strip()
+                    sample[field] = float(raw)
+                    print(f"    Cleaned {field}: {sample[field]}")
+                except:
+                    sample[field] = None
+
+        return sample
+
     def classify_sample(self, sample: Dict, scheme_id: str) -> Tuple[str, float, str]:
         print("\n" + "="*60)
-        print(">>> CLASSIFY_SAMPLE CALLED")
-        print(f">>> scheme_id = {scheme_id}")
+        print(f">>> CLASSIFY_SAMPLE: {scheme_id}")
+        print(f">>> Sample ID: {sample.get('Sample_ID', 'Unknown')}")
         print("="*60)
 
         if scheme_id not in self.schemes:
             print(f">>> ERROR: Scheme '{scheme_id}' not found")
-            print(f">>> Available schemes: {list(self.schemes.keys())}")
             return ("SCHEME_NOT_FOUND", 0.0, "#808080")
 
         sample = self._normalize_sample(sample)
@@ -110,149 +187,66 @@ class ClassificationEngine:
             print(">>> ERROR: Invalid sample after normalization")
             return ("INVALID_SAMPLE", 0.0, "#808080")
 
-        # Print raw sample data
-        print("\n>>> RAW SAMPLE DATA:")
+        # Print ALL sample values for debugging
+        print("\n>>> SAMPLE VALUES:")
         for key in sorted(sample.keys()):
-            if key not in ['Sample_ID', 'Notes']:
+            if key not in ['Sample_ID', 'Notes'] and sample[key] is not None:
                 print(f"    {key}: {sample[key]}")
 
-        # Clean Zr_error
-        if "Zr_error" in sample:
-            try:
-                raw = str(sample["Zr_error"])
-                raw = raw.replace("±", "").replace("%", "").replace("ppm", "").strip()
-                sample["Zr_error"] = float(raw)
-                print(f">>> Cleaned Zr_error: {sample['Zr_error']}")
-            except:
-                sample["Zr_error"] = None
+        # Clean error fields
+        sample = self._clean_error_fields(sample)
 
-        # Compute Zr_RSD
-        if "Zr_ppm" in sample and "Zr_error" in sample:
-            try:
-                zr = float(sample["Zr_ppm"])
-                err = float(sample["Zr_error"])
-                if zr != 0:
-                    sample["Zr_RSD"] = err / zr
-                    print(f">>> Computed Zr_RSD: {sample['Zr_RSD']}")
-            except:
-                sample["Zr_RSD"] = None
-
-        # Compute Zr_Nb_Ratio
-        if "Zr_ppm" in sample and "Nb_ppm" in sample:
-            try:
-                zr = float(sample["Zr_ppm"])
-                nb = float(sample["Nb_ppm"])
-                if nb != 0:
-                    sample["Zr_Nb_Ratio"] = zr / nb
-                    print(f">>> Computed Zr/Nb: {sample['Zr_Nb_Ratio']:.2f}")
-            except:
-                sample["Zr_Nb_Ratio"] = None
-
-        # Compute Cr_Ni_Ratio
-        if "Cr_ppm" in sample and "Ni_ppm" in sample:
-            try:
-                cr = float(sample["Cr_ppm"])
-                ni = float(sample["Ni_ppm"])
-                if ni != 0:
-                    sample["Cr_Ni_Ratio"] = cr / ni
-                    print(f">>> Computed Cr/Ni: {sample['Cr_Ni_Ratio']:.2f}")
-            except:
-                sample["Cr_Ni_Ratio"] = None
-        
-        # Compute Ti_V_Ratio (for tectonic discrimination)
-        if "Ti_ppm" in sample and "V_ppm" in sample:
-            try:
-                ti = float(sample["Ti_ppm"])
-                v = float(sample["V_ppm"])
-                if v != 0:
-                    sample["Ti_V_Ratio"] = ti / v
-                    print(f">>> Computed Ti/V: {sample['Ti_V_Ratio']:.2f}")
-            except:
-                sample["Ti_V_Ratio"] = None
-        
-        # Compute Th_Yb_Ratio (for crustal contamination)
-        if "Th_ppm" in sample and "Yb_ppm" in sample:
-            try:
-                th = float(sample["Th_ppm"])
-                yb = float(sample["Yb_ppm"])
-                if yb != 0:
-                    sample["Th_Yb_Ratio"] = th / yb
-                    print(f">>> Computed Th/Yb: {sample['Th_Yb_Ratio']:.2f}")
-            except:
-                sample["Th_Yb_Ratio"] = None
-        
-        # Compute Nb_Yb_Ratio (for mantle array)
-        if "Nb_ppm" in sample and "Yb_ppm" in sample:
-            try:
-                nb = float(sample["Nb_ppm"])
-                yb = float(sample["Yb_ppm"])
-                if yb != 0:
-                    sample["Nb_Yb_Ratio"] = nb / yb
-                    print(f">>> Computed Nb/Yb: {sample['Nb_Yb_Ratio']:.2f}")
-            except:
-                sample["Nb_Yb_Ratio"] = None
-        
-        # Compute Fe_Mn_Ratio (for planetary analogs)
-        if "Fe_ppm" in sample and "Mn_ppm" in sample:
-            try:
-                fe = float(sample["Fe_ppm"])
-                mn = float(sample["Mn_ppm"])
-                if mn != 0:
-                    sample["Fe_Mn_Ratio"] = fe / mn
-                    print(f">>> Computed Fe/Mn: {sample['Fe_Mn_Ratio']:.2f}")
-            except:
-                sample["Fe_Mn_Ratio"] = None
-        
-        # Compute Ba_Rb_Ratio (if needed)
-        if "Ba_ppm" in sample and "Rb_ppm" in sample:
-            try:
-                ba = float(sample["Ba_ppm"])
-                rb = float(sample["Rb_ppm"])
-                if rb != 0:
-                    sample["Ba_Rb_Ratio"] = ba / rb
-                    print(f">>> Computed Ba/Rb: {sample['Ba_Rb_Ratio']:.2f}")
-            except:
-                sample["Ba_Rb_Ratio"] = None
-
-        # CRITICAL FIX: Make a copy with computed values for rule evaluation
-        evaluation_sample = sample.copy()
+        # Compute ALL derived fields from JSON
+        print("\n>>> COMPUTING DERIVED FIELDS:")
+        sample = self._compute_derived_fields(sample)
 
         scheme = self.schemes[scheme_id]
         print(f"\n>>> SCHEME: {scheme.get('scheme_name')}")
 
         # Get classifications
-        class_list = scheme.get("classifications") or scheme.get("rules") or []
-        print(f">>> Found {len(class_list)} classifications in scheme")
+        classifications = scheme.get("classifications") or scheme.get("rules") or []
+        print(f">>> Found {len(classifications)} classifications in scheme")
 
         # Try each classification
-        for i, classification in enumerate(class_list):
+        for i, classification in enumerate(classifications):
             name = classification.get("name", "UNNAMED")
             print(f"\n>>> Testing classification #{i+1}: {name}")
 
             rules = classification.get('rules', [])
-            print(f"    Found {len(rules)} rules")
+            print(f"    Rules: {len(rules)}")
 
-            # Print what values we're comparing
+            # Check each rule
+            all_rules_passed = True
             for j, rule in enumerate(rules):
                 field = rule.get('field', '')
-                if field in evaluation_sample:
-                    print(f"      Rule {j+1}: {field} = {evaluation_sample[field]} {rule.get('operator')} {rule.get('value', rule.get('min', '?'))}")
+                operator = rule.get('operator', '')
+
+                # Print what we're checking
+                if field in sample:
+                    val = sample[field]
+                    print(f"      Rule {j+1}: {field} = {val}")
                 else:
                     print(f"      Rule {j+1}: {field} = [MISSING]")
+                    all_rules_passed = False
+                    continue
 
-            # Check if matches
-            if self.matches_classification(evaluation_sample, classification):
-                print(f"    ✓ MATCH FOUND!")
-                name = classification.get("name") or classification.get("label") or "UNNAMED"
-                confidence = classification.get("confidence_score") or classification.get("confidence") or 0.0
+                # Evaluate the rule
+                if self.evaluate_rule(sample, rule):
+                    print(f"        ✓ PASSED")
+                else:
+                    print(f"        ✗ FAILED")
+                    all_rules_passed = False
+
+            if all_rules_passed:
+                print(f"    ✓ ALL RULES PASSED! Classification: {name}")
+                confidence = classification.get("confidence_score", 0.0)
                 color = classification.get("color", "#A9A9A9")
                 return (name, confidence, color)
             else:
-                print(f"    ✗ No match")
+                print(f"    ✗ NOT ALL RULES PASSED")
 
         print("\n>>> No matching classification found")
         return ("UNCLASSIFIED", 0.0, "#A9A9A9")
-
 
     def matches_classification(self, sample: Dict, classification: Dict) -> bool:
         """
@@ -410,12 +404,10 @@ class ClassificationEngine:
         # Get column names from scheme (respecting JSON configuration)
         if output_column is None:
             output_column = scheme.get('output_column_name', 'Auto_Classification')
-        
-        # ✓ FIX: Use confidence_column_name from scheme, not constructed name
+
         confidence_column = scheme.get('confidence_column_name', 'Auto_Confidence')
         add_confidence = scheme.get('add_confidence_column', True)
-        
-        # ✓ FIX: Handle flag column if scheme specifies it
+
         flag_column = scheme.get('flag_column_name', 'Flag_For_Review')
         flag_uncertain = scheme.get('flag_uncertain', False)
         uncertain_threshold = scheme.get('uncertain_threshold', 0.7)
@@ -436,18 +428,18 @@ class ClassificationEngine:
             # Run ONLY the selected scheme
             classification, confidence, color = self.classify_sample(normalized, scheme_id)
 
-            # ✓ FIX: Add classification result
+            # Add classification result
             sample[output_column] = classification
-            
-            # ✓ FIX: Add confidence using correct column name from scheme
+
+            # Add confidence using correct column name from scheme
             if add_confidence:
                 sample[confidence_column] = confidence
-            
-            # ✓ FIX: Add flag for review based on confidence threshold
+
+            # Add flag for review based on confidence threshold
             if flag_uncertain:
                 # Flag samples with confidence below threshold
                 sample[flag_column] = (confidence < uncertain_threshold)
-            
+
             # Store color (for internal use)
             sample['Display_Color'] = color
 
