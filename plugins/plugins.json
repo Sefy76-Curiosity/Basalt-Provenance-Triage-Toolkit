@@ -74,26 +74,26 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/deepseek_ai.py?ref_type=heads"
   },
   {
-    "id": "demo_data_generator",
-    "name": "Demo Data Generator",
-    "version": "2.0",
-    "description": "Robust Geochemical Data Generator for Tel Hazor",
-    "author": "Sefy Levy",
+    "id": "file_console",
+    "name": "File Operations",
+    "version": "1.0",
+    "description": "Manage files safely across all platforms",
+    "author": "Unknown",
     "category": "add-ons",
-    "icon": "\ud83e\uddea",
+    "icon": "\ud83d\udcc1",
     "requires": [],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/demo_data_generator.py?ref_type=heads"
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/file_console.py?ref_type=heads"
   },
   {
     "id": "gemini_ai",
     "name": "Google Gemini",
-    "version": "2.0",
+    "version": "3.0",
     "description": "Google Gemini AI assistant (requires API key)",
     "author": "Unknown",
     "category": "add-ons",
     "icon": "\ud83d\udd2e",
     "requires": [
-      "google-generativeai"
+      "google-genai"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/gemini_ai.py?ref_type=heads"
   },
@@ -134,6 +134,21 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/geoplot_pro.py?ref_type=heads"
   },
   {
+    "id": "gis_console",
+    "name": "GIS Console",
+    "version": "1.0",
+    "description": "Spatial analysis and mapping for archaeological/geological data",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83d\uddfa\ufe0f",
+    "requires": [
+      "geopandas",
+      "folium",
+      "contextily"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/gis_console.py?ref_type=heads"
+  },
+  {
     "id": "grok_ai",
     "name": "Grok (xAI)",
     "version": "2.0",
@@ -145,6 +160,19 @@
       "requests"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/grok_ai.py?ref_type=heads"
+  },
+  {
+    "id": "julia_console",
+    "name": "Julia Console",
+    "version": "1.0",
+    "description": "High-performance scientific computing with Julia (requires Julia installed: https://julialang.org/downloads/)",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\u26a1",
+    "requires": [
+      "Julia"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/julia_console.py?ref_type=heads"
   },
   {
     "id": "matplotlib_plotter",
@@ -202,6 +230,30 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/pillow_plotter.py?ref_type=heads"
   },
   {
+    "id": "python_console",
+    "name": "Python Console",
+    "version": "1.0",
+    "description": "Interactive Python console for data analysis",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83d\udc0d",
+    "requires": [],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/python_console.py?ref_type=heads"
+  },
+  {
+    "id": "r_console",
+    "name": "R Console",
+    "version": "1.0",
+    "description": "Run R code for statistical analysis (requires R installed: https://cran.r-project.org/)",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83d\udcca",
+    "requires": [
+      "R"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/r_console.py?ref_type=heads"
+  },
+  {
     "id": "seaborn_plotter",
     "name": "Seaborn Statistical Plotter",
     "version": "2.0",
@@ -214,6 +266,17 @@
       "matplotlib"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/seaborn_plotter.py?ref_type=heads"
+  },
+  {
+    "id": "sql_console",
+    "name": "SQL Console",
+    "version": "1.0",
+    "description": "Query your samples using SQL (SQLite built-in)",
+    "author": "Unknown",
+    "category": "add-ons",
+    "icon": "\ud83d\uddc4\ufe0f",
+    "requires": [],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/sql_console.py?ref_type=heads"
   },
   {
     "id": "ternary_plotter",
@@ -230,21 +293,22 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/ternary_plotter.py?ref_type=heads"
   },
   {
-    "id": "laicpms_pro",
-    "name": "LA-ICP-MS Pro",
-    "version": "1.0",
-    "description": "Signal processing, U-Pb dating, elemental analysis, and data reduction",
+    "id": "lithic_morphometrics",
+    "name": "Lithic Morphometrics",
+    "version": "1.0.2",
+    "description": "Extract artifact outlines, quantify edge damage, Fourier shape analysis",
     "author": "Sefy Levy",
     "category": "software",
-    "icon": "\u269b\ufe0f",
+    "icon": "\ud83e\udea8",
     "requires": [
+      "cv2",
+      "skimage",
       "numpy",
       "scipy",
       "matplotlib",
-      "pandas",
-      "openpyxl"
+      "PIL"
     ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/laicpms_pro.py?ref_type=heads"
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/lithic_morphometrics.py?ref_type=heads"
   },
   {
     "id": "advanced_export",
@@ -369,6 +433,17 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/dating_integration.py?ref_type=heads"
   },
   {
+    "id": "demo_data_generator",
+    "name": "Demo Data Generator",
+    "version": "2.0",
+    "description": "Robust Geochemical Data Generator for Tel Hazor",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\ud83e\uddea",
+    "requires": [],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/demo_data_generator.py?ref_type=heads"
+  },
+  {
     "id": "geochemical_explorer",
     "name": "Geochemical Explorer",
     "version": "1.0.0",
@@ -478,6 +553,23 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/isotope_mixing_models.py?ref_type=heads"
   },
   {
+    "id": "laicpms_pro",
+    "name": "LA-ICP-MS Pro",
+    "version": "1.0",
+    "description": "Signal processing, U-Pb dating, elemental analysis, and data reduction",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\u269b\ufe0f",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib",
+      "pandas",
+      "openpyxl"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/laicpms_pro.py?ref_type=heads"
+  },
+  {
     "id": "literature_comparison",
     "name": "Literature Comparison",
     "version": "2.2",
@@ -489,24 +581,6 @@
       "numpy"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/literature_comparison.py?ref_type=heads"
-  },
-  {
-    "id": "lithic_morphometrics",
-    "name": "Lithic Morphometrics",
-    "version": "1.0.2",
-    "description": "Extract artifact outlines, quantify edge damage, Fourier shape analysis",
-    "author": "Sefy Levy",
-    "category": "software",
-    "icon": "\ud83e\udea8",
-    "requires": [
-      "cv2",
-      "skimage",
-      "numpy",
-      "scipy",
-      "matplotlib",
-      "PIL"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/lithic_morphometrics.py?ref_type=heads"
   },
   {
     "id": "magma_modeling",

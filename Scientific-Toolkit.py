@@ -2,7 +2,16 @@
 """
 Scientific Toolkit v2.0 - WITH WORKING SPLASH SCREEN AND FIXED DELETE METHOD
 """
-
+APP_INFO = {
+    "id": "scientific_toolkit",
+    "name": "Scientific Toolkit",
+    "version": "2.0.0",  # Current version
+    "author": "Sefy Levy",
+    "description": "Scientific data analysis platform",
+    "min_plugins_version": "2.0",  # Optional: plugin manager compatibility
+}
+import engines
+import engines.classification_engine
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import importlib.util
@@ -328,6 +337,40 @@ class ScientificToolkit:
         # ============ SETUP CLOSE HANDLER ============
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
 
+    def _load_initial_engines(self):
+        """Load initial engines on startup"""
+        engines = self.engine_manager.get_available_engines()
+        if 'classification' in engines:
+            self.classification_engine = self.engine_manager.load_engine('classification')
+        if 'protocol' in engines:
+            self.protocol_engine = self.engine_manager.load_engine('protocol')
+
+    def _load_chemical_elements(self):
+        """SINGLE source of truth for all column mappings"""
+        elements_file = self.config_dir / "chemical_elements.json"
+        if elements_file.exists():
+            try:
+                with open(elements_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    self.chemical_elements = data.get("elements", {})
+                    self.ui_groups = data.get("ui_groups", {})
+
+                    self.element_reverse_map = {}
+                    for elem, info in self.chemical_elements.items():
+                        standard = info["standard"]
+                        for var in info["variations"]:
+                            self.element_reverse_map[var] = standard
+
+                    print(f"✅ Loaded {len(self.chemical_elements)} chemical elements")
+            except Exception as e:
+                print(f"⚠️ Error loading chemical elements: {e}")
+                self.chemical_elements = {}
+                self.element_reverse_map = {}
+        else:
+            print(f"⚠️ chemical_elements.json not found - column normalization disabled")
+            self.chemical_elements = {}
+            self.element_reverse_map = {}
+
     def _apply_ui_settings(self):
         """Apply UI settings after panels are created"""
         # Update unsaved indicator based on settings
@@ -564,38 +607,6 @@ class ScientificToolkit:
                 label="🔄 Refresh Categories",
                 command=self._rebuild_advanced_menu
             )
-    def _load_initial_engines(self):
-        engines = self.engine_manager.get_available_engines()
-        if 'classification' in engines:
-            self.classification_engine = self.engine_manager.load_engine('classification')
-        if 'protocol' in engines:
-            self.protocol_engine = self.engine_manager.load_engine('protocol')
-
-    def _load_chemical_elements(self):
-        """SINGLE source of truth for all column mappings"""
-        elements_file = self.config_dir / "chemical_elements.json"
-        if elements_file.exists():
-            try:
-                with open(elements_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    self.chemical_elements = data.get("elements", {})
-                    self.ui_groups = data.get("ui_groups", {})
-
-                    self.element_reverse_map = {}
-                    for elem, info in self.chemical_elements.items():
-                        standard = info["standard"]
-                        for var in info["variations"]:
-                            self.element_reverse_map[var] = standard
-
-                    print(f"✅ Loaded {len(self.chemical_elements)} chemical elements")
-            except Exception as e:
-                print(f"⚠️ Error loading chemical elements: {e}")
-                self.chemical_elements = {}
-                self.element_reverse_map = {}
-        else:
-            print(f"⚠️ chemical_elements.json not found - column normalization disabled")
-            self.chemical_elements = {}
-            self.element_reverse_map = {}
 
     def _load_enabled_plugins(self):
         config_file = Path("config/enabled_plugins.json")
@@ -814,6 +825,9 @@ class ScientificToolkit:
         self.help_menu.add_separator()
         self.help_menu.add_command(label="⚠️ Disclaimer", command=self.show_disclaimer)
         self.help_menu.add_command(label="About", command=self.show_about)
+        self.help_menu.add_command(label="🔄 Check for Updates",
+                                command=self._check_for_updates)
+        self.help_menu.add_separator()
         self.help_menu.add_command(label="❤️ Support the Project", command=self.show_support)
 
         # Advanced menu will be added later if plugins exist
@@ -821,6 +835,12 @@ class ScientificToolkit:
 
         # Setup keyboard shortcuts
         self._setup_keyboard_shortcuts()
+
+    def _check_for_updates(self):
+        from features.update_checker import HTTPUpdateChecker
+        # Pass the local version explicitly
+        checker = HTTPUpdateChecker(self, local_version=APP_INFO["version"])
+        checker.check()
 
     def _export_csv(self):
         """Export data to CSV"""
@@ -990,186 +1010,36 @@ class ScientificToolkit:
         self.root.after(2000, self._check_unsaved_changes)
 
     def _show_status_details(self):
-        """Show detailed status information in a dynamically sized popup window"""
-        if not hasattr(self.center, 'status_var'):
+        if not hasattr(self.center, 'last_operation'):
             return
 
-        current_status = self.center.status_var.get()
+        op = self.center.last_operation
+        op_type = op.get('type')
 
-        # Don't show if it's just "Ready" or empty
-        if current_status == "Ready" or not current_status:
-            return
+        if op_type == 'update_error':
+            messagebox.showerror("Update Error", op.get('error', 'Unknown error'))
 
-        # Create popup window
-        win = tk.Toplevel(self.root)
-        win.title("Operation Details")
-        win.transient(self.root)
+        elif op_type == 'update_available':
+            response = messagebox.askyesno(
+                "Update Available",
+                f"Version {op['new_version']} is available (from {op['source']}).\n\nDo you want to download it now?"
+            )
+            if response:
+                self._check_for_updates()   # This will run again and set app_update
 
-        def set_grab():
-            try:
-                win.grab_set()
-                win.focus_force()
-            except:
-                pass
+        elif op_type == 'app_update':
+            from features.update_checker import HTTPUpdateChecker
+            checker = HTTPUpdateChecker(self, local_version=APP_INFO["version"])
+            checker.show_update_dialog(
+                changed_files=op['changed'],
+                new_commit=op['new_commit'],
+                new_version=op['new_version']
+            )
 
-        main = ttk.Frame(win, padding=15)
-        main.pack(fill=tk.BOTH, expand=True)
-
-        # Calculate required height based on content
-        content_height = 100  # Base height for status and padding
-
-        # Header based on operation type
-        if hasattr(self.center, 'last_operation'):
-            op_type = self.center.last_operation.get('type', 'Operation').title()
-            icon = self.center.last_operation.get('icon', 'ℹ️')
-            header = ttk.Label(main, text=f"{icon} {op_type} Details",
-                            font=("TkDefaultFont", 14, "bold"))
-            header.pack(pady=(0, 10))
-            content_height += 40
         else:
-            header = ttk.Label(main, text="📊 Operation Details",
-                            font=("TkDefaultFont", 14, "bold"))
-            header.pack(pady=(0, 10))
-            content_height += 40
-
-        # Current status summary
-        summary_frame = ttk.LabelFrame(main, text="Current Status", padding=10)
-        summary_frame.pack(fill=tk.X, pady=(0, 10))
-        content_height += 70
-
-        status_label = ttk.Label(summary_frame, text=current_status,
-                                font=("TkDefaultFont", 10), wraplength=500)
-        status_label.pack()
-
-        # Show detailed info based on last operation
-        if hasattr(self.center, 'last_operation'):
-            last_op = self.center.last_operation
-
-            # Progress info - compact view
-            if 'current' in last_op and 'total' in last_op and last_op['total']:
-                progress_frame = ttk.LabelFrame(main, text="Progress", padding=10)
-                progress_frame.pack(fill=tk.X, pady=(0, 10))
-                content_height += 80
-
-                current = last_op['current']
-                total = last_op['total']
-                percentage = (current / total) * 100 if total > 0 else 0
-
-                # Compact progress display
-                progress_text = ttk.Label(progress_frame,
-                                        text=f"Completed: {current} of {total} ({percentage:.1f}%)",
-                                        font=("TkDefaultFont", 10))
-                progress_text.pack(anchor=tk.W)
-
-                # Add a compact progress bar
-                progress_bar = ttk.Progressbar(progress_frame,
-                                            mode='determinate',
-                                            length=300,
-                                            value=percentage)
-                progress_bar.pack(pady=5, fill=tk.X)
-
-            # Error/Warning info - compact but scrollable if needed
-            elif 'error' in last_op:
-                error_frame = ttk.LabelFrame(main, text="Error Details", padding=10)
-                error_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
-
-                # Determine height based on error length
-                error_text = last_op['error']
-                line_count = error_text.count('\n') + 1
-                text_height = min(max(5, line_count), 15)  # Between 5 and 15 lines
-
-                text_widget = tk.Text(error_frame, wrap=tk.WORD,
-                                    font=("Courier", 9),
-                                    height=text_height,
-                                    width=60,
-                                    bg='#ffeeee')
-                text_widget.pack(fill=tk.BOTH, expand=True)
-                text_widget.insert("1.0", error_text)
-                text_widget.config(state=tk.DISABLED)
-
-                content_height += (text_height * 20) + 50  # Rough estimate
-
-            elif 'warning' in last_op:
-                warning_frame = ttk.LabelFrame(main, text="Warning Details", padding=10)
-                warning_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
-
-                warning_text = last_op['warning']
-                line_count = warning_text.count('\n') + 1
-                text_height = min(max(3, line_count), 10)
-
-                text_widget = tk.Text(warning_frame, wrap=tk.WORD,
-                                    font=("Courier", 9),
-                                    height=text_height,
-                                    width=60,
-                                    bg='#fff3cd')
-                text_widget.pack(fill=tk.BOTH, expand=True)
-                text_widget.insert("1.0", warning_text)
-                text_widget.config(state=tk.DISABLED)
-
-                content_height += (text_height * 20) + 50
-
-            # Classification details - compact table view
-            elif last_op.get('type') == 'classification' and hasattr(self.center, 'last_classification_details'):
-                details = self.center.last_classification_details
-                if details and details.get('breakdown'):
-                    breakdown_frame = ttk.LabelFrame(main, text="Classification Breakdown", padding=10)
-                    breakdown_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
-
-                    # Create tree for breakdown with limited height
-                    columns = ("Classification", "Count", "Percentage")
-                    tree = ttk.Treeview(breakdown_frame, columns=columns, show="headings",
-                                    height=min(8, len(details['breakdown'])))
-
-                    tree.heading("Classification", text="Classification")
-                    tree.heading("Count", text="Count")
-                    tree.heading("Percentage", text="%")
-
-                    tree.column("Classification", width=250)
-                    tree.column("Count", width=70, anchor="center")
-                    tree.column("Percentage", width=70, anchor="center")
-
-                    # Add scrollbar only if needed
-                    if len(details['breakdown']) > 8:
-                        vsb = ttk.Scrollbar(breakdown_frame, orient="vertical", command=tree.yview)
-                        tree.configure(yscrollcommand=vsb.set)
-                        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-                        vsb.pack(side=tk.RIGHT, fill=tk.Y)
-                        content_height += 250
-                    else:
-                        tree.pack(fill=tk.BOTH, expand=True)
-                        content_height += (len(details['breakdown']) * 25) + 80
-
-                    total = details.get('total', 1)
-                    for class_name, count in sorted(details['breakdown'].items(),
-                                                key=lambda x: x[1], reverse=True):
-                        percentage = (count / total) * 100
-                        tree.insert("", tk.END, values=(class_name, count, f"{percentage:.1f}"))
-
-        # Close button
-        button_frame = ttk.Frame(main)
-        button_frame.pack(fill=tk.X, pady=(10, 0))
-        content_height += 40
-
-        close_btn = ttk.Button(button_frame, text="Close", command=win.destroy, width=15)
-        close_btn.pack()
-
-        # Calculate and set dynamic window size
-        win.update_idletasks()
-
-        # Set width based on content (minimum 400, maximum 700)
-        width = min(700, max(400, content_height))
-
-        # Height is content-based but constrained
-        height = min(600, max(200, content_height))
-
-        win.geometry(f"{width}x{height}")
-
-        # Center on screen
-        x = (win.winfo_screenwidth() // 2) - (width // 2)
-        y = (win.winfo_screenheight() // 2) - (height // 2)
-        win.geometry(f"+{x}+{y}")
-
-        win.after(100, set_grab)
+            current_status = self.center.status_var.get()
+            if current_status and current_status != "Ready":
+                messagebox.showinfo("Status", current_status)
 
     def update_pagination(self, current_page, total_pages, total_rows):
         self.current_page = current_page
@@ -1305,6 +1175,26 @@ class ScientificToolkit:
 
                         if plugin_instance:
                             software_loaded = True
+
+                            # ============ NEW: TAB PLUGINS (highest priority) ============
+                            # Check if plugin wants its own tab - if so, add it and skip everything else
+                            if hasattr(plugin_instance, 'create_tab'):
+                                # Skip if it's a console plugin (they have console in category or id)
+                                plugin_category = info.get('category', '')
+                                plugin_id = info.get('id', '')
+
+                                if 'console' in plugin_category or 'console' in plugin_id:
+                                    # Don't add as tab plugin - consoles are handled separately
+                                    print(f"⌨️ Console plugin detected: {plugin_id} - will be added to console dropdown")
+                                    # Don't do anything here - the register_plugin will call add_console_plugin
+                                else:
+                                    # Regular tab plugin
+                                    print(f"📑 Adding tab plugin: {plugin_name}")
+                                    if hasattr(self.center, 'add_tab_plugin'):
+                                        self.center.add_tab_plugin(...)
+                                    continue
+
+                            # ============ EXISTING CODE - COMPLETELY UNCHANGED ============
                             if plugin_id not in self._added_plugins:
                                 self._add_to_advanced_menu(info, plugin_instance)
                                 self._added_plugins.add(plugin_id)

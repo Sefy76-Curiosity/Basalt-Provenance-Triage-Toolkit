@@ -32,6 +32,8 @@ class CenterPanel:
         self.ai_plugins = []
         self.current_ai_plugin = None
         self.ai_tab_created = False
+        self.console_plugins = []  # Track console plugins
+        self.console_tab_created = False
         self._is_syncing_scroll = False
 
         # Status bar
@@ -110,6 +112,63 @@ class CenterPanel:
         self.tree.bind("<Button-5>", self._on_tree_mousewheel)
 
         self._configure_row_colors()
+
+    def _create_console_tab(self):
+            """Create the console tab with dropdown selector (like AI tab)"""
+            # Create console tab
+            self.console_tab = ttk.Frame(self.notebook)
+            self.notebook.add(self.console_tab, text="💻 Console")
+
+            # Create selector frame (like AI tab)
+            selector_frame = ttk.Frame(self.console_tab)
+            selector_frame.pack(fill=tk.X, padx=5, pady=5)
+
+            ttk.Label(selector_frame, text="Console:").pack(side=tk.LEFT, padx=5)
+
+            self.console_var = tk.StringVar()
+            self.console_combo = ttk.Combobox(
+                selector_frame,
+                textvariable=self.console_var,
+                state="readonly",
+                width=30
+            )
+            self.console_combo.pack(side=tk.LEFT, padx=5)
+            self.console_combo.bind('<<ComboboxSelected>>', self._switch_console)
+
+            # Container for console UI
+            self.console_container = ttk.Frame(self.console_tab)
+            self.console_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+            self.console_tab_created = True
+            self._update_console_dropdown()
+
+    def _update_console_dropdown(self):
+        """Update the console dropdown with available consoles"""
+        if not self.console_tab_created or not self.console_plugins:
+            return
+
+        values = [f"{icon} {name}" for name, icon, _ in self.console_plugins]
+        self.console_combo['values'] = values
+        self.console_combo.current(0)
+        self._switch_console()
+
+    def _switch_console(self, event=None):
+        """Switch to selected console"""
+        if not self.console_plugins or not self.console_var.get():
+            return
+
+        selected = self.console_var.get()
+
+        # Find selected console
+        for name, icon, instance in self.console_plugins:
+            if f"{icon} {name}" == selected:
+                # Clear container
+                for widget in self.console_container.winfo_children():
+                    widget.destroy()
+
+                # Build new console UI
+                instance.create_tab(self.console_container)
+                break
 
     def show_progress(self, operation, current=None, total=None, message=""):
         """
@@ -329,18 +388,8 @@ class CenterPanel:
                                       fg="red", font=("Arial", 10))
                 error_label.pack(expand=True)
 
-    # ============ SCROLL SYNC ============
-    def _on_tree_scroll(self, *args):
-        if self._is_syncing_scroll:
-            return
-        self.tree.yview(*args)
-        first, last = self.tree.yview()
-        if hasattr(self.app, 'right') and hasattr(self.app.right, 'hud_tree'):
-            self._is_syncing_scroll = True
-            self.app.right.hud_tree.yview_moveto(first)
-            self._is_syncing_scroll = False
-
     def _on_tree_mousewheel(self, event):
+        """Handle mouse wheel on tree - sync with HUD"""
         if self._is_syncing_scroll:
             return
         if event.delta:
@@ -356,6 +405,58 @@ class CenterPanel:
             self.app.right.hud_tree.yview_moveto(first)
             self._is_syncing_scroll = False
         return "break"
+
+    def add_tab_plugin(self, plugin_id, plugin_name, plugin_icon, plugin_instance):
+        """
+        Add a plugin that gets its own dedicated tab
+        """
+        # Create the tab frame - this will be added to notebook
+        tab_frame = ttk.Frame(self.notebook)
+
+        # Let the plugin build its UI DIRECTLY in tab_frame
+        plugin_instance.create_tab(tab_frame)
+
+        # Add to notebook with plugin's icon and name
+        tab_text = f"{plugin_icon} {plugin_name}"
+
+        # SAFELY determine insert position
+        # Count current tabs
+        tab_count = self.notebook.index("end")
+
+        # Insert after plots tab (index 1) but only if it exists
+        if tab_count > 1:
+            # We have at least 2 tabs (Table and Plots), insert at position 2
+            insert_pos = 2
+        else:
+            # Something's wrong, just append at the end
+            insert_pos = tab_count
+
+        try:
+            self.notebook.insert(insert_pos, tab_frame, text=tab_text)
+            print(f"✅ Added plugin tab: {tab_text} at position {insert_pos}")
+        except tk.TclError as e:
+            # If insert fails, just add to the end
+            print(f"⚠️ Could not insert at position {insert_pos}, appending instead")
+            self.notebook.add(tab_frame, text=tab_text)
+
+    def add_console_plugin(self, console_name, console_icon, console_instance):
+        """Add a console plugin to the console dropdown"""
+        # Check if this console already exists (PREVENT DUPLICATES)
+        for existing_name, existing_icon, _ in self.console_plugins:
+            if existing_name == console_name and existing_icon == console_icon:
+                print(f"⚠️ Console {console_name} already exists, skipping...")
+                return
+
+        # Add new console
+        self.console_plugins.append((console_name, console_icon, console_instance))
+        print(f"✅ Added console: {console_name}")
+
+        # Create console tab if it doesn't exist yet
+        if not self.console_tab_created:
+            self._create_console_tab()
+        else:
+            # Update dropdown with new console
+            self._update_console_dropdown()
 
     # ============ DATA OBSERVER ============
     def on_data_changed(self, event, *args):
