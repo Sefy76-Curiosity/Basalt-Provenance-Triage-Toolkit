@@ -1,6 +1,6 @@
 """
 Google Gemini AI Assistant - UI Add-on
-Powered by Google's Gemini models
+Powered by Google's Gemini models (using google.genai)
 Category: add-ons (provides AI chat functionality)
 """
 import tkinter as tk
@@ -12,7 +12,8 @@ from pathlib import Path
 
 HAS_GEMINI = False
 try:
-    import google.generativeai as genai
+    import google.genai as genai
+    from google.genai import types
     HAS_GEMINI = True
 except ImportError:
     pass
@@ -22,8 +23,8 @@ PLUGIN_INFO = {
     'name': 'Google Gemini',
     'category': 'add-ons',
     'icon': '🔮',
-    'version': '2.0',
-    'requires': ['google-generativeai'],
+    'version': '3.0',
+    'requires': ['google-genai'],
     'description': 'Google Gemini AI assistant (requires API key)'
 }
 
@@ -31,7 +32,7 @@ class GeminiAIPlugin:
     def __init__(self, main_app):
         self.app = main_app
         self.name = "Google Gemini"
-        self.version = "1.5"
+        self.version = "2.0"
 
         # Configuration
         self.config_file = Path("config/gemini_ai_config.json")
@@ -39,7 +40,7 @@ class GeminiAIPlugin:
 
         # Settings
         self.api_key = self.config.get("api_key", "")
-        self.model = self.config.get("model", "gemini-2.0-flash")  # Updated default
+        self.model = self.config.get("model", "gemini-2.0-flash-exp")
         self.temperature = self.config.get("temperature", 0.7)
         self.max_tokens = self.config.get("max_tokens", 2048)
 
@@ -60,41 +61,40 @@ class GeminiAIPlugin:
     def query(self, prompt):
         """Simple query that returns the answer directly"""
         if not HAS_GEMINI:
-            return "Error: 'google-generativeai' not found.\nRun: pip install google-generativeai"
+            return "Error: 'google-genai' not found.\nRun: pip install google-genai"
 
         if not self.api_key:
             return "Error: API Key missing. Go to Gemini Settings."
 
         try:
-            genai.configure(api_key=self.api_key)
+            # Initialize client with API key
+            client = genai.Client(api_key=self.api_key)
 
-            # Handle model name format
-            model_name = self.model
-            if not model_name.startswith('models/'):
-                model_name = f"models/{model_name}"
-
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
+            # Generate content using the new API
+            response = client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
                     temperature=self.temperature,
                     max_output_tokens=self.max_tokens
                 )
             )
+
             return response.text
 
         except Exception as e:
             error_msg = str(e)
 
             # If model not found, try to list available models
-            if "404" in error_msg or "not found" in error_msg:
+            if "404" in error_msg or "not found" in error_msg.lower():
                 try:
-                    genai.configure(api_key=self.api_key)
-                    models = genai.list_models()
+                    client = genai.Client(api_key=self.api_key)
+                    models = client.models.list()
                     available = []
-                    for m in models:
-                        if 'generateContent' in m.supported_generation_methods:
-                            name = m.name.replace('models/', '')
+
+                    for model in models:
+                        if 'generateContent' in str(model.supported_actions):
+                            name = model.name.replace('models/', '')
                             available.append(name)
 
                     if available:
@@ -103,8 +103,8 @@ class GeminiAIPlugin:
                                "\n".join(f"  • {m}" for m in available[:15]))
                     else:
                         return "❌ No working models found for this API key."
-                except:
-                    pass
+                except Exception as list_error:
+                    return f"Error listing models: {str(list_error)}"
 
             return f"Gemini Error: {error_msg}"
 
@@ -112,7 +112,7 @@ class GeminiAIPlugin:
         """Settings UI with API Key link and masked entry"""
         dialog = tk.Toplevel(self.app.root)
         dialog.title("Gemini Setup")
-        dialog.geometry("550x550")
+        dialog.geometry("600x600")
         dialog.transient(self.app.root)
         dialog.grab_set()
 
@@ -127,7 +127,7 @@ class GeminiAIPlugin:
             warn_frame = tk.Frame(main, bg="#fff3cd", height=50)
             warn_frame.pack(fill=tk.X, pady=5)
             tk.Label(warn_frame,
-                    text="⚠️ google-generativeai not installed\nRun: pip install google-generativeai",
+                    text="⚠️ google-genai not installed\nRun: pip install google-genai",
                     bg="#fff3cd", fg="#856404", font=("Arial", 9)).pack(pady=8)
 
         # API Key
@@ -141,23 +141,57 @@ class GeminiAIPlugin:
         key_link.pack(anchor=tk.W, pady=(0, 15))
         key_link.bind("<Button-1>", lambda e: webbrowser.open("https://aistudio.google.com/app/apikey"))
 
-        # Model - Updated with current working models
+        # Model selection
         ttk.Label(main, text="Model:", font=("Arial", 10, "bold")).pack(anchor=tk.W)
-        model_var = tk.StringVar(value=self.model)
+
+        # Updated model list for google.genai
         models = [
-            "gemini-2.5-flash",
+            "gemini-2.0-flash-exp",
             "gemini-2.0-flash",
             "gemini-2.0-flash-001",
-            "gemini-2.0-flash-exp-image-generation",
             "gemini-2.0-flash-lite-001",
             "gemini-2.0-flash-lite",
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-8b",
+            "gemini-1.5-pro",
             "gemini-exp-1206",
-            "gemini-2.5-flash-preview-tts",
-            "gemini-2.5-pro-preview-tts"
+            "gemini-2.0-flash-thinking-exp-1219",
+            "gemini-2.0-flash-thinking-exp",
+            "learnlm-1.5-pro-experimental"
         ]
+
+        model_var = tk.StringVar(value=self.model)
         model_combo = ttk.Combobox(main, textvariable=model_var,
                                    values=models, state="readonly", width=45)
-        model_combo.pack(fill=tk.X, pady=(0, 15))
+        model_combo.pack(fill=tk.X, pady=(0, 5))
+
+        # Refresh models button
+        def refresh_models():
+            if not api_key_entry.get().strip():
+                messagebox.showwarning("Warning", "Please enter API key first")
+                return
+
+            try:
+                test_key = api_key_entry.get().strip()
+                client = genai.Client(api_key=test_key)
+                model_list = client.models.list()
+                available_models = []
+
+                for m in model_list:
+                    if 'generateContent' in str(m.supported_actions):
+                        name = m.name.replace('models/', '')
+                        available_models.append(name)
+
+                if available_models:
+                    model_combo['values'] = available_models
+                    messagebox.showinfo("Success", f"Found {len(available_models)} models")
+                else:
+                    messagebox.showwarning("Warning", "No models with generateContent found")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to fetch models: {str(e)}")
+
+        refresh_btn = ttk.Button(main, text="🔄 Refresh Models", command=refresh_models)
+        refresh_btn.pack(anchor=tk.W, pady=(0, 15))
 
         # Temperature
         ttk.Label(main, text="Temperature:", font=("Arial", 10, "bold")).pack(anchor=tk.W)
@@ -165,7 +199,7 @@ class GeminiAIPlugin:
         temp_frame.pack(fill=tk.X, pady=(0, 5))
 
         temp_var = tk.DoubleVar(value=self.temperature)
-        temp_scale = ttk.Scale(temp_frame, from_=0.0, to=1.0,
+        temp_scale = ttk.Scale(temp_frame, from_=0.0, to=2.0,  # Updated range to match new API
                                variable=temp_var, orient=tk.HORIZONTAL, length=300)
         temp_scale.pack(side=tk.LEFT)
 
@@ -191,11 +225,11 @@ class GeminiAIPlugin:
                 return
 
             try:
-                genai.configure(api_key=test_key)
-                models = genai.list_models()
+                client = genai.Client(api_key=test_key)
+                models = client.models.list()
                 working = 0
                 for m in models:
-                    if 'generateContent' in m.supported_generation_methods:
+                    if 'generateContent' in str(m.supported_actions):
                         working += 1
 
                 if working > 0:
@@ -237,7 +271,7 @@ class GeminiAIPlugin:
 
     def get_status(self):
         if not HAS_GEMINI:
-            return "🔮 Gemini (needs: pip install google-generativeai)"
+            return "🔮 Gemini (needs: pip install google-genai)"
         if not self.api_key:
             return "🔮 Gemini (needs API key)"
         return f"🔮 Gemini ({self.model})"
