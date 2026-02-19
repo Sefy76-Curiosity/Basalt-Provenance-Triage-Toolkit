@@ -15,7 +15,12 @@ import engines.classification_engine
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import importlib.util
-import sys
+import sys, traceback
+def excepthook(exc_type, exc_value, exc_traceback):
+    with open('error.log', 'a') as f:
+        traceback.print_exception(exc_type, exc_value, exc_traceback, file=f)
+    sys.__excepthook__(exc_type, exc_value, exc_traceback)  # also show it normally
+sys.excepthook = excepthook
 import json
 import webbrowser
 import csv
@@ -37,8 +42,217 @@ from features.script_exporter import ScriptExporter
 from features.auto_save import AutoSaveManager
 from features.settings_manager import SettingsManager, SettingsDialog
 
+# ============ DEPENDENCY CHECKER ============
+def check_and_install_dependencies():
+    """Check for required packages and offer to install missing ones"""
+
+    # Import needed modules for the installer
+    from tkinter import scrolledtext  # <--- ADD THIS LINE
+    import subprocess
+    import threading
+
+    REQUIRED_PACKAGES = [
+        # ============ FILE FORMAT SUPPORT ============
+        {
+            'import_name': 'pandas',
+            'pip_name': 'pandas',
+            'reason': 'Required for Excel and LibreOffice ODS file import'
+        },
+        {
+            'import_name': 'odf',
+            'pip_name': 'odfpy',
+            'reason': 'Required for LibreOffice ODS file import'
+        },
+        {
+            'import_name': 'openpyxl',
+            'pip_name': 'openpyxl',
+            'reason': 'Required for modern Excel files (.xlsx)'
+        },
+        {
+            'import_name': 'xlrd',
+            'pip_name': 'xlrd',
+            'reason': 'Required for older Excel files (.xls)'
+        },
+
+        # ============ DATA PROCESSING ============
+        {
+            'import_name': 'numpy',
+            'pip_name': 'numpy',
+            'reason': 'Required for numerical operations in classification engine'
+        },
+
+        # ============ VERSION COMPARISON ============
+        {
+            'import_name': 'packaging',
+            'pip_name': 'packaging',
+            'reason': 'Required for version comparison in plugin manager'
+        }
+    ]
+
+    missing_packages = []
+
+    # Check each package
+    for package in REQUIRED_PACKAGES:
+        try:
+            __import__(package['import_name'])
+            print(f"✅ Found {package['import_name']}")
+        except ImportError:
+            missing_packages.append(package)
+            print(f"❌ Missing {package['import_name']}")
+
+    if not missing_packages:
+        return True  # All packages found
+
+    # Create a simple Tk window for the prompt
+    import subprocess
+    import threading
+
+    root = tk.Tk()
+    root.withdraw()  # Hide the main window
+
+    # Build message
+    package_list = "\n".join([f"  • {p['pip_name']} - {p['reason']}" for p in missing_packages])
+
+    message = (
+        "The following required packages are missing:\n\n"
+        f"{package_list}\n\n"
+        "Would you like to install them now?\n\n"
+        "This will run: pip install " + " ".join([p['pip_name'] for p in missing_packages])
+    )
+
+    response = messagebox.askyesno(
+        "Missing Dependencies",
+        message,
+        parent=root
+    )
+
+    if response:
+        # User wants to install - destroy the prompt window
+        root.destroy()
+
+        # Create installation window
+        install_root = tk.Tk()
+        install_root.title("Installing Dependencies")
+        install_root.geometry("600x400")
+
+        # Center the window
+        ws = install_root.winfo_screenwidth()
+        hs = install_root.winfo_screenheight()
+        x = (ws//2) - (600//2)
+        y = (hs//2) - (400//2)
+        install_root.geometry(f"+{x}+{y}")
+
+        # Make window non-resizable
+        install_root.resizable(False, False)
+
+        # UI elements
+        tk.Label(install_root, text="📦 Installing Packages",
+                font=("Segoe UI", 14, "bold")).pack(pady=20)
+
+        status_var = tk.StringVar(value="Preparing installation...")
+        tk.Label(install_root, textvariable=status_var,
+                font=("Segoe UI", 10)).pack(pady=10)
+
+        progress = ttk.Progressbar(install_root, mode='indeterminate', length=500)
+        progress.pack(pady=10)
+        progress.start(10)
+
+        # Create frame for text with scrollbar
+        text_frame = ttk.Frame(install_root)
+        text_frame.pack(pady=10, padx=20, fill=tk.BOTH, expand=True)
+
+        output_text = scrolledtext.ScrolledText(text_frame, height=12, width=70, font=("Courier", 9))
+        output_text.pack(fill=tk.BOTH, expand=True)
+
+        # Variable to track installation completion
+        installation_complete = False
+
+        # Function to close window properly
+        def safe_close():
+            if installation_complete:
+                install_root.destroy()
+            else:
+                messagebox.showinfo("Please Wait", "Installation is still in progress. Please wait for it to complete.")
+
+        # Add close button (initially disabled, enabled when done)
+        close_btn = ttk.Button(install_root, text="Close", state=tk.DISABLED, command=safe_close)
+        close_btn.pack(pady=10)
+
+        # Function to run installation in background
+        def run_installation():
+            nonlocal installation_complete
+            packages_to_install = [p['pip_name'] for p in missing_packages]
+            all_success = True
+
+            for i, package in enumerate(packages_to_install):
+                # Update status in main thread
+                install_root.after(0, lambda p=package, idx=i: status_var.set(f"Installing {p} ({idx+1}/{len(packages_to_install)})..."))
+                install_root.after(0, lambda p=package: output_text.insert(tk.END, f"\nInstalling {package}...\n"))
+                install_root.after(0, lambda: output_text.see(tk.END))
+
+                try:
+                    result = subprocess.run(
+                        [sys.executable, "-m", "pip", "install", package],
+                        capture_output=True,
+                        text=True,
+                        timeout=120
+                    )
+
+                    if result.returncode == 0:
+                        install_root.after(0, lambda p=package: output_text.insert(tk.END, f"✅ Successfully installed {p}\n"))
+                    else:
+                        install_root.after(0, lambda p=package, e=result.stderr: output_text.insert(tk.END, f"❌ Failed to install {p}\nError: {e}\n"))
+                        all_success = False
+                except Exception as e:
+                    install_root.after(0, lambda p=package, err=str(e): output_text.insert(tk.END, f"❌ Error installing {p}: {err}\n"))
+                    all_success = False
+
+                install_root.after(0, lambda: output_text.see(tk.END))
+
+            # Installation complete - update UI
+            install_root.after(0, progress.stop)
+
+            if all_success:
+                install_root.after(0, lambda: status_var.set("✅ All packages installed successfully!"))
+                install_root.after(0, lambda: output_text.insert(tk.END, "\n\n✅ Installation complete! The application will now start.\n"))
+                 # Auto-close after 2 seconds
+                install_root.after(2000, install_root.destroy)
+            else:
+                install_root.after(0, lambda: status_var.set("⚠️ Some packages failed to install"))
+                install_root.after(0, lambda: output_text.insert(tk.END, "\n\n⚠️ Some packages failed to install.\n"))
+                install_root.after(0, lambda: output_text.insert(tk.END, "You may need to install them manually:\n"))
+                install_root.after(0, lambda: output_text.insert(tk.END, f"pip install {' '.join(packages_to_install)}\n"))
+
+            # Mark installation as complete and enable close button
+            installation_complete = True
+            install_root.after(0, lambda: close_btn.config(state=tk.NORMAL, text="Continue to Application"))
+
+        # Start installation in background thread
+        install_thread = threading.Thread(target=run_installation, daemon=True)
+        install_thread.start()
+
+        # Run the installation window
+        install_root.mainloop()
+
+        # After window closes, re-check imports
+        try:
+            for package in missing_packages:
+                __import__(package['import_name'])
+            return True
+        except ImportError:
+            return False
+    else:
+        # User declined installation
+        root.destroy()
+        response = messagebox.askyesno(
+            "Continue Without Dependencies?",
+            "Some features (Excel and LibreOffice import) will not be available.\n\n"
+            "Do you want to continue anyway?"
+        )
+        return response  # True if they want to continue, False if they want to exit
 
 # ============ FIX POPUP WINDOWS ============
+
 # We'll store the root reference later
 _messagebox_root = None
 
@@ -1107,6 +1321,17 @@ class ScientificToolkit:
 
         # Hardware plugins (unchanged)
         hw_dir = Path("plugins/hardware")
+
+        # Clear previously loaded hardware plugins from sidebar and registry
+        if hasattr(self, 'left') and hasattr(self.left, 'remove_hardware_button'):
+            for pid, entry in list(self.hardware_plugins.items()):
+                info = entry.get('info', {})
+                self.left.remove_hardware_button(
+                    name=info.get('name', pid),
+                    icon=info.get('icon', '🔌')
+                )
+        self.hardware_plugins = {}
+
         if hw_dir.exists():
             for py_file in hw_dir.glob("*.py"):
                 if py_file.stem in ["__init__", "plugin_manager"]:
@@ -1768,6 +1993,11 @@ limitations and will use the results appropriately."""
 def main():
     """Main entry point with splash screen - SINGLE TKINTER INSTANCE"""
     # Create the main root window but keep it hidden
+
+    # Check dependencies first
+    if not check_and_install_dependencies():
+        # User chose to exit
+        return
     root = tk.Tk()
     root.withdraw()
 

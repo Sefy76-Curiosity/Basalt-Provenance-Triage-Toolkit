@@ -204,6 +204,21 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/missingno_plotter.py?ref_type=heads"
   },
   {
+    "id": "mobile_sync_tab",
+    "name": "Mobile Sync (Tab)",
+    "version": "3.0",
+    "description": "Full-featured mobile synchronization tab with QR code, file manager, live updates, and remote plugin execution",
+    "author": "Sefy Levy",
+    "category": "add-ons",
+    "icon": "\ud83d\udcf1",
+    "requires": [
+      "flask",
+      "qrcode",
+      "pillow"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/mobile_sync_tab.py?ref_type=heads"
+  },
+  {
     "id": "ollama_ai",
     "name": "Ollama AI (Free Local)",
     "version": "2.0",
@@ -848,6 +863,20 @@
       "matplotlib"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/zooarchaeology_analytics_suite.py?ref_type=heads"
+  },
+  {
+    "id": "barcode_scanner_unified_suite",
+    "name": "Barcode/QR Scanner Unified Suite",
+    "version": "1.0.0",
+    "description": "USB HID \u00b7 Serial \u00b7 Bluetooth SPP \u00b7 Webcam \u2014 50+ scanner models \u2014 Real drivers",
+    "author": "Sefy Levy",
+    "category": "hardware",
+    "icon": "\ud83d\udce6",
+    "requires": [
+      "numpy",
+      "pandas"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/barcode_scanner_unified_suite.py?ref_type=heads"
   },
   {
     "id": "elemental_geochemistry_unified_suite",

@@ -169,6 +169,8 @@ class PluginManager(tk.Toplevel):
 
         # Plugin registry files
         self.enabled_file = self.config_dir / "enabled_plugins.json"
+        self.downloaded_file = self.config_dir / "downloaded_plugins.json"
+        self.downloaded_plugins: set = self._load_downloaded()
 
         # Local plugins
         self.local_plugins_by_category: Dict[str, List[Dict]] = self._discover_all()
@@ -403,7 +405,10 @@ class PluginManager(tk.Toplevel):
         return {}
 
     def _save_enabled(self) -> Dict[str, bool]:
-        enabled = {pid: var.get() for pid, var in self.plugin_vars.items()}
+        # Start from the full known state so plugins in unvisited tabs aren't wiped
+        enabled = dict(self.enabled_plugins)
+        # Overlay with current UI checkbox states (only tabs that were actually visited)
+        enabled.update({pid: var.get() for pid, var in self.plugin_vars.items()})
         temp = self.enabled_file.with_suffix(".tmp")
         try:
             with open(temp, 'w') as f:
@@ -412,6 +417,26 @@ class PluginManager(tk.Toplevel):
         except Exception:
             pass
         return enabled
+
+    def _load_downloaded(self) -> set:
+        """Load the set of plugin IDs that were installed from the store."""
+        if self.downloaded_file.exists():
+            try:
+                with open(self.downloaded_file) as f:
+                    return set(json.load(f))
+            except Exception:
+                return set()
+        return set()
+
+    def _save_downloaded(self):
+        """Persist the downloaded plugin ID set."""
+        temp = self.downloaded_file.with_suffix(".tmp")
+        try:
+            with open(temp, 'w') as f:
+                json.dump(list(self.downloaded_plugins), f, indent=2)
+            temp.replace(self.downloaded_file)
+        except Exception:
+            pass
 
     # ────────────────────────────────────────────────────────────
     # DEPENDENCY CHECK
@@ -929,8 +954,10 @@ class PluginManager(tk.Toplevel):
                                 self._install_deps(info.get('name', pid), missing)
                         self.after(0, ask_install)
 
-                # Auto-enable
+                # Auto-enable and mark as downloaded from store
                 self.enabled_plugins[pid] = True
+                self.downloaded_plugins.add(pid)
+                self._save_downloaded()
                 temp_enabled = self.enabled_file.with_suffix(".tmp")
                 with open(temp_enabled, 'w') as f:
                     json.dump(self.enabled_plugins, f, indent=2)
@@ -950,18 +977,31 @@ class PluginManager(tk.Toplevel):
         threading.Thread(target=download, daemon=True).start()
 
     def _uninstall_plugin(self, pid: str, info: Dict):
-        """Delete the local plugin file after confirmation."""
+        """Remove a plugin. Only deletes the file if it was installed from the store."""
         name = info.get('name', pid)
-        if not messagebox.askyesno("Confirm Uninstall", f"Uninstall '{name}'?"):
+        is_downloaded = pid in self.downloaded_plugins
+
+        if is_downloaded:
+            confirm_msg = f"Uninstall '{name}'?\n\nThis will delete the plugin file."
+        else:
+            confirm_msg = (
+                f"Remove '{name}' from the plugin list?\n\n"
+                f"This is a locally developed plugin — the .py file will NOT be deleted."
+            )
+
+        if not messagebox.askyesno("Confirm Uninstall", confirm_msg):
             return
 
         path = info.get('path')
-        if not path or not Path(path).exists():
-            messagebox.showerror("Error", "File not found")
-            return
 
         try:
-            Path(path).unlink()
+            if is_downloaded:
+                if not path or not Path(path).exists():
+                    messagebox.showerror("Error", "File not found")
+                    return
+                Path(path).unlink()
+                self.downloaded_plugins.discard(pid)
+                self._save_downloaded()
 
             if pid in self.enabled_plugins:
                 del self.enabled_plugins[pid]
@@ -973,7 +1013,7 @@ class PluginManager(tk.Toplevel):
             self._refresh_category(self.category_var.get())
 
         except Exception as e:
-            messagebox.showerror("Error", f"Could not delete: {e}")
+            messagebox.showerror("Error", f"Could not uninstall: {e}")
 
     # ────────────────────────────────────────────────────────────
     # SMART BUTTON & MENU REMOVAL
@@ -999,17 +1039,24 @@ class PluginManager(tk.Toplevel):
             self.action_btn.config(text="✅ APPLY", bg=self.COLORS["success"])
 
     def _remove_from_menu(self, plugin_id: str, info: dict):
-        """Remove plugin from menu system."""
+        """Remove plugin from menu system and/or hardware sidebar."""
         category = info.get('category', '')
         name = info.get('name', plugin_id)
+        icon = info.get('icon', '🔌')
 
+        # Hardware plugins live in the sidebar, not a dropdown menu
+        if category == 'hardware':
+            if hasattr(self.app, 'left') and hasattr(self.app.left, 'remove_hardware_button'):
+                self.app.left.remove_hardware_button(name, icon)
+            # Also remove from the app's hardware_plugins registry
+            if hasattr(self.app, 'hardware_plugins'):
+                self.app.hardware_plugins.pop(plugin_id, None)
+            return
+
+        # Software / add-on plugins live in dropdown menus
         menus_to_check = []
         if hasattr(self.app, 'advanced_menu'):
             menus_to_check.append(('Advanced', self.app.advanced_menu))
-        if category == 'hardware':
-            for menu_name in ['xrf_menu', 'chemistry_menu', 'mineralogy_menu']:
-                if hasattr(self.app, menu_name):
-                    menus_to_check.append((menu_name, getattr(self.app, menu_name)))
 
         for menu_name, menu in menus_to_check:
             try:
