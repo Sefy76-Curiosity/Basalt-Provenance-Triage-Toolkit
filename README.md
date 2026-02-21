@@ -3,6 +3,8 @@
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://gitlab.com/sefy76/scientific-toolkit)
+[![GitHub](https://img.shields.io/badge/GitHub%20Copilot-000?logo=githubcopilot&logoColor=fff))](https://github.com/Sefy76-Curiosity/Basalt-Provenance-Triage-Toolkit/tree/main)
+
 [![GitLab](https://img.shields.io/badge/GitLab-Repository-orange.svg)](https://gitlab.com/sefy76/scientific-toolkit)
 
 > **Free integrated platform for multi-domain scientific analysis**
@@ -23,65 +25,41 @@ Based on Basalt Provenance Triage Toolkit v10.2, expanded to cover multiple scie
 Scientific Toolkit is a Python/Tkinter desktop application that integrates tools for:
 
     Geochemical data analysis and classification
-
     Archaeological material analysis
-
     Hardware instrument integration (XRF, FTIR, XRD, GPS, calipers, balances)
-
     Statistical analysis and machine learning
-
     GIS visualization and spatial analysis
-
     Publication-ready figure generation
-
     Isotope mixing models with Bayesian MCMC inversion
-
     U-Pb geochronology and detrital provenance
-
     Normative mineral calculations (CIPW, Hutchison, Niggli, Rittmann)
 
 Key features:
 
     70 classification engines implementing published methods (across 2 engines: classification + protocol)
-
     50 scientific protocols for standardized workflows
-
     37 software plugins for advanced analysis
-
     23 add-on plugins for plotting, consoles, and AI assistants
-
     7 hardware suites supporting dozens of device models
-
     Multiple plotting and visualization options
-
     Import/export for common data formats
-
     Template system for journal-specific figures
-
     Completely free and open source
 
 Who might find this useful:
 
     Students learning geochemistry or archaeology
-
     Researchers with limited software budgets
-
     Teaching labs needing multi-topic coverage
-
     Field scientists needing portable instrument integration
-
     Museums managing collections and analysis data
-
     Anyone working across geology and archaeology
 
 What this is NOT:
 
     Not a replacement for specialized commercial tools in single domains
-
     Not optimized for massive datasets (10,000+ samples)
-
     Not a web application (desktop only)
-
     Not a programming language (GUI-based)
 
 📊 Current State (February 2026)
@@ -108,219 +86,138 @@ Classification Engine Schemes (70)
 Geochemistry (20+)
 
     TAS Volcanic Classification (Le Bas et al. 1986)
-
     AFM Irvine-Baragar Series (Irvine & Baragar 1971)
-
     QAPF Mineralogical Classification (IUGS Le Maitre 2002)
-
     Winchester-Floyd Discrimination (Winchester & Floyd 1977)
-
     Pearce Zr/Y Tectonic (Pearce & Norry 1979)
-
     Jensen Cation Plot (Jensen 1976)
-
     REE Pattern Classification (Boynton 1984; Sun & McDonough 1989)
-
     REE Named Types (N-MORB, OIB, E-MORB, etc.)
-
     CI-Normalized Spider Diagram (Anders & Grevesse 1989)
-
     Pearce Mantle Array (Pearce 2008)
-
     Chemical Index of Alteration (Nesbitt & Young 1982)
-
     Normative Molar Proportions (Cross et al. 1902)
-
     Igneous Major-Oxide Indices
-
     Magma Rheology and Eruption Style
-
     Volcanic Series Discrimination
-
     Total Alkali vs Silica (TAS Polygons)
-
     K₂O–SiO₂ Volcanic Series
-
     Pearce Nb/Yb–Th/Yb Mantle Array
-
     Pearce Zr/Y vs Zr Tectonic
-
     And many more...
 
 Metamorphic Petrology (5+)
 
     Metamorphic Facies (Winter 2014; Yardley 1989)
-
     Zircon Trace Element Thermometry (Watson & Harrison 2005)
-
     Thermobarometry calculations
 
 Sedimentology (12+)
 
     Dunham Carbonate Classification (Dunham 1962)
-
     Dott Sandstone Classification (Dott 1964)
-
     Folk Carbonate Classification (Folk 1959, 1962)
-
     Pettijohn Sandstone Classification (Pettijohn 1975)
-
     Sediment Grain Size (Wentworth 1922)
-
     Sediment Texture and Maturity (Shepard 1954; Folk 1974)
-
     Munsell Color Classification
-
     USDA Soil Texture Classification
-
     Folk–Shepard Sediment Texture
-
     Grain-size classification
-
     Textural maturity indices
 
 Geochronology (3+)
 
     U-Pb Concordia QC (Wetherill 1956; Tera & Wasserburg 1972)
-
     Zircon trace element thermometry
-
     LA-ICP-MS signal processing
 
 Isotope Geochemistry (3+)
 
     Isotope provenance and diet (Sr, O, Pb)
-
     Strontium mobility index (Montgomery 2010)
-
     Stable isotope diet (δ¹³C, δ¹⁵N)
 
 Environmental (8+)
 
     Geoaccumulation Index (Müller 1969, 1981)
-
     Enrichment Factor Screening (Zoller et al. 1974)
-
     Environmental Pollution Indices (Hakanson 1980)
-
     Hakanson Ecological Risk Protocol
-
     EPA Sediment Quality Protocol
-
     Pollution Load Index
-
     Risk Assessment Code (RAC)
-
     Contamination Factor (CF)
 
 Soil Science (8+)
 
     USDA Soil Texture Classification
-
     USDA Soil Texture Triangle (Full)
-
     Soil Salinity Classification (EC)
-
     Soil Sodicity (SAR)
-
     FAO Soil Classification (pH & EC)
-
     Soil Chemical Properties
-
     Soil Salinity (ECe standards)
-
     Soil morphology
 
 Archaeology & Bioarchaeology (10+)
 
     Bone Collagen QC (C:N) (DeNiro 1985; van Klinken 1999)
-
     Bone Diagenesis (Ca/P) (Hedges et al. 1995)
-
     FTIR Crystallinity Index (Weiner & Bar-Yosef 1990)
-
     Stable Isotope Diet (δ¹³C, δ¹⁵N) (Schoeninger et al. 1983)
-
     Bone Trophic Diet (Sr/Ca, Ba/Ca)
-
     Behrensmeyer Weathering Stages (1978)
-
     Shipman & Rose Burning Stages (1984)
-
     Maresha Zooarchaeology Protocol
-
     Zooarchaeology Fragmentation & Breakage
-
     Ceramic Firing Temperature Proxies (Tite 2008)
-
     Glass Compositional Families (Sayre & Smith 1961)
 
 Meteoritics (6+)
 
     Chondrite Meteorite Classification (Kallemeyn et al. 1989)
-
     Meteorite Shock Stage (Stöffler et al. 1991)
-
     Meteorite Weathering Grade (Wlotzka 1993)
-
     Meteorite Petrology and Groups
-
     Planetary Analog Ratio (Fe/Mn) (Papike et al. 2003)
-
     CI-normalized spider diagrams
 
 Archaeometallurgy (5+)
 
     Copper Alloy Classification (Pernicka 1999; Craddock 1978)
-
     Slag Basicity Index (Bachmann 1982)
-
     Slag Thermochemical Properties
-
     Iron Bloom Classification (Scott 1991; Buchwald 2005)
-
     Slag V-Ratio classification
 
 Hydrogeochemistry (5+)
 
     Piper Diagram Water Type (Piper 1944)
-
     Stiff Diagram Pattern (Stiff 1951)
-
     Water Hardness Classification
-
     Stiff diagram classification
-
     Water chemistry typing
 
 Provenance & Tectonics (5+)
 
     Provenance Fingerprinting (Hartung 2017; Shervais 1982)
-
     Tectonic Discrimination Diagrams (Pearce & Cann 1973)
-
     Regional Triage (Egyptian–Sinai–Levantine)
-
     Incompatible trace-element fingerprinting
-
     Basalt provenance triage
 
 Alteration & Weathering (3+)
 
     Alteration Indices (Ishikawa & CCPI) (Ishikawa et al. 1976)
-
     Chemical Index of Alteration (Nesbitt & Young 1982)
-
     Hydrothermal alteration indices
 
 Analytical QA/QC (4+)
 
     Analytical Precision Filter (RSD) (Potts & West 2008)
-
     Analytical Quality Control (IUPAC 1997; ISO 17025)
-
     LOD/LOQ classification
-
     CRM deviation and drift monitoring
 
 Protocol Engine Workflows (50)
@@ -328,25 +225,15 @@ Protocol Engine Workflows (50)
 Multi-stage protocols for complex workflows:
 
     Behrensmeyer Weathering Protocol - Standardized bone weathering stages
-
     EPA Sediment Quality Protocol - TEL/PEL and ERL/ERM thresholds
-
     Folk–Shepard Sediment Texture Protocol - Grain-size classification with sorting
-
     Hakanson Ecological Risk Protocol - CF, Er, and RI thresholds
-
     IUGS Igneous Protocol - TAS + QAPF combined workflow
-
     Maresha Zooarchaeology Protocol - Multi-stage faunal analysis
-
     Shipman & Rose Burning Protocol - Bone burning stages
-
     Stable Isotope Diet Protocol - δ¹³C + δ¹⁵N interpretation
-
     USDA Soil Morphology Protocol - Horizons, texture, structure, color
-
     Zooarchaeology Fragmentation Protocol - Breakage patterns and freshness
-
     *And 40+ more specialized protocols*
 
 🔌 Hardware Integration (7 Suites)
@@ -384,142 +271,93 @@ Protocols: HID, Bluetooth, serial, NMEA 0183
 Statistical Analysis (6)
 
     Compositional Stats PRO – CLR/ILR transforms, PCA with robust covariance
-
     PCA+LDA Explorer Pro – PCA, LDA, PLS-DA, Random Forest, SVM, t-SNE
-
     Geochemical Explorer – Multivariate analysis, statistical tests
-
     Uncertainty Propagation – Monte Carlo classification, confidence ellipses
-
     Interactive Contouring – KDE-based contouring, 2D histogram
-
     Spatial Kriging – Variogram analysis, interpolation
 
 Geochronology (4)
 
     Geochronology Suite – U-Pb concordia, Ar-Ar spectra, detrital KDE/MDS
-
     Dating Integration – Bayesian age-depth with MCMC, calibration curves
-
     LA-ICP-MS Pro – Signal processing, U-Pb dating, elemental quantification
-
     U-Pb Concordia QC – Discordance screening, common Pb correction
 
 Petrology (5)
 
     Advanced Normative Calculations – CIPW, Hutchison, Niggli, Mesonorm, Rittmann
-
     Advanced Petrogenetic Models – AFC (DePaolo 1981), zone refining
-
     Magma Modeling – Fractional crystallization, AFC, mixing
-
     Thermobarometry Suite – Pyroxene, feldspar, amphibole thermobarometry
-
     Petrogenetic Suite – Complete magma evolution models
 
 Isotope Geochemistry (4)
 
     Isotope Mixing Models – Binary/ternary mixing, Monte Carlo, Bayesian MCMC inversion
-
     Literature Comparison – Compare to published datasets
-
     Advanced Normalization – Lucas-Tooth & Compton for pXRF/ICP
-
     Stable Isotope Diet – δ¹³C, δ¹⁵N interpretation
 
-GIS & Mapping (5)
+GIS & Mapping (4)
 
     GIS 3D Viewer PRO – 2D maps, 3D terrain, web maps, SRTM
-
     Google Earth Pro – 3D extrusion, time animation, photo integration
-
     Quartz GIS – Point-in-polygon, viewshed, attribute tables
-
     GeoPandas Plotter – Archaeological site mapping
-
-    3D GIS Viewer – Spatial visualization
 
 Archaeology (5)
 
     Lithic Morphometrics – Elliptical Fourier analysis, edge damage
-
     Zooarchaeology Analytics – NISP/MNI, taphonomy, aging
-
     Photo Manager – Link sample photos, organize field photography
-
     Report Generator – Excavation reports, IAA submissions
-
     Virtual Microscopy PRO – Petrographic + 3D mesh analysis
 
 Data Processing (5)
 
     Data Validation Filter – IoGAS-style validation, outlier detection
-
     Batch Processor – Process multiple files in a directory
-
     Advanced Export – High-resolution PDF/EPS/SVG export
-
     Script Export – Export workflows as Python/R scripts
-
     Macro Recorder – Record and replay user workflows
 
 Specialized (3)
 
     Ague Hg Mobility – Mercury speciation, BCR sequential extraction
-
     Museum Import – Import from Europeana and museum APIs
-
     Demo Data Generator – Generate test datasets
 
 🎨 Add-on Plugins (23)
 Plotting & Visualization (9)
 
     ASCII Plotter – Text-based plots (no graphics)
-
     Matplotlib Plotter – High-quality scientific plots
-
     Seaborn Plotter – Statistical visualizations
-
     Ternary Plotter – Ternary diagrams
-
     Pillow Plotter – Basic PIL/Pillow plots
-
     Missingno Plotter – Missing data visualization
-
     Geoplot Pro – IUGS diagrams, AFC modeling
-
     Geopandas Plotter – Archaeological site mapping
-
     Interactive Contouring – Density estimation
 
 Interactive Consoles (6)
 
     Python Console – Interactive Python
-
     R Console – Run R code for statistics
-
     Julia Console – High-performance computing
-
     SQL Console – SQLite queries
-
     GIS Console – Spatial analysis with GeoPandas
-
     File Console – Safe file management
 
 AI Assistants (7)
 
     Claude AI (Anthropic) – Requires API key
-
     ChatGPT AI (OpenAI) – Requires API key
-
     Gemini AI (Google) – Requires API key
-
     DeepSeek AI – Requires API key
-
     Grok AI (xAI) – Requires API key
-
     Copilot AI – Requires API key
-
     Ollama AI – Free local AI (no API key)
 
 Utilities (1)
@@ -605,11 +443,8 @@ See CITATIONS.md for the complete list of 200+ references.
 Requirements
 
     Python 3.8 or higher
-
     Operating System: Windows, macOS, or Linux
-
     Disk space: ~50 MB (core) + optional dependencies
-
     RAM: 2 GB minimum, 4 GB recommended
 
 Core Dependencies
@@ -628,29 +463,20 @@ See INSTALLATION.md for platform-specific instructions.
 📚 Documentation
 
     Installation Guide - Platform-specific setup
-
     Quick Start - Get running in 5 minutes
-
     Citations - All 200+ published methods and references
-
     Plugin Guide - How to use plugins
-
     FAQ - Common questions
-
     Protocol Guide - Using multi-stage protocols
 
 🤝 Contributing
 
 Contributions welcome! Ways to help:
 
-    Report bugs via GitLab Issues
-
+    Report bugs via GitHub/GitLab Issues
     Add new classification engines
-
     Create hardware plugins for new instruments
-
     Improve documentation
-
     Share example workflows
 
 See CONTRIBUTING.md for guidelines.
@@ -671,39 +497,26 @@ Current Version: 2.0 (February 2026)
 ✅ Stable Features
 
     70 classification engines (across 2 engines)
-
     50 scientific protocols for standardized workflows
-
     37 software plugins (full implementations)
-
     23 add-on plugins (plotting, consoles, AI)
-
     7 hardware suites supporting dozens of devices
-
     Publication templates (Nature, Science, AGU, Elsevier)
-
     Data import/export (CSV, Excel, JSON, KML)
 
 🚧 Known Limitations
 
     Tkinter UI may look dated on modern systems
-
     Large datasets (>10,000 samples) may be slow
-
     Documentation is being updated (Feb 2026)
-
     Not all hardware tested on all platforms
 
 🔮 Future Plans
 
     Video tutorials
-
     More classification engines
-
     Performance optimization for large datasets
-
     Peer-reviewed methods publication
-
     Community plugin repository
 
 ⚠️ IMPORTANT DISCLAIMER
@@ -713,14 +526,11 @@ This software is provided "AS IS" without warranty of any kind.
     You are responsible for validating all results - Always verify classifications and calculations are appropriate for your samples
 
     Check your data carefully - Garbage in = garbage out
-
     Don't trust blindly - This is a tool to assist analysis, not replace expert judgment
-
     Scientific responsibility is yours - Verify methods are appropriate for your research
-
     Report bugs and issues! - Help improve the software by testing and reporting problems
 
-Found a bug? Results don't look right? → Report it on GitLab
+Found a bug? Results don't look right? → Report it on GitHub/GitLab
 
 We need users to test thoroughly and report issues. Your feedback makes this better for everyone.
 📜 License
@@ -739,18 +549,13 @@ In plain English: Use it freely for your work (even commercial work). Just don't
 See LICENSE for legal details.
 📞 Contact & Support
 
-    GitLab Issues: Report bugs or request features
-
     Email: sefy76@gmail.com
 
-Need help? Open an issue on GitLab with:
+Need help? Open an issue on GitHub/GitLab with:
 
     Your operating system
-
     Python version
-
     Error message or description
-
     What you were trying to do
 
 🙏 Acknowledgments
