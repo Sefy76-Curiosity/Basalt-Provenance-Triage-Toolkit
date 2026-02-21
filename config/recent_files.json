@@ -1,0 +1,24 @@
+{
+  "files": [
+    {
+      "path": "/mnt/utilities/GIT/scientific-toolkit/samples/structural_data.csv",
+      "name": "structural_data.csv",
+      "timestamp": "2026-02-21T03:16:17.555582"
+    },
+    {
+      "path": "/mnt/utilities/GIT/scientific-toolkit/samples/classifications_master_test.csv",
+      "name": "classifications_master_test.csv",
+      "timestamp": "2026-02-21T03:16:08.019270"
+    },
+    {
+      "path": "/mnt/utilities/GIT/scientific-toolkit/samples/Geochemistry.csv",
+      "name": "Geochemistry.csv",
+      "timestamp": "2026-02-21T03:16:03.611033"
+    },
+    {
+      "path": "/mnt/utilities/GIT/scientific-toolkit/samples/geochemistry_location.csv",
+      "name": "geochemistry_location.csv",
+      "timestamp": "2026-02-21T03:15:52.107959"
+    }
+  ]
+}

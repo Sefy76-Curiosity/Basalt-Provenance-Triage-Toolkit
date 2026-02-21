@@ -157,6 +157,10 @@ class PluginManager(tk.Toplevel):
     def __init__(self, parent_app):
         super().__init__(parent_app.root)
         self.app = parent_app
+        self.current_canvas = None
+        self.bind_all("<MouseWheel>", self._on_global_mousewheel)
+        self.bind_all("<Button-4>", self._on_global_mousewheel)
+        self.bind_all("<Button-5>", self._on_global_mousewheel)
 
         self.title("🔌 Plugin Manager v2.0")
         self.geometry(self.WINDOW_SIZE)
@@ -202,6 +206,17 @@ class PluginManager(tk.Toplevel):
         except tk.TclError:
             pass  # Silently fail - window is still usable
 
+    def _on_global_mousewheel(self, event):
+        if self.current_canvas:
+            if event.delta:
+                self.current_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            else:
+                if event.num == 4:
+                    self.current_canvas.yview_scroll(-1, "units")
+                elif event.num == 5:
+                    self.current_canvas.yview_scroll(1, "units")
+        return "break"
+
     # ────────────────────────────────────────────────────────────
     # DISCOVERY
     # ────────────────────────────────────────────────────────────
@@ -213,6 +228,7 @@ class PluginManager(tk.Toplevel):
             "software": Path("plugins/software"),
             "hardware": Path("plugins/hardware")
         }
+        print(f"Scanning folders: {[str(folder) for folder in folder_map.values()]}")
 
         for category, folder in folder_map.items():
             if not folder.exists():
@@ -243,22 +259,6 @@ class PluginManager(tk.Toplevel):
         return categories
 
     def _extract_info(self, py_file: Path, default_category: str) -> Optional[Dict]:
-        """Extract PLUGIN_INFO via import or AST fallback."""
-        # Method 1: Import
-        try:
-            spec = importlib.util.spec_from_file_location(py_file.stem, py_file)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            if hasattr(module, 'PLUGIN_INFO'):
-                info = module.PLUGIN_INFO.copy()
-                info['category'] = default_category
-                info['path'] = str(py_file)
-                info['module'] = py_file.stem
-                return info
-        except Exception:
-            pass
-
-        # Method 2: AST fallback
         try:
             with open(py_file, 'r', encoding='utf-8') as f:
                 tree = ast.parse(f.read())
@@ -273,7 +273,6 @@ class PluginManager(tk.Toplevel):
                             return info
         except Exception:
             pass
-
         return None
 
     # ────────────────────────────────────────────────────────────
@@ -287,10 +286,14 @@ class PluginManager(tk.Toplevel):
             self._fetching = True
             self.remote_fetch_failed = False
 
+        self.app.root.after(0, lambda: self.app.center.set_status("📡 Fetching remote plugins...", "processing"))
+
         def fetch():
-            results = []
             import concurrent.futures
-            import time
+            source_statuses = []          # (name, status, message) for summary
+            successful_results = []       # actual data from successful sources
+
+            self.app.root.after(0, lambda: self.app.center.set_status(f"Testing {len(self.STORE_SOURCES)} sources...", "processing"))
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.STORE_SOURCES)) as executor:
                 future_to_source = {
@@ -300,27 +303,46 @@ class PluginManager(tk.Toplevel):
 
                 for future in concurrent.futures.as_completed(future_to_source):
                     source = future_to_source[future]
+                    name = source['name']
                     try:
+                        self.app.root.after(0, lambda n=name: self.app.center.set_status(f"Testing {n}...", "processing"))
                         result = future.result(timeout=15)
                         if result:
-                            results.append(result)
-                    except Exception:
-                        pass
+                            successful_results.append(result)
+                            source_statuses.append((name, "success", "responded"))
+                            self.app.root.after(0, lambda n=name: self.app.center.set_status(f"✅ {n} responded", "success"))
+                        else:
+                            source_statuses.append((name, "warning", "returned no data"))
+                            self.app.root.after(0, lambda n=name: self.app.center.set_status(f"⚠️ {n} returned no data", "warning"))
+                    except Exception as e:
+                        source_statuses.append((name, "error", str(e)[:50]))
+                        self.app.root.after(0, lambda n=name: self.app.center.set_status(f"❌ {n} failed", "error"))
 
-            if not results:
+            # Build summary for the user
+            summary_lines = []
+            for name, status, msg in source_statuses:
+                icon = "✅" if status == "success" else "⚠️" if status == "warning" else "❌"
+                summary_lines.append(f"{icon} {name}: {msg}")
+
+            if not successful_results:
+                # No successful source
                 self.remote_fetch_failed = True
                 self.after(0, lambda: self.status_var.set("🌐 Store unavailable"))
+                summary = "All sources failed:\n" + "\n".join(summary_lines)
+                self.app.root.after(0, lambda: self.app.center.show_warning('plugin_fetch', summary))
+                self.app.root.after(0, lambda: self.app.center.set_status("Store unavailable", "warning"))
                 with self._fetch_lock:
                     self._fetching = False
                 return
 
-            # Select best source
-            best_result = self._select_best_source(results)
+            # Select best source from successful ones
+            best_result = self._select_best_source(successful_results)
             all_remote = best_result['data']
             self.active_source = best_result['source']
 
-            # Update source indicator
+            # Update source indicator in plugin manager footer
             self.after(0, lambda: self.source_var.set(f"📡 {best_result['name']}"))
+            self.app.root.after(0, lambda n=best_result['name']: self.app.center.set_status(f"Using {n}", "success"))
 
             # Process by category
             for cat in self.remote_plugins_by_category:
@@ -330,6 +352,11 @@ class PluginManager(tk.Toplevel):
 
             self.remote_fetched = True
             self.after(0, lambda: self._refresh_category(self.category_var.get()))
+
+            # Show summary (including any warnings) and reset main status
+            summary = "Source results:\n" + "\n".join(summary_lines)
+            self.app.root.after(0, lambda: self.app.center.show_warning('plugin_fetch', summary))
+            self.app.root.after(0, lambda: self.app.center.set_status("Ready"))
 
             with self._fetch_lock:
                 self._fetching = False
@@ -594,6 +621,7 @@ class PluginManager(tk.Toplevel):
     def _switch_category(self, category: str):
         """Switch between categories and repopulate the view."""
         self.category_var.set(category)
+        self.current_canvas = None
 
         # Update button colors
         self.btn_addons.config(
@@ -653,6 +681,13 @@ class PluginManager(tk.Toplevel):
     def _populate_merged_category(self, parent, category: str):
         """Populate a category with merged plugins."""
         merged = self._get_merged_plugins(category)
+
+        # Sort alphabetically by plugin name (case‑insensitive)
+        def get_name(p):
+            info = p['local'] or p['remote']
+            return info.get('name', p['id']).lower()
+        merged.sort(key=get_name)
+
         if not merged:
             empty = tk.Frame(parent, bg=self.COLORS["content_bg"])
             empty.pack(fill=tk.BOTH, expand=True)
@@ -673,20 +708,10 @@ class PluginManager(tk.Toplevel):
         canvas.bind("<Configure>", _on_canvas_configure)
         canvas.configure(yscrollcommand=scrollbar.set)
 
-        # Mouse wheel
-        def _on_mousewheel(event):
-            if event.delta:
-                canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-            else:
-                if event.num == 4:
-                    canvas.yview_scroll(-1, "units")
-                elif event.num == 5:
-                    canvas.yview_scroll(1, "units")
-        canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", _on_mousewheel))
-        canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
-
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.current_canvas = canvas
 
         # Create rows
         for plugin in merged:

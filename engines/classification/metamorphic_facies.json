@@ -1,0 +1,128 @@
+{
+  "scheme_name": "Metamorphic Facies Classification (Mineral Assemblage Proxies)",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Estimate metamorphic grade/facies using key index mineral assemblages and compositional proxies",
+  "category": "software",
+  "icon": "🪨",
+  "reference": "Winter, J.D. (2014). Principles of Igneous and Metamorphic Petrology. / Yardley, B.W.D. (1989). An Introduction to Metamorphic Petrology.",
+  "field": "Metamorphic Petrology",
+
+  "requires_fields": [
+    "Mineral_Assemblage",
+    "Al2O3_SiO2_ratio",
+    "MgO_FeO_ratio",
+    "Presence_Index_Minerals"
+  ],
+
+  "classifications": [
+    {
+      "name": "ZEOLITE FACIES",
+      "color": "#4CAF50",
+      "description": "Lowest grade; zeolites (laumontite, heulandite) present",
+      "priority": 1,
+      "rules": [
+        { "field": "Presence_Index_Minerals", "operator": "contains_any", "value": ["laumontite","heulandite","analcime"] }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "PREHNITE-PUMPELLYITE FACIES",
+      "color": "#8BC34A",
+      "description": "Very low grade; prehnite + pumpellyite ± chlorite",
+      "priority": 2,
+      "rules": [
+        { "field": "Presence_Index_Minerals", "operator": "contains_all", "value": ["prehnite","pumpellyite"] }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "GREENSCHIST FACIES",
+      "color": "#4CAF50",
+      "description": "Low grade; chlorite, epidote, actinolite, albite",
+      "priority": 3,
+      "rules": [
+        { "field": "Presence_Index_Minerals", "operator": "contains_any", "value": ["chlorite","epidote","actinolite","albite"] },
+        { "field": "Al2O3_SiO2_ratio", "operator": "between", "min": 0.2, "max": 0.4 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "AMPHIBOLITE FACIES",
+      "color": "#FF9800",
+      "description": "Medium grade; hornblende + plagioclase ± garnet",
+      "priority": 4,
+      "rules": [
+        { "field": "Presence_Index_Minerals", "operator": "contains_all", "value": ["hornblende","plagioclase"] },
+        { "field": "MgO_FeO_ratio", "operator": ">", "value": 0.5 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "GRANULITE FACIES",
+      "color": "#F44336",
+      "description": "High grade; orthopyroxene + clinopyroxene + plagioclase ± garnet",
+      "priority": 5,
+      "rules": [
+        { "field": "Presence_Index_Minerals", "operator": "contains_any", "value": ["orthopyroxene","hypersthene","garnet"] }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "BLUESCHIST FACIES",
+      "color": "#2196F3",
+      "description": "High pressure/low temperature; glaucophane, lawsonite, jadeite",
+      "priority": 6,
+      "rules": [
+        { "field": "Presence_Index_Minerals", "operator": "contains_any", "value": ["glaucophane","lawsonite","jadeite"] }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "ECLOGITE FACIES",
+      "color": "#9C27B0",
+      "description": "Very high pressure; omphacite + garnet, no plagioclase",
+      "priority": 7,
+      "rules": [
+        { "field": "Presence_Index_Minerals", "operator": "contains_all", "value": ["omphacite","garnet"] },
+        { "field": "Presence_Index_Minerals", "operator": "not_contains", "value": "plagioclase" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "CONTACT/HORNFELS FACIES",
+      "color": "#FF5722",
+      "description": "Thermal metamorphism; andalusite, cordierite, biotite",
+      "priority": 8,
+      "rules": [
+        { "field": "Presence_Index_Minerals", "operator": "contains_any", "value": ["andalusite","cordierite","chiastolite"] }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "INSUFFICIENT PETROLOGIC DATA",
+      "color": "#9E9E9E",
+      "description": "Missing mineral assemblage or index mineral information",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Metamorphic_Facies",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.70,
+  "flag_column_name": "Flag_For_Review"
+}

@@ -1,0 +1,185 @@
+{
+  "scheme_name": "Meteorite Petrology and Group Classification",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Combined classification of petrologic type, HED groups, carbonaceous chondrites, achondrites, iron meteorites, and oxygen isotope fields",
+  "category": "software",
+  "icon": "☄️",
+  "reference": "Weisberg et al. (2006); Kallemeyn & Wasson (1981); Clayton & Mayeda (1996); Meteoritical Bulletin",
+  "field": "Meteoritics",
+
+  "requires_fields": [
+    "Fa_mol_pct",
+    "Fs_mol_pct",
+    "Wo_mol_pct",
+    "Delta17O",
+    "Fe_metal_pct",
+    "Ni_metal_pct",
+    "MgO_wt",
+    "CaO_wt",
+    "Al2O3_wt"
+  ],
+
+  "classifications": [
+    {
+      "name": "PETROLOGIC TYPE 3 (UNEQUILIBRATED)",
+      "color": "#4CAF50",
+      "description": "Primitive chondrites with minimal thermal metamorphism",
+      "priority": 1,
+      "rules": [
+        { "field": "Fs_mol_pct", "operator": "<", "value": 5.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "PETROLOGIC TYPE 4–5 (MODERATELY METAMORPHOSED)",
+      "color": "#8BC34A",
+      "description": "Equilibrated chondrites with moderate metamorphism",
+      "priority": 2,
+      "rules": [
+        { "field": "Fs_mol_pct", "operator": "between", "min": 5.0, "max": 20.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "PETROLOGIC TYPE 6 (HIGHLY METAMORPHOSED)",
+      "color": "#CDDC39",
+      "description": "Strongly equilibrated chondrites; extensive recrystallization",
+      "priority": 3,
+      "rules": [
+        { "field": "Fs_mol_pct", "operator": ">", "value": 20.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "DIOGENITE (LOW CaO, HIGH MgO)",
+      "color": "#2196F3",
+      "description": "Orthopyroxene-rich achondrite; deep crustal HED member",
+      "priority": 4,
+      "rules": [
+        { "field": "CaO_wt", "operator": "<", "value": 3.0 },
+        { "field": "MgO_wt", "operator": ">", "value": 25.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "EUKRITE (MODERATE CaO, MODERATE MgO)",
+      "color": "#03A9F4",
+      "description": "Basaltic crustal HED member",
+      "priority": 5,
+      "rules": [
+        { "field": "CaO_wt", "operator": "between", "min": 3.0, "max": 10.0 },
+        { "field": "MgO_wt", "operator": "between", "min": 10.0, "max": 25.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "HOWARDITE (MIXED HED BRECCIA)",
+      "color": "#00BCD4",
+      "description": "Regolith breccia containing mixed eucritic and diogenitic clasts",
+      "priority": 6,
+      "rules": [
+        { "field": "CaO_wt", "operator": "between", "min": 3.0, "max": 10.0 },
+        { "field": "MgO_wt", "operator": ">", "value": 15.0 }
+      ],
+      "logic": "OR",
+      "confidence_score": 0.85
+    },
+
+    {
+      "name": "CI / CM CARBONACEOUS CHONDRITE (HIGH Δ17O)",
+      "color": "#9C27B0",
+      "description": "Hydrated carbonaceous chondrites with elevated Δ17O",
+      "priority": 7,
+      "rules": [
+        { "field": "Delta17O", "operator": ">", "value": 1.5 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "CO / CV CARBONACEOUS CHONDRITE (MODERATE Δ17O)",
+      "color": "#673AB7",
+      "description": "Anhydrous carbonaceous chondrites with moderate Δ17O",
+      "priority": 8,
+      "rules": [
+        { "field": "Delta17O", "operator": "between", "min": 0.5, "max": 1.5 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "CR CARBONACEOUS CHONDRITE (LOW Δ17O)",
+      "color": "#3F51B5",
+      "description": "Reduced carbonaceous chondrites with low Δ17O",
+      "priority": 9,
+      "rules": [
+        { "field": "Delta17O", "operator": "<", "value": 0.5 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+
+    {
+      "name": "ACHONDRITE (LOW Al₂O₃, LOW Δ17O)",
+      "color": "#FF9800",
+      "description": "Differentiated meteorites lacking chondrules",
+      "priority": 10,
+      "rules": [
+        { "field": "Al2O3_wt", "operator": "<", "value": 3.0 },
+        { "field": "Delta17O", "operator": "<", "value": 1.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+
+    {
+      "name": "IRON METEORITE (Fe > 90%, Ni > 5%)",
+      "color": "#795548",
+      "description": "Metallic meteorites from planetary cores",
+      "priority": 11,
+      "rules": [
+        { "field": "Fe_metal_pct", "operator": ">", "value": 90.0 },
+        { "field": "Ni_metal_pct", "operator": ">", "value": 5.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+
+    {
+      "name": "IAB / IIAB / IIIAB IRON GROUPS (Ni 5–20%)",
+      "color": "#A1887F",
+      "description": "Chemical groups of iron meteorites based on Ni content",
+      "priority": 12,
+      "rules": [
+        { "field": "Ni_metal_pct", "operator": "between", "min": 5.0, "max": 20.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+
+    {
+      "name": "INSUFFICIENT METEORITE DATA",
+      "color": "#9E9E9E",
+      "description": "Missing Δ17O, metal content, or major oxide data",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Meteorite_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.80,
+  "flag_column_name": "Flag_For_Review"
+}

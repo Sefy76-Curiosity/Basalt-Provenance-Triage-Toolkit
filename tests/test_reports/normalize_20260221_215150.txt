@@ -1,0 +1,53 @@
+================================================================================
+SCIENTIFIC TOOLKIT TEST REPORT
+Category: NORMALIZE
+Date: 2026-02-21 21:51:50
+Duration: 0.00 seconds
+================================================================================
+
+SUMMARY
+----------------------------------------
+Total Tests: 11
+Passed:      11
+Failed:      0
+Success Rate: 100.0%
+
+DETAILED RESULTS
+----------------------------------------
+
+✅ PASS [ 1] Load column mappings
+      Loaded 1557 mappings
+
+✅ PASS [ 2] Normalize: 'Zr ppm'
+      → 'Zr_ppm'
+
+✅ PASS [ 3] Normalize: 'Zr (ppm)'
+      → 'Zr_ppm'
+
+✅ PASS [ 4] Normalize: 'zr_ppm'
+      → 'Zr_ppm'
+
+✅ PASS [ 5] Normalize: 'ZR PPM'
+      → 'Zr_ppm'
+
+✅ PASS [ 6] Normalize: 'SiO2 (%)'
+      → 'SiO2_wt'
+
+✅ PASS [ 7] Normalize: 'SiO2 %'
+      → 'SiO2_wt'
+
+✅ PASS [ 8] Normalize: 'SiO2_wt%'
+      → 'SiO2_wt'
+
+✅ PASS [ 9] Normalize: 'Na2O (%)'
+      → 'Na2O_wt'
+
+✅ PASS [10] Normalize: 'K2O%'
+      → 'K2O_wt'
+
+✅ PASS [11] Unknown column
+      → 'Some_Random_Column'
+
+================================================================================
+END OF REPORT
+================================================================================

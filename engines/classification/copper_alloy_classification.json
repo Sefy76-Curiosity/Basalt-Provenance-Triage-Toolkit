@@ -1,0 +1,139 @@
+{
+  "scheme_name": "Copper Alloy Classification (Bronze, Brass, Arsenical Copper)",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Classify archaeological copper alloys based on Sn, Zn, As, Pb, and Sb concentrations",
+  "category": "software",
+  "icon": "🪙",
+  "reference": "Pernicka, E. (1999). Trace element fingerprinting of ancient copper. In: Metals in Antiquity. / Craddock, P.T. (1978). The composition of the copper alloys used by the Greek, Etruscan and Roman civilizations.",
+  "field": "Archaeometallurgy",
+
+  "requires_fields": [
+    "Cu_pct",
+    "Sn_pct",
+    "Zn_pct",
+    "As_pct",
+    "Pb_pct",
+    "Sb_pct"
+  ],
+
+  "classifications": [
+    {
+      "name": "TIN BRONZE",
+      "color": "#FF9800",
+      "description": "Sn > 2%, Zn < 1%, As < 1%; classic bronze alloy",
+      "priority": 1,
+      "rules": [
+        { "field": "Sn_pct", "operator": ">", "value": 2.0 },
+        { "field": "Zn_pct", "operator": "<", "value": 1.0 },
+        { "field": "As_pct", "operator": "<", "value": 1.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "LEADED BRONZE",
+      "color": "#FF5722",
+      "description": "Sn > 2%, Pb > 2%; improved castability",
+      "priority": 2,
+      "rules": [
+        { "field": "Sn_pct", "operator": ">", "value": 2.0 },
+        { "field": "Pb_pct", "operator": ">", "value": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "BRASS",
+      "color": "#FFC107",
+      "description": "Zn > 5%, Sn < 2%; zinc-based alloy",
+      "priority": 3,
+      "rules": [
+        { "field": "Zn_pct", "operator": ">", "value": 5.0 },
+        { "field": "Sn_pct", "operator": "<", "value": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "LEADED BRASS",
+      "color": "#FFB74D",
+      "description": "Zn > 5%, Pb > 2%; free-machining brass",
+      "priority": 4,
+      "rules": [
+        { "field": "Zn_pct", "operator": ">", "value": 5.0 },
+        { "field": "Pb_pct", "operator": ">", "value": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "ARSENICAL COPPER",
+      "color": "#F44336",
+      "description": "As > 0.5%, Sn < 1%, Zn < 1%; early Bronze Age alloy",
+      "priority": 5,
+      "rules": [
+        { "field": "As_pct", "operator": ">", "value": 0.5 },
+        { "field": "Sn_pct", "operator": "<", "value": 1.0 },
+        { "field": "Zn_pct", "operator": "<", "value": 1.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "GUNMETAL",
+      "color": "#9C27B0",
+      "description": "Sn 2–10%, Zn 2–10%, Pb < 5%; ternary alloy",
+      "priority": 6,
+      "rules": [
+        { "field": "Sn_pct", "operator": "between", "min": 2.0, "max": 10.0 },
+        { "field": "Zn_pct", "operator": "between", "min": 2.0, "max": 10.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "ANTIMONIAL COPPER",
+      "color": "#673AB7",
+      "description": "Sb > 1%, Sn < 1%, As < 1%; rare alloy",
+      "priority": 7,
+      "rules": [
+        { "field": "Sb_pct", "operator": ">", "value": 1.0 },
+        { "field": "Sn_pct", "operator": "<", "value": 1.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "UNALLOYED COPPER",
+      "color": "#4CAF50",
+      "description": "Cu > 95%, Sn < 1%, Zn < 1%, As < 0.5%, Pb < 1%",
+      "priority": 8,
+      "rules": [
+        { "field": "Cu_pct", "operator": ">", "value": 95.0 },
+        { "field": "Sn_pct", "operator": "<", "value": 1.0 },
+        { "field": "Zn_pct", "operator": "<", "value": 1.0 },
+        { "field": "As_pct", "operator": "<", "value": 0.5 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "INSUFFICIENT COMPOSITION DATA",
+      "color": "#9E9E9E",
+      "description": "Missing major alloying elements (Sn, Zn, As, etc.)",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Copper_Alloy_Type",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
+}

@@ -1,0 +1,116 @@
+{
+  "scheme_name": "FAO Soil Classification by pH and EC",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Combine pH and electrical conductivity (EC) to classify soils according to FAO guidelines",
+  "category": "software",
+  "icon": "🌱",
+  "reference": "FAO (2006). Guidelines for Soil Description (4th ed.). FAO, Rome.",
+  "field": "Soil Science",
+
+  "requires_fields": [
+    "pH",
+    "EC_dS_m"
+  ],
+
+  "classifications": [
+    {
+      "name": "NORMAL (FAO) - NON-SALINE, NEUTRAL pH",
+      "color": "#4CAF50",
+      "description": "pH 6.5–7.5, EC < 2 dS/m; optimal agricultural soil",
+      "priority": 1,
+      "rules": [
+        { "field": "pH", "operator": "between", "min": 6.5, "max": 7.5 },
+        { "field": "EC_dS_m", "operator": "<", "value": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "ACIDIC, NON-SALINE",
+      "color": "#FF9800",
+      "description": "pH < 6.5, EC < 2 dS/m; may require liming",
+      "priority": 2,
+      "rules": [
+        { "field": "pH", "operator": "<", "value": 6.5 },
+        { "field": "EC_dS_m", "operator": "<", "value": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "ALKALINE, NON-SALINE",
+      "color": "#2196F3",
+      "description": "pH > 7.5, EC < 2 dS/m; potential micronutrient issues",
+      "priority": 3,
+      "rules": [
+        { "field": "pH", "operator": ">", "value": 7.5 },
+        { "field": "EC_dS_m", "operator": "<", "value": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "SALINE (EC 2–8 dS/m)",
+      "color": "#F44336",
+      "description": "EC 2–8 dS/m; any pH; restricts growth of sensitive crops",
+      "priority": 4,
+      "rules": [
+        { "field": "EC_dS_m", "operator": "between", "min": 2.0, "max": 8.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "STRONGLY SALINE (EC 8–16 dS/m)",
+      "color": "#FF5722",
+      "description": "EC 8–16 dS/m; only tolerant crops survive",
+      "priority": 5,
+      "rules": [
+        { "field": "EC_dS_m", "operator": "between", "min": 8.0, "max": 16.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "VERY STRONGLY SALINE (EC >16 dS/m)",
+      "color": "#B71C1C",
+      "description": "EC > 16 dS/m; extreme salinity, few plants survive",
+      "priority": 6,
+      "rules": [
+        { "field": "EC_dS_m", "operator": ">", "value": 16.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "SALINE-SODIC (EC >4 dS/m AND SAR >13)",
+      "color": "#9C27B0",
+      "description": "Combined salinity and sodicity; requires specialized management",
+      "priority": 7,
+      "rules": [
+        { "field": "EC_dS_m", "operator": ">", "value": 4.0 },
+        { "field": "SAR", "operator": ">", "value": 13.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "INSUFFICIENT DATA",
+      "color": "#9E9E9E",
+      "description": "Missing pH or EC measurement",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "FAO_Soil_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
+}

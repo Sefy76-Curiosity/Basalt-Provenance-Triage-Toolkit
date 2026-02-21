@@ -1,0 +1,81 @@
+{
+  "scheme_name": "Pearce Zr/Y vs Zr Tectonic Discrimination",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Distinguish between within-plate, MORB, and volcanic arc basalts using Zr/Y vs Zr (Pearce & Norry, 1979)",
+  "category": "software",
+  "icon": "🌍",
+  "reference": "Pearce, J.A. & Norry, M.J. (1979). Petrogenetic implications of Ti, Zr, Y, and Nb variations in volcanic rocks. Contributions to Mineralogy and Petrology, 69(1), 33-47.",
+  "field": "Tectonic Geochemistry",
+
+  "requires_fields": [
+    "Zr_ppm",
+    "Y_ppm"
+  ],
+
+  "classifications": [
+    {
+      "name": "WITHIN-PLATE BASALT (WPB)",
+      "color": "#F44336",
+      "description": "High Zr/Y (>7) across all Zr concentrations",
+      "priority": 1,
+      "rules": [
+        { "field": "Zr_ppm/Y_ppm", "operator": ">", "value": 7.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "MID-OCEAN RIDGE BASALT (MORB)",
+      "color": "#2196F3",
+      "description": "Moderate Zr/Y (2–7) and wide range of Zr",
+      "priority": 2,
+      "rules": [
+        { "field": "Zr_ppm/Y_ppm", "operator": "between", "min": 2.0, "max": 7.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "VOLCANIC ARC BASALT (VAB)",
+      "color": "#4CAF50",
+      "description": "Low Zr/Y (<3) and generally low Zr (<150 ppm)",
+      "priority": 3,
+      "rules": [
+        { "field": "Zr_ppm/Y_ppm", "operator": "<", "value": 3.0 },
+        { "field": "Zr_ppm", "operator": "<", "value": 150.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "TRANSITIONAL / UNKNOWN",
+      "color": "#9E9E9E",
+      "description": "Zr/Y between 3 and 7 but with ambiguous Zr",
+      "priority": 999,
+      "rules": [
+        { "field": "Zr_ppm/Y_ppm", "operator": "between", "min": 3.0, "max": 7.0 },
+        { "field": "Zr_ppm", "operator": ">=", "value": 150.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.50
+    },
+    {
+      "name": "INSUFFICIENT DATA",
+      "color": "#9E9E9E",
+      "description": "Missing Zr or Y concentrations",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Pearce_ZrY_Tectonic_Setting",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.70,
+  "flag_column_name": "Flag_For_Review"
+}

@@ -1,0 +1,114 @@
+{
+  "scheme_name": "Dunham Carbonate Classification",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Classify carbonate rocks based on depositional texture and grain-to-mud ratios",
+  "category": "software",
+  "icon": "🪨",
+  "reference": "Dunham, R. J. (1962). Classification of carbonate rocks according to depositional texture.",
+  "field": "Sedimentology",
+  "requires_fields": [
+    "Mud_pct",
+    "Grain_pct",
+    "Support_Type"
+  ],
+  "classifications": [
+    {
+      "name": "MUDSTONE (<10% Grains)",
+      "color": "#4CAF50",
+      "description": "Mud-supported carbonate rock containing less than 10% grains",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "Mud_pct",
+          "operator": ">",
+          "value": 90.0
+        },
+        {
+          "field": "Support_Type",
+          "operator": "=",
+          "value": "mud-supported"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "WACKESTONE (>10% Grains)",
+      "color": "#8BC34A",
+      "description": "Mud-supported carbonate rock containing more than 10% grains",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "Mud_pct",
+          "operator": "between",
+          "min": 10.0,
+          "max": 90.0
+        },
+        {
+          "field": "Support_Type",
+          "operator": "=",
+          "value": "mud-supported"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.9
+    },
+    {
+      "name": "PACKSTONE (Grain-supported with Mud)",
+      "color": "#FFC107",
+      "description": "Grain-supported carbonate rock containing intergranular mud",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "Support_Type",
+          "operator": "=",
+          "value": "grain-supported"
+        },
+        {
+          "field": "Mud_pct",
+          "operator": ">",
+          "value": 1.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "GRAINSTONE (No Mud)",
+      "color": "#F44336",
+      "description": "Grain-supported carbonate rock lacking mud (typically <1% mud)",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "Mud_pct",
+          "operator": "<",
+          "value": 1.0
+        },
+        {
+          "field": "Support_Type",
+          "operator": "=",
+          "value": "grain-supported"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.9
+    },
+    {
+      "name": "INSUFFICIENT TEXTURAL DATA",
+      "color": "#9E9E9E",
+      "description": "Missing mud/grain percentages or support type description",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+  "output_column_name": "Carbonate_Type",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.7,
+  "flag_column_name": "Flag_For_Review"
+}

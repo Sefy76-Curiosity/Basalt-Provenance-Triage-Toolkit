@@ -1,0 +1,121 @@
+{
+  "scheme_name": "Stiff Diagram Pattern Classification",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Classify water types based on Stiff diagram patterns (relative proportions of major cations and anions)",
+  "category": "software",
+  "icon": "📊",
+  "reference": "Stiff, H.A. (1951). The interpretation of chemical water analysis by means of patterns. Journal of Petroleum Technology.",
+  "field": "Hydrogeochemistry",
+
+  "requires_fields": [
+    "Na_meq",
+    "Ca_meq",
+    "Mg_meq",
+    "Cl_meq",
+    "HCO3_meq",
+    "SO4_meq"
+  ],
+
+  "classifications": [
+    {
+      "name": "CALCIUM BICARBONATE PATTERN",
+      "color": "#4CAF50",
+      "description": "Ca > Na, Ca > Mg; HCO3 > Cl, HCO3 > SO4; fresh water",
+      "priority": 1,
+      "rules": [
+        { "field": "Ca_meq", "operator": ">", "value": "Na_meq" },
+        { "field": "Ca_meq", "operator": ">", "value": "Mg_meq" },
+        { "field": "HCO3_meq", "operator": ">", "value": "Cl_meq" },
+        { "field": "HCO3_meq", "operator": ">", "value": "SO4_meq" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "SODIUM CHLORIDE PATTERN",
+      "color": "#2196F3",
+      "description": "Na > Ca, Na > Mg; Cl > HCO3, Cl > SO4; saline/brine",
+      "priority": 2,
+      "rules": [
+        { "field": "Na_meq", "operator": ">", "value": "Ca_meq" },
+        { "field": "Na_meq", "operator": ">", "value": "Mg_meq" },
+        { "field": "Cl_meq", "operator": ">", "value": "HCO3_meq" },
+        { "field": "Cl_meq", "operator": ">", "value": "SO4_meq" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "MIXED CATION - BICARBONATE",
+      "color": "#8BC34A",
+      "description": "HCO3 dominant anion, mixed cations",
+      "priority": 3,
+      "rules": [
+        { "field": "HCO3_meq", "operator": ">", "value": "Cl_meq" },
+        { "field": "HCO3_meq", "operator": ">", "value": "SO4_meq" },
+        { "field": "Na_meq+Ca_meq+Mg_meq", "operator": "balanced", "comment": "no single cation >50%" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.75
+    },
+    {
+      "name": "MIXED ANION - SODIUM",
+      "color": "#FF9800",
+      "description": "Na dominant cation, mixed anions",
+      "priority": 4,
+      "rules": [
+        { "field": "Na_meq", "operator": ">", "value": "Ca_meq" },
+        { "field": "Na_meq", "operator": ">", "value": "Mg_meq" },
+        { "field": "Cl_meq+HCO3_meq+SO4_meq", "operator": "balanced", "comment": "no single anion >50%" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.75
+    },
+    {
+      "name": "MAGNESIUM SULFATE PATTERN",
+      "color": "#9C27B0",
+      "description": "Mg dominant cation, SO4 dominant anion; ultramafic/evaporite",
+      "priority": 5,
+      "rules": [
+        { "field": "Mg_meq", "operator": ">", "value": "Ca_meq" },
+        { "field": "Mg_meq", "operator": ">", "value": "Na_meq" },
+        { "field": "SO4_meq", "operator": ">", "value": "Cl_meq" },
+        { "field": "SO4_meq", "operator": ">", "value": "HCO3_meq" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "CALCIUM CHLORIDE PATTERN",
+      "color": "#F44336",
+      "description": "Ca dominant cation, Cl dominant anion; deep basinal brines",
+      "priority": 6,
+      "rules": [
+        { "field": "Ca_meq", "operator": ">", "value": "Na_meq" },
+        { "field": "Ca_meq", "operator": ">", "value": "Mg_meq" },
+        { "field": "Cl_meq", "operator": ">", "value": "HCO3_meq" },
+        { "field": "Cl_meq", "operator": ">", "value": "SO4_meq" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "INSUFFICIENT DATA",
+      "color": "#9E9E9E",
+      "description": "Missing meq/L values for major ions",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Stiff_Pattern_Type",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.70,
+  "flag_column_name": "Flag_For_Review"
+}

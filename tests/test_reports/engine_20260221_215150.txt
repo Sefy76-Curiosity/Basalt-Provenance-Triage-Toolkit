@@ -1,0 +1,44 @@
+================================================================================
+SCIENTIFIC TOOLKIT TEST REPORT
+Category: ENGINE
+Date: 2026-02-21 21:51:50
+Duration: 0.31 seconds
+================================================================================
+
+SUMMARY
+----------------------------------------
+Total Tests: 8
+Passed:      8
+Failed:      0
+Success Rate: 100.0%
+
+DETAILED RESULTS
+----------------------------------------
+
+✅ PASS [ 1] Engine initialization
+      Successfully created ClassificationEngine
+
+✅ PASS [ 2] Get available schemes
+      Found 70 classification schemes
+
+✅ PASS [ 3] Get scheme info
+      Retrieved info for: AFM Irvine–Baragar Series
+
+✅ PASS [ 4] Classify sample with AFM Irvine–Baragar Series
+      Result: INSUFFICIENT OXIDE DATA (conf: 0.0)
+
+✅ PASS [ 5] Classify all samples
+      Classified 3 samples
+
+✅ PASS [ 6] Classification success rate
+      3/3 samples classified
+
+✅ PASS [ 7] Bone Collagen QC - Good sample
+      Result: PRESERVED (PASS)
+
+✅ PASS [ 8] Bone Collagen QC - Degraded sample
+      Result: DEGRADED / CONTAMINATED
+
+================================================================================
+END OF REPORT
+================================================================================

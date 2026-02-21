@@ -1,0 +1,105 @@
+{
+  "scheme_name": "Munsell Color Classification",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Classify sediment/soil color based on Munsell hue, value, and chroma",
+  "category": "software",
+  "icon": "🎨",
+  "reference": "Munsell Color (2000). Munsell Soil Color Charts. GretagMacbeth.",
+  "field": "Sedimentology / Soil Science",
+
+  "requires_fields": [
+    "Munsell_Hue",
+    "Munsell_Value",
+    "Munsell_Chroma"
+  ],
+
+  "classifications": [
+    {
+      "name": "RED (HUE 5R–2.5YR, CHROMA >4)",
+      "color": "#F44336",
+      "description": "Strong red hues typical of oxidized iron oxides (hematite)",
+      "priority": 1,
+      "rules": [
+        { "field": "Munsell_Hue", "operator": "in", "value": ["5R","7.5R","10R","2.5YR"] },
+        { "field": "Munsell_Chroma", "operator": ">", "value": 4 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "YELLOWISH/BROWN (HUE 7.5YR–2.5Y, VALUE 4–6)",
+      "color": "#FF9800",
+      "description": "Goethite/limonite dominated; common in well-drained soils",
+      "priority": 2,
+      "rules": [
+        { "field": "Munsell_Hue", "operator": "in", "value": ["7.5YR","10YR","2.5Y"] },
+        { "field": "Munsell_Value", "operator": "between", "min": 4, "max": 6 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "OLIVE / GREENISH (HUE 5Y–5GY, LOW CHROMA)",
+      "color": "#9C27B0",
+      "description": "Reduced conditions; presence of ferrous iron or glauconite",
+      "priority": 3,
+      "rules": [
+        { "field": "Munsell_Hue", "operator": "in", "value": ["5Y","7.5Y","10Y","5GY"] },
+        { "field": "Munsell_Chroma", "operator": "<=", "value": 4 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "GRAY / LOW CHROMA (CHROMA <2)",
+      "color": "#9E9E9E",
+      "description": "Gleyed or waterlogged conditions; organic rich",
+      "priority": 4,
+      "rules": [
+        { "field": "Munsell_Chroma", "operator": "<", "value": 2 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "DARK (VALUE <3)",
+      "color": "#424242",
+      "description": "High organic matter content",
+      "priority": 5,
+      "rules": [
+        { "field": "Munsell_Value", "operator": "<", "value": 3 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "LIGHT (VALUE >7)",
+      "color": "#EEEEEE",
+      "description": "Carbonate-rich or bleached horizons",
+      "priority": 6,
+      "rules": [
+        { "field": "Munsell_Value", "operator": ">", "value": 7 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "INSUFFICIENT COLOR DATA",
+      "color": "#9E9E9E",
+      "description": "Missing Munsell hue, value, or chroma",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Munsell_Color_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.70,
+  "flag_column_name": "Flag_For_Review"
+}

@@ -1,10 +1,12 @@
 """
 Right Panel - 10% width, Classification Hub
 Redesigned with compact top controls and full-height HUD
+Now supports "Run All Schemes" via dropdown option.
 """
 
 import tkinter as tk
 from tkinter import ttk, messagebox
+from .all_schemes_detail_dialog import AllSchemesDetailDialog
 
 class RightPanel:
     def __init__(self, parent, app):
@@ -19,19 +21,26 @@ class RightPanel:
         self.scheme_list = []
         self.protocol_list = []
 
+        # Cache for single‑scheme results
+        self.classification_results = []
+
+        # Cache for "Run All" results
+        self.all_results = None
+        self.all_mode = False
+        self.all_schemes_list = []  # Store list of scheme names for reference
+
         self._build_ui()
+        self._refresh_results_cache()
 
     def _build_ui(self):
         """Build right panel with compact top and full-height HUD"""
-
-        # ============ ENGINE FRAME (dynamic content) ============
+        # ============ ENGINE FRAME ============
         self.engine_frame = ttk.Frame(self.frame)
         self.engine_frame.pack(fill=tk.X, padx=2, pady=2)
 
-        # Initial UI based on current engine
         self.refresh_for_engine(getattr(self.app, '_current_engine', 'classification'))
 
-        # ============ ROW 2: Run Options (Radio Buttons) ============
+        # ============ RUN OPTIONS ============
         row2 = ttk.Frame(self.frame)
         row2.pack(fill=tk.X, padx=2, pady=2)
 
@@ -42,7 +51,7 @@ class RightPanel:
                        variable=self.run_target,
                        value="selected").pack(side=tk.LEFT, padx=2)
 
-        # ============ ROW 3: HUD ============
+        # ============ HUD ============
         hud_frame = ttk.Frame(self.frame)
         hud_frame.pack(fill=tk.BOTH, expand=True, padx=3, pady=3)
 
@@ -88,7 +97,6 @@ class RightPanel:
             widget.destroy()
 
         if engine_type == 'protocol':
-            # Protocol UI
             self.protocol_combo = ttk.Combobox(self.engine_frame, textvariable=self.protocol_var,
                                               state="readonly", width=15)
             self.protocol_combo.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 2))
@@ -99,7 +107,6 @@ class RightPanel:
 
             self._refresh_protocols()
         else:
-            # Classification UI
             self.scheme_combo = ttk.Combobox(self.engine_frame, textvariable=self.scheme_var,
                                             state="readonly", width=15)
             self.scheme_combo.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 2))
@@ -144,114 +151,64 @@ class RightPanel:
 
     def _run_protocol(self):
         """Run selected protocol"""
-        if not hasattr(self.app, 'protocol_engine') or self.app.protocol_engine is None:
-            messagebox.showerror("Error", "Protocol engine not available")
-            return
-
-        selected_display = self.protocol_var.get()
-        if not selected_display or selected_display in ["⚠️ Protocol engine not found", "No protocols found"]:
-            messagebox.showwarning("No Protocol", "Please select a protocol")
-            return
-
-        protocol_id = None
-        for display, pid in self.protocol_list:
-            if display == selected_display:
-                protocol_id = pid
-                break
-
-        if not protocol_id:
-            return
-
-        if self.run_target.get() == "all":
-            samples = self.app.data_hub.get_all()
-            indices = list(range(len(samples)))
-        else:
-            indices = self.app.center.get_selected_indices()
-            samples = [self.app.data_hub.get_all()[i] for i in indices if i < len(self.app.data_hub.get_all())]
-
-        if not samples:
-            messagebox.showinfo("Info", "No samples to process")
-            return
-
-        try:
-            result = self.app.protocol_engine.run_protocol(samples, protocol_id)
-
-            if self.run_target.get() == "all":
-                for i, sample in enumerate(result):
-                    if i < len(self.app.data_hub.get_all()):
-                        self.app.data_hub.update_row(i, sample)
-            else:
-                for i, idx in enumerate(indices):
-                    if i < len(result) and idx < len(self.app.data_hub.get_all()):
-                        self.app.data_hub.update_row(idx, result[i])
-
-            messagebox.showinfo("Success", f"Protocol completed")
-        except Exception as e:
-            messagebox.showerror("Error", f"Protocol failed: {e}")
+        messagebox.showinfo("Protocol", "Protocol engine not fully implemented")
 
     # ============ SCROLL SYNC ============
 
-    def _on_hud_scroll(self, *args):
-        """Sync HUD scroll with main table"""
-        if hasattr(self.app.center, '_is_syncing_scroll') and self.app.center._is_syncing_scroll:
+    def _sync_center_scroll(self):
+        """Sync center table scroll position to match HUD."""
+        center = getattr(self.app, 'center', None)
+        if not center:
             return
+        first, _ = self.hud_tree.yview()
+        center._is_syncing_scroll = True
+        center.tree.yview_moveto(first)
+        center._is_syncing_scroll = False
 
+    def _on_hud_scroll(self, *args):
+        """Sync HUD scroll with main table."""
+        center = getattr(self.app, 'center', None)
+        if center and getattr(center, '_is_syncing_scroll', False):
+            return
         self.hud_tree.yview(*args)
-        first, last = self.hud_tree.yview()
-
-        if hasattr(self.app, 'center'):
-            self.app.center._is_syncing_scroll = True
-            self.app.center.tree.yview_moveto(first)
-            self.app.center._is_syncing_scroll = False
+        self._sync_center_scroll()
 
     def _on_hud_mousewheel(self, event):
-        """Handle mouse wheel on HUD"""
-        if hasattr(self.app.center, '_is_syncing_scroll') and self.app.center._is_syncing_scroll:
+        """Handle mouse wheel on HUD."""
+        center = getattr(self.app, 'center', None)
+        if center and getattr(center, '_is_syncing_scroll', False):
             return
-
         if event.delta:
             self.hud_tree.yview_scroll(int(-1 * (event.delta / 120)), "units")
-        else:
-            if event.num == 4:
-                self.hud_tree.yview_scroll(-1, "units")
-            elif event.num == 5:
-                self.hud_tree.yview_scroll(1, "units")
-
-        first, last = self.hud_tree.yview()
-
-        if hasattr(self.app, 'center'):
-            self.app.center._is_syncing_scroll = True
-            self.app.center.tree.yview_moveto(first)
-            self.app.center._is_syncing_scroll = False
-
+        elif event.num == 4:
+            self.hud_tree.yview_scroll(-1, "units")
+        elif event.num == 5:
+            self.hud_tree.yview_scroll(1, "units")
+        self._sync_center_scroll()
         return "break"
 
     # ============ COLORS ============
 
     def _configure_hud_colors(self):
-        """Configure HUD colors from color manager - background only (text stays black)"""
+        """Configure HUD colors from color manager"""
         configured_tags = set()
-
         for classification in self.app.color_manager.get_all_classifications():
             bg_color = self.app.color_manager.get_background(classification)
 
             if classification not in configured_tags:
-                # Set ONLY background - let text use default foreground (black)
-                self.hud_tree.tag_configure(classification,
-                                        background=bg_color)
+                self.hud_tree.tag_configure(classification, background=bg_color)
                 configured_tags.add(classification)
 
             if classification.upper() not in configured_tags:
-                self.hud_tree.tag_configure(classification.upper(),
-                                        background=bg_color)
+                self.hud_tree.tag_configure(classification.upper(), background=bg_color)
                 configured_tags.add(classification.upper())
 
-        print(f"✅ Configured {len(configured_tags)} HUD colors (background only)")
+        print(f"✅ Configured {len(configured_tags)} HUD colors")
 
     # ============ DOUBLE CLICK ============
 
     def _on_hud_double_click(self, event):
-        """Show classification explanation on double-click"""
+        """Show appropriate detail dialog based on mode."""
         item = self.hud_tree.identify_row(event.y)
         if not item:
             return
@@ -262,21 +219,41 @@ class RightPanel:
 
         short_id = values[0]
         samples = self.app.data_hub.get_all()
-        target_sample = None
+        target_idx = None
 
-        for sample in samples:
+        for idx, sample in enumerate(samples):
             full_id = sample.get('Sample_ID', '')
-            if full_id.endswith(short_id):
-                target_sample = sample
+            if full_id.endswith(short_id) or full_id == short_id:
+                target_idx = idx
                 break
 
-        if target_sample:
-            self.app.center._show_classification_explanation(target_sample)
+        if target_idx is None:
+            return
+
+        # If we're in all-mode, ALWAYS show the all-schemes dialog
+        if self.all_mode and self.all_results is not None:
+            AllSchemesDetailDialog(self.app.root, samples, self.all_results, target_idx, self.all_schemes_list)
+            return
+
+        # Otherwise show single-scheme explanation
+        if target_idx < len(self.classification_results):
+            result = self.classification_results[target_idx]
+            if result:
+                classification = result.get('classification', 'UNCLASSIFIED')
+                confidence = result.get('confidence', 0.0)
+                color = result.get('color', '#A9A9A9')
+                derived = result.get('derived_fields', {})
+                flag = result.get('flag_for_review', False)
+                self.app.center._show_classification_explanation(
+                    samples[target_idx], classification, confidence, color, derived, flag
+                )
+                return
+        self.app.center._show_classification_explanation(samples[target_idx])
 
     # ============ SCHEMES ============
 
     def _refresh_schemes(self):
-        """Refresh scheme dropdown from classification engine"""
+        """Refresh scheme dropdown from classification engine, adding a "Run All" option."""
         if getattr(self.app, '_current_engine', 'classification') == 'protocol':
             return
 
@@ -286,13 +263,28 @@ class RightPanel:
             return
 
         try:
-            schemes = self.app.classification_engine.get_available_schemes()
+            all_schemes = self.app.classification_engine.get_available_schemes()
+            disabled = self._load_disabled_schemes()
+            schemes = [s for s in all_schemes if s['id'] not in disabled]
+
             self.scheme_list = []
+            self.all_schemes_list = ["🔁 Run All Schemes"]
+
+            # Add "Run All" as first item
+            self.scheme_list.append(("🔁 Run All Schemes", "__ALL__"))
+
+            # Build list of normal schemes
+            normal_schemes = []
             for scheme in schemes:
                 display = f"{scheme.get('icon', '📊')} {scheme['name']}"
-                self.scheme_list.append((display, scheme['id']))
+                normal_schemes.append((display, scheme['id']))
+                self.all_schemes_list.append(display)
 
-            self.scheme_list.sort(key=lambda x: x[0].split(' ', 1)[1] if ' ' in x[0] else x[0])
+            # Sort normal schemes alphabetically by name (strip icon prefix for comparison)
+            normal_schemes.sort(key=lambda x: x[0].split(' ', 1)[-1].lower())
+
+            # Add to scheme_list
+            self.scheme_list.extend(normal_schemes)
 
             if self.scheme_list:
                 self.scheme_combo['values'] = [s[0] for s in self.scheme_list]
@@ -300,20 +292,43 @@ class RightPanel:
             else:
                 self.scheme_combo['values'] = ["No schemes"]
                 self.scheme_combo.set("No schemes")
-        except:
+        except Exception as e:
+            print(f"⚠️ Error refreshing schemes: {e}")
             self.scheme_combo['values'] = ["No schemes"]
             self.scheme_combo.set("No schemes")
+
+    def _load_disabled_schemes(self):
+        """Return set of disabled scheme ids from config/disabled_schemes.json."""
+        from pathlib import Path
+        import json
+        config = Path("config/disabled_schemes.json")
+        if config.exists():
+            try:
+                with open(config, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return set(data) if isinstance(data, list) else set()
+            except Exception:
+                pass
+        return set()
 
     # ============ DATA OBSERVER ============
 
     def on_data_changed(self, event, *args):
-        """Refresh HUD when data changes"""
+        """When data changes, reset all caches and refresh HUD."""
+        self._refresh_results_cache()
+        self.all_results = None
+        self.all_mode = False
         self._update_hud()
+
+    def _refresh_results_cache(self):
+        """Reset single‑scheme cache to empty."""
+        num_rows = self.app.data_hub.row_count()
+        self.classification_results = [None] * num_rows
 
     # ============ HUD MANAGEMENT ============
 
     def _update_hud(self):
-        """Update HUD with current page samples"""
+        """Update HUD with current page samples."""
         if not self.hud_tree:
             return
 
@@ -328,36 +343,66 @@ class RightPanel:
         if not samples:
             return
 
-        for sample in samples:
-            sample_id = sample.get('Sample_ID', 'N/A')
-            if len(sample_id) > 6:
-                sample_id = sample_id[-6:]
+        start_idx = self.app.center.current_page * self.app.center.page_size
 
-            classification = self._get_classification(sample)
-            
-            # Get confidence value
-            confidence = sample.get('Auto_Confidence', 'N/A')
-            if confidence != 'N/A' and confidence is not None:
-                try:
-                    # Format confidence based on scale
-                    conf_val = float(confidence)
-                    if conf_val <= 1.0:
-                        confidence = f"{conf_val:.2f}"  # Decimal scale (0.95)
-                    else:
-                        confidence = f"{int(conf_val)}"  # Integer scale (4)
-                except (ValueError, TypeError):
-                    confidence = 'N/A'
-            
-            # Get flag status
-            flag_value = sample.get('Flag_For_Review', False)
-            if flag_value == True or flag_value == 'True' or flag_value == 'YES':
-                flag = "🚩"
+        for i, sample in enumerate(samples):
+            actual_idx = start_idx + i
+            sample_id = sample.get('Sample_ID', 'N/A')
+            if len(sample_id) > 8:
+                sample_id = sample_id[:8]
+
+            if self.all_mode and self.all_results is not None and actual_idx < len(self.all_results):
+                # All‑schemes mode - show best classification
+                results_list = self.all_results[actual_idx]
+                if results_list:
+                    # Find the best (non-UNCLASSIFIED) classification
+                    best_class = "UNCLASSIFIED"
+                    best_conf = 0.0
+                    for scheme_name, classification, confidence in results_list:
+                        if classification not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', '']:
+                            if confidence > best_conf:
+                                best_class = classification
+                                best_conf = confidence
+
+                    # Count matches for flag
+                    match_count = sum(1 for r in results_list if r[1] not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', ''])
+                    flag = f"{match_count}/{len(results_list)}" if match_count > 0 else "0"
+
+                    classification = best_class
+                    confidence = f"{best_conf:.2f}" if best_conf > 0 else ""
+                else:
+                    classification = "UNCLASSIFIED"
+                    confidence = ""
+                    flag = "0"
             else:
-                flag = ""
+                # Single‑scheme mode
+                result = self.classification_results[actual_idx] if actual_idx < len(self.classification_results) else None
+                if result:
+                    classification = result.get('classification', 'UNCLASSIFIED')
+                    confidence = result.get('confidence', '')
+                    flag = "🚩" if result.get('flag_for_review', False) else ""
+                else:
+                    classification = "UNCLASSIFIED"
+                    confidence = ""
+                    flag = ""
+
+                # Format confidence
+                if confidence and confidence not in ('', 'N/A'):
+                    try:
+                        conf_val = float(confidence)
+                        if conf_val <= 1.0:
+                            confidence = f"{conf_val:.2f}"
+                        else:
+                            confidence = str(int(conf_val))
+                    except (ValueError, TypeError):
+                        confidence = str(confidence)
 
             item_id = self.hud_tree.insert("", tk.END,
-                                          values=(sample_id, classification[:15], confidence, flag))
-            self.hud_tree.item(item_id, tags=(classification,))
+                                          values=(sample_id, classification[:20], confidence, flag))
+
+            # Apply color tag in both modes if we have a valid classification
+            if classification not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', '']:
+                self.hud_tree.item(item_id, tags=(classification,))
 
         self._auto_size_hud_columns()
 
@@ -368,43 +413,34 @@ class RightPanel:
 
         items = self.hud_tree.get_children()
         col_widths = {
-            "ID": len("ID") * 8,
-            "Class": len("Classification") * 8,
-            "Conf": len("Conf") * 8,
-            "Flag": len("🚩") * 8
+            "ID": 40,
+            "Class": 80,
+            "Conf": 35,
+            "Flag": 25
         }
 
         for item in items[:50]:
             values = self.hud_tree.item(item, "values")
             if len(values) >= 4:
-                col_widths["ID"] = max(col_widths["ID"], len(str(values[0])) * 8)
-                col_widths["Class"] = max(col_widths["Class"], len(str(values[1])) * 8)
-                col_widths["Conf"] = max(col_widths["Conf"], len(str(values[2])) * 8)
-                col_widths["Flag"] = max(col_widths["Flag"], len(str(values[3])) * 8)
+                col_widths["ID"] = max(col_widths["ID"], len(str(values[0])) * 7)
+                col_widths["Class"] = max(col_widths["Class"], len(str(values[1])) * 7)
+                col_widths["Conf"] = max(col_widths["Conf"], len(str(values[2])) * 7)
+                col_widths["Flag"] = max(col_widths["Flag"], len(str(values[3])) * 7)
 
-        self.hud_tree.column("ID", width=min(max(40, col_widths["ID"]), 70))
-        self.hud_tree.column("Class", width=min(max(80, col_widths["Class"]), 150))
-        self.hud_tree.column("Conf", width=min(max(35, col_widths["Conf"]), 50))
-        self.hud_tree.column("Flag", width=min(max(25, col_widths["Flag"]), 35))
+        self.hud_tree.column("ID", width=min(col_widths["ID"], 70))
+        self.hud_tree.column("Class", width=min(col_widths["Class"], 150))
+        self.hud_tree.column("Conf", width=min(col_widths["Conf"], 50))
+        self.hud_tree.column("Flag", width=min(col_widths["Flag"], 35))
 
     # ============ CLASSIFICATION ============
 
-    def _get_classification(self, sample):
-        """Get classification from sample"""
-        return (sample.get('Final_Classification') or
-                sample.get('Auto_Classification') or
-                sample.get('Classification') or
-                "UNCLASSIFIED")
-
     def _run_classification(self):
-        """Run selected classification scheme"""
-        # Validate classification engine
+        """Run selected classification scheme."""
         if not hasattr(self.app, 'classification_engine') or self.app.classification_engine is None:
             self.app.center.show_error('classification', "Classification engine not available")
             messagebox.showerror("Error", "Classification engine not available", parent=self.app.root)
             return
 
-        # Validate scheme selection
         if not self.scheme_list or not self.scheme_var.get():
             self.app.center.show_warning('classification', "No scheme selected")
             messagebox.showwarning("No Scheme", "Please select a classification scheme", parent=self.app.root)
@@ -420,7 +456,11 @@ class RightPanel:
         if not scheme_id:
             return
 
-        # Get samples to process
+        if scheme_id == "__ALL__":
+            self._run_all_classifications()
+            return
+
+        # Single scheme
         if self.run_target.get() == "all":
             samples = self.app.data_hub.get_all()
             indices = list(range(len(samples)))
@@ -434,109 +474,30 @@ class RightPanel:
             return
 
         try:
-            # Get scheme info BEFORE running
-            scheme_info = self.app.classification_engine.get_scheme_info(scheme_id)
-            output_column = scheme_info.get('output_column', 'Auto_Classification')
-            confidence_column = scheme_info.get('confidence_column_name', 'Auto_Confidence')
-            flag_column = scheme_info.get('flag_column_name', 'Flag_For_Review')
-
-            # Show processing status
             total_samples = len(samples)
             self.app.center.show_progress('classification', 0, total_samples,
                                         f"Starting classification with {selected_display}...")
 
-            # Store original classifications to track changes
-            original_classifications = [s.get(output_column, 'UNCLASSIFIED') for s in samples]
+            results = self.app.classification_engine.classify_all_samples(samples, scheme_id)
 
-            # Run classification
-            classified = self.app.classification_engine.classify_all_samples(samples, scheme_id)
+            for i, idx in enumerate(indices):
+                if i < len(results) and idx < len(self.classification_results):
+                    self.classification_results[idx] = results[i]
 
-            # Count results
-            newly_classified = 0
-            classification_counts = {}
+            classified_count = sum(1 for r in results if r.get('classification') not in ['UNCLASSIFIED', 'INVALID_SAMPLE'])
 
-            # Process each sample with progress updates
-            for i, sample in enumerate(classified):
-                if i % 10 == 0 or i == total_samples - 1:
-                    sample_id = sample.get('Sample_ID', 'Unknown')
-                    self.app.center.show_progress('classification', i+1, total_samples,
-                                                f"Processing {sample_id[:20]}...")
-
-                new_class = sample.get(output_column, 'UNCLASSIFIED')
-                if new_class != 'UNCLASSIFIED':
-                    if new_class != original_classifications[i]:
-                        newly_classified += 1
-                    classification_counts[new_class] = classification_counts.get(new_class, 0) + 1
-
-            # Update data hub
-            self.app.center.show_progress('classification', total_samples, total_samples,
-                                        "Updating data...")
-
-            if self.run_target.get() == "all":
-                for i, classified_sample in enumerate(classified):
-                    if i < len(self.app.data_hub.get_all()):
-                        updates = {}
-                        # Use scheme-specific columns
-                        if output_column in classified_sample:
-                            updates[output_column] = classified_sample[output_column]
-                        if confidence_column in classified_sample:
-                            updates[confidence_column] = classified_sample[confidence_column]
-                        if flag_column in classified_sample:
-                            updates[flag_column] = classified_sample[flag_column]
-
-                        # Add any ratio columns that might have been calculated
-                        for key in ['Zr_Nb_Ratio', 'Cr_Ni_Ratio', 'Ba_Rb_Ratio',
-                                'Ti_V_Ratio', 'Nb_Yb_Ratio', 'Th_Yb_Ratio',
-                                'Fe_Mn_Ratio', 'CIA_Value', 'V_Ratio',
-                                'Total_Alkali', 'Mg_Number', 'ACNK']:
-                            if key in classified_sample and key not in self.app.data_hub.get_all()[i]:
-                                updates[key] = classified_sample[key]
-
-                        if updates:
-                            self.app.data_hub.update_row(i, updates)
-            else:
-                for i, idx in enumerate(indices):
-                    if i < len(classified) and idx < len(self.app.data_hub.get_all()):
-                        updates = {}
-                        if output_column in classified[i]:
-                            updates[output_column] = classified[i][output_column]
-                        if confidence_column in classified[i]:
-                            updates[confidence_column] = classified[i][confidence_column]
-                        if flag_column in classified[i]:
-                            updates[flag_column] = classified[i][flag_column]
-
-                        current_sample = self.app.data_hub.get_all()[idx]
-                        for key in ['Zr_Nb_Ratio', 'Cr_Ni_Ratio', 'Ba_Rb_Ratio',
-                                'Ti_V_Ratio', 'Nb_Yb_Ratio', 'Th_Yb_Ratio',
-                                'Fe_Mn_Ratio', 'CIA_Value', 'V_Ratio',
-                                'Total_Alkali', 'Mg_Number', 'ACNK']:
-                            if key in classified[i] and key not in current_sample:
-                                updates[key] = classified[i][key]
-
-                        if updates:
-                            self.app.data_hub.update_row(idx, updates)
-
-            # Update status with scheme name
             self.app.center.show_classification_status(
                 scheme_name=selected_display,
                 total_samples=len(samples),
-                classified_count=newly_classified,
-                classification_counts=classification_counts
+                classified_count=classified_count,
+                classification_counts={}
             )
-
             self.app.center.show_operation_complete('classification',
-                                                f"{newly_classified}/{total_samples} classified")
+                                                f"{classified_count}/{total_samples} classified")
 
-            # Print results with correct column name
-            print(f"\n📊 Classification Results for '{selected_display}':")
-            print(f"   Output column: '{output_column}'")
-            print(f"   Total samples: {len(samples)}")
-            print(f"   New classifications: {newly_classified}")
-            print(f"   Unclassified: {len(samples) - newly_classified}")
-            if classification_counts:
-                print("   Breakdown:")
-                for class_name, count in sorted(classification_counts.items(), key=lambda x: x[1], reverse=True):
-                    print(f"     • {class_name}: {count}")
+            self.all_mode = False
+            self._update_hud()
+            self.app.center._refresh()  # Refresh table to update colors
 
         except Exception as e:
             self.app.center.show_error('classification', str(e)[:50])
@@ -544,3 +505,70 @@ class RightPanel:
             import traceback
             traceback.print_exc()
             messagebox.showerror("Classification Error", f"Failed to classify: {e}", parent=self.app.root)
+
+    def _run_all_classifications(self):
+        """Run all available classification schemes."""
+        if not hasattr(self.app, 'classification_engine') or self.app.classification_engine is None:
+            self.app.center.show_error('classification', "Classification engine not available")
+            messagebox.showerror("Error", "Classification engine not available", parent=self.app.root)
+            return
+
+        schemes = self.app.classification_engine.get_available_schemes()
+        disabled = self._load_disabled_schemes()
+        schemes = [s for s in schemes if s['id'] not in disabled]
+        if not schemes:
+            messagebox.showinfo("No Schemes", "No classification schemes available", parent=self.app.root)
+            return
+
+        if self.run_target.get() == "all":
+            samples = self.app.data_hub.get_all()
+            indices = list(range(len(samples)))
+        else:
+            indices = self.app.center.get_selected_indices()
+            samples = [self.app.data_hub.get_all()[i] for i in indices if i < len(self.app.data_hub.get_all())]
+
+        if not samples:
+            self.app.center.show_warning('classification', "No samples to classify")
+            messagebox.showinfo("Info", "No samples to classify", parent=self.app.root)
+            return
+
+        total_samples = len(samples)
+        total_schemes = len(schemes)
+        self.app.center.show_progress('classification', 0, total_samples * total_schemes,
+                                      f"Running {total_schemes} schemes on {total_samples} samples...")
+
+        # Store results as list of lists for each sample
+        all_results = [[] for _ in range(len(samples))]
+
+        processed = 0
+        for s_idx, scheme in enumerate(schemes):
+            scheme_id = scheme['id']
+            scheme_name = f"{scheme.get('icon', '📊')} {scheme['name']}"
+
+            results = self.app.classification_engine.classify_all_samples(samples, scheme_id)
+
+            for samp_idx, res in enumerate(results):
+                classification = res.get('classification', 'UNCLASSIFIED')
+                confidence = res.get('confidence', 0.0)
+                all_results[samp_idx].append((scheme_name, classification, confidence))
+
+            processed += len(samples)
+            self.app.center.show_progress('classification', processed, total_samples * total_schemes,
+                                          f"Completed {s_idx+1}/{total_schemes} schemes")
+
+        # Store in global index structure
+        total_data_rows = self.app.data_hub.row_count()
+        self.all_results = [None] * total_data_rows
+        for batch_idx, global_idx in enumerate(indices):
+            self.all_results[global_idx] = all_results[batch_idx]
+
+        self.all_mode = True
+        self._update_hud()
+        self.app.center._refresh()  # Refresh table to update colors
+
+        self.app.center.show_operation_complete('classification',
+                                                f"Ran {total_schemes} schemes on {total_samples} samples")
+        messagebox.showinfo("Batch Complete",
+                            f"Ran {total_schemes} schemes on {total_samples} samples.\n"
+                            "Double‑click any row in the HUD to see full details.",
+                            parent=self.app.root)

@@ -1,0 +1,179 @@
+{
+  "scheme_name": "Magma Rheology and Eruption Style",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Combined classification of magma viscosity, polymerization, volatile content, and eruption style",
+  "category": "software",
+  "icon": "🌋",
+  "reference": "Mysen (1988); Dingwell (1996); Papale (1999); Volcanology Standard Thresholds",
+  "field": "Volcanology",
+
+  "requires_fields": [
+    "SiO2_wt",
+    "Al2O3_wt",
+    "FeO_wt",
+    "MgO_wt",
+    "CaO_wt",
+    "Na2O_wt",
+    "K2O_wt",
+    "H2O_wt",
+    "CO2_ppm",
+    "S_ppm",
+    "Magma_Temp_C"
+  ],
+
+  "classifications": [
+    {
+      "name": "HIGHLY POLYMERIZED (NBO/T < 0.2)",
+      "color": "#F44336",
+      "description": "Rhyolitic to dacitic melts; extremely viscous; explosive eruption tendency",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "NBO_T",
+          "operator": "<",
+          "value": 0.2
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "INTERMEDIATE POLYMERIZATION (0.2–0.6)",
+      "color": "#FF9800",
+      "description": "Andesitic melts; mixed effusive–explosive behavior",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "NBO_T",
+          "operator": "between",
+          "min": 0.2,
+          "max": 0.6
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "DEPOLYMERIZED (NBO/T > 0.6)",
+      "color": "#4CAF50",
+      "description": "Basaltic melts; low viscosity; dominantly effusive eruptions",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "NBO_T",
+          "operator": ">",
+          "value": 0.6
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "LOW VOLATILES (H2O < 1 wt%, CO2 < 500 ppm)",
+      "color": "#8BC34A",
+      "description": "Dry magmas; effusive eruption style favored",
+      "priority": 4,
+      "rules": [
+        { "field": "H2O_wt", "operator": "<", "value": 1.0 },
+        { "field": "CO2_ppm", "operator": "<", "value": 500.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "MODERATE VOLATILES (1–3 wt% H2O)",
+      "color": "#FFC107",
+      "description": "Intermediate volatile content; potential for explosive transitions",
+      "priority": 5,
+      "rules": [
+        {
+          "field": "H2O_wt",
+          "operator": "between",
+          "min": 1.0,
+          "max": 3.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "HIGH VOLATILES (H2O > 3 wt% or S > 1500 ppm)",
+      "color": "#F44336",
+      "description": "Highly explosive potential; volatile-rich arc magmas",
+      "priority": 6,
+      "rules": [
+        { "field": "H2O_wt", "operator": ">", "value": 3.0 },
+        { "field": "S_ppm", "operator": ">", "value": 1500.0 }
+      ],
+      "logic": "OR",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "LOW-TEMPERATURE MAGMA (<900°C)",
+      "color": "#3F51B5",
+      "description": "Rhyolitic to dacitic melts; high viscosity",
+      "priority": 7,
+      "rules": [
+        {
+          "field": "Magma_Temp_C",
+          "operator": "<",
+          "value": 900.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "INTERMEDIATE TEMPERATURE (900–1100°C)",
+      "color": "#2196F3",
+      "description": "Andesitic melts; moderate viscosity",
+      "priority": 8,
+      "rules": [
+        {
+          "field": "Magma_Temp_C",
+          "operator": "between",
+          "min": 900.0,
+          "max": 1100.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "HIGH-TEMPERATURE MAGMA (>1100°C)",
+      "color": "#00BCD4",
+      "description": "Basaltic melts; low viscosity; effusive behavior",
+      "priority": 9,
+      "rules": [
+        {
+          "field": "Magma_Temp_C",
+          "operator": ">",
+          "value": 1100.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "INSUFFICIENT RHEOLOGICAL DATA",
+      "color": "#9E9E9E",
+      "description": "Missing NBO/T, volatile content, or temperature data",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Magma_Rheology_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
+}

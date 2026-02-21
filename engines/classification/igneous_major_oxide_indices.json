@@ -1,0 +1,227 @@
+{
+  "scheme_name": "Igneous Major-Oxide Indices",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Combined classification of ASI, alkalinity, Mg#, Fe-enrichment, and K-series for igneous rocks",
+  "category": "software",
+  "icon": "🧭",
+  "reference": "IUGS (Le Maitre, 2002); Frost & Frost (2008); Irvine & Baragar (1971)",
+  "field": "Igneous Petrology",
+
+  "requires_fields": [
+    "SiO2_wt",
+    "Al2O3_wt",
+    "CaO_wt",
+    "Na2O_wt",
+    "K2O_wt",
+    "FeOstar_wt",
+    "MgO_wt"
+  ],
+
+  "classifications": [
+    {
+      "name": "PERALUMINOUS (ASI > 1.0)",
+      "color": "#9C27B0",
+      "description": "Al2O3 > CaO + Na2O + K2O; typical of S-type granites",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "Al2O3_wt/(CaO_wt+Na2O_wt+K2O_wt)",
+          "operator": ">",
+          "value": 1.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "METALUMINOUS (ASI 0.9–1.0)",
+      "color": "#3F51B5",
+      "description": "Balanced alumina saturation; common in I-type granitoids",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "Al2O3_wt/(CaO_wt+Na2O_wt+K2O_wt)",
+          "operator": "between",
+          "min": 0.9,
+          "max": 1.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "PERALKALINE (ASI < 0.9)",
+      "color": "#2196F3",
+      "description": "Al2O3 < Na2O + K2O; typical of alkaline and A-type granites",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "Al2O3_wt/(CaO_wt+Na2O_wt+K2O_wt)",
+          "operator": "<",
+          "value": 0.9
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "HIGH Mg# (Mg# > 60)",
+      "color": "#4CAF50",
+      "description": "Primitive mantle-derived magmas; Mg# = MgO / (MgO + FeO*)",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "MgO_wt/(MgO_wt+FeOstar_wt)",
+          "operator": ">",
+          "value": 0.60
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "INTERMEDIATE Mg# (40–60)",
+      "color": "#8BC34A",
+      "description": "Moderately evolved basaltic to andesitic compositions",
+      "priority": 5,
+      "rules": [
+        {
+          "field": "MgO_wt/(MgO_wt+FeOstar_wt)",
+          "operator": "between",
+          "min": 0.40,
+          "max": 0.60
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "LOW Mg# (<40)",
+      "color": "#CDDC39",
+      "description": "Highly evolved magmas; rhyolitic or fractionated basaltic systems",
+      "priority": 6,
+      "rules": [
+        {
+          "field": "MgO_wt/(MgO_wt+FeOstar_wt)",
+          "operator": "<",
+          "value": 0.40
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+
+    {
+      "name": "THOLEIITIC (FeO*/MgO > 1.5)",
+      "color": "#F44336",
+      "description": "Iron-enrichment trend typical of MORB and some hotspot basalts",
+      "priority": 7,
+      "rules": [
+        {
+          "field": "FeOstar_wt/MgO_wt",
+          "operator": ">",
+          "value": 1.5
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "CALC-ALKALINE (FeO*/MgO < 1.5)",
+      "color": "#FF9800",
+      "description": "Arc-related magmas with suppressed Fe-enrichment",
+      "priority": 8,
+      "rules": [
+        {
+          "field": "FeOstar_wt/MgO_wt",
+          "operator": "<=",
+          "value": 1.5
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "LOW-K SERIES",
+      "color": "#795548",
+      "description": "Low-K tholeiitic basalts (K2O < 1% at 55% SiO2)",
+      "priority": 9,
+      "rules": [
+        {
+          "field": "K2O_wt",
+          "operator": "<",
+          "value": 1.0
+        },
+        {
+          "field": "SiO2_wt",
+          "operator": ">",
+          "value": 50.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "MEDIUM-K SERIES",
+      "color": "#FFEB3B",
+      "description": "Medium-K calc-alkaline basalts (1–2% K2O at 55% SiO2)",
+      "priority": 10,
+      "rules": [
+        {
+          "field": "K2O_wt",
+          "operator": "between",
+          "min": 1.0,
+          "max": 2.0
+        },
+        {
+          "field": "SiO2_wt",
+          "operator": ">",
+          "value": 50.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "HIGH-K SERIES",
+      "color": "#FF5722",
+      "description": "High-K arc magmas (K2O > 2% at 55% SiO2)",
+      "priority": 11,
+      "rules": [
+        {
+          "field": "K2O_wt",
+          "operator": ">",
+          "value": 2.0
+        },
+        {
+          "field": "SiO2_wt",
+          "operator": ">",
+          "value": 50.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "INSUFFICIENT OXIDE DATA",
+      "color": "#9E9E9E",
+      "description": "Missing major oxides required for ASI, Mg#, FeO*/MgO, or K-series",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Igneous_Oxide_Index",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
+}

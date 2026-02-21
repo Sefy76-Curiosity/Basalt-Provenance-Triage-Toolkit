@@ -104,8 +104,6 @@ def check_and_install_dependencies():
         return True  # All packages found
 
     # Create a simple Tk window for the prompt
-    import subprocess
-    import threading
 
     root = tk.Tk()
     root.withdraw()  # Hide the main window
@@ -316,52 +314,6 @@ messagebox.askyesnocancel = patched_askyesnocancel
 # ===========================================
 
 
-# ============ SPLASH SCREEN ============
-class SplashScreen:
-    def __init__(self, root):
-        self.root = root
-        self.root.overrideredirect(True)
-        w, h = 500, 300
-        ws = self.root.winfo_screenwidth()
-        hs = self.root.winfo_screenheight()
-        x = (ws//2) - (w//2)
-        y = (hs//2) - (h//2)
-        self.root.geometry(f"{w}x{h}+{x}+{y}")
-        self.root.configure(bg='#2c3e50')
-
-        main = tk.Frame(self.root, bg='#2c3e50', padx=30, pady=30)
-        main.pack(fill=tk.BOTH, expand=True)
-
-        tk.Label(main, text="🔬", font=("Segoe UI", 48),
-                bg='#2c3e50', fg='#3498db').pack(pady=(0, 10))
-        tk.Label(main, text="Scientific Toolkit",
-                font=("Segoe UI", 18, "bold"),
-                bg='#2c3e50', fg='white').pack()
-
-        self.msg_var = tk.StringVar(value="Loading components...")
-        tk.Label(main, textvariable=self.msg_var,
-                font=("Segoe UI", 10),
-                bg='#2c3e50', fg='#bdc3c7').pack(pady=(0, 20))
-
-        self.progress = ttk.Progressbar(main, mode='indeterminate', length=400)
-        self.progress.pack(pady=10)
-        self.progress.start(10)
-
-        tk.Label(main, text="v2.0",
-                font=("Segoe UI", 8),
-                bg='#2c3e50', fg='#7f8c8d').pack(side=tk.BOTTOM, pady=(20, 0))
-
-        self.root.update()
-
-    def set_message(self, message):
-        """Update the message"""
-        self.msg_var.set(message)
-        self.root.update_idletasks()
-
-    def close(self):
-        """Close splash screen"""
-        self.root.destroy()
-
 
 # ============ ENGINE MANAGER ============
 class EngineManager:
@@ -486,7 +438,6 @@ class ScientificToolkit:
         self.data_hub = DataHub()
         self.samples = self.data_hub.get_all()
         self.menu_bar = None
-        self.advanced_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.current_engine_name = 'classification'
         self.current_engine = None
 
@@ -850,7 +801,8 @@ class ScientificToolkit:
             if not found:
                 normalized['Sample_ID'] = f"SAMPLE_{len(self.samples)+1:04d}"
 
-        print(f"\n🔍 RAW COLUMNS: {list(row_dict.keys())}")
+        if getattr(self, '_debug_normalize', False):
+            print(f"\n🔍 RAW COLUMNS: {list(row_dict.keys())}")
 
         for key, value in row_dict.items():
             if key == 'Sample_ID' or value is None or str(value).strip() == '':
@@ -868,12 +820,15 @@ class ScientificToolkit:
                     except ValueError:
                         normalized[standard] = clean_val
                     seen_standards.add(standard)
-                    print(f"  ✓ MAPPED: '{clean_key}' → '{standard}' = {clean_val}")
+                    if getattr(self, '_debug_normalize', False):
+                        print(f"  ✓ MAPPED: '{clean_key}' → '{standard}' = {clean_val}")
                 else:
-                    print(f"  ⚠ DUPLICATE: '{clean_key}' → '{standard}' (skipped)")
+                    if getattr(self, '_debug_normalize', False):
+                        print(f"  ⚠ DUPLICATE: '{clean_key}' → '{standard}' (skipped)")
             else:
                 notes_parts.append(f"{clean_key}: {clean_val}")
-                print(f"  ? UNKNOWN: '{clean_key}' = {clean_val}")
+                if getattr(self, '_debug_normalize', False):
+                    print(f"  ? UNKNOWN: '{clean_key}' = {clean_val}")
 
         if 'Notes' in row_dict and row_dict['Notes']:
             existing = str(row_dict['Notes']).strip()
@@ -881,7 +836,8 @@ class ScientificToolkit:
                 notes_parts.insert(0, existing)
 
         normalized['Notes'] = ' | '.join(notes_parts) if notes_parts else ''
-        print(f"  ✅ FINAL STANDARDS: {list(normalized.keys())}\n")
+        if getattr(self, '_debug_normalize', False):
+            print(f"  ✅ FINAL STANDARDS: {list(normalized.keys())}\n")
         return normalized
 
     def validate_plugin_data(self, data_rows):
@@ -946,6 +902,7 @@ class ScientificToolkit:
     def _create_menu_structure(self):
         self.menu_bar = tk.Menu(self.root)
         self.root.config(menu=self.menu_bar)
+        self.advanced_menu = tk.Menu(self.menu_bar, tearoff=0)
 
         # ============ FILE MENU ============
         self.file_menu = tk.Menu(self.menu_bar, tearoff=0)
@@ -1101,10 +1058,21 @@ class ScientificToolkit:
             messagebox.showerror("Export Error", str(e))
 
     def _open_plugin_manager(self):
+        self.center.set_status("Opening Plugin Manager...", "processing")
+
         try:
             from plugins.plugin_manager import PluginManager
-            PluginManager(self)
+            pm = PluginManager(self)
+            self.center.set_status("Loading plugins...", "processing")
+
+            def on_plugin_manager_close():
+                pm.destroy()
+                self.center.set_status("Ready")
+
+            pm.protocol("WM_DELETE_WINDOW", on_plugin_manager_close)
+
         except ImportError as e:
+            self.center.set_status("Plugin Manager not found", "error")
             messagebox.showerror("Error", f"Plugin Manager not found: {e}")
 
     def _update_status(self, message):
@@ -1128,12 +1096,26 @@ class ScientificToolkit:
         self.main_pane.add(self.right.frame, weight=1)
 
     # ============ DELETE SELECTED METHOD ============
+    def _toggle_select_all(self):
+        """Toggle between Select All and Deselect All."""
+        total = self.data_hub.row_count()
+        all_selected = len(self.center.selected_rows) == total and total > 0
+
+        if all_selected:
+            self.center.deselect_all()
+            self.select_toggle_btn.config(text="Select All")
+        else:
+            self.center.select_all()
+            self.select_toggle_btn.config(text="Deselect All")
+
     def _delete_selected(self):
         """Delete selected rows"""
         selected = self.center.get_selected_indices()
         if selected and messagebox.askyesno("Confirm", f"Delete {len(selected)} selected row(s)?"):
             self.data_hub.delete_rows(selected)
             self.samples = self.data_hub.get_all()
+            if hasattr(self, 'select_toggle_btn'):
+                self.select_toggle_btn.config(text="Select All")
 
     def auto_size_columns(self, tree, samples, force=False):
         """Auto-size columns based on content"""
@@ -1199,8 +1181,9 @@ class ScientificToolkit:
                                         fg="orange", width=2)
         self.unsaved_indicator.pack(side=tk.LEFT, padx=2)
 
-        ttk.Button(sel, text="Select All", command=self.center.select_all, width=8).pack(side=tk.LEFT, padx=2)
-        ttk.Button(sel, text="Deselect", command=self.center.deselect_all, width=8).pack(side=tk.LEFT, padx=2)
+        self.select_toggle_btn = ttk.Button(sel, text="Select All",
+                                             command=self._toggle_select_all, width=10)
+        self.select_toggle_btn.pack(side=tk.LEFT, padx=2)
         ttk.Button(sel, text="🗑️ Delete", command=self._delete_selected, width=8).pack(side=tk.LEFT, padx=2)
         self.sel_label = tk.Label(sel, text="Selected: 0", font=("Arial", 9, "bold"))
         self.sel_label.pack(side=tk.LEFT, padx=10)
@@ -1230,7 +1213,11 @@ class ScientificToolkit:
         op = self.center.last_operation
         op_type = op.get('type')
 
-        if op_type == 'update_error':
+        if op_type == 'plugin_fetch':
+            # Use 'warning' because show_warning stores the message there
+            messagebox.showinfo("Plugin Fetch Details", op.get('warning', 'No details'))
+
+        elif op_type == 'update_error':
             messagebox.showerror("Update Error", op.get('error', 'Unknown error'))
 
         elif op_type == 'update_available':
@@ -1266,6 +1253,12 @@ class ScientificToolkit:
 
     def update_selection(self, count):
         self.sel_label.config(text=f"Selected: {count}")
+        if hasattr(self, 'select_toggle_btn'):
+            total = self.data_hub.row_count()
+            if count == total and total > 0:
+                self.select_toggle_btn.config(text="Deselect All")
+            else:
+                self.select_toggle_btn.config(text="Select All")
 
     def _refresh_engine_menu(self):
         """Refresh the engine menu without duplicating items"""
@@ -1306,9 +1299,6 @@ class ScientificToolkit:
             messagebox.showerror("Error", f"Engine switch failed: {e}")
 
     def _load_plugins(self):
-        import json
-        from pathlib import Path
-
         config_file = Path("config/enabled_plugins.json")
         if config_file.exists():
             try:

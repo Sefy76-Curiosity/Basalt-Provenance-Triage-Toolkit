@@ -1,0 +1,196 @@
+{
+  "protocol_name": "Stable Isotope Dietary Interpretation Protocol",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "description": "Pure JSON implementation of δ13C and δ15N dietary and trophic-level interpretation with diagenesis screening.",
+  "icon": "🧬",
+
+  "requires_fields": [
+    "Sample_ID",
+    "d13C",
+    "d15N",
+    "C_N_Ratio"
+  ],
+
+  "stages": [
+
+    {
+      "id": "missing_data",
+      "name": "Missing Data Screening",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "MISSING_ISOTOPES",
+          "conditions_logic": "OR",
+          "conditions": [
+            { "field": "d13C", "operator": "is_null" },
+            { "field": "d15N", "operator": "is_null" }
+          ],
+          "outputs": {
+            "QC_Class": "INSUFFICIENT_DATA",
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Missing δ13C or δ15N values"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "carbon_diet",
+      "name": "δ13C Dietary Grouping",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "C3_PLANTS",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "d13C", "operator": "<", "value": -18 }
+          ],
+          "outputs": { "Carbon_Diet": "C3" }
+        },
+        {
+          "label": "MIXED_C3_C4",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "d13C", "operator": "between", "value": [-18, -12] }
+          ],
+          "outputs": { "Carbon_Diet": "MIXED" }
+        },
+        {
+          "label": "C4_PLANTS",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "d13C", "operator": ">", "value": -12 }
+          ],
+          "outputs": { "Carbon_Diet": "C4" }
+        }
+      ]
+    },
+
+    {
+      "id": "nitrogen_trophic",
+      "name": "δ15N Trophic Level Grouping",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "LOW_TROPHIC",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "d15N", "operator": "<", "value": 6 }
+          ],
+          "outputs": { "Trophic_Level": "LOW" }
+        },
+        {
+          "label": "MEDIUM_TROPHIC",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "d15N", "operator": "between", "value": [6, 10] }
+          ],
+          "outputs": { "Trophic_Level": "MEDIUM" }
+        },
+        {
+          "label": "HIGH_TROPHIC",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "d15N", "operator": ">", "value": 10 }
+          ],
+          "outputs": { "Trophic_Level": "HIGH" }
+        }
+      ]
+    },
+
+    {
+      "id": "combined_diet",
+      "name": "Combined Dietary Interpretation",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "C3_LOW",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Carbon_Diet", "operator": "==", "value": "C3" },
+            { "field": "Trophic_Level", "operator": "==", "value": "LOW" }
+          ],
+          "outputs": { "Diet_Class": "C3_LOW_TROPHIC" }
+        },
+        {
+          "label": "C3_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Carbon_Diet", "operator": "==", "value": "C3" },
+            { "field": "Trophic_Level", "operator": "==", "value": "HIGH" }
+          ],
+          "outputs": { "Diet_Class": "C3_HIGH_TROPHIC" }
+        },
+        {
+          "label": "C4_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Carbon_Diet", "operator": "==", "value": "C4" },
+            { "field": "Trophic_Level", "operator": "==", "value": "HIGH" }
+          ],
+          "outputs": { "Diet_Class": "C4_HIGH_TROPHIC" }
+        },
+        {
+          "label": "MIXED_MEDIUM",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Carbon_Diet", "operator": "==", "value": "MIXED" },
+            { "field": "Trophic_Level", "operator": "==", "value": "MEDIUM" }
+          ],
+          "outputs": { "Diet_Class": "MIXED_MEDIUM_TROPHIC" }
+        }
+      ]
+    },
+
+    {
+      "id": "diagenesis_check",
+      "name": "Diagenesis Screening",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "POTENTIAL_DIAGENESIS",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "C_N_Ratio", "operator": ">", "value": 3.5 }
+          ],
+          "outputs": {
+            "Diagenesis_Flag": "YES",
+            "Review_Reason": "Elevated C/N ratio suggests diagenesis"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "review_stage",
+      "name": "Review Flags",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "UNCLASSIFIED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Diet_Class", "operator": "is_null" }
+          ],
+          "outputs": {
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Dietary interpretation incomplete"
+          }
+        }
+      ]
+    }
+  ],
+
+  "final_outputs": {
+    "primary_classification_field": "Diet_Class",
+    "qc_field": "QC_Class",
+    "flag_field": "Flag_For_Review"
+  }
+}

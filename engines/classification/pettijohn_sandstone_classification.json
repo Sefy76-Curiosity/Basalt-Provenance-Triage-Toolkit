@@ -1,0 +1,97 @@
+{
+  "scheme_name": "Pettijohn Sandstone Classification (Compositional Maturity)",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Classify sandstones based on quartz, feldspar, and rock fragment proportions (QFL) after Pettijohn (1975)",
+  "category": "software",
+  "icon": "🧱",
+  "reference": "Pettijohn, F.J. (1975). Sedimentary Rocks (3rd ed.). Harper & Row.",
+  "field": "Sedimentology",
+
+  "requires_fields": [
+    "Q_pct",
+    "F_pct",
+    "L_pct"
+  ],
+
+  "classifications": [
+    {
+      "name": "QUARTZ ARENITE",
+      "color": "#4CAF50",
+      "description": ">95% quartz; compositionally supermature",
+      "priority": 1,
+      "rules": [
+        { "field": "Q_pct", "operator": ">", "value": 95.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "SUBARKOSE",
+      "color": "#8BC34A",
+      "description": "Q 75–95%, F > L",
+      "priority": 2,
+      "rules": [
+        { "field": "Q_pct", "operator": "between", "min": 75.0, "max": 95.0 },
+        { "field": "F_pct", "operator": ">", "value": "L_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "SUBLITHARENITE",
+      "color": "#CDDC39",
+      "description": "Q 75–95%, L > F",
+      "priority": 3,
+      "rules": [
+        { "field": "Q_pct", "operator": "between", "min": 75.0, "max": 95.0 },
+        { "field": "L_pct", "operator": ">", "value": "F_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "ARKOSE",
+      "color": "#FFC107",
+      "description": "Q <75%, F > 25%, F > L",
+      "priority": 4,
+      "rules": [
+        { "field": "Q_pct", "operator": "<", "value": 75.0 },
+        { "field": "F_pct", "operator": ">", "value": 25.0 },
+        { "field": "F_pct", "operator": ">", "value": "L_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "LITHIC ARENITE",
+      "color": "#FF9800",
+      "description": "Q <75%, L > 25%, L > F",
+      "priority": 5,
+      "rules": [
+        { "field": "Q_pct", "operator": "<", "value": 75.0 },
+        { "field": "L_pct", "operator": ">", "value": 25.0 },
+        { "field": "L_pct", "operator": ">", "value": "F_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "INSUFFICIENT MODAL DATA",
+      "color": "#9E9E9E",
+      "description": "Missing Q, F, or L percentages",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Pettijohn_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.80,
+  "flag_column_name": "Flag_For_Review"
+}

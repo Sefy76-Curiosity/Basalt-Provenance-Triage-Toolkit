@@ -1,0 +1,44 @@
+================================================================================
+SCIENTIFIC TOOLKIT TEST REPORT
+Category: UI
+Date: 2026-02-21 21:51:50
+Duration: 0.00 seconds
+================================================================================
+
+SUMMARY
+----------------------------------------
+Total Tests: 8
+Passed:      8
+Failed:      0
+Success Rate: 100.0%
+
+DETAILED RESULTS
+----------------------------------------
+
+✅ PASS [ 1] UI file: left_panel.py
+      Path: ui/left_panel.py
+
+✅ PASS [ 2] UI file: center_panel.py
+      Path: ui/center_panel.py
+
+✅ PASS [ 3] UI file: right_panel.py
+      Path: ui/right_panel.py
+
+✅ PASS [ 4] UI file: all_schemes_detail_dialog.py
+      Path: ui/all_schemes_detail_dialog.py
+
+✅ PASS [ 5] Check: left_panel
+      File size: 21152 bytes
+
+✅ PASS [ 6] Check: center_panel
+      File size: 55296 bytes
+
+✅ PASS [ 7] Check: right_panel
+      File size: 24240 bytes
+
+✅ PASS [ 8] Check: all_schemes_detail_dialog
+      File size: 5873 bytes
+
+================================================================================
+END OF REPORT
+================================================================================

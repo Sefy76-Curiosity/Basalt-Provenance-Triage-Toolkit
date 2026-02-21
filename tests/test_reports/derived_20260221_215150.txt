@@ -1,0 +1,50 @@
+================================================================================
+SCIENTIFIC TOOLKIT TEST REPORT
+Category: DERIVED
+Date: 2026-02-21 21:51:50
+Duration: 0.02 seconds
+================================================================================
+
+SUMMARY
+----------------------------------------
+Total Tests: 10
+Passed:      10
+Failed:      0
+Success Rate: 100.0%
+
+DETAILED RESULTS
+----------------------------------------
+
+✅ PASS [ 1] Load derived_fields.json
+      Loaded 26 field definitions
+
+✅ PASS [ 2] Field definition: Zr_RSD
+      Requires: ['Zr_ppm', 'Zr_error']
+
+✅ PASS [ 3] Field definition: Zr_Nb_Ratio
+      Requires: ['Zr_ppm', 'Nb_ppm']
+
+✅ PASS [ 4] Field definition: Cr_Ni_Ratio
+      Requires: ['Cr_ppm', 'Ni_ppm']
+
+✅ PASS [ 5] Field definition: Ba_Rb_Ratio
+      Requires: ['Ba_ppm', 'Rb_ppm']
+
+✅ PASS [ 6] Field definition: Ti_V_Ratio
+      Requires: ['Ti_ppm', 'V_ppm']
+
+✅ PASS [ 7] Derived field: Zr_Nb_Ratio
+      Zr_Nb_Ratio = 20.00 (expected 20.00)
+
+✅ PASS [ 8] Derived field: Total_Alkali
+      Total_Alkali = 8.00 (expected 8.00)
+
+✅ PASS [ 9] Derived field: Nb_Yb_Ratio
+      Nb_Yb_Ratio = 3.33 (expected 3.33)
+
+✅ PASS [10] Error field cleaning
+      Cleaned Zr_error: 5.2
+
+================================================================================
+END OF REPORT
+================================================================================

@@ -1,0 +1,123 @@
+{
+  "scheme_name": "Au-As-Sb Pathfinder Suite (Gold Exploration)",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Identify gold-associated anomalies using As, Sb, and pathfinder element thresholds",
+  "category": "software",
+  "icon": "⚒️",
+  "reference": "Boyle, R.W. (1979). The geochemistry of gold and its deposits. Geological Survey of Canada Bulletin 280.",
+  "field": "Economic Geology",
+
+  "requires_fields": [
+    "Au_ppb",
+    "As_ppm",
+    "Sb_ppm"
+  ],
+
+  "classifications": [
+    {
+      "name": "STRONG GOLD ANOMALY",
+      "color": "#F44336",
+      "description": "Au > 100 ppb, typical of ore-grade mineralization",
+      "priority": 1,
+      "rules": [
+        { "field": "Au_ppb", "operator": ">", "value": 100.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "MODERATE GOLD ANOMALY",
+      "color": "#FF9800",
+      "description": "Au 20–100 ppb, elevated but subeconomic",
+      "priority": 2,
+      "rules": [
+        { "field": "Au_ppb", "operator": "between", "min": 20.0, "max": 100.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "WEAK GOLD ANOMALY",
+      "color": "#FFC107",
+      "description": "Au 5–20 ppb, background to weakly anomalous",
+      "priority": 3,
+      "rules": [
+        { "field": "Au_ppb", "operator": "between", "min": 5.0, "max": 20.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "ARSENIC PATHFINDER",
+      "color": "#2196F3",
+      "description": "As > 100 ppm; common in gold systems",
+      "priority": 4,
+      "rules": [
+        { "field": "As_ppm", "operator": ">", "value": 100.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "ANTIMONY PATHFINDER",
+      "color": "#4CAF50",
+      "description": "Sb > 10 ppm; typical of epithermal gold deposits",
+      "priority": 5,
+      "rules": [
+        { "field": "Sb_ppm", "operator": ">", "value": 10.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "GOLD + PATHFINDER COINCIDENCE",
+      "color": "#9C27B0",
+      "description": "Au > 5 ppb AND (As > 50 ppm OR Sb > 5 ppm); high-priority target",
+      "priority": 6,
+      "rules": [
+        { "field": "Au_ppb", "operator": ">", "value": 5.0 },
+        {
+          "field": "combined",
+          "operator": "OR",
+          "rules": [
+            { "field": "As_ppm", "operator": ">", "value": 50.0 },
+            { "field": "Sb_ppm", "operator": ">", "value": 5.0 }
+          ]
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "BACKGROUND",
+      "color": "#4CAF50",
+      "description": "Au < 5 ppb, As < 50 ppm, Sb < 5 ppm",
+      "priority": 7,
+      "rules": [
+        { "field": "Au_ppb", "operator": "<", "value": 5.0 },
+        { "field": "As_ppm", "operator": "<", "value": 50.0 },
+        { "field": "Sb_ppm", "operator": "<", "value": 5.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "INSUFFICIENT DATA",
+      "color": "#9E9E9E",
+      "description": "Missing Au, As, or Sb measurements",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Gold_Pathfinder_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
+}

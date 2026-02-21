@@ -1,0 +1,163 @@
+{
+  "scheme_name": "Environmental Pollution Indices",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Combined classification of PLI, RAC, contamination factor, and sediment quality guideline exceedances",
+  "category": "software",
+  "icon": "🌍",
+  "reference": "Hakanson (1980); USEPA Sediment Guidelines; CCME (2001)",
+  "field": "Environmental Geochemistry",
+
+  "requires_fields": [
+    "PLI",
+    "RAC_pct",
+    "CF",
+    "Metal_ppm",
+    "SQG_Threshold_ppm"
+  ],
+
+  "classifications": [
+    {
+      "name": "NO POLLUTION (PLI < 1)",
+      "color": "#4CAF50",
+      "description": "Sediments are unpolluted relative to background levels",
+      "priority": 1,
+      "rules": [
+        { "field": "PLI", "operator": "<", "value": 1.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "MODERATE POLLUTION (PLI 1–2)",
+      "color": "#FFC107",
+      "description": "Slight to moderate pollution; localized anthropogenic input",
+      "priority": 2,
+      "rules": [
+        { "field": "PLI", "operator": "between", "min": 1.0, "max": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "HEAVY POLLUTION (PLI > 2)",
+      "color": "#F44336",
+      "description": "Strong anthropogenic contamination; environmental risk likely",
+      "priority": 3,
+      "rules": [
+        { "field": "PLI", "operator": ">", "value": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+
+    {
+      "name": "LOW RISK (RAC < 10%)",
+      "color": "#8BC34A",
+      "description": "Most metals bound to stable mineral phases; low mobility",
+      "priority": 4,
+      "rules": [
+        { "field": "RAC_pct", "operator": "<", "value": 10.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "MEDIUM RISK (RAC 10–30%)",
+      "color": "#FF9800",
+      "description": "Moderate fraction of metals in exchangeable/carbonate phases",
+      "priority": 5,
+      "rules": [
+        { "field": "RAC_pct", "operator": "between", "min": 10.0, "max": 30.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "HIGH RISK (RAC > 30%)",
+      "color": "#F44336",
+      "description": "High mobility and bioavailability; environmental hazard likely",
+      "priority": 6,
+      "rules": [
+        { "field": "RAC_pct", "operator": ">", "value": 30.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+
+    {
+      "name": "LOW CONTAMINATION (CF < 1)",
+      "color": "#03A9F4",
+      "description": "Metal concentration at or below background levels",
+      "priority": 7,
+      "rules": [
+        { "field": "CF", "operator": "<", "value": 1.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "MODERATE CONTAMINATION (CF 1–3)",
+      "color": "#00BCD4",
+      "description": "Moderate enrichment relative to background",
+      "priority": 8,
+      "rules": [
+        { "field": "CF", "operator": "between", "min": 1.0, "max": 3.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "CONSIDERABLE CONTAMINATION (CF 3–6)",
+      "color": "#0097A7",
+      "description": "Significant anthropogenic input",
+      "priority": 9,
+      "rules": [
+        { "field": "CF", "operator": "between", "min": 3.0, "max": 6.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "VERY HIGH CONTAMINATION (CF > 6)",
+      "color": "#006064",
+      "description": "Severe enrichment; strong anthropogenic pollution",
+      "priority": 10,
+      "rules": [
+        { "field": "CF", "operator": ">", "value": 6.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+
+    {
+      "name": "SQG EXCEEDANCE (Metal > Threshold)",
+      "color": "#9C27B0",
+      "description": "Metal concentration exceeds sediment quality guideline threshold",
+      "priority": 11,
+      "rules": [
+        { "field": "Metal_ppm", "operator": ">", "value": "SQG_Threshold_ppm" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "INSUFFICIENT POLLUTION DATA",
+      "color": "#9E9E9E",
+      "description": "Missing PLI, RAC, CF, or SQG threshold data",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Pollution_Index_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.80,
+  "flag_column_name": "Flag_For_Review"
+}

@@ -1,0 +1,35 @@
+================================================================================
+SCIENTIFIC TOOLKIT TEST REPORT
+Category: BATCH
+Date: 2026-02-21 21:51:50
+Duration: 0.02 seconds
+================================================================================
+
+SUMMARY
+----------------------------------------
+Total Tests: 5
+Passed:      5
+Failed:      0
+Success Rate: 100.0%
+
+DETAILED RESULTS
+----------------------------------------
+
+✅ PASS [ 1] Add batch samples
+      Added 20 samples to DataHub
+
+✅ PASS [ 2] Batch classify with AFM Irvine–Baragar Series
+      Classified 20 samples
+
+✅ PASS [ 3] Batch classification rate
+      20/20 samples classified
+
+✅ PASS [ 4] Get page from DataHub
+      Page 0: 5 samples
+
+✅ PASS [ 5] Get selected samples
+      Retrieved 3 selected samples
+
+================================================================================
+END OF REPORT
+================================================================================

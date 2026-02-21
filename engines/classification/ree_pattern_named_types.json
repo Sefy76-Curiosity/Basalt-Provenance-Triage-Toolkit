@@ -1,0 +1,124 @@
+{
+  "scheme_name": "REE Pattern Named Types (N-MORB, E-MORB, OIB, etc.)",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Classify REE patterns into canonical mantle/oceanic basalt types based on chondrite-normalized slopes and anomalies",
+  "category": "software",
+  "icon": "📈",
+  "reference": "Sun, S.S. & McDonough, W.F. (1989). Chemical and isotopic systematics of oceanic basalts. Geological Society, London, Special Publications, 42(1), 313-345.",
+  "field": "Trace Element Geochemistry",
+
+  "requires_fields": [
+    "La_N",
+    "Sm_N",
+    "Yb_N",
+    "Eu_N_Eu_star"
+  ],
+
+  "classifications": [
+    {
+      "name": "N-MORB (NORMAL MID-OCEAN RIDGE BASALT)",
+      "color": "#2196F3",
+      "description": "Depleted LREE (La_N/Sm_N < 0.8), flat HREE, no Eu anomaly",
+      "priority": 1,
+      "rules": [
+        { "field": "La_N/Sm_N", "operator": "<", "value": 0.8 },
+        { "field": "Sm_N/Yb_N", "operator": "between", "min": 0.8, "max": 1.2 },
+        { "field": "Eu_N_Eu_star", "operator": "between", "min": 0.9, "max": 1.1 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "E-MORB (ENRICHED MID-OCEAN RIDGE BASALT)",
+      "color": "#03A9F4",
+      "description": "Slightly enriched LREE (La_N/Sm_N 0.8–1.5), flat HREE",
+      "priority": 2,
+      "rules": [
+        { "field": "La_N/Sm_N", "operator": "between", "min": 0.8, "max": 1.5 },
+        { "field": "Sm_N/Yb_N", "operator": "between", "min": 0.8, "max": 1.5 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "OIB (OCEAN ISLAND BASALT)",
+      "color": "#F44336",
+      "description": "Strongly enriched LREE (La_N/Sm_N > 1.5), fractionated HREE (Sm_N/Yb_N > 1.5)",
+      "priority": 3,
+      "rules": [
+        { "field": "La_N/Sm_N", "operator": ">", "value": 1.5 },
+        { "field": "Sm_N/Yb_N", "operator": ">", "value": 1.5 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "IAB (ISLAND ARC BASALT)",
+      "color": "#FF9800",
+      "description": "Enriched LREE, flat to depleted HREE, possible negative Eu anomaly",
+      "priority": 4,
+      "rules": [
+        { "field": "La_N/Sm_N", "operator": ">", "value": 1.2 },
+        { "field": "Sm_N/Yb_N", "operator": "<", "value": 1.5 },
+        { "field": "Eu_N_Eu_star", "operator": "<", "value": 0.95 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "BABB (BACK-ARC BASIN BASALT)",
+      "color": "#FF5722",
+      "description": "Intermediate between MORB and IAB; variable enrichment",
+      "priority": 5,
+      "rules": [
+        { "field": "La_N/Sm_N", "operator": "between", "min": 0.8, "max": 2.0 },
+        { "field": "Sm_N/Yb_N", "operator": "between", "min": 0.8, "max": 1.8 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.75
+    },
+    {
+      "name": "CFB (CONTINENTAL FLOOD BASALT)",
+      "color": "#9C27B0",
+      "description": "Moderate to strong LREE enrichment, flat to fractionated HREE",
+      "priority": 6,
+      "rules": [
+        { "field": "La_N/Sm_N", "operator": ">", "value": 1.2 },
+        { "field": "Sm_N/Yb_N", "operator": "between", "min": 1.0, "max": 2.5 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.80
+    },
+    {
+      "name": "KOMATIITE-TYPE",
+      "color": "#4CAF50",
+      "description": "Depleted to flat REE, very low total REE",
+      "priority": 7,
+      "rules": [
+        { "field": "La_N", "operator": "<", "value": 3.0 },
+        { "field": "La_N/Sm_N", "operator": "<", "value": 1.2 },
+        { "field": "Sm_N/Yb_N", "operator": "between", "min": 0.7, "max": 1.3 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "TRANSITIONAL / UNDIFFERENTIATED",
+      "color": "#9E9E9E",
+      "description": "Pattern does not match canonical types",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.50
+    }
+  ],
+
+  "output_column_name": "REE_Named_Pattern",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.70,
+  "flag_column_name": "Flag_For_Review"
+}

@@ -16,7 +16,6 @@ class LeftPanel:
 
         # Load column mappings from JSON
         self.column_mappings = self._load_column_mappings()
-        self.element_reverse_map = self._build_reverse_map()
 
         # Entry variables
         self.sample_id_var = tk.StringVar()
@@ -55,13 +54,6 @@ class LeftPanel:
         else:
             print(f"⚠️ chemical_elements.json not found in config folder")
             return {}
-
-    def _build_reverse_map(self):
-        """Build reverse lookup map for quick access"""
-        reverse_map = {}
-        for var, standard in self.column_mappings.items():
-            reverse_map[var] = standard
-        return reverse_map
 
     @staticmethod
     def normalize_column_name(name, mappings=None):
@@ -162,23 +154,29 @@ class LeftPanel:
         if event.widget != self.frame:
             return
 
-        total_height = event.height
+        # Prevent recursive calls
+        if getattr(self, '_resizing', False):
+            return
 
-        # Calculate heights:
-        # - Import button: ~30px
-        # - Hardware label: ~20px
-        # - Padding: ~20px
-        fixed_height = 30 + 20 + 20  # Import button + label + padding
+        self._resizing = True
+        try:
+            total_height = event.height
 
-        # Get current hardware container height
-        self.hw_container.update_idletasks()
-        hw_height = self.hw_container.winfo_height()
+            # Fixed heights: import button (~30px), hardware label (~20px), padding (~20px)
+            fixed_height = 30 + 20 + 20
 
-        # Manual Entry gets the rest
-        manual_height = max(100, total_height - fixed_height - hw_height)
+            # Get current hardware container height (no forced update needed)
+            hw_height = self.hw_container.winfo_height()
 
-        # Set height for entry frame
-        self.entry_frame.configure(height=manual_height)
+            # Manual Entry gets the rest, with a minimum of 100px
+            manual_height = max(100, total_height - fixed_height - hw_height)
+
+            # Only change if the height actually differs (prevents unnecessary configure events)
+            current_height = self.entry_frame.winfo_height()
+            if abs(current_height - manual_height) > 2:  # small threshold to avoid micro-changes
+                self.entry_frame.configure(height=manual_height)
+        finally:
+            self._resizing = False
 
     def _import_file_dialog(self):
         """Open file dialog with multi‑file selection support."""
@@ -197,7 +195,6 @@ class LeftPanel:
         if not paths:
             return
 
-        from pathlib import Path
         total = len(paths)
         for i, path in enumerate(paths):
             self.app.center.set_status(
@@ -246,7 +243,6 @@ class LeftPanel:
                 return
 
             if rows:
-                print(f"✅ Imported {len(rows)} rows from {path}")
                 self.app.data_hub.add_samples(rows)
                 self.app.center.show_operation_complete('import', f"{len(rows)} rows imported")
                 if not silent:
@@ -258,37 +254,9 @@ class LeftPanel:
 
         except Exception as e:
             self.app.center.show_error('import', str(e))
-            # Always show error dialog – critical even in batch
             messagebox.showerror("Error", f"Failed to import {path}: {e}")
             import traceback
             traceback.print_exc()
-
-    def _parse_csv(self, path):
-        """Parse CSV file, return list of row dictionaries."""
-        import csv, io
-        rows = []
-        with open(path, 'r', encoding='utf-8-sig') as f:
-            non_comment_lines = [line for line in f if not line.strip().startswith('#')]
-            filtered_file = io.StringIO(''.join(non_comment_lines))
-            reader = csv.DictReader(filtered_file)
-            if not reader.fieldnames:
-                return rows
-
-            print(f"\n📥 Original CSV columns: {reader.fieldnames}")
-            data_rows = list(reader)
-            total_rows = len(data_rows)
-            self.app.center.show_progress('import', 0, total_rows, f"Found {total_rows} rows")
-
-            for i, raw_row in enumerate(data_rows):
-                if i % 10 == 0 or i == total_rows - 1:
-                    self.app.center.show_progress('import', i+1, total_rows,
-                                                f"Processing row {i+1}")
-
-                clean_row = self._normalize_row(raw_row, rows)
-                if clean_row:
-                    rows.append(clean_row)
-
-        return rows
 
     def _parse_excel_ods(self, path):
         """Parse Excel or LibreOffice ODS file, return list of row dictionaries."""
@@ -306,9 +274,7 @@ class LeftPanel:
         rows = []
         ext = path.lower()
         engine = 'odf' if ext.endswith('.ods') else None
-        print(f"\n📥 Original {'ODS' if ext.endswith('.ods') else 'Excel'} columns: ", end="")
         df = pd.read_excel(path, engine=engine)
-        print(list(df.columns))
 
         total_rows = len(df)
         self.app.center.show_progress('import', 0, total_rows, f"Found {total_rows} rows")
@@ -338,8 +304,6 @@ class LeftPanel:
         with one dictionary representing the spectrum.
         Handles various encodings gracefully.
         """
-        from pathlib import Path
-
         # Try multiple encodings in order of likelihood
         encodings = ['utf-8', 'latin-1', 'cp1252']
         lines = None
@@ -347,17 +311,14 @@ class LeftPanel:
             try:
                 with open(path, 'r', encoding=enc) as f:
                     lines = f.readlines()
-                print(f"✅ Successfully read file with encoding: {enc}")
                 break
             except UnicodeDecodeError:
                 continue
 
         if lines is None:
-            # Last resort: read binary and ignore errors
             with open(path, 'rb') as f:
                 raw = f.read()
                 lines = raw.decode('utf-8', errors='ignore').splitlines()
-            print("⚠️ Read file with binary fallback (ignored invalid bytes)")
 
         data_start = None
         data_end = None
@@ -485,9 +446,22 @@ class LeftPanel:
             non_comment_lines = [line for line in f if not line.strip().startswith('#')]
             filtered_file = io.StringIO(''.join(non_comment_lines))
             reader = csv.DictReader(filtered_file)
-            for row in reader:
-                # ... (your existing row processing, including normalization)
-                rows.append(processed_row)
+            if not reader.fieldnames:
+                return rows
+            data_rows = list(reader)
+            total_rows = len(data_rows)
+            self.app.center.show_progress('import', 0, total_rows, f"Found {total_rows} rows")
+
+            for i, raw_row in enumerate(data_rows):
+                if i % 10 == 0 or i == total_rows - 1:
+                    self.app.center.show_progress('import', i+1, total_rows,
+                                                f"Processing row {i+1}")
+
+                # THIS IS THE CORRECT LINE - calls _normalize_row
+                clean_row = self._normalize_row(raw_row, rows)
+                if clean_row:
+                    rows.append(clean_row)
+
         return rows
 
     def _add_row(self):

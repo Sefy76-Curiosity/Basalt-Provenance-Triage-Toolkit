@@ -1,0 +1,148 @@
+{
+  "protocol_name": "Shipman & Rose Burning Protocol",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "description": "Pure JSON implementation of the Shipman & Rose standardized bone burning stages.",
+  "icon": "🔥",
+
+  "requires_fields": [
+    "Sample_ID",
+    "Burning"
+  ],
+
+  "stages": [
+
+    {
+      "id": "missing_data",
+      "name": "Missing Data Screening",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "MISSING_BURNING",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Burning", "operator": "is_null" }
+          ],
+          "outputs": {
+            "QC_Class": "INSUFFICIENT_DATA",
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Missing burning score"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "burning_stage",
+      "name": "Assign Burning Stage",
+      "description": "Classify bone burning intensity following Shipman & Rose.",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+
+      "rules": [
+        {
+          "label": "STAGE_0_UNBURNED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Burning", "operator": "==", "value": 0 }
+          ],
+          "outputs": { "Burning_Class": "Unburned (Stage 0)" }
+        },
+        {
+          "label": "STAGE_1_BROWN",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Burning", "operator": "==", "value": 1 }
+          ],
+          "outputs": { "Burning_Class": "Brown/Lightly Charred (Stage 1)" }
+        },
+        {
+          "label": "STAGE_2_BLACK",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Burning", "operator": "==", "value": 2 }
+          ],
+          "outputs": { "Burning_Class": "Black/Charred (Stage 2)" }
+        },
+        {
+          "label": "STAGE_3_GREY",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Burning", "operator": "==", "value": 3 }
+          ],
+          "outputs": { "Burning_Class": "Grey/Calcined (Stage 3)" }
+        },
+        {
+          "label": "STAGE_4_WHITE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Burning", "operator": "==", "value": 4 }
+          ],
+          "outputs": { "Burning_Class": "White/Calcined (Stage 4)" }
+        }
+      ]
+    },
+
+    {
+      "id": "severity_grouping",
+      "name": "Burning Severity Grouping",
+      "description": "Collapse detailed stages into low/medium/high severity categories.",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+
+      "rules": [
+        {
+          "label": "LOW_SEVERITY",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Burning", "operator": "<=", "value": 1 }
+          ],
+          "outputs": { "Burning_Severity": "LOW" }
+        },
+        {
+          "label": "MEDIUM_SEVERITY",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Burning", "operator": "between", "value": [2, 2] }
+          ],
+          "outputs": { "Burning_Severity": "MEDIUM" }
+        },
+        {
+          "label": "HIGH_SEVERITY",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Burning", "operator": ">=", "value": 3 }
+          ],
+          "outputs": { "Burning_Severity": "HIGH" }
+        }
+      ]
+    },
+
+    {
+      "id": "review_stage",
+      "name": "Review Flags",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "UNCLASSIFIED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Burning_Class", "operator": "is_null" }
+          ],
+          "outputs": {
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Burning stage not assigned"
+          }
+        }
+      ]
+    }
+  ],
+
+  "final_outputs": {
+    "primary_classification_field": "Burning_Class",
+    "qc_field": "QC_Class",
+    "flag_field": "Flag_For_Review"
+  }
+}

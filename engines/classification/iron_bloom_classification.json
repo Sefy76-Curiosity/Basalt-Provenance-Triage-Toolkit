@@ -1,0 +1,97 @@
+{
+  "scheme_name": "Iron Bloom vs Cast Iron vs Wrought Iron Discrimination",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Classify archaeological iron artifacts based on carbon content, slag inclusion composition, and microstructure proxies",
+  "category": "software",
+  "icon": "⚒️",
+  "reference": "Scott, D.A. (1991). Metallography and Microstructure of Ancient and Historic Metals. Getty Publications. / Buchwald, V.F. (2005). Iron and Steel in Ancient Times.",
+  "field": "Archaeometallurgy",
+
+  "requires_fields": [
+    "C_pct",
+    "Slag_Inclusion_Area_pct",
+    "P_ppm",
+    "Microstructure_Type"
+  ],
+
+  "classifications": [
+    {
+      "name": "BLOOMERY IRON (LOW-CARBON STEEL)",
+      "color": "#8BC34A",
+      "description": "C < 0.3%, numerous slag inclusions, variable P content; solid-state reduction",
+      "priority": 1,
+      "rules": [
+        { "field": "C_pct", "operator": "<", "value": 0.3 },
+        { "field": "Slag_Inclusion_Area_pct", "operator": ">", "value": 2.0 },
+        { "field": "Microstructure_Type", "operator": "in", "value": ["ferrite","ferrite+pearlite","widmanstätten"] }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "CAST IRON (HIGH CARBON)",
+      "color": "#F44336",
+      "description": "C > 2.0%, cementite/ledeburite microstructure, low slag",
+      "priority": 2,
+      "rules": [
+        { "field": "C_pct", "operator": ">", "value": 2.0 },
+        { "field": "Microstructure_Type", "operator": "in", "value": ["ledeburite","cementite","white cast","gray cast"] }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "WROUGHT IRON (VERY LOW CARBON)",
+      "color": "#4CAF50",
+      "description": "C < 0.1%, elongated slag inclusions, almost pure ferrite",
+      "priority": 3,
+      "rules": [
+        { "field": "C_pct", "operator": "<", "value": 0.1 },
+        { "field": "Slag_Inclusion_Area_pct", "operator": ">", "value": 1.0 },
+        { "field": "Microstructure_Type", "operator": "=", "value": "ferrite" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "STEEL (MEDIUM CARBON)",
+      "color": "#FF9800",
+      "description": "C 0.3–2.0%, pearlitic microstructure, may be heat-treated",
+      "priority": 4,
+      "rules": [
+        { "field": "C_pct", "operator": "between", "min": 0.3, "max": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "PHOSPHORIC IRON",
+      "color": "#9C27B0",
+      "description": "P > 0.3%, often with ghost structures, common in bloomery iron",
+      "priority": 5,
+      "rules": [
+        { "field": "P_ppm", "operator": ">", "value": 3000.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "INSUFFICIENT METALLOGRAPHIC DATA",
+      "color": "#9E9E9E",
+      "description": "Missing C content, microstructure, or slag inclusion data",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Iron_Type",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.70,
+  "flag_column_name": "Flag_For_Review"
+}

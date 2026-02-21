@@ -1,0 +1,133 @@
+{
+  "scheme_name": "Zircon Trace Element Thermometry (Ti-in-Zircon, REE Patterns)",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Estimate zircon crystallization temperatures and classify magma type using Ti concentrations and REE patterns",
+  "category": "software",
+  "icon": "🔥",
+  "reference": "Watson, E.B. & Harrison, T.M. (2005). Zircon thermometer reveals minimum melting conditions on earliest Earth. Science, 308(5723), 841-844. / Ferry, J.M. & Watson, E.B. (2007). New thermodynamic models and revised calibrations for the Ti-in-zircon and Zr-in-rutile thermometers.",
+  "field": "Geochronology / Petrology",
+
+  "requires_fields": [
+    "Ti_ppm_zircon",
+    "La_N",
+    "Yb_N",
+    "Eu_Eu_star",
+    "Ce_Ce_star",
+    "U_ppm",
+    "Th_ppm"
+  ],
+
+  "classifications": [
+    {
+      "name": "ULTRA-HOT ZIRCON (>900°C)",
+      "color": "#F44336",
+      "description": "Ti > 20 ppm; extreme temperatures (mafic/ultramafic systems, impact melts)",
+      "priority": 1,
+      "rules": [
+        { "field": "Ti_ppm_zircon", "operator": ">", "value": 20.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "HOT ZIRCON (750–900°C)",
+      "color": "#FF9800",
+      "description": "Ti 10–20 ppm; high-temperature felsic to intermediate magmas",
+      "priority": 2,
+      "rules": [
+        { "field": "Ti_ppm_zircon", "operator": "between", "min": 10.0, "max": 20.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "INTERMEDIATE ZIRCON (650–750°C)",
+      "color": "#FFC107",
+      "description": "Ti 5–10 ppm; typical granitic systems",
+      "priority": 3,
+      "rules": [
+        { "field": "Ti_ppm_zircon", "operator": "between", "min": 5.0, "max": 10.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "COOL ZIRCON (<650°C)",
+      "color": "#2196F3",
+      "description": "Ti < 5 ppm; low-temperature, possibly hydrothermally altered or metamorphic",
+      "priority": 4,
+      "rules": [
+        { "field": "Ti_ppm_zircon", "operator": "<", "value": 5.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "MAGMATIC ZIRCON (STEEP HREE, POSITIVE Ce, NEGATIVE Eu)",
+      "color": "#4CAF50",
+      "description": "Typical igneous zircon signature",
+      "priority": 5,
+      "rules": [
+        { "field": "Yb_N/La_N", "operator": ">", "value": 100.0 },
+        { "field": "Ce_Ce_star", "operator": ">", "value": 10.0 },
+        { "field": "Eu_Eu_star", "operator": "<", "value": 0.5 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "HYDROTHERMAL ZIRCON (FLAT HREE, WEAK ANOMALIES)",
+      "color": "#8BC34A",
+      "description": "Hydrothermally altered or low-temperature zircon",
+      "priority": 6,
+      "rules": [
+        { "field": "Yb_N/La_N", "operator": "<", "value": 50.0 },
+        { "field": "Eu_Eu_star", "operator": ">", "value": 0.5 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "METAMORPHIC ZIRCON (FLAT REE, WEAK Ce ANOMALY)",
+      "color": "#9C27B0",
+      "description": "Metamorphic overgrowths or recrystallized grains",
+      "priority": 7,
+      "rules": [
+        { "field": "Yb_N/La_N", "operator": "<", "value": 30.0 },
+        { "field": "Ce_Ce_star", "operator": "<", "value": 10.0 },
+        { "field": "Th/U", "operator": "<", "value": 0.1 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "HIGH-U ZIRCON (>1000 ppm U)",
+      "color": "#F44336",
+      "description": "High U content; prone to metamictization and Pb loss",
+      "priority": 8,
+      "rules": [
+        { "field": "U_ppm", "operator": ">", "value": 1000.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "INSUFFICIENT ZIRCON DATA",
+      "color": "#9E9E9E",
+      "description": "Missing Ti concentration or REE data for zircon",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Zircon_Thermal_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.70,
+  "flag_column_name": "Flag_For_Review"
+}

@@ -1,0 +1,253 @@
+{
+  "protocol_name": "Zooarchaeology Fragmentation & Breakage Protocol",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "description": "Pure JSON implementation of fragmentation index, completeness, breakage patterns, shaft circumference, and fracture freshness.",
+  "icon": "🦴",
+
+  "requires_fields": [
+    "Sample_ID",
+    "Fragmentation_Index",
+    "Completeness",
+    "Breakage_Type",
+    "Shaft_Circumference",
+    "Fracture_Surface"
+  ],
+
+  "stages": [
+
+    {
+      "id": "missing_data",
+      "name": "Missing Data Screening",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "MISSING_TAPHONOMY_FIELDS",
+          "conditions_logic": "OR",
+          "conditions": [
+            { "field": "Fragmentation_Index", "operator": "is_null" },
+            { "field": "Completeness", "operator": "is_null" },
+            { "field": "Breakage_Type", "operator": "is_null" }
+          ],
+          "outputs": {
+            "QC_Class": "INSUFFICIENT_DATA",
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Missing fragmentation or breakage data"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "fragmentation_grouping",
+      "name": "Fragmentation Index Grouping",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "LOW_FRAGMENTATION",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Fragmentation_Index", "operator": "<", "value": 0.3 }
+          ],
+          "outputs": { "Fragmentation_Class": "LOW" }
+        },
+        {
+          "label": "MEDIUM_FRAGMENTATION",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Fragmentation_Index", "operator": "between", "value": [0.3, 0.7] }
+          ],
+          "outputs": { "Fragmentation_Class": "MEDIUM" }
+        },
+        {
+          "label": "HIGH_FRAGMENTATION",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Fragmentation_Index", "operator": ">", "value": 0.7 }
+          ],
+          "outputs": { "Fragmentation_Class": "HIGH" }
+        }
+      ]
+    },
+
+    {
+      "id": "completeness_grouping",
+      "name": "Completeness Grouping",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "COMPLETE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Completeness", "operator": "==", "value": "complete" }
+          ],
+          "outputs": { "Completeness_Class": "COMPLETE" }
+        },
+        {
+          "label": "PARTIAL",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Completeness", "operator": "==", "value": "partial" }
+          ],
+          "outputs": { "Completeness_Class": "PARTIAL" }
+        },
+        {
+          "label": "FRAGMENT",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Completeness", "operator": "==", "value": "fragment" }
+          ],
+          "outputs": { "Completeness_Class": "FRAGMENT" }
+        }
+      ]
+    },
+
+    {
+      "id": "breakage_pattern",
+      "name": "Breakage Pattern Classification",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "SPIRAL_BREAK",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Breakage_Type", "operator": "==", "value": "spiral" }
+          ],
+          "outputs": { "Breakage_Class": "SPIRAL" }
+        },
+        {
+          "label": "TRANSVERSE_BREAK",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Breakage_Type", "operator": "==", "value": "transverse" }
+          ],
+          "outputs": { "Breakage_Class": "TRANSVERSE" }
+        },
+        {
+          "label": "LONGITUDINAL_BREAK",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Breakage_Type", "operator": "==", "value": "longitudinal" }
+          ],
+          "outputs": { "Breakage_Class": "LONGITUDINAL" }
+        }
+      ]
+    },
+
+    {
+      "id": "shaft_circumference_grouping",
+      "name": "Shaft Circumference Grouping",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "LESS_THAN_HALF",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Shaft_Circumference", "operator": "<", "value": 0.5 }
+          ],
+          "outputs": { "Shaft_Class": "LESS_THAN_HALF" }
+        },
+        {
+          "label": "HALF_TO_THREE_QUARTERS",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Shaft_Circumference", "operator": "between", "value": [0.5, 0.75] }
+          ],
+          "outputs": { "Shaft_Class": "HALF_TO_3_4" }
+        },
+        {
+          "label": "MORE_THAN_THREE_QUARTERS",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Shaft_Circumference", "operator": ">", "value": 0.75 }
+          ],
+          "outputs": { "Shaft_Class": "MORE_THAN_3_4" }
+        }
+      ]
+    },
+
+    {
+      "id": "fracture_freshness",
+      "name": "Green vs Dry Fracture Inference",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "GREEN_FRACTURE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Fracture_Surface", "operator": "==", "value": "smooth" },
+            { "field": "Breakage_Class", "operator": "==", "value": "SPIRAL" }
+          ],
+          "outputs": { "Fracture_Freshness": "GREEN" }
+        },
+        {
+          "label": "DRY_FRACTURE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Fracture_Surface", "operator": "==", "value": "rough" }
+          ],
+          "outputs": { "Fracture_Freshness": "DRY" }
+        }
+      ]
+    },
+
+    {
+      "id": "combined_interpretation",
+      "name": "Combined Taphonomic Interpretation",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "INTENSIVE_PROCESSING",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Fragmentation_Class", "operator": "==", "value": "HIGH" },
+            { "field": "Fracture_Freshness", "operator": "==", "value": "GREEN" }
+          ],
+          "outputs": { "Taphonomic_Interpretation": "INTENSIVE_PROCESSING" }
+        },
+        {
+          "label": "LIGHT_PROCESSING",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Fragmentation_Class", "operator": "==", "value": "LOW" },
+            { "field": "Fracture_Freshness", "operator": "==", "value": "DRY" }
+          ],
+          "outputs": { "Taphonomic_Interpretation": "LIGHT_PROCESSING" }
+        }
+      ]
+    },
+
+    {
+      "id": "review_stage",
+      "name": "Review Flags",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "UNCLASSIFIED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Taphonomic_Interpretation", "operator": "is_null" }
+          ],
+          "outputs": {
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Taphonomic interpretation incomplete"
+          }
+        }
+      ]
+    }
+  ],
+
+  "final_outputs": {
+    "primary_classification_field": "Taphonomic_Interpretation",
+    "qc_field": "QC_Class",
+    "flag_field": "Flag_For_Review"
+  }
+}

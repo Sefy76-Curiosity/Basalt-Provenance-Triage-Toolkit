@@ -1,0 +1,108 @@
+{
+  "scheme_name": "Jensen Cation Plot (Al-(Fe+Ti)-Mg)",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Classification of volcanic rocks using cation proportions of Al, Fe+Ti, and Mg after Jensen (1976)",
+  "category": "software",
+  "icon": "🧪",
+  "reference": "Jensen, L.S. (1976). A new cation plot for classifying subalkalic volcanic rocks. Ontario Division of Mines, Miscellaneous Paper 66.",
+  "field": "Igneous Petrology",
+
+  "requires_fields": [
+    "Al_cation_pct",
+    "FeTi_cation_pct",
+    "Mg_cation_pct"
+  ],
+
+  "classifications": [
+    {
+      "name": "KOMATIITE",
+      "color": "#4CAF50",
+      "description": "High Mg (>30% cation), low Al and Fe+Ti",
+      "priority": 1,
+      "rules": [
+        { "field": "Mg_cation_pct", "operator": ">", "value": 30.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "HIGH-Mg BASALT / PICRITE",
+      "color": "#8BC34A",
+      "description": "Mg 20–30%, moderate Al and Fe+Ti",
+      "priority": 2,
+      "rules": [
+        { "field": "Mg_cation_pct", "operator": "between", "min": 20.0, "max": 30.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "THOLEIITIC BASALT",
+      "color": "#F44336",
+      "description": "Fe+Ti > Al, and Mg < 20%",
+      "priority": 3,
+      "rules": [
+        { "field": "FeTi_cation_pct", "operator": ">", "value": "Al_cation_pct" },
+        { "field": "Mg_cation_pct", "operator": "<", "value": 20.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "CALC-ALKALINE BASALT",
+      "color": "#2196F3",
+      "description": "Al > Fe+Ti, and Mg < 20%",
+      "priority": 4,
+      "rules": [
+        { "field": "Al_cation_pct", "operator": ">", "value": "FeTi_cation_pct" },
+        { "field": "Mg_cation_pct", "operator": "<", "value": 20.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "ANDESITE",
+      "color": "#FF9800",
+      "description": "Intermediate between basalt and dacite fields",
+      "priority": 5,
+      "rules": [
+        { "field": "Al_cation_pct", "operator": ">", "value": 10.0 },
+        { "field": "FeTi_cation_pct", "operator": ">", "value": 20.0 },
+        { "field": "Mg_cation_pct", "operator": "between", "min": 5.0, "max": 20.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.80
+    },
+    {
+      "name": "DACITE / RHYOLITE",
+      "color": "#9C27B0",
+      "description": "High Al, low Mg and Fe+Ti",
+      "priority": 6,
+      "rules": [
+        { "field": "Al_cation_pct", "operator": ">", "value": 15.0 },
+        { "field": "Mg_cation_pct", "operator": "<", "value": 5.0 },
+        { "field": "FeTi_cation_pct", "operator": "<", "value": 20.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "INSUFFICIENT CATION DATA",
+      "color": "#9E9E9E",
+      "description": "Missing cation percentages for Al, Fe+Ti, or Mg",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Jensen_Cation_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.70,
+  "flag_column_name": "Flag_For_Review"
+}

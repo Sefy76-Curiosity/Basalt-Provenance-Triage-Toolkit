@@ -1,0 +1,261 @@
+{
+  "protocol_name": "Folk–Shepard Sediment Texture Protocol",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "description": "Pure JSON implementation of Folk and Shepard grain-size and texture classification with sorting and roundness grouping.",
+  "icon": "🏖️",
+
+  "requires_fields": [
+    "Sample_ID",
+    "Sand_Pct",
+    "Silt_Pct",
+    "Clay_Pct",
+    "Sorting",
+    "Roundness"
+  ],
+
+  "stages": [
+
+    {
+      "id": "missing_data",
+      "name": "Missing Data Screening",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "MISSING_GRAINSIZE",
+          "conditions_logic": "OR",
+          "conditions": [
+            { "field": "Sand_Pct", "operator": "is_null" },
+            { "field": "Silt_Pct", "operator": "is_null" },
+            { "field": "Clay_Pct", "operator": "is_null" }
+          ],
+          "outputs": {
+            "QC_Class": "INSUFFICIENT_DATA",
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Missing grain-size percentages"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "grain_size_class",
+      "name": "Basic Grain Size Grouping",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "SAND_DOMINANT",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Sand_Pct", "operator": ">", "value": 50 }
+          ],
+          "outputs": { "GrainSize_Class": "SANDY" }
+        },
+        {
+          "label": "SILT_DOMINANT",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Silt_Pct", "operator": ">", "value": 50 }
+          ],
+          "outputs": { "GrainSize_Class": "SILTY" }
+        },
+        {
+          "label": "CLAY_DOMINANT",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Clay_Pct", "operator": ">", "value": 40 }
+          ],
+          "outputs": { "GrainSize_Class": "CLAYEY" }
+        }
+      ]
+    },
+
+    {
+      "id": "folk_texture",
+      "name": "Folk Texture Classification",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "FOLK_SAND",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Sand_Pct", "operator": ">", "value": 70 }
+          ],
+          "outputs": { "Folk_Texture": "SAND" }
+        },
+        {
+          "label": "FOLK_MUD",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Clay_Pct", "operator": ">", "value": 30 }
+          ],
+          "outputs": { "Folk_Texture": "MUD" }
+        },
+        {
+          "label": "FOLK_SANDY_MUD",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Sand_Pct", "operator": "between", "value": [30, 70] },
+            { "field": "Clay_Pct", "operator": "between", "value": [10, 30] }
+          ],
+          "outputs": { "Folk_Texture": "SANDY_MUD" }
+        }
+      ]
+    },
+
+    {
+      "id": "shepard_texture",
+      "name": "Shepard Texture Classification",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "SHEPARD_SAND",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Sand_Pct", "operator": ">", "value": 85 }
+          ],
+          "outputs": { "Shepard_Texture": "SAND" }
+        },
+        {
+          "label": "SHEPARD_SILT",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Silt_Pct", "operator": ">", "value": 60 }
+          ],
+          "outputs": { "Shepard_Texture": "SILT" }
+        },
+        {
+          "label": "SHEPARD_CLAY",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Clay_Pct", "operator": ">", "value": 40 }
+          ],
+          "outputs": { "Shepard_Texture": "CLAY" }
+        }
+      ]
+    },
+
+    {
+      "id": "sorting_grouping",
+      "name": "Sorting Grouping",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "WELL_SORTED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Sorting", "operator": "<", "value": 0.5 }
+          ],
+          "outputs": { "Sorting_Class": "WELL_SORTED" }
+        },
+        {
+          "label": "MODERATELY_SORTED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Sorting", "operator": "between", "value": [0.5, 1.0] }
+          ],
+          "outputs": { "Sorting_Class": "MODERATELY_SORTED" }
+        },
+        {
+          "label": "POORLY_SORTED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Sorting", "operator": ">", "value": 1.0 }
+          ],
+          "outputs": { "Sorting_Class": "POORLY_SORTED" }
+        }
+      ]
+    },
+
+    {
+      "id": "roundness_grouping",
+      "name": "Roundness Grouping",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "ANGULAR",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Roundness", "operator": "<", "value": 0.25 }
+          ],
+          "outputs": { "Roundness_Class": "ANGULAR" }
+        },
+        {
+          "label": "SUBROUNDED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Roundness", "operator": "between", "value": [0.25, 0.5] }
+          ],
+          "outputs": { "Roundness_Class": "SUBROUNDED" }
+        },
+        {
+          "label": "ROUNDED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Roundness", "operator": ">", "value": 0.5 }
+          ],
+          "outputs": { "Roundness_Class": "ROUNDED" }
+        }
+      ]
+    },
+
+    {
+      "id": "combined_texture",
+      "name": "Combined Sediment Texture Interpretation",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "WELL_SORTED_SAND",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Folk_Texture", "operator": "==", "value": "SAND" },
+            { "field": "Sorting_Class", "operator": "==", "value": "WELL_SORTED" }
+          ],
+          "outputs": { "Sediment_Texture": "WELL_SORTED_SAND" }
+        },
+        {
+          "label": "POORLY_SORTED_MUD",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Folk_Texture", "operator": "==", "value": "MUD" },
+            { "field": "Sorting_Class", "operator": "==", "value": "POORLY_SORTED" }
+          ],
+          "outputs": { "Sediment_Texture": "POORLY_SORTED_MUD" }
+        }
+      ]
+    },
+
+    {
+      "id": "review_stage",
+      "name": "Review Flags",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "UNCLASSIFIED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Sediment_Texture", "operator": "is_null" }
+          ],
+          "outputs": {
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Sediment texture interpretation incomplete"
+          }
+        }
+      ]
+    }
+  ],
+
+  "final_outputs": {
+    "primary_classification_field": "Sediment_Texture",
+    "qc_field": "QC_Class",
+    "flag_field": "Flag_For_Review"
+  }
+}

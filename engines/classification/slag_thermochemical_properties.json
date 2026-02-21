@@ -1,0 +1,203 @@
+{
+  "scheme_name": "Slag Thermochemical Properties",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Combined classification of optical basicity, viscosity models, sulfur capacity, and liquidus temperature for metallurgical slags",
+  "category": "software",
+  "icon": "🔥",
+  "reference": "Urbain (1982); Riboud & Lucas (1984); Turkdogan (1983); Bachmann (1982)",
+  "field": "Archaeometallurgy",
+
+  "requires_fields": [
+    "CaO_wt",
+    "SiO2_wt",
+    "MgO_wt",
+    "Al2O3_wt",
+    "FeO_wt",
+    "Liquidus_C",
+    "Optical_Basicity",
+    "Viscosity_Pa_s",
+    "Sulfur_Capacity"
+  ],
+
+  "classifications": [
+    {
+      "name": "OPTICALLY BASIC (Λ > 0.75)",
+      "color": "#4CAF50",
+      "description": "High basicity; strong desulfurization potential; CaO-rich slags",
+      "priority": 1,
+      "rules": [
+        { "field": "Optical_Basicity", "operator": ">", "value": 0.75 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "OPTICALLY INTERMEDIATE (Λ 0.60–0.75)",
+      "color": "#FFC107",
+      "description": "Balanced slag chemistry; moderate desulfurization and fluidity",
+      "priority": 2,
+      "rules": [
+        { "field": "Optical_Basicity", "operator": "between", "min": 0.60, "max": 0.75 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "OPTICALLY ACIDIC (Λ < 0.60)",
+      "color": "#F44336",
+      "description": "Silica-rich slags; low desulfurization capacity; viscous",
+      "priority": 3,
+      "rules": [
+        { "field": "Optical_Basicity", "operator": "<", "value": 0.60 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "LOW VISCOSITY (η < 1 Pa·s, Urbain)",
+      "color": "#03A9F4",
+      "description": "Highly fluid slag; efficient tapping and metal–slag separation",
+      "priority": 4,
+      "rules": [
+        { "field": "Viscosity_Pa_s", "operator": "<", "value": 1.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "MODERATE VISCOSITY (1–3 Pa·s, Urbain)",
+      "color": "#00BCD4",
+      "description": "Acceptable fluidity for most smelting operations",
+      "priority": 5,
+      "rules": [
+        { "field": "Viscosity_Pa_s", "operator": "between", "min": 1.0, "max": 3.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "HIGH VISCOSITY (>3 Pa·s, Urbain)",
+      "color": "#0097A7",
+      "description": "Viscous slag; risk of incomplete tapping and furnace blockage",
+      "priority": 6,
+      "rules": [
+        { "field": "Viscosity_Pa_s", "operator": ">", "value": 3.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "RIBOUD FLUID SLAG (FeO > 20%, η < 2 Pa·s)",
+      "color": "#8BC34A",
+      "description": "FeO-rich slags with excellent fluidity under Riboud model",
+      "priority": 7,
+      "rules": [
+        { "field": "FeO_wt", "operator": ">", "value": 20.0 },
+        { "field": "Viscosity_Pa_s", "operator": "<", "value": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "RIBOUD VISCOUS SLAG (FeO > 20%, η > 2 Pa·s)",
+      "color": "#CDDC39",
+      "description": "FeO-rich but viscous; may require flux addition",
+      "priority": 8,
+      "rules": [
+        { "field": "FeO_wt", "operator": ">", "value": 20.0 },
+        { "field": "Viscosity_Pa_s", "operator": ">", "value": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.80
+    },
+
+    {
+      "name": "HIGH SULFUR CAPACITY (Cs > 0.05)",
+      "color": "#9C27B0",
+      "description": "Strong desulfurization potential; CaO-rich, FeO-poor slags",
+      "priority": 9,
+      "rules": [
+        { "field": "Sulfur_Capacity", "operator": ">", "value": 0.05 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "MODERATE SULFUR CAPACITY (0.02–0.05)",
+      "color": "#673AB7",
+      "description": "Balanced sulfur removal efficiency",
+      "priority": 10,
+      "rules": [
+        { "field": "Sulfur_Capacity", "operator": "between", "min": 0.02, "max": 0.05 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "LOW SULFUR CAPACITY (Cs < 0.02)",
+      "color": "#3F51B5",
+      "description": "Poor sulfur removal; silica-rich or FeO-rich slags",
+      "priority": 11,
+      "rules": [
+        { "field": "Sulfur_Capacity", "operator": "<", "value": 0.02 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "LOW LIQUIDUS (<1100°C)",
+      "color": "#FFEB3B",
+      "description": "Highly fluid at furnace temperatures; ideal for tapping",
+      "priority": 12,
+      "rules": [
+        { "field": "Liquidus_C", "operator": "<", "value": 1100.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "MODERATE LIQUIDUS (1100–1300°C)",
+      "color": "#FFC107",
+      "description": "Typical of many bloomery and early iron slags",
+      "priority": 13,
+      "rules": [
+        { "field": "Liquidus_C", "operator": "between", "min": 1100.0, "max": 1300.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "HIGH LIQUIDUS (>1300°C)",
+      "color": "#FF5722",
+      "description": "Difficult to melt; risk of incomplete slag separation",
+      "priority": 14,
+      "rules": [
+        { "field": "Liquidus_C", "operator": ">", "value": 1300.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "INSUFFICIENT THERMOCHEMICAL DATA",
+      "color": "#9E9E9E",
+      "description": "Missing optical basicity, viscosity, sulfur capacity, or liquidus temperature",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Slag_Thermochemical_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.80,
+  "flag_column_name": "Flag_For_Review"
+}

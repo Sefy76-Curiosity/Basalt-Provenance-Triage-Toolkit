@@ -1,0 +1,200 @@
+{
+  "protocol_name": "EPA Sediment Quality Assessment Protocol",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "description": "Pure JSON implementation of EPA sediment quality guidelines using TEL/PEL and ERL/ERM thresholds.",
+  "icon": "🧪",
+
+  "requires_fields": [
+    "Sample_ID",
+    "As",
+    "Cd",
+    "Cr",
+    "Cu",
+    "Hg",
+    "Ni",
+    "Pb",
+    "Zn"
+  ],
+
+  "stages": [
+
+    {
+      "id": "missing_data",
+      "name": "Missing Data Screening",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "MISSING_METALS",
+          "conditions_logic": "OR",
+          "conditions": [
+            { "field": "As", "operator": "is_null" },
+            { "field": "Cd", "operator": "is_null" },
+            { "field": "Cr", "operator": "is_null" },
+            { "field": "Cu", "operator": "is_null" },
+            { "field": "Hg", "operator": "is_null" },
+            { "field": "Ni", "operator": "is_null" },
+            { "field": "Pb", "operator": "is_null" },
+            { "field": "Zn", "operator": "is_null" }
+          ],
+          "outputs": {
+            "QC_Class": "INSUFFICIENT_DATA",
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Missing metal concentration data"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "erl_erm_exceedance",
+      "name": "ERL/ERM Exceedance Assessment",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+
+        {
+          "label": "LOW_RISK",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "As", "operator": "<", "value": 8.2 },
+            { "field": "Cd", "operator": "<", "value": 1.2 },
+            { "field": "Cr", "operator": "<", "value": 81 },
+            { "field": "Cu", "operator": "<", "value": 34 },
+            { "field": "Hg", "operator": "<", "value": 0.15 },
+            { "field": "Ni", "operator": "<", "value": 20.9 },
+            { "field": "Pb", "operator": "<", "value": 46.7 },
+            { "field": "Zn", "operator": "<", "value": 150 }
+          ],
+          "outputs": { "ERM_Class": "LOW" }
+        },
+
+        {
+          "label": "HIGH_RISK",
+          "conditions_logic": "OR",
+          "conditions": [
+            { "field": "As", "operator": ">", "value": 70 },
+            { "field": "Cd", "operator": ">", "value": 9.6 },
+            { "field": "Cr", "operator": ">", "value": 370 },
+            { "field": "Cu", "operator": ">", "value": 270 },
+            { "field": "Hg", "operator": ">", "value": 0.71 },
+            { "field": "Ni", "operator": ">", "value": 51.6 },
+            { "field": "Pb", "operator": ">", "value": 218 },
+            { "field": "Zn", "operator": ">", "value": 410 }
+          ],
+          "outputs": { "ERM_Class": "HIGH" }
+        },
+
+        {
+          "label": "MODERATE_RISK",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "ERM_Class", "operator": "is_null" }
+          ],
+          "outputs": { "ERM_Class": "MODERATE" }
+        }
+      ]
+    },
+
+    {
+      "id": "tel_pel_exceedance",
+      "name": "TEL/PEL Exceedance Assessment",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+
+        {
+          "label": "TEL_EXCEEDANCE",
+          "conditions_logic": "OR",
+          "conditions": [
+            { "field": "As", "operator": ">", "value": 7.24 },
+            { "field": "Cd", "operator": ">", "value": 0.68 },
+            { "field": "Cr", "operator": ">", "value": 52.3 },
+            { "field": "Cu", "operator": ">", "value": 18.7 },
+            { "field": "Hg", "operator": ">", "value": 0.13 },
+            { "field": "Ni", "operator": ">", "value": 15.9 },
+            { "field": "Pb", "operator": ">", "value": 30.2 },
+            { "field": "Zn", "operator": ">", "value": 124 }
+          ],
+          "outputs": { "TEL_Exceedance": "YES" }
+        },
+
+        {
+          "label": "PEL_EXCEEDANCE",
+          "conditions_logic": "OR",
+          "conditions": [
+            { "field": "As", "operator": ">", "value": 41.6 },
+            { "field": "Cd", "operator": ">", "value": 4.21 },
+            { "field": "Cr", "operator": ">", "value": 160 },
+            { "field": "Cu", "operator": ">", "value": 108 },
+            { "field": "Hg", "operator": ">", "value": 0.7 },
+            { "field": "Ni", "operator": ">", "value": 42.8 },
+            { "field": "Pb", "operator": ">", "value": 112 },
+            { "field": "Zn", "operator": ">", "value": 271 }
+          ],
+          "outputs": { "PEL_Exceedance": "YES" }
+        }
+      ]
+    },
+
+    {
+      "id": "severity_grouping",
+      "name": "Contamination Severity Grouping",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "LOW_SEVERITY",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "ERM_Class", "operator": "==", "value": "LOW" }
+          ],
+          "outputs": { "Contamination_Severity": "LOW" }
+        },
+        {
+          "label": "MODERATE_SEVERITY",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "ERM_Class", "operator": "==", "value": "MODERATE" }
+          ],
+          "outputs": { "Contamination_Severity": "MODERATE" }
+        },
+        {
+          "label": "HIGH_SEVERITY",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "ERM_Class", "operator": "==", "value": "HIGH" }
+          ],
+          "outputs": { "Contamination_Severity": "HIGH" }
+        }
+      ]
+    },
+
+    {
+      "id": "review_stage",
+      "name": "Review Flags",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "UNCLASSIFIED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Contamination_Severity", "operator": "is_null" }
+          ],
+          "outputs": {
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Sediment quality classification incomplete"
+          }
+        }
+      ]
+    }
+  ],
+
+  "final_outputs": {
+    "primary_classification_field": "Contamination_Severity",
+    "qc_field": "QC_Class",
+    "flag_field": "Flag_For_Review"
+  }
+}

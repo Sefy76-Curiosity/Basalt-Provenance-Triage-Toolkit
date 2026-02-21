@@ -1,0 +1,190 @@
+{
+  "scheme_name": "Isotope Provenance and Diet Classification",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Combined classification of Sr, O, Pb isotopes, Zn/Ca trophic levels, and bone histology preservation",
+  "category": "software",
+  "icon": "🧬",
+  "reference": "Schoeninger & DeNiro (1984); Bentley (2006); Montgomery (2010); Lee-Thorp (2008)",
+  "field": "Bioarchaeology / Isotope Ecology",
+
+  "requires_fields": [
+    "Sr87_Sr86",
+    "d18O",
+    "Pb206_204",
+    "Pb207_204",
+    "Pb208_204",
+    "Zn_ppm",
+    "Ca_ppm",
+    "Histology_Index"
+  ],
+
+  "classifications": [
+    {
+      "name": "LOCAL GEOLOGIC BASELINE (⁸⁷Sr/⁸⁶Sr 0.707–0.709)",
+      "color": "#4CAF50",
+      "description": "Typical of many Mediterranean and Levantine carbonate terrains",
+      "priority": 1,
+      "rules": [
+        { "field": "Sr87_Sr86", "operator": "between", "min": 0.707, "max": 0.709 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "NON-LOCAL / HIGH-RADIUM TERRAIN (⁸⁷Sr/⁸⁶Sr > 0.709)",
+      "color": "#F44336",
+      "description": "Indicates migration from radiogenic terrains (granites, metamorphic provinces)",
+      "priority": 2,
+      "rules": [
+        { "field": "Sr87_Sr86", "operator": ">", "value": 0.709 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "MARINE / EVAPORITE SIGNAL (⁸⁷Sr/⁸⁶Sr < 0.707)",
+      "color": "#2196F3",
+      "description": "Suggests marine influence or evaporitic groundwater sources",
+      "priority": 3,
+      "rules": [
+        { "field": "Sr87_Sr86", "operator": "<", "value": 0.707 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+
+    {
+      "name": "ARID / CONTINENTAL WATER (δ¹⁸O > -2‰)",
+      "color": "#FF9800",
+      "description": "Warm, evaporated water sources typical of desert or low-altitude regions",
+      "priority": 4,
+      "rules": [
+        { "field": "d18O", "operator": ">", "value": -2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "TEMPERATE / MID-LATITUDE WATER (δ¹⁸O -2‰ to -8‰)",
+      "color": "#FFC107",
+      "description": "Typical of moderate climates and mid-altitude precipitation",
+      "priority": 5,
+      "rules": [
+        { "field": "d18O", "operator": "between", "min": -8.0, "max": -2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "COLD / HIGH-ALTITUDE WATER (δ¹⁸O < -8‰)",
+      "color": "#03A9F4",
+      "description": "Indicates high-altitude or high-latitude water sources",
+      "priority": 6,
+      "rules": [
+        { "field": "d18O", "operator": "<", "value": -8.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "LOCAL ORE / GEOLOGIC Pb SIGNATURE",
+      "color": "#9C27B0",
+      "description": "Pb isotope ratios consistent with local ore fields",
+      "priority": 7,
+      "rules": [
+        { "field": "Pb206_204/Pb207_204", "operator": "between", "min": 1.15, "max": 1.20 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "EXOGENOUS Pb SOURCE (TRADE / MIGRATION)",
+      "color": "#673AB7",
+      "description": "Pb isotope ratios outside local ore ranges; indicates mobility or imported metals",
+      "priority": 8,
+      "rules": [
+        { "field": "Pb206_204/Pb207_204", "operator": ">", "value": 1.20 },
+        { "field": "Pb208_204/Pb206_204", "operator": ">", "value": 2.0 }
+      ],
+      "logic": "OR",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "HERBIVORE / LOW TROPHIC (Zn/Ca > 0.003)",
+      "color": "#4CAF50",
+      "description": "Zn enrichment typical of plant-based diets",
+      "priority": 9,
+      "rules": [
+        { "field": "Zn_ppm/Ca_ppm", "operator": ">", "value": 0.003 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "CARNIVORE / HIGH TROPHIC (Zn/Ca < 0.0015)",
+      "color": "#795548",
+      "description": "Zn depletion typical of meat-based diets",
+      "priority": 10,
+      "rules": [
+        { "field": "Zn_ppm/Ca_ppm", "operator": "<", "value": 0.0015 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "WELL-PRESERVED HISTOLOGY (Index < 2)",
+      "color": "#8BC34A",
+      "description": "Minimal microstructural alteration; reliable isotopic signals",
+      "priority": 11,
+      "rules": [
+        { "field": "Histology_Index", "operator": "<", "value": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "MODERATE ALTERATION (Index 2–4)",
+      "color": "#FFC107",
+      "description": "Some diagenetic overprinting; isotopic caution advised",
+      "priority": 12,
+      "rules": [
+        { "field": "Histology_Index", "operator": "between", "min": 2.0, "max": 4.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "HIGHLY ALTERED (Index > 4)",
+      "color": "#F44336",
+      "description": "Severe diagenesis; isotopic values may be unreliable",
+      "priority": 13,
+      "rules": [
+        { "field": "Histology_Index", "operator": ">", "value": 4.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "INSUFFICIENT ISOTOPE DATA",
+      "color": "#9E9E9E",
+      "description": "Missing Sr, O, Pb, Zn/Ca, or histology measurements",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Isotope_Provenance_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.80,
+  "flag_column_name": "Flag_For_Review"
+}

@@ -226,6 +226,9 @@ class SettingsDialog:
         # UI Settings Tab
         self._build_ui_tab(notebook)
 
+        # Classification Schemes Tab
+        self._build_schemes_tab(notebook)
+
         # Buttons
         btn_frame = ttk.Frame(main)
         btn_frame.pack(fill=tk.X)
@@ -418,6 +421,130 @@ class SettingsDialog:
         ttk.Spinbox(delay_frame, from_=0, to=2000, textvariable=self.tooltip_delay,
                    width=10).pack(side=tk.LEFT, padx=10)
 
+    def _build_schemes_tab(self, notebook):
+        """Build classification schemes enable/disable tab."""
+        tab = ttk.Frame(notebook, padding=10)
+        notebook.add(tab, text="🔬 Schemes")
+
+        ttk.Label(tab, text="Classification Schemes",
+                  font=("TkDefaultFont", 11, "bold")).pack(anchor=tk.W, pady=(0, 4))
+        ttk.Label(tab, text="Uncheck schemes to hide them from the dropdown and exclude from Run All.",
+                  foreground="gray", font=("TkDefaultFont", 8)).pack(anchor=tk.W, pady=(0, 8))
+
+        self._scheme_vars = {}
+
+        # Load current disabled set
+        disabled = self._load_disabled_schemes()
+
+        # Get schemes from engine via app reference in settings_manager
+        app = self.settings.app
+        schemes = []
+        if hasattr(app, 'classification_engine') and app.classification_engine:
+            try:
+                schemes = app.classification_engine.get_available_schemes()
+            except Exception:
+                pass
+
+        if not schemes:
+            ttk.Label(tab, text="No classification engine loaded.",
+                      foreground="gray").pack(pady=20)
+            return
+
+        # Summary label
+        self._schemes_summary_var = tk.StringVar()
+        ttk.Label(tab, textvariable=self._schemes_summary_var,
+                  font=("TkDefaultFont", 8)).pack(anchor=tk.E, pady=(0, 4))
+
+        # Scrollable area
+        outer = ttk.Frame(tab)
+        outer.pack(fill=tk.BOTH, expand=True)
+
+        canvas = tk.Canvas(outer, highlightthickness=0)
+        vsb = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=vsb.set)
+        vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        inner = ttk.Frame(canvas)
+        win_id = canvas.create_window((0, 0), window=inner, anchor="nw")
+
+        inner.bind("<Configure>",
+                   lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.bind("<Configure>",
+                    lambda e: canvas.itemconfig(win_id, width=e.width))
+        canvas.bind("<MouseWheel>",
+                    lambda e: canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
+
+        # Group by field
+        from collections import defaultdict
+        by_field = defaultdict(list)
+        for s in schemes:
+            by_field[s.get('field', 'General')].append(s)
+
+        for field in sorted(by_field.keys()):
+            ttk.Label(inner, text=field,
+                      font=("TkDefaultFont", 9, "bold"),
+                      foreground="#555").pack(anchor=tk.W, padx=6, pady=(8, 2))
+            ttk.Separator(inner, orient='horizontal').pack(fill=tk.X, padx=6, pady=(0, 4))
+
+            for s in sorted(by_field[field], key=lambda x: x['name']):
+                sid = s['id']
+                var = tk.BooleanVar(value=sid not in disabled)
+                var.trace_add('write', lambda *a: self._update_schemes_summary())
+                self._scheme_vars[sid] = var
+
+                row = ttk.Frame(inner)
+                row.pack(fill=tk.X, padx=14, pady=1)
+                ttk.Checkbutton(row, variable=var).pack(side=tk.LEFT)
+                ttk.Label(row, text=f"{s.get('icon','📊')} {s['name']}").pack(side=tk.LEFT, padx=4)
+                desc = s.get('description', s.get('category', ''))
+                if desc:
+                    ttk.Label(row, text=desc, foreground="gray",
+                              font=("TkDefaultFont", 7)).pack(side=tk.LEFT, padx=4)
+
+        self._update_schemes_summary()
+
+        # Enable All / Disable All buttons
+        btn_row = ttk.Frame(tab)
+        btn_row.pack(fill=tk.X, pady=(6, 0))
+        ttk.Button(btn_row, text="Enable All",
+                   command=lambda: [v.set(True) for v in self._scheme_vars.values()]).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_row, text="Disable All",
+                   command=lambda: [v.set(False) for v in self._scheme_vars.values()]).pack(side=tk.LEFT, padx=2)
+
+    def _update_schemes_summary(self):
+        if not hasattr(self, '_scheme_vars') or not self._scheme_vars:
+            return
+        total = len(self._scheme_vars)
+        enabled = sum(1 for v in self._scheme_vars.values() if v.get())
+        if hasattr(self, '_schemes_summary_var'):
+            self._schemes_summary_var.set(f"{enabled} / {total} enabled")
+
+    def _load_disabled_schemes(self):
+        """Return set of disabled scheme ids from config/disabled_schemes.json."""
+        config = Path("config/disabled_schemes.json")
+        if config.exists():
+            try:
+                with open(config, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return set(data) if isinstance(data, list) else set()
+            except Exception:
+                pass
+        return set()
+
+    def _save_disabled_schemes(self):
+        """Write disabled scheme ids to config/disabled_schemes.json."""
+        if not hasattr(self, '_scheme_vars'):
+            return
+        try:
+            config = Path("config/disabled_schemes.json")
+            config.parent.mkdir(parents=True, exist_ok=True)
+            disabled = [sid for sid, var in self._scheme_vars.items() if not var.get()]
+            with open(config, 'w', encoding='utf-8') as f:
+                json.dump(disabled, f, indent=2)
+        except Exception as e:
+            print(f"⚠️ Could not save scheme settings: {e}")
+
     def _save_settings(self):
         """Save all settings"""
         # Feature toggles
@@ -450,8 +577,16 @@ class SettingsDialog:
         self.settings.set('ui', 'confirm_deletes', self.ui_confirm.get())
         self.settings.set('tooltips', 'delay', self.tooltip_delay.get())
 
+        # Scheme settings
+        self._save_disabled_schemes()
+
         # Force save
         self.settings._save_settings()
+
+        # Refresh right panel dropdown to reflect scheme changes
+        app = self.settings.app
+        if hasattr(app, 'right'):
+            app.right._refresh_schemes()
 
         messagebox.showinfo("Settings", "Settings saved successfully")
         self.window.destroy()

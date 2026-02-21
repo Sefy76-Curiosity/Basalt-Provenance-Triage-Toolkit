@@ -1,0 +1,211 @@
+{
+  "scheme_name": "TAS Classification (Le Bas et al., 1986) with Alkaline/Subalkaline Fields",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Full IUGS TAS classification with explicit Le Bas et al. (1986) field boundaries and alkaline/subalkaline division",
+  "category": "software",
+  "icon": "🌋",
+  "reference": "Le Bas, M.J., Le Maitre, R.W., Streckeisen, A., & Zanettin, B. (1986). A chemical classification of volcanic rocks based on the total alkali-silica diagram. Journal of Petrology, 27(3), 745-750.",
+  "field": "Igneous Petrology",
+
+  "requires_fields": [
+    "SiO2_wt",
+    "Na2O_wt",
+    "K2O_wt"
+  ],
+
+  "classifications": [
+    {
+      "name": "FOLDITE",
+      "color": "#9C27B0",
+      "description": "SiO2 < 45%, Na2O+K2O variable; feldspathoid-rich",
+      "priority": 1,
+      "rules": [
+        { "field": "SiO2_wt", "operator": "<", "value": 45.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "PHONOTEPHRITE",
+      "color": "#673AB7",
+      "description": "SiO2 45–52%, Na2O+K2O 5–7%",
+      "priority": 2,
+      "rules": [
+        { "field": "SiO2_wt", "operator": "between", "min": 45.0, "max": 52.0 },
+        { "field": "Na2O_wt+K2O_wt", "operator": "between", "min": 5.0, "max": 7.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "TEPHRIPHONOLITE",
+      "color": "#3F51B5",
+      "description": "SiO2 45–52%, Na2O+K2O 7–9%",
+      "priority": 3,
+      "rules": [
+        { "field": "SiO2_wt", "operator": "between", "min": 45.0, "max": 52.0 },
+        { "field": "Na2O_wt+K2O_wt", "operator": "between", "min": 7.0, "max": 9.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "PHONOLITE",
+      "color": "#2196F3",
+      "description": "SiO2 45–52%, Na2O+K2O > 9%",
+      "priority": 4,
+      "rules": [
+        { "field": "SiO2_wt", "operator": "between", "min": 45.0, "max": 52.0 },
+        { "field": "Na2O_wt+K2O_wt", "operator": ">", "value": 9.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "BASALT",
+      "color": "#4CAF50",
+      "description": "SiO2 45–52%, Na2O+K2O < 5%",
+      "priority": 5,
+      "rules": [
+        { "field": "SiO2_wt", "operator": "between", "min": 45.0, "max": 52.0 },
+        { "field": "Na2O_wt+K2O_wt", "operator": "<", "value": 5.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "BASALTIC ANDESITE",
+      "color": "#8BC34A",
+      "description": "SiO2 52–57%, Na2O+K2O < 5%",
+      "priority": 6,
+      "rules": [
+        { "field": "SiO2_wt", "operator": "between", "min": 52.0, "max": 57.0 },
+        { "field": "Na2O_wt+K2O_wt", "operator": "<", "value": 5.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "ANDESITE",
+      "color": "#CDDC39",
+      "description": "SiO2 57–63%, Na2O+K2O < 5%",
+      "priority": 7,
+      "rules": [
+        { "field": "SiO2_wt", "operator": "between", "min": 57.0, "max": 63.0 },
+        { "field": "Na2O_wt+K2O_wt", "operator": "<", "value": 5.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "DACITE",
+      "color": "#FFC107",
+      "description": "SiO2 63–69%, Na2O+K2O < 7%",
+      "priority": 8,
+      "rules": [
+        { "field": "SiO2_wt", "operator": "between", "min": 63.0, "max": 69.0 },
+        { "field": "Na2O_wt+K2O_wt", "operator": "<", "value": 7.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "RHYOLITE",
+      "color": "#F44336",
+      "description": "SiO2 > 69%, Na2O+K2O < 8%",
+      "priority": 9,
+      "rules": [
+        { "field": "SiO2_wt", "operator": ">", "value": 69.0 },
+        { "field": "Na2O_wt+K2O_wt", "operator": "<", "value": 8.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "TEPHRITE / BASANITE",
+      "color": "#FF9800",
+      "description": "SiO2 41–45%, Na2O+K2O < 7%",
+      "priority": 10,
+      "rules": [
+        { "field": "SiO2_wt", "operator": "between", "min": 41.0, "max": 45.0 },
+        { "field": "Na2O_wt+K2O_wt", "operator": "<", "value": 7.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "TEPHRITE (OLIVINE <10%)",
+      "color": "#FF5722",
+      "description": "Differentiated from basanite by olivine content; requires modal data",
+      "priority": 11,
+      "rules": [
+        { "field": "SiO2_wt", "operator": "between", "min": 41.0, "max": 45.0 },
+        { "field": "Na2O_wt+K2O_wt", "operator": "<", "value": 7.0 },
+        { "field": "Olivine_pct", "operator": "<", "value": 10.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.80
+    },
+    {
+      "name": "BASANITE (OLIVINE >10%)",
+      "color": "#FF5722",
+      "description": "SiO2 41–45%, Na2O+K2O < 7%, olivine >10%",
+      "priority": 12,
+      "rules": [
+        { "field": "SiO2_wt", "operator": "between", "min": 41.0, "max": 45.0 },
+        { "field": "Na2O_wt+K2O_wt", "operator": "<", "value": 7.0 },
+        { "field": "Olivine_pct", "operator": ">=", "value": 10.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "ALKALINE SERIES (Irvine-Baragar)",
+      "color": "#F44336",
+      "description": "Rocks plotting above the alkaline-subalkaline divide",
+      "priority": 13,
+      "rules": [
+        {
+          "field": "Na2O_wt+K2O_wt",
+          "operator": ">",
+          "value": "case when SiO2_wt <= 45 then 5.0 when SiO2_wt <= 52 then 5.0 + (SiO2_wt-45)*0.2857 else 7.0 + (SiO2_wt-52)*0.0833 end"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "SUBALKALINE SERIES (Irvine-Baragar)",
+      "color": "#4CAF50",
+      "description": "Rocks plotting below the alkaline-subalkaline divide",
+      "priority": 14,
+      "rules": [
+        {
+          "field": "Na2O_wt+K2O_wt",
+          "operator": "<=",
+          "value": "case when SiO2_wt <= 45 then 5.0 when SiO2_wt <= 52 then 5.0 + (SiO2_wt-45)*0.2857 else 7.0 + (SiO2_wt-52)*0.0833 end"
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "INSUFFICIENT DATA",
+      "color": "#9E9E9E",
+      "description": "Missing SiO2, Na2O, or K2O",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "LeBas_TAS_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
+}

@@ -1,0 +1,270 @@
+{
+  "protocol_name": "USDA Soil Morphology Protocol",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "description": "Pure JSON implementation of core USDA soil morphology workflows: horizons, texture, structure, consistence, color grouping, moisture regime, and drainage class.",
+  "icon": "🌱",
+
+  "requires_fields": [
+    "Sample_ID",
+    "Horizon",
+    "Texture",
+    "Structure",
+    "Consistence",
+    "Color_Hue",
+    "Color_Value",
+    "Color_Chroma",
+    "Moisture",
+    "Depth"
+  ],
+
+  "stages": [
+
+    {
+      "id": "missing_data",
+      "name": "Missing Data Screening",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "MISSING_CORE_FIELDS",
+          "conditions_logic": "OR",
+          "conditions": [
+            { "field": "Horizon", "operator": "is_null" },
+            { "field": "Texture", "operator": "is_null" },
+            { "field": "Structure", "operator": "is_null" }
+          ],
+          "outputs": {
+            "QC_Class": "INSUFFICIENT_DATA",
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Missing essential soil morphology fields"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "horizon_grouping",
+      "name": "Horizon Grouping",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "A_HORIZON",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Horizon", "operator": "==", "value": "A" }
+          ],
+          "outputs": { "Horizon_Class": "SURFACE_ORGANIC" }
+        },
+        {
+          "label": "B_HORIZON",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Horizon", "operator": "==", "value": "B" }
+          ],
+          "outputs": { "Horizon_Class": "SUBSURFACE_ACCUMULATION" }
+        },
+        {
+          "label": "C_HORIZON",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Horizon", "operator": "==", "value": "C" }
+          ],
+          "outputs": { "Horizon_Class": "PARENT_MATERIAL" }
+        }
+      ]
+    },
+
+    {
+      "id": "texture_classification",
+      "name": "Texture Classification",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "SANDY",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Texture", "operator": "==", "value": "sand" }
+          ],
+          "outputs": { "Texture_Class": "SANDY" }
+        },
+        {
+          "label": "LOAMY",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Texture", "operator": "==", "value": "loam" }
+          ],
+          "outputs": { "Texture_Class": "LOAMY" }
+        },
+        {
+          "label": "CLAYEY",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Texture", "operator": "==", "value": "clay" }
+          ],
+          "outputs": { "Texture_Class": "CLAYEY" }
+        }
+      ]
+    },
+
+    {
+      "id": "structure_grouping",
+      "name": "Structure Grouping",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "GRANULAR",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Structure", "operator": "==", "value": "granular" }
+          ],
+          "outputs": { "Structure_Class": "GRANULAR" }
+        },
+        {
+          "label": "BLOCKY",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Structure", "operator": "==", "value": "blocky" }
+          ],
+          "outputs": { "Structure_Class": "BLOCKY" }
+        },
+        {
+          "label": "PLATY",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Structure", "operator": "==", "value": "platy" }
+          ],
+          "outputs": { "Structure_Class": "PLATY" }
+        }
+      ]
+    },
+
+    {
+      "id": "color_grouping",
+      "name": "Munsell Color Grouping",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "DARK",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Color_Value", "operator": "<=", "value": 3 }
+          ],
+          "outputs": { "Color_Group": "DARK" }
+        },
+        {
+          "label": "MEDIUM",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Color_Value", "operator": "between", "value": [4, 6] }
+          ],
+          "outputs": { "Color_Group": "MEDIUM" }
+        },
+        {
+          "label": "LIGHT",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Color_Value", "operator": ">=", "value": 7 }
+          ],
+          "outputs": { "Color_Group": "LIGHT" }
+        }
+      ]
+    },
+
+    {
+      "id": "moisture_regime",
+      "name": "Moisture Regime Inference",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "ARIDIC",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Moisture", "operator": "==", "value": "dry" }
+          ],
+          "outputs": { "Moisture_Regime": "ARIDIC" }
+        },
+        {
+          "label": "UDIC",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Moisture", "operator": "==", "value": "moist" }
+          ],
+          "outputs": { "Moisture_Regime": "UDIC" }
+        },
+        {
+          "label": "AQUIC",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Moisture", "operator": "==", "value": "wet" }
+          ],
+          "outputs": { "Moisture_Regime": "AQUIC" }
+        }
+      ]
+    },
+
+    {
+      "id": "drainage_class",
+      "name": "Drainage Class Inference",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "WELL_DRAINED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Texture_Class", "operator": "==", "value": "SANDY" }
+          ],
+          "outputs": { "Drainage_Class": "WELL_DRAINED" }
+        },
+        {
+          "label": "MODERATELY_DRAINED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Texture_Class", "operator": "==", "value": "LOAMY" }
+          ],
+          "outputs": { "Drainage_Class": "MODERATELY_DRAINED" }
+        },
+        {
+          "label": "POORLY_DRAINED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Texture_Class", "operator": "==", "value": "CLAYEY" }
+          ],
+          "outputs": { "Drainage_Class": "POORLY_DRAINED" }
+        }
+      ]
+    },
+
+    {
+      "id": "review_stage",
+      "name": "Review Flags",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "UNCLASSIFIED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Horizon_Class", "operator": "is_null" }
+          ],
+          "outputs": {
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Incomplete soil morphology classification"
+          }
+        }
+      ]
+    }
+  ],
+
+  "final_outputs": {
+    "primary_classification_field": "Horizon_Class",
+    "qc_field": "QC_Class",
+    "flag_field": "Flag_For_Review"
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "scheme_name": "Strontium Mobility Index (Diagenesis Screening)",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Screen for diagenetic alteration of Sr isotopes using Sr/Ca, Rb/Sr, and Ba/Sr ratios",
+  "category": "software",
+  "icon": "🧬",
+  "reference": "Montgomery, J. (2010). Passports from the past: Investigating human dispersals using strontium isotope analysis. In: Isotopic Investigations of Past Human Lifeways.",
+  "field": "Bioarchaeology",
+
+  "requires_fields": [
+    "Sr_ppm",
+    "Ca_pct",
+    "Rb_ppm",
+    "Ba_ppm"
+  ],
+
+  "classifications": [
+    {
+      "name": "WELL-PRESERVED (LOW MOBILITY)",
+      "color": "#4CAF50",
+      "description": "Sr/Ca < 0.002, Rb/Sr < 0.02, Ba/Sr < 0.1; minimal diagenesis",
+      "priority": 1,
+      "rules": [
+        { "field": "Sr_ppm/Ca_pct/10000", "operator": "<", "value": 0.002 },
+        { "field": "Rb_ppm/Sr_ppm", "operator": "<", "value": 0.02 },
+        { "field": "Ba_ppm/Sr_ppm", "operator": "<", "value": 0.1 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "MODERATELY ALTERED",
+      "color": "#FFC107",
+      "description": "Sr/Ca 0.002–0.004, Rb/Sr 0.02–0.1, Ba/Sr 0.1–0.5; possible diagenetic overprint",
+      "priority": 2,
+      "rules": [
+        { "field": "Sr_ppm/Ca_pct/10000", "operator": "between", "min": 0.002, "max": 0.004 },
+        { "field": "Rb_ppm/Sr_ppm", "operator": "between", "min": 0.02, "max": 0.1 },
+        { "field": "Ba_ppm/Sr_ppm", "operator": "between", "min": 0.1, "max": 0.5 }
+      ],
+      "logic": "OR",
+      "confidence_score": 0.80
+    },
+    {
+      "name": "HIGHLY ALTERED (HIGH MOBILITY)",
+      "color": "#F44336",
+      "description": "Sr/Ca > 0.004 OR Rb/Sr > 0.1 OR Ba/Sr > 0.5; unreliable Sr isotopes",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "combined",
+          "operator": "OR",
+          "rules": [
+            { "field": "Sr_ppm/Ca_pct/10000", "operator": ">", "value": 0.004 },
+            { "field": "Rb_ppm/Sr_ppm", "operator": ">", "value": 0.1 },
+            { "field": "Ba_ppm/Sr_ppm", "operator": ">", "value": 0.5 }
+          ]
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "INSUFFICIENT DATA",
+      "color": "#9E9E9E",
+      "description": "Missing Sr, Ca, Rb, or Ba measurements",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Sr_Mobility_Index",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.70,
+  "flag_column_name": "Flag_For_Review"
+}

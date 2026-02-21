@@ -204,21 +204,6 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/missingno_plotter.py?ref_type=heads"
   },
   {
-    "id": "mobile_sync_tab",
-    "name": "Mobile Sync (Tab)",
-    "version": "3.0",
-    "description": "Full-featured mobile synchronization tab with QR code, file manager, live updates, and remote plugin execution",
-    "author": "Sefy Levy",
-    "category": "add-ons",
-    "icon": "\ud83d\udcf1",
-    "requires": [
-      "flask",
-      "qrcode",
-      "pillow"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/mobile_sync_tab.py?ref_type=heads"
-  },
-  {
     "id": "ollama_ai",
     "name": "Ollama AI (Free Local)",
     "version": "2.0",
@@ -355,15 +340,17 @@
   },
   {
     "id": "advanced_normative_calculations",
-    "name": "Advanced Normative Calculations",
-    "version": "1.1",
-    "description": "Calculate CIPW norms from major oxides",
+    "name": "Professional Normative Calculator",
+    "version": "5.1",
+    "description": "All industry-standard normative methods: CIPW, Hutchison, Niggli, Mesonorm, Catanorm, Rittmann",
     "author": "Sefy Levy",
     "category": "software",
     "icon": "\u2696\ufe0f",
     "requires": [
       "pandas",
-      "numpy"
+      "numpy",
+      "scipy",
+      "matplotlib"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/advanced_normative_calculations.py?ref_type=heads"
   },
@@ -507,18 +494,18 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/geochronology_suite.py?ref_type=heads"
   },
   {
-    "id": "gis_3d_viewer",
-    "name": "3D GIS Viewer",
-    "version": "3.0",
-    "description": "LIVE preview: 2D maps, 3D scenes, SRTM terrain IN-PANEL",
-    "author": "Sefy Levy & DeepSeek",
+    "id": "gis_3d_viewer_pro",
+    "name": "3D GIS Viewer PRO",
+    "version": "5.0",
+    "description": "Professional GIS: 2D maps, 3D terrain, Web maps, SRTM, Export",
+    "author": "Professional GIS Team",
     "category": "software",
-    "icon": "\ud83c\udf0d",
+    "icon": "\ud83d\uddfa\ufe0f",
     "requires": [
-      "matplotlib",
-      "numpy"
+      "matplotlib>=3.5.0",
+      "numpy>=1.21.0"
     ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/gis_3d_viewer.py?ref_type=heads"
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/gis_3d_viewer_pro.py?ref_type=heads"
   },
   {
     "id": "google_earth_pro",
@@ -554,8 +541,8 @@
   {
     "id": "isotope_mixing_models",
     "name": "Isotope Mixing Models",
-    "version": "2.0.0",
-    "description": "Binary/ternary mixing, end-member estimation, Monte Carlo provenance with main app integration",
+    "version": "3.0.0",
+    "description": "Binary/ternary mixing, end-member estimation, Monte Carlo, Bayesian inversion, REE inversion",
     "author": "Sefy Levy",
     "category": "software",
     "icon": "\ud83e\uddea",
@@ -563,7 +550,8 @@
       "numpy",
       "scipy",
       "matplotlib",
-      "pandas"
+      "pandas",
+      "emcee"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/isotope_mixing_models.py?ref_type=heads"
   },
@@ -600,9 +588,9 @@
   {
     "id": "magma_modeling",
     "name": "Magma Modeling",
-    "version": "1.0",
-    "description": "Complete magma evolution modeling with working implementations",
-    "author": "Your Name",
+    "version": "2.0",
+    "description": "Complete magma evolution modeling with working implementations + Rhyolite-MELTS integration",
+    "author": "Sefy Levy & DeepSeek",
     "category": "software",
     "icon": "\ud83c\udf0b",
     "requires": [
@@ -867,14 +855,19 @@
   {
     "id": "barcode_scanner_unified_suite",
     "name": "Barcode/QR Scanner Unified Suite",
-    "version": "1.0.0",
-    "description": "USB HID \u00b7 Serial \u00b7 Bluetooth SPP \u00b7 Webcam \u2014 50+ scanner models \u2014 Real drivers",
+    "version": "2.4.0",
+    "description": "USB HID \u00b7 Serial \u00b7 Bluetooth SPP/LE \u00b7 Webcam \u00b7 Unified UI",
     "author": "Sefy Levy",
     "category": "hardware",
-    "icon": "\ud83d\udce6",
+    "icon": "\ud83d\udcf7",
     "requires": [
       "numpy",
-      "pandas"
+      "pandas",
+      "pyserial",
+      "bleak",
+      "opencv-python",
+      "pyzbar",
+      "pillow"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/barcode_scanner_unified_suite.py?ref_type=heads"
   },

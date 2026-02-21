@@ -1,0 +1,92 @@
+================================================================================
+SCIENTIFIC TOOLKIT TEST REPORT
+Category: SCIENTIFIC
+Date: 2026-02-21 21:51:50
+Duration: 0.02 seconds
+================================================================================
+
+SUMMARY
+----------------------------------------
+Total Tests: 24
+Passed:      24
+Failed:      0
+Success Rate: 100.0%
+
+DETAILED RESULTS
+----------------------------------------
+
+✅ PASS [ 1] Bone Collagen: Good bone
+      C:N=3.2 → PRESERVED (PASS)
+
+✅ PASS [ 2] Bone Collagen: Lower boundary
+      C:N=2.9 → PRESERVED (PASS)
+
+✅ PASS [ 3] Bone Collagen: Upper boundary
+      C:N=3.6 → PRESERVED (PASS)
+
+✅ PASS [ 4] Bone Collagen: Degraded - high
+      C:N=4.5 → DEGRADED / CONTAMINATED
+
+✅ PASS [ 5] Bone Collagen: Degraded - low
+      C:N=2.0 → DEGRADED / CONTAMINATED
+
+✅ PASS [ 6] TAS: Phonolite
+      Total alkali=14.0 → ALKALINE SERIES
+
+✅ PASS [ 7] TAS: Tholeiite
+      Total alkali=2.65 → SUBALKALINE SERIES
+
+✅ PASS [ 8] TAS: Boundary
+      Total alkali=7.0 → SUBALKALINE SERIES
+
+✅ PASS [ 9] TAS: Just above boundary
+      Total alkali=7.1 → ALKALINE SERIES
+
+✅ PASS [10] Grain Size: Clay
+      2.0µm → CLAY (<4 µm)
+
+✅ PASS [11] Grain Size: Silt lower boundary
+      4.0µm → SILT (4–63 µm)
+
+✅ PASS [12] Grain Size: Silt
+      30.0µm → SILT (4–63 µm)
+
+✅ PASS [13] Grain Size: Silt upper boundary
+      63.0µm → SILT (4–63 µm)
+
+✅ PASS [14] Grain Size: Sand
+      150.0µm → SAND (63–2000 µm)
+
+✅ PASS [15] Grain Size: Sand upper boundary
+      2000.0µm → SAND (63–2000 µm)
+
+✅ PASS [16] Grain Size: Gravel lower boundary
+      2001.0µm → GRAVEL / PEBBLE (>2000 µm)
+
+✅ PASS [17] Water Hardness: Soft
+      20.0 mg/L → SOFT
+
+✅ PASS [18] Water Hardness: Moderate boundary
+      60.0 mg/L → MODERATELY HARD
+
+✅ PASS [19] Water Hardness: Moderate
+      90.0 mg/L → MODERATELY HARD
+
+✅ PASS [20] Water Hardness: Hard
+      150.0 mg/L → HARD
+
+✅ PASS [21] Water Hardness: Very hard
+      250.0 mg/L → VERY HARD
+
+✅ PASS [22] USDA Soil: Clay soil
+      Sand=10%, Silt=30%, Clay=60% → CLAY
+
+✅ PASS [23] USDA Soil: Sand soil
+      Sand=92%, Silt=5%, Clay=3% → SAND
+
+✅ PASS [24] USDA Soil: Silt loam
+      Sand=20%, Silt=60%, Clay=20% → SILT LOAM
+
+================================================================================
+END OF REPORT
+================================================================================

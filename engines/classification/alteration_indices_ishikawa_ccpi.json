@@ -1,0 +1,107 @@
+{
+  "scheme_name": "Alteration Indices (Ishikawa & CCPI) for Hydrothermal Systems",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Quantify hydrothermal alteration in volcanic rocks using Ishikawa Alteration Index and Chlorite-Carbonate-Pyrite Index (CCPI)",
+  "category": "software",
+  "icon": "🔥",
+  "reference": "Ishikawa, Y., et al. (1976). Delineation of prospecting targets for Kuroko deposits. Mining Geology, 26, 105-117. / Large, R.R., et al. (2001). The alteration box plot. Economic Geology, 96, 927-943.",
+  "field": "Economic Geology",
+
+  "requires_fields": [
+    "AI",
+    "CCPI"
+  ],
+
+  "classifications": [
+    {
+      "name": "INTENSE ALTERATION (AI > 80 AND CCPI > 80)",
+      "color": "#F44336",
+      "description": "Sericite-chlorite-pyrite alteration; potential ore proximity",
+      "priority": 1,
+      "rules": [
+        { "field": "AI", "operator": ">", "value": 80.0 },
+        { "field": "CCPI", "operator": ">", "value": 80.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "MODERATE ALTERATION (AI 40–80, CCPI 40–80)",
+      "color": "#FF9800",
+      "description": "Propylitic to sericitic transition zone",
+      "priority": 2,
+      "rules": [
+        { "field": "AI", "operator": "between", "min": 40.0, "max": 80.0 },
+        { "field": "CCPI", "operator": "between", "min": 40.0, "max": 80.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "PROPYLITIC (AI < 40, CCPI 20–60)",
+      "color": "#4CAF50",
+      "description": "Chlorite-epidote-carbonate alteration; distal",
+      "priority": 3,
+      "rules": [
+        { "field": "AI", "operator": "<", "value": 40.0 },
+        { "field": "CCPI", "operator": "between", "min": 20.0, "max": 60.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "FRESH / LEAST ALTERED",
+      "color": "#2196F3",
+      "description": "AI < 20, CCPI < 20; minimal hydrothermal overprint",
+      "priority": 4,
+      "rules": [
+        { "field": "AI", "operator": "<", "value": 20.0 },
+        { "field": "CCPI", "operator": "<", "value": 20.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "CARBONATE ALTERATION (CCPI >> AI)",
+      "color": "#9C27B0",
+      "description": "High CCPI (>80) with low AI (<40); carbonate-rich",
+      "priority": 5,
+      "rules": [
+        { "field": "CCPI", "operator": ">", "value": 80.0 },
+        { "field": "AI", "operator": "<", "value": 40.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "SERICITIC (HIGH AI, MODERATE CCPI)",
+      "color": "#FF5722",
+      "description": "AI > 60, CCPI 40–70; phyllic alteration",
+      "priority": 6,
+      "rules": [
+        { "field": "AI", "operator": ">", "value": 60.0 },
+        { "field": "CCPI", "operator": "between", "min": 40.0, "max": 70.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "INSUFFICIENT INDEX DATA",
+      "color": "#9E9E9E",
+      "description": "Missing AI or CCPI values",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Alteration_Index_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.70,
+  "flag_column_name": "Flag_For_Review"
+}

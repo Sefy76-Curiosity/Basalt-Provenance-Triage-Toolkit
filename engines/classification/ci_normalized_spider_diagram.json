@@ -1,0 +1,133 @@
+{
+  "scheme_name": "CI-Normalized Spider Diagram Classification",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Classify meteorite/planetary materials using CI chondrite-normalized trace element patterns",
+  "category": "software",
+  "icon": "☄️",
+  "reference": "Anders, E. & Grevesse, N. (1989). Abundances of the elements: Meteoritic and solar. Geochimica et Cosmochimica Acta, 53(1), 197-214. / McDonough, W.F. & Sun, S.S. (1995). The composition of the Earth.",
+  "field": "Cosmochemistry",
+
+  "requires_fields": [
+    "La_N_CI",
+    "Sm_N_CI",
+    "Yb_N_CI",
+    "Eu_N_CI",
+    "Ba_N_CI",
+    "Th_N_CI",
+    "Nb_N_CI"
+  ],
+
+  "classifications": [
+    {
+      "name": "VOLATILE-DEPLETED PATTERN",
+      "color": "#4CAF50",
+      "description": "Depletion in volatile elements (Rb, K, Pb) relative to refractories",
+      "priority": 1,
+      "rules": [
+        { "field": "Ba_N_CI", "operator": "<", "value": 1.0 },
+        { "field": "La_N_CI", "operator": ">", "value": 1.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "FLAT REE PATTERN (CI-LIKE)",
+      "color": "#FFC107",
+      "description": "All REE within 0.8–1.2× CI; primitive chondritic composition",
+      "priority": 2,
+      "rules": [
+        { "field": "La_N_CI", "operator": "between", "min": 0.8, "max": 1.2 },
+        { "field": "Sm_N_CI", "operator": "between", "min": 0.8, "max": 1.2 },
+        { "field": "Yb_N_CI", "operator": "between", "min": 0.8, "max": 1.2 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "LREE-ENRICHED PATTERN",
+      "color": "#F44336",
+      "description": "La_N/Sm_N > 1.5; enriched mantle or crustal signature",
+      "priority": 3,
+      "rules": [
+        { "field": "La_N_CI/Sm_N_CI", "operator": ">", "value": 1.5 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "HREE-ENRICHED PATTERN",
+      "color": "#2196F3",
+      "description": "Sm_N/Yb_N < 0.7; garnet residue or depletion",
+      "priority": 4,
+      "rules": [
+        { "field": "Sm_N_CI/Yb_N_CI", "operator": "<", "value": 0.7 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "POSITIVE EU ANOMALY",
+      "color": "#8BC34A",
+      "description": "Eu_N/Eu* > 1.2; plagioclase accumulation",
+      "priority": 5,
+      "rules": [
+        { "field": "Eu_N_CI", "operator": ">", "value": "((Sm_N_CI+Gd_N_CI)/2)*1.2" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "NEGATIVE EU ANOMALY",
+      "color": "#FF9800",
+      "description": "Eu_N/Eu* < 0.8; plagioclase fractionation",
+      "priority": 6,
+      "rules": [
+        { "field": "Eu_N_CI", "operator": "<", "value": "((Sm_N_CI+Gd_N_CI)/2)*0.8" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "HFSE-DEPLETED (Nb, Ta, Ti)",
+      "color": "#9C27B0",
+      "description": "Nb/Nb* < 0.6; subduction/arc signature",
+      "priority": 7,
+      "rules": [
+        { "field": "Nb_N_CI", "operator": "<", "value": "((Th_N_CI+La_N_CI)/2)*0.6" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "BULK EARTH / CHONDRITIC",
+      "color": "#673AB7",
+      "description": "All elements within 0.5–2× CI; primitive mantle",
+      "priority": 8,
+      "rules": [
+        { "field": "La_N_CI", "operator": "between", "min": 0.5, "max": 2.0 },
+        { "field": "Ba_N_CI", "operator": "between", "min": 0.5, "max": 2.0 },
+        { "field": "Th_N_CI", "operator": "between", "min": 0.5, "max": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "INSUFFICIENT NORMALIZED DATA",
+      "color": "#9E9E9E",
+      "description": "Missing CI-normalized REE or trace element values",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "CI_Normalized_Pattern",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
+}

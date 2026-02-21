@@ -1,0 +1,109 @@
+{
+  "scheme_name": "Soil Salinity Classification (EC)",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Classification of soil salinity based on Electrical Conductivity (ECe) standards",
+  "category": "software",
+  "icon": "⚡",
+  "reference": "USDA-SCS Agricultural Handbook No. 60; FAO Soil Salinity Standards",
+  "field": "Soil Science",
+  "requires_fields": [
+    "EC_dS_m"
+  ],
+  "classifications": [
+    {
+      "name": "NON-SALINE (EC < 2)",
+      "color": "#4CAF50",
+      "description": "Salinity effects are negligible; suitable for most crops",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "EC_dS_m",
+          "operator": "<",
+          "value": 2.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "SLIGHTLY SALINE (EC 2–4)",
+      "color": "#8BC34A",
+      "description": "Yields of sensitive crops may be restricted",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "EC_dS_m",
+          "operator": "between",
+          "min": 2.0,
+          "max": 4.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.9
+    },
+    {
+      "name": "MODERATELY SALINE (EC 4–8)",
+      "color": "#FFC107",
+      "description": "Yields of many crops are restricted; requires leaching",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "EC_dS_m",
+          "operator": "between",
+          "min": 4.0,
+          "max": 8.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.9
+    },
+    {
+      "name": "STRONGLY SALINE (EC 8–16)",
+      "color": "#FF9800",
+      "description": "Only tolerant crops yield satisfactorily",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "EC_dS_m",
+          "operator": "between",
+          "min": 8.0,
+          "max": 16.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.9
+    },
+    {
+      "name": "VERY STRONGLY SALINE (EC > 16)",
+      "color": "#F44336",
+      "description": "Few very tolerant crops yield satisfactorily; severe agricultural limitation",
+      "priority": 5,
+      "rules": [
+        {
+          "field": "EC_dS_m",
+          "operator": ">",
+          "value": 16.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "INSUFFICIENT DATA",
+      "color": "#9E9E9E",
+      "description": "Missing Electrical Conductivity (EC) measurement",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+  "output_column_name": "Salinity_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.85,
+  "flag_column_name": "Flag_For_Review"
+}

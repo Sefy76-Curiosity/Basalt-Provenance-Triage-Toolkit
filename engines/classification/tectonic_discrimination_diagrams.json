@@ -1,0 +1,198 @@
+{
+  "scheme_name": "Tectonic Discrimination Diagrams",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Combined tectonic setting classification using Ti–Zr–Y, Th–Hf–Ta, Nb/Y–Zr/Y, REE ratios, and HFSE fields",
+  "category": "software",
+  "icon": "🌍",
+  "reference": "Pearce & Cann (1973); Pearce (1982); Meschede (1986); Fitton (2007)",
+  "field": "Tectonic Geochemistry",
+
+  "requires_fields": [
+    "Ti_ppm",
+    "Zr_ppm",
+    "Y_ppm",
+    "Nb_ppm",
+    "Hf_ppm",
+    "Ta_ppm",
+    "La_N",
+    "Sm_N",
+    "Yb_N"
+  ],
+
+  "classifications": [
+    {
+      "name": "WITHIN-PLATE BASALT (WPB) — Ti–Zr–Y",
+      "color": "#F44336",
+      "description": "High Ti and Zr relative to Y; typical of OIB and continental rifts",
+      "priority": 1,
+      "rules": [
+        { "field": "Ti_ppm/Y_ppm", "operator": ">", "value": 500.0 },
+        { "field": "Zr_ppm/Y_ppm", "operator": ">", "value": 7.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+
+    {
+      "name": "MORB — Ti–Zr–Y",
+      "color": "#2196F3",
+      "description": "Low Ti/Y and moderate Zr/Y; typical of mid-ocean ridge basalts",
+      "priority": 2,
+      "rules": [
+        { "field": "Ti_ppm/Y_ppm", "operator": "<", "value": 500.0 },
+        { "field": "Zr_ppm/Y_ppm", "operator": "between", "min": 3.0, "max": 7.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "VOLCANIC ARC BASALT (VAB) — Ti–Zr–Y",
+      "color": "#4CAF50",
+      "description": "Low Ti and Zr relative to Y; subduction-related signature",
+      "priority": 3,
+      "rules": [
+        { "field": "Ti_ppm/Y_ppm", "operator": "<", "value": 300.0 },
+        { "field": "Zr_ppm/Y_ppm", "operator": "<", "value": 3.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "OIB / PLUME — Th–Hf–Ta",
+      "color": "#9C27B0",
+      "description": "High Th/Ta and Th/Hf ratios; enriched mantle plume signature",
+      "priority": 4,
+      "rules": [
+        { "field": "Th_ppm/Ta_ppm", "operator": ">", "value": 4.0 },
+        { "field": "Th_ppm/Hf_ppm", "operator": ">", "value": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+
+    {
+      "name": "ARC BASALT — Th–Hf–Ta",
+      "color": "#FF9800",
+      "description": "High Th relative to Ta but moderate Th/Hf; subduction enrichment",
+      "priority": 5,
+      "rules": [
+        { "field": "Th_ppm/Ta_ppm", "operator": ">", "value": 4.0 },
+        { "field": "Th_ppm/Hf_ppm", "operator": "<=", "value": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "N-MORB — Meschede (Ti–Zr–Nb–Y)",
+      "color": "#03A9F4",
+      "description": "Depleted mantle signature; low Nb/Y and Zr/Y",
+      "priority": 6,
+      "rules": [
+        { "field": "Nb_ppm/Y_ppm", "operator": "<", "value": 0.25 },
+        { "field": "Zr_ppm/Y_ppm", "operator": "<", "value": 3.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "E-MORB — Meschede (Ti–Zr–Nb–Y)",
+      "color": "#00BCD4",
+      "description": "Enriched MORB; moderate Nb/Y and Zr/Y",
+      "priority": 7,
+      "rules": [
+        { "field": "Nb_ppm/Y_ppm", "operator": "between", "min": 0.25, "max": 0.7 },
+        { "field": "Zr_ppm/Y_ppm", "operator": "between", "min": 3.0, "max": 7.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+
+    {
+      "name": "WITHIN-PLATE BASALT — Meschede",
+      "color": "#8BC34A",
+      "description": "High Nb/Y and Zr/Y; typical of OIB and continental rifts",
+      "priority": 8,
+      "rules": [
+        { "field": "Nb_ppm/Y_ppm", "operator": ">", "value": 0.7 },
+        { "field": "Zr_ppm/Y_ppm", "operator": ">", "value": 7.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "PLUME / OIB — Nb/Y vs Zr/Y",
+      "color": "#FF5722",
+      "description": "High Nb/Y and high Zr/Y; enriched mantle source",
+      "priority": 9,
+      "rules": [
+        { "field": "Nb_ppm/Y_ppm", "operator": ">", "value": 1.0 },
+        { "field": "Zr_ppm/Y_ppm", "operator": ">", "value": 7.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "DEPLETED MANTLE — La/Yb vs Sm/Yb",
+      "color": "#CDDC39",
+      "description": "Low La/Yb and Sm/Yb; shallow melting of depleted mantle",
+      "priority": 10,
+      "rules": [
+        { "field": "La_N/Yb_N", "operator": "<", "value": 3.0 },
+        { "field": "Sm_N/Yb_N", "operator": "<", "value": 1.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+
+    {
+      "name": "ENRICHED MANTLE — La/Yb vs Sm/Yb",
+      "color": "#FFC107",
+      "description": "High La/Yb and Sm/Yb; deep melting or garnet-rich source",
+      "priority": 11,
+      "rules": [
+        { "field": "La_N/Yb_N", "operator": ">", "value": 5.0 },
+        { "field": "Sm_N/Yb_N", "operator": ">", "value": 1.5 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "HFSE-ENRICHED (OIB-like)",
+      "color": "#9C27B0",
+      "description": "High Nb, Ta, Zr, Hf relative to Y; plume affinity",
+      "priority": 12,
+      "rules": [
+        { "field": "Nb_ppm/Y_ppm", "operator": ">", "value": 1.0 },
+        { "field": "Hf_ppm/Ta_ppm", "operator": ">", "value": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+
+    {
+      "name": "INSUFFICIENT TRACE ELEMENT DATA",
+      "color": "#9E9E9E",
+      "description": "Missing Ti, Zr, Y, Nb, Hf, Ta, or REE-normalized values",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Tectonic_Setting",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
+}

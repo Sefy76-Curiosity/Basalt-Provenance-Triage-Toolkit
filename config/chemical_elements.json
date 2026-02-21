@@ -465,7 +465,7 @@
         "SiO₂ (wt%)", "SiO₂ (%)", "SILICA", "silica", "SiO2 wt%", "SiO2 wt %",
         "SiO2 weight %", "SiO2 weight percent", "SiO2 (percent)", "SiO2 percent",
         "SiO2 PCT", "SiO2 pct", "SiO2 pct.", "SiO2_%", "SiO2_%", "SiO2_ppm?",
-        "Silicon dioxide", "Silicon Dioxide", "SiO2 (SiO2)", "SiO2 as SiO2"
+        "Silicon dioxide", "Silicon Dioxide", "SiO2 (SiO2)", "SiO2 as SiO2","SiO2_wt%","SiO2 wt%"
       ],
       "category": "major_oxide",
       "display_name": "SiO₂ (wt%)",
@@ -582,7 +582,7 @@
     "K2O": {
       "standard": "K2O_wt",
       "variations": [
-        "K2O", "K2O_wt", "K2O_pct", "K2O %", "Potash", "K2O (%)",
+        "K2O", "K2O_wt", "K2O_pct", "K2O %","K2O%", "Potash", "K2O (%)",
         "K2O (wt%)", "k2o", "K₂O", "K₂O_wt", "K₂O_pct", "K₂O %",
         "K₂O (wt%)", "K₂O (%)", "POTASH", "potash", "K2O wt%", "K2O wt %",
         "K2O weight %", "K2O weight percent", "K2O (percent)", "K2O percent",

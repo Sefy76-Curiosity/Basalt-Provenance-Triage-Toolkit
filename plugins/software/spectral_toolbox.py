@@ -990,11 +990,272 @@ class SpectralToolboxPlugin:
 
         except Exception as e:
             messagebox.showerror("Fitting Error", f"Failed to fit peaks: {str(e)}")
-
     def _deconvolve_peaks(self):
-        """Deconvolve overlapping peaks"""
-        messagebox.showinfo("Coming Soon",
-                          "Peak deconvolution feature will be available in the next update.")
+        """Deconvolve overlapping peaks using peak fitting"""
+        if not self.current_spectrum:
+            messagebox.showwarning("No Data", "Please load spectral data first.")
+            return
+
+        try:
+            import numpy as np
+            from scipy import optimize
+            from scipy.signal import find_peaks
+
+            x, y = self.current_spectrum
+
+            # Get parameters from UI or use defaults
+            n_peaks = None
+            try:
+                n_peaks = int(self.fit_npeaks.get())
+            except:
+                n_peaks = None
+
+            # Get fitting region if specified
+            try:
+                xmin = float(self.fit_xmin.get())
+                xmax = float(self.fit_xmax.get())
+                mask = (x >= xmin) & (x <= xmax)
+                x_fit = x[mask]
+                y_fit = y[mask]
+            except:
+                x_fit, y_fit = x, y
+
+            # First, detect peaks automatically if number not specified
+            if n_peaks is None:
+                # Auto-detect peaks
+                peaks, properties = find_peaks(y_fit, prominence=0.1*np.max(y_fit))
+                n_peaks = min(len(peaks), 10)  # Limit to 10 peaks max
+                if n_peaks == 0:
+                    n_peaks = 1  # Default to at least one peak
+
+            # Define peak functions
+            def gaussian(x, amp, cen, sigma):
+                return amp * np.exp(-(x - cen)**2 / (2 * sigma**2))
+
+            def lorentzian(x, amp, cen, sigma):
+                return amp * sigma**2 / ((x - cen)**2 + sigma**2)
+
+            def voigt(x, amp, cen, sigma, gamma):
+                # Pseudo-Voigt approximation
+                g = gaussian(x, amp, cen, sigma)
+                l = lorentzian(x, amp, cen, sigma)
+                return 0.5 * g + 0.5 * l  # Equal mixture
+
+            # Select peak shape
+            model_type = self.fit_model.get()
+            if model_type == "gaussian":
+                peak_func = gaussian
+                params_per_peak = 3
+            elif model_type == "lorentzian":
+                peak_func = lorentzian
+                params_per_peak = 3
+            elif model_type == "voigt":
+                peak_func = voigt
+                params_per_peak = 4
+            else:
+                peak_func = gaussian
+                params_per_peak = 3
+
+            # Composite model function
+            def composite_model(x, *params):
+                result = np.zeros_like(x, dtype=float)
+                idx = 0
+                for i in range(n_peaks):
+                    if params_per_peak == 4:
+                        amp, cen, sigma, gamma = params[idx:idx+4]
+                        result += peak_func(x, amp, cen, sigma, gamma)
+                        idx += 4
+                    else:
+                        amp, cen, sigma = params[idx:idx+3]
+                        result += peak_func(x, amp, cen, sigma)
+                        idx += 3
+                return result
+
+            # Initial parameter guesses
+            p0 = []
+            bounds_lower = []
+            bounds_upper = []
+
+            # Find peaks for initial guesses
+            detected_peaks, props = find_peaks(y_fit, prominence=0.05*np.max(y_fit))
+            peak_positions = x_fit[detected_peaks] if len(detected_peaks) > 0 else []
+
+            # Distribute peaks if not enough detected
+            if len(peak_positions) < n_peaks:
+                x_range = np.linspace(np.min(x_fit), np.max(x_fit), n_peaks+2)[1:-1]
+                peak_positions = list(peak_positions) + list(x_range[len(peak_positions):])
+
+            # Use top N peaks
+            peak_positions = peak_positions[:n_peaks]
+
+            # Estimate peak widths
+            dx = np.mean(np.diff(x_fit))
+            x_span = np.max(x_fit) - np.min(x_fit)
+            estimated_width = x_span / (n_peaks * 3)
+
+            # Set parameter bounds and initial guesses
+            for i, pos in enumerate(peak_positions):
+                # Amplitude
+                p0.append(np.max(y_fit) / n_peaks)
+                bounds_lower.append(0)
+                bounds_upper.append(np.max(y_fit) * 2)
+
+                # Center
+                p0.append(pos)
+                bounds_lower.append(np.min(x_fit))
+                bounds_upper.append(np.max(x_fit))
+
+                # Sigma (width)
+                p0.append(estimated_width)
+                bounds_lower.append(dx)
+                bounds_upper.append(x_span)
+
+                if params_per_peak == 4:
+                    # Gamma (for Voigt)
+                    p0.append(0.5)
+                    bounds_lower.append(0.1)
+                    bounds_upper.append(2)
+
+            # Perform fit
+            try:
+                popt, pcov = optimize.curve_fit(composite_model, x_fit, y_fit,
+                                            p0=p0,
+                                            bounds=(bounds_lower, bounds_upper),
+                                            maxfev=5000)
+
+                # Calculate fitted curve
+                y_fitted = composite_model(x_fit, *popt)
+
+                # Calculate individual components
+                components = []
+                idx = 0
+                for i in range(n_peaks):
+                    if params_per_peak == 4:
+                        comp_params = popt[idx:idx+4]
+                        comp_y = peak_func(x_fit, *comp_params)
+                        idx += 4
+                    else:
+                        comp_params = popt[idx:idx+3]
+                        comp_y = peak_func(x_fit, *comp_params)
+                        idx += 3
+                    components.append(comp_y)
+
+                # Calculate residuals and statistics
+                residuals = y_fit - y_fitted
+                rmse = np.sqrt(np.mean(residuals**2))
+                r2 = 1 - np.sum(residuals**2) / np.sum((y_fit - np.mean(y_fit))**2)
+
+                # Display results
+                self.fit_results.delete(1.0, tk.END)
+                self.fit_results.insert(1.0, f"PEAK DECONVOLUTION RESULTS\n")
+                self.fit_results.insert(2.0, "="*60 + "\n")
+                self.fit_results.insert(3.0, f"Model: {model_type.capitalize()}\n")
+                self.fit_results.insert(4.0, f"Number of peaks: {n_peaks}\n")
+                self.fit_results.insert(5.0, f"RMSE: {rmse:.6f}\n")
+                self.fit_results.insert(6.0, f"R²: {r2:.6f}\n\n")
+                self.fit_results.insert(7.0, "PEAK PARAMETERS:\n")
+                self.fit_results.insert(8.0, "-"*40 + "\n")
+
+                idx = 0
+                for i in range(n_peaks):
+                    if params_per_peak == 4:
+                        amp, cen, sigma, gamma = popt[idx:idx+4]
+                        self.fit_results.insert(tk.END,
+                            f"Peak {i+1}:\n"
+                            f"  Center: {cen:.4f}\n"
+                            f"  Amplitude: {amp:.4f}\n"
+                            f"  Width (σ): {sigma:.4f}\n"
+                            f"  Shape (γ): {gamma:.4f}\n"
+                            f"  Area: {amp * sigma * np.sqrt(2*np.pi):.4f}\n\n")
+                        idx += 4
+                    else:
+                        amp, cen, sigma = popt[idx:idx+3]
+                        self.fit_results.insert(tk.END,
+                            f"Peak {i+1}:\n"
+                            f"  Center: {cen:.4f}\n"
+                            f"  Amplitude: {amp:.4f}\n"
+                            f"  Width (σ): {sigma:.4f}\n"
+                            f"  Area: {amp * sigma * np.sqrt(2*np.pi):.4f}\n\n")
+                        idx += 3
+
+                # Store results
+                self.processed_data['deconvolution'] = {
+                    'x': x_fit,
+                    'y_fitted': y_fitted,
+                    'components': components,
+                    'params': popt,
+                    'residuals': residuals,
+                    'rmse': rmse,
+                    'r2': r2,
+                    'model': model_type
+                }
+
+                # Plot results
+                self._plot_deconvolution(x_fit, y_fit, y_fitted, components,
+                                        f"Peak Deconvolution - {model_type}")
+
+                messagebox.showinfo("Deconvolution Complete",
+                                f"Successfully deconvolved {n_peaks} peaks\n"
+                                f"RMSE: {rmse:.6f}, R²: {r2:.6f}")
+
+            except Exception as fit_error:
+                messagebox.showerror("Fitting Failed",
+                                f"Could not fit peaks: {str(fit_error)}\n\n"
+                                f"Try:\n"
+                                f"• Reducing number of peaks\n"
+                                f"• Selecting a smaller region\n"
+                                f"• Using a different peak model")
+
+        except Exception as e:
+            messagebox.showerror("Deconvolution Error", f"Failed: {str(e)}")
+
+    def _plot_deconvolution(self, x, y_orig, y_fit, components, title):
+        """Plot deconvolution results"""
+        try:
+            import matplotlib.pyplot as plt
+            from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+            plot_window = tk.Toplevel(self.window)
+            plot_window.title(f"Deconvolution: {title}")
+            plot_window.geometry("900x700")
+
+            # Create subplots: main plot and residuals
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8),
+                                        gridspec_kw={'height_ratios': [3, 1]})
+
+            # Main plot
+            ax1.plot(x, y_orig, 'ko', label='Original Data', markersize=3, alpha=0.6)
+            ax1.plot(x, y_fit, 'r-', label='Combined Fit', linewidth=2)
+
+            # Plot individual components
+            colors = ['b', 'g', 'c', 'm', 'y', 'orange', 'purple', 'brown']
+            for i, comp in enumerate(components):
+                ax1.plot(x, comp, '--', color=colors[i % len(colors)],
+                        label=f'Peak {i+1}', alpha=0.7, linewidth=1.5)
+
+            ax1.set_xlabel('Wavelength/Index')
+            ax1.set_ylabel('Intensity')
+            ax1.set_title(title, fontweight='bold')
+            ax1.grid(True, alpha=0.3)
+            ax1.legend()
+
+            # Residuals plot
+            residuals = y_orig - y_fit
+            ax2.plot(x, residuals, 'b-', alpha=0.7)
+            ax2.axhline(y=0, color='r', linestyle='--', alpha=0.5)
+            ax2.set_xlabel('Wavelength/Index')
+            ax2.set_ylabel('Residuals')
+            ax2.grid(True, alpha=0.3)
+            ax2.set_title(f'Residuals (RMSE: {np.sqrt(np.mean(residuals**2)):.6f})')
+
+            plt.tight_layout()
+
+            canvas = FigureCanvasTkAgg(fig, plot_window)
+            canvas.draw()
+            canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+        except Exception as e:
+            print(f"Deconvolution plotting error: {e}")
 
     def _plot_results(self, x, y, baseline=None, corrected=None, title=""):
         """Plot spectral results"""

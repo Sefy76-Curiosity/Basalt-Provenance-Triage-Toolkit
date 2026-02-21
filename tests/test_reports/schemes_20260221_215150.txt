@@ -1,0 +1,56 @@
+================================================================================
+SCIENTIFIC TOOLKIT TEST REPORT
+Category: SCHEMES
+Date: 2026-02-21 21:51:50
+Duration: 0.00 seconds
+================================================================================
+
+SUMMARY
+----------------------------------------
+Total Tests: 12
+Passed:      12
+Failed:      0
+Success Rate: 100.0%
+
+DETAILED RESULTS
+----------------------------------------
+
+✅ PASS [ 1] Find scheme files
+      Found 71 JSON files
+
+✅ PASS [ 2] Validate: afm_irvine–baragar_series.json
+      Valid scheme with 4 classifications
+
+✅ PASS [ 3] Validate: alteration_indices_ishikawa_ccpi.json
+      Valid scheme with 7 classifications
+
+✅ PASS [ 4] Validate: analytical_precision_filter.json
+      Valid scheme with 4 classifications
+
+✅ PASS [ 5] Validate: analytical_quality_control.json
+      Valid scheme with 12 classifications
+
+✅ PASS [ 6] Validate: anhydrous_normalization.json
+      Valid scheme with 6 classifications
+
+✅ PASS [ 7] Validate: au_as_sb_pathfinder.json
+      Valid scheme with 8 classifications
+
+✅ PASS [ 8] Validate: bone_collagen_qc.json
+      Valid scheme with 2 classifications
+
+✅ PASS [ 9] Validate: bone_diagenesis_apatite.json
+      Valid scheme with 2 classifications
+
+✅ PASS [10] Validate: bone_trophic_diet.json
+      Valid scheme with 2 classifications
+
+✅ PASS [11] Validate: ceramic_firing_temperature_proxies.json
+      Valid scheme with 4 classifications
+
+✅ PASS [12] Additional schemes
+      61 more schemes not individually tested
+
+================================================================================
+END OF REPORT
+================================================================================

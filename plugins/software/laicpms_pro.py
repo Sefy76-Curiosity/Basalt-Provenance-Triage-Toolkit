@@ -209,7 +209,7 @@ class LAICPMSProPlugin:
         return True
 
     def open_window(self):
-        """Open main plugin window"""
+        """Open main plugin window - auto-loads data from main app if available"""
         if not self._safe_import_message():
             return
 
@@ -223,8 +223,80 @@ class LAICPMSProPlugin:
         self.window.transient(self.app.root)
 
         self._create_interface()
+
+        # ============ AUTO-LOAD FROM MAIN APP ============
+        if hasattr(self.app, 'samples') and self.app.samples:
+            # Schedule auto-load after window is fully created
+            self.window.after(500, self._auto_load_from_main)
+
         self.window.lift()
         self.window.focus_force()
+
+    def _auto_load_from_main(self):
+        """Auto-load data from main app on startup"""
+        try:
+            # Check if there's data
+            if not hasattr(self.app, 'samples') or not self.app.samples:
+                return
+
+            # Show auto-load message in status
+            self.status_label.config(text="Auto-loading data from main app...")
+            self.window.update()
+
+            # Get data from main app
+            main_samples = self.app.samples
+
+            # Convert to DataFrame
+            df = pd.DataFrame(main_samples)
+
+            # Auto-detect time column
+            if 'Time' not in df.columns and 'time' not in df.columns:
+                df['Time'] = np.linspace(0, len(df)-1, len(df))
+                self.time_col = 'Time'
+            else:
+                self.time_col = 'Time' if 'Time' in df.columns else 'time'
+
+            # Auto-detect element columns
+            exclude_cols = ['Sample_ID', 'Time', 'time', 'Notes', 'Location', 'Date',
+                        'Auto_Classification', 'Auto_Confidence', 'Flag_For_Review']
+            element_cols = []
+
+            for col in df.columns:
+                if col in exclude_cols:
+                    continue
+                try:
+                    pd.to_numeric(df[col], errors='raise')
+                    element_cols.append(col)
+                except:
+                    pass
+
+            if not element_cols:
+                self._log_message("ℹ️ No numeric element columns found in main data")
+                return
+
+            self.raw_data = df
+
+            # Update UI
+            self._log_message(f"✅ Auto-loaded {len(df)} samples from main app")
+            self._log_message(f"   Detected elements: {', '.join(element_cols[:5])}" +
+                            (f" + {len(element_cols)-5} more" if len(element_cols) > 5 else ""))
+
+            # Update element list
+            self.element_listbox.delete(0, tk.END)
+            for col in element_cols:
+                self.element_listbox.insert(tk.END, col)
+
+            # Update status
+            self.status_indicator.config(text="● AUTO-LOADED", fg="#27ae60")
+            self.status_label.config(text=f"Auto-loaded {len(df)} samples from main app")
+
+            # Switch to signal tab and initialize plot
+            self.notebook.select(1)
+            self._initialize_signal_plot()
+
+        except Exception as e:
+            self._log_message(f"⚠️ Auto-load failed: {str(e)}")
+            # Don't show error dialog - just log it
 
     def _create_interface(self):
         """Create the main interface with tabs"""
@@ -1146,19 +1218,500 @@ class LAICPMSProPlugin:
                  bg="#9b59b6", fg="white").pack(side=tk.LEFT, padx=5)
 
     def _add_reference_material(self):
-        """Add a new reference material"""
-        messagebox.showinfo("Add Reference",
-                          "This feature will open a form to add new reference materials.\n\n"
-                          "For now, you can edit the REFERENCE_MATERIALS dictionary in the code.")
+        """Add a new reference material with certified values"""
+        # Create dialog window
+        dialog = tk.Toplevel(self.window)
+        dialog.title("Add Reference Material")
+        dialog.geometry("600x700")
+        dialog.transient(self.window)
+        dialog.grab_set()
+
+        # Main frame with scrollbar
+        main_frame = tk.Frame(dialog)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        canvas = tk.Canvas(main_frame)
+        scrollbar = ttk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas)
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # Form fields
+        current_row = 0
+
+        # Basic info
+        tk.Label(scrollable_frame, text="Reference Material Details",
+                font=("Arial", 12, "bold")).grid(row=current_row, column=0, columnspan=2,
+                                                pady=10, sticky=tk.W)
+        current_row += 1
+
+        # Name
+        tk.Label(scrollable_frame, text="Material Name:*").grid(row=current_row, column=0,
+                                                                sticky=tk.W, pady=5)
+        name_var = tk.StringVar()
+        tk.Entry(scrollable_frame, textvariable=name_var, width=40).grid(row=current_row, column=1,
+                                                                        pady=5, padx=5)
+        current_row += 1
+
+        # Type
+        tk.Label(scrollable_frame, text="Material Type:*").grid(row=current_row, column=0,
+                                                                sticky=tk.W, pady=5)
+        type_var = tk.StringVar(value="Glass")
+        type_combo = ttk.Combobox(scrollable_frame, textvariable=type_var,
+                                values=["Glass", "Zircon", "Apatite", "Monazite", "Titanite",
+                                        "Silicate", "Metal", "Sulfide", "Other"],
+                                width=38)
+        type_combo.grid(row=current_row, column=1, pady=5, padx=5)
+        current_row += 1
+
+        # Reference
+        tk.Label(scrollable_frame, text="Citation/Reference:*").grid(row=current_row, column=0,
+                                                                    sticky=tk.W, pady=5)
+        ref_var = tk.StringVar()
+        ref_entry = tk.Entry(scrollable_frame, textvariable=ref_var, width=40)
+        ref_entry.grid(row=current_row, column=1, pady=5, padx=5)
+        current_row += 1
+
+        # Year
+        tk.Label(scrollable_frame, text="Year:").grid(row=current_row, column=0,
+                                                    sticky=tk.W, pady=5)
+        year_var = tk.StringVar()
+        tk.Entry(scrollable_frame, textvariable=year_var, width=40).grid(row=current_row, column=1,
+                                                                        pady=5, padx=5)
+        current_row += 1
+
+        # Notes
+        tk.Label(scrollable_frame, text="Notes:").grid(row=current_row, column=0,
+                                                    sticky=tk.W, pady=5)
+        notes_text = tk.Text(scrollable_frame, height=3, width=30)
+        notes_text.grid(row=current_row, column=1, pady=5, padx=5, sticky=tk.W)
+        current_row += 1
+
+        # Separator
+        ttk.Separator(scrollable_frame, orient='horizontal').grid(row=current_row, column=0,
+                                                                columnspan=2, sticky="ew", pady=10)
+        current_row += 1
+
+        # Certified values section
+        tk.Label(scrollable_frame, text="Certified Values (ppm unless noted)",
+                font=("Arial", 11, "bold")).grid(row=current_row, column=0, columnspan=2,
+                                                pady=5, sticky=tk.W)
+        current_row += 1
+
+        # Instructions
+        tk.Label(scrollable_frame, text="Enter values (numbers only, leave blank if not certified)",
+                font=("Arial", 9, "italic"), fg="gray").grid(row=current_row, column=0, columnspan=2,
+                                                            pady=5, sticky=tk.W)
+        current_row += 1
+
+        # Create frame for element values with scrollbar
+        elem_frame = tk.Frame(scrollable_frame)
+        elem_frame.grid(row=current_row, column=0, columnspan=2, sticky="nsew", pady=5)
+        current_row += 1
+
+        # Canvas for scrolling elements
+        elem_canvas = tk.Canvas(elem_frame, height=300)
+        elem_scrollbar = ttk.Scrollbar(elem_frame, orient="vertical", command=elem_canvas.yview)
+        elem_scrollable = tk.Frame(elem_canvas)
+
+        elem_scrollable.bind(
+            "<Configure>",
+            lambda e: elem_canvas.configure(scrollregion=elem_canvas.bbox("all"))
+        )
+
+        elem_canvas.create_window((0, 0), window=elem_scrollable, anchor="nw")
+        elem_canvas.configure(yscrollcommand=elem_scrollbar.set)
+
+        elem_canvas.pack(side="left", fill="both", expand=True)
+        elem_scrollbar.pack(side="right", fill="y")
+
+        # Create entry widgets for common elements
+        element_vars = {}
+
+        # Common elements in reference materials
+        common_elements = [
+            ("Major Elements", ["Si", "Al", "Fe", "Ca", "Na", "K", "Mg", "Ti", "P"]),
+            ("Trace Elements", ["Rb", "Sr", "Y", "Zr", "Nb", "Ba", "Hf", "Ta", "Pb", "Th", "U"]),
+            ("REE", ["La", "Ce", "Pr", "Nd", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu"]),
+            ("U-Pb Dating", ["Pb206", "Pb207", "Pb208", "U238", "Th232"]),
+            ("Age (Ma)", ["Pb206_U238_age", "Pb207_Pb206_age", "Pb207_U235_age"])
+        ]
+
+        elem_row = 0
+        for category, elements in common_elements:
+            # Category header
+            tk.Label(elem_scrollable, text=category, font=("Arial", 10, "bold"),
+                    fg="#2980b9").grid(row=elem_row, column=0, columnspan=3,
+                                    sticky=tk.W, pady=(10, 5))
+            elem_row += 1
+
+            # Element entries in 2 columns
+            col1_elements = elements[:len(elements)//2 + len(elements)%2]
+            col2_elements = elements[len(col1_elements):]
+
+            # First column
+            for i, elem in enumerate(col1_elements):
+                tk.Label(elem_scrollable, text=f"{elem}:").grid(row=elem_row + i, column=0,
+                                                                sticky=tk.W, padx=(20, 5))
+                var = tk.StringVar()
+                entry = tk.Entry(elem_scrollable, textvariable=var, width=12)
+                entry.grid(row=elem_row + i, column=1, padx=5, pady=2)
+                element_vars[elem] = var
+
+                # Add units hint
+                if "age" in elem.lower():
+                    tk.Label(elem_scrollable, text="Ma", font=("Arial", 8),
+                            fg="gray").grid(row=elem_row + i, column=2, sticky=tk.W)
+                else:
+                    tk.Label(elem_scrollable, text="ppm", font=("Arial", 8),
+                            fg="gray").grid(row=elem_row + i, column=2, sticky=tk.W)
+
+            # Second column
+            for i, elem in enumerate(col2_elements):
+                tk.Label(elem_scrollable, text=f"{elem}:").grid(row=elem_row + i, column=3,
+                                                                sticky=tk.W, padx=(40, 5))
+                var = tk.StringVar()
+                entry = tk.Entry(elem_scrollable, textvariable=var, width=12)
+                entry.grid(row=elem_row + i, column=4, padx=5, pady=2)
+                element_vars[elem] = var
+
+                tk.Label(elem_scrollable, text="ppm", font=("Arial", 8),
+                        fg="gray").grid(row=elem_row + i, column=5, sticky=tk.W)
+
+            elem_row += max(len(col1_elements), len(col2_elements))
+
+        # Custom element entries
+        tk.Label(elem_scrollable, text="Custom Elements",
+                font=("Arial", 10, "bold"), fg="#2980b9").grid(row=elem_row, column=0,
+                                                            columnspan=3, sticky=tk.W, pady=(15, 5))
+        elem_row += 1
+
+        # Frame for custom elements
+        custom_frame = tk.Frame(elem_scrollable)
+        custom_frame.grid(row=elem_row, column=0, columnspan=6, sticky=tk.W, pady=5)
+
+        tk.Label(custom_frame, text="Element:").grid(row=0, column=0, padx=5)
+        custom_elem_var = tk.StringVar()
+        tk.Entry(custom_frame, textvariable=custom_elem_var, width=10).grid(row=0, column=1, padx=5)
+
+        tk.Label(custom_frame, text="Value:").grid(row=0, column=2, padx=5)
+        custom_val_var = tk.StringVar()
+        tk.Entry(custom_frame, textvariable=custom_val_var, width=12).grid(row=0, column=3, padx=5)
+
+        tk.Label(custom_frame, text="Unit:").grid(row=0, column=4, padx=5)
+        custom_unit_var = tk.StringVar(value="ppm")
+        ttk.Combobox(custom_frame, textvariable=custom_unit_var,
+                    values=["ppm", "ppb", "wt%", "Ma", "ratio"],
+                    width=6).grid(row=0, column=5, padx=5)
+
+        # List to store custom elements
+        custom_elements = []
+
+        def add_custom_element():
+            """Add a custom element to the list"""
+            elem = custom_elem_var.get().strip()
+            val = custom_val_var.get().strip()
+            unit = custom_unit_var.get()
+
+            if not elem or not val:
+                return
+
+            try:
+                float_val = float(val)
+                custom_elements.append((elem, float_val, unit))
+                custom_elem_var.set("")
+                custom_val_var.set("")
+
+                # Update display
+                update_custom_list()
+            except ValueError:
+                messagebox.showerror("Invalid Value", "Value must be a number")
+
+        def update_custom_list():
+            """Update the list of custom elements"""
+            for widget in custom_display_frame.winfo_children():
+                widget.destroy()
+
+            for i, (elem, val, unit) in enumerate(custom_elements):
+                frame = tk.Frame(custom_display_frame)
+                frame.pack(fill=tk.X, pady=2)
+
+                tk.Label(frame, text=f"• {elem}: {val} {unit}").pack(side=tk.LEFT)
+
+                def remove_custom(idx=i):
+                    if idx < len(custom_elements):
+                        custom_elements.pop(idx)
+                        update_custom_list()
+
+                tk.Button(frame, text="✖", font=("Arial", 8),
+                        command=remove_custom, width=2).pack(side=tk.RIGHT)
+
+        # Add custom element button
+        tk.Button(custom_frame, text="Add Custom Element",
+                command=add_custom_element,
+                font=("Arial", 8)).grid(row=0, column=6, padx=10)
+
+        # Display custom elements
+        custom_display_frame = tk.Frame(elem_scrollable)
+        custom_display_frame.grid(row=elem_row+1, column=0, columnspan=6, sticky=tk.W, pady=5)
+
+        # Validation and save functions
+        def validate_and_save():
+            """Validate form and save reference material"""
+            # Check required fields
+            name = name_var.get().strip()
+            mat_type = type_var.get().strip()
+            reference = ref_var.get().strip()
+
+            if not name:
+                messagebox.showerror("Validation Error", "Material Name is required!")
+                return
+            if not mat_type:
+                messagebox.showerror("Validation Error", "Material Type is required!")
+                return
+            if not reference:
+                messagebox.showerror("Validation Error", "Citation/Reference is required!")
+                return
+
+            # Collect certified values
+            values = {}
+
+            # Add element values
+            for elem, var in element_vars.items():
+                val_str = var.get().strip()
+                if val_str:
+                    try:
+                        values[elem] = float(val_str)
+                    except ValueError:
+                        messagebox.showerror("Validation Error",
+                                        f"Invalid number for {elem}: {val_str}")
+                        return
+
+            # Add custom elements
+            for elem, val, unit in custom_elements:
+                if unit != "ppm":
+                    values[f"{elem}_{unit}"] = val
+                else:
+                    values[elem] = val
+
+            # Create reference material entry
+            new_material = {
+                "type": mat_type,
+                "reference": reference,
+                "values": values
+            }
+
+            # Add year if provided
+            year = year_var.get().strip()
+            if year:
+                new_material["year"] = year
+
+            # Add notes if provided
+            notes = notes_text.get("1.0", tk.END).strip()
+            if notes:
+                new_material["notes"] = notes
+
+            # Add to reference materials
+            self.ref_materials[name] = new_material
+
+            # Update reference tree in main tab
+            if hasattr(self, 'ref_tree'):
+                self.ref_tree.insert('', tk.END, values=(
+                    name,
+                    mat_type,
+                    reference[:30] + "...",
+                    str(len(values))
+                ))
+
+            # Close dialog
+            dialog.destroy()
+
+            # Log success
+            self._log_message(f"✅ Added reference material: {name} ({len(values)} certified values)")
+
+            # Show success message with option to export
+            response = messagebox.askyesno(
+                "Success",
+                f"✅ Reference material '{name}' added successfully!\n\n"
+                f"Material: {mat_type}\n"
+                f"Certified elements: {len(values)}\n\n"
+                "Would you like to export the updated database to CSV?"
+            )
+
+            if response:
+                self._export_references()
+
+        # Buttons
+        button_frame = tk.Frame(dialog)
+        button_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        tk.Button(button_frame, text="Save Reference Material",
+                command=validate_and_save,
+                bg="#27ae60", fg="white",
+                font=("Arial", 10, "bold"),
+                width=20).pack(side=tk.LEFT, padx=5)
+
+        tk.Button(button_frame, text="Cancel",
+                command=dialog.destroy,
+                bg="#e74c3c", fg="white",
+                width=15).pack(side=tk.RIGHT, padx=5)
+
+        # Quick load from known materials
+        quick_frame = tk.LabelFrame(dialog, text="Quick Load Template")
+        quick_frame.pack(fill=tk.X, padx=10, pady=5)
+
+        def load_template(template_name):
+            """Load a template material"""
+            if template_name in self.REFERENCE_MATERIALS:
+                template = self.REFERENCE_MATERIALS[template_name]
+                name_var.set(f"{template_name} (copy)")
+                type_var.set(template['type'])
+                ref_var.set(template['reference'])
+
+                # Clear existing values
+                for var in element_vars.values():
+                    var.set("")
+
+                # Set template values
+                for elem, val in template['values'].items():
+                    if elem in element_vars:
+                        element_vars[elem].set(str(val))
+
+        ttk.Button(quick_frame, text="Load NIST 610",
+                command=lambda: load_template("NIST 610")).pack(side=tk.LEFT, padx=5, pady=5)
+        ttk.Button(quick_frame, text="Load NIST 612",
+                command=lambda: load_template("NIST 612")).pack(side=tk.LEFT, padx=5, pady=5)
+        ttk.Button(quick_frame, text="Load GJ-1",
+                command=lambda: load_template("GJ-1 (Zircon)")).pack(side=tk.LEFT, padx=5, pady=5)
 
     def _import_references(self):
         """Import reference materials from CSV"""
         filename = filedialog.askopenfilename(
             title="Import Reference Materials",
-            filetypes=[("CSV files", "*.csv")]
+            filetypes=[("CSV files", "*.csv"), ("Excel files", "*.xlsx"), ("All files", "*.*")]
         )
-        if filename:
-            messagebox.showinfo("Import", f"Would import from: {filename}")
+
+        if not filename:
+            return
+
+        try:
+            if filename.endswith('.csv'):
+                df = pd.read_csv(filename)
+            elif filename.endswith(('.xlsx', '.xls')):
+                df = pd.read_excel(filename)
+            else:
+                messagebox.showerror("Format Error", "Unsupported file format. Please use CSV or Excel.")
+                return
+
+            # Parse the data
+            imported_count = 0
+            for idx, row in df.iterrows():
+                name = row.get('Material_Name') or row.get('Name')
+                if pd.isna(name):
+                    continue
+
+                mat_type = row.get('Type', 'Unknown')
+                reference = row.get('Reference', '')
+
+                # Extract values
+                values = {}
+                for col in df.columns:
+                    if col not in ['Material_Name', 'Name', 'Type', 'Reference', 'Year', 'Notes']:
+                        val = row[col]
+                        if pd.notna(val) and isinstance(val, (int, float)):
+                            values[col] = float(val)
+
+                if values:
+                    self.ref_materials[name] = {
+                        'type': mat_type,
+                        'reference': reference,
+                        'values': values
+                    }
+                    imported_count += 1
+
+            # Update tree
+            if hasattr(self, 'ref_tree'):
+                for item in self.ref_tree.get_children():
+                    self.ref_tree.delete(item)
+
+                for name, info in self.ref_materials.items():
+                    self.ref_tree.insert('', tk.END, values=(
+                        name,
+                        info['type'],
+                        info['reference'][:30] + "...",
+                        str(len(info['values']))
+                    ))
+
+            self._log_message(f"✅ Imported {imported_count} reference materials from {filename}")
+            messagebox.showinfo("Success", f"Imported {imported_count} reference materials")
+
+        except Exception as e:
+            messagebox.showerror("Import Error", f"Failed to import: {str(e)}")
+
+    def _export_references(self):
+        """Export reference materials to CSV"""
+        if not self.ref_materials:
+            messagebox.showwarning("No Data", "No reference materials to export!")
+            return
+
+        filename = filedialog.asksaveasfilename(
+            title="Export Reference Materials",
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("Excel files", "*.xlsx")]
+        )
+
+        if not filename:
+            return
+
+        try:
+            # Prepare data for export
+            all_elements = set()
+            for info in self.ref_materials.values():
+                all_elements.update(info['values'].keys())
+
+            all_elements = sorted(list(all_elements))
+
+            # Create DataFrame
+            rows = []
+            for name, info in self.ref_materials.items():
+                row = {
+                    'Material_Name': name,
+                    'Type': info['type'],
+                    'Reference': info['reference']
+                }
+
+                if 'year' in info:
+                    row['Year'] = info['year']
+                if 'notes' in info:
+                    row['Notes'] = info['notes']
+
+                for elem in all_elements:
+                    row[elem] = info['values'].get(elem, '')
+
+                rows.append(row)
+
+            df = pd.DataFrame(rows)
+
+            # Save to file
+            if filename.endswith('.csv'):
+                df.to_csv(filename, index=False)
+            else:
+                df.to_excel(filename, index=False)
+
+            self._log_message(f"✅ Exported {len(self.ref_materials)} reference materials to {filename}")
+            messagebox.showinfo("Success", f"Exported {len(self.ref_materials)} reference materials")
+
+        except Exception as e:
+            messagebox.showerror("Export Error", f"Failed to export: {str(e)}")
 
     def _export_references(self):
         """Export reference materials to CSV"""

@@ -1,0 +1,170 @@
+{
+  "scheme_name": "Folk Carbonate Classification (Allochems & Orthochems)",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Classify carbonate rocks based on allochems (grains) and orthochems (matrix/cement) after Folk (1959, 1962)",
+  "category": "software",
+  "icon": "🪨",
+  "reference": "Folk, R.L. (1959). Practical petrographic classification of limestones. AAPG Bulletin, 43(1), 1-38. / Folk, R.L. (1962). Spectral subdivision of limestone types. AAPG Memoir 1, 62-84.",
+  "field": "Sedimentology",
+
+  "requires_fields": [
+    "Allochems_pct",
+    "Micrite_pct",
+    "Sparite_pct",
+    "Allochem_Type"
+  ],
+
+  "classifications": [
+    {
+      "name": "INTRASPARITE",
+      "color": "#4CAF50",
+      "description": "Intraclasts > other allochems, sparite > micrite",
+      "priority": 1,
+      "rules": [
+        { "field": "Allochem_Type", "operator": "=", "value": "intraclasts" },
+        { "field": "Sparite_pct", "operator": ">", "value": "Micrite_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "INTRAMICRITE",
+      "color": "#8BC34A",
+      "description": "Intraclasts > other allochems, micrite > sparite",
+      "priority": 2,
+      "rules": [
+        { "field": "Allochem_Type", "operator": "=", "value": "intraclasts" },
+        { "field": "Micrite_pct", "operator": ">", "value": "Sparite_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "OOSPARITE",
+      "color": "#FFC107",
+      "description": "Ooids > other allochems, sparite > micrite",
+      "priority": 3,
+      "rules": [
+        { "field": "Allochem_Type", "operator": "=", "value": "ooids" },
+        { "field": "Sparite_pct", "operator": ">", "value": "Micrite_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "OOMICRITE",
+      "color": "#FF9800",
+      "description": "Ooids > other allochems, micrite > sparite",
+      "priority": 4,
+      "rules": [
+        { "field": "Allochem_Type", "operator": "=", "value": "ooids" },
+        { "field": "Micrite_pct", "operator": ">", "value": "Sparite_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "BIOSPARITE",
+      "color": "#2196F3",
+      "description": "Fossils/bioclasts > other allochems, sparite > micrite",
+      "priority": 5,
+      "rules": [
+        { "field": "Allochem_Type", "operator": "=", "value": "bioclasts" },
+        { "field": "Sparite_pct", "operator": ">", "value": "Micrite_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "BIOMICRITE",
+      "color": "#03A9F4",
+      "description": "Fossils/bioclasts > other allochems, micrite > sparite",
+      "priority": 6,
+      "rules": [
+        { "field": "Allochem_Type", "operator": "=", "value": "bioclasts" },
+        { "field": "Micrite_pct", "operator": ">", "value": "Sparite_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "PELSPARITE",
+      "color": "#9C27B0",
+      "description": "Peloids > other allochems, sparite > micrite",
+      "priority": 7,
+      "rules": [
+        { "field": "Allochem_Type", "operator": "=", "value": "peloids" },
+        { "field": "Sparite_pct", "operator": ">", "value": "Micrite_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "PELMICRITE",
+      "color": "#673AB7",
+      "description": "Peloids > other allochems, micrite > sparite",
+      "priority": 8,
+      "rules": [
+        { "field": "Allochem_Type", "operator": "=", "value": "peloids" },
+        { "field": "Micrite_pct", "operator": ">", "value": "Sparite_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "MICRITE (CALCILUTITE)",
+      "color": "#795548",
+      "description": "Allochems < 10%, micrite dominant",
+      "priority": 9,
+      "rules": [
+        { "field": "Allochems_pct", "operator": "<", "value": 10.0 },
+        { "field": "Micrite_pct", "operator": ">", "value": 90.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "DISMICRITE",
+      "color": "#A1887F",
+      "description": "Micrite with spar-filled fenestrae/veins",
+      "priority": 10,
+      "rules": [
+        { "field": "Allochems_pct", "operator": "<", "value": 10.0 },
+        { "field": "Micrite_pct", "operator": ">", "value": 50.0 },
+        { "field": "Sparite_pct", "operator": ">", "value": 10.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.80
+    },
+    {
+      "name": "SPARRITE (CALCARENITE)",
+      "color": "#D7CCC8",
+      "description": "Allochems > 10%, sparite > micrite",
+      "priority": 11,
+      "rules": [
+        { "field": "Allochems_pct", "operator": ">=", "value": 10.0 },
+        { "field": "Sparite_pct", "operator": ">", "value": "Micrite_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "INSUFFICIENT PETROGRAPHIC DATA",
+      "color": "#9E9E9E",
+      "description": "Missing allochem percentages, micrite/sparite ratios, or allochem type",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Folk_Carbonate_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.70,
+  "flag_column_name": "Flag_For_Review"
+}

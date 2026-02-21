@@ -7,12 +7,10 @@
   "category": "software",
   "icon": "⚒️",
   "reference": "Levinson, 1974; standard geochemical exploration practice",
-  "field": "Economic Geology / Exploration",
-
+  "field": "Economic Geology",
   "requires_fields": [
     "Cu_ppm"
   ],
-
   "classifications": [
     {
       "name": "BACKGROUND (<10 ppm Cu)",
@@ -90,7 +88,6 @@
       "confidence_score": 0.0
     }
   ],
-
   "output_column_name": "Anomaly_Status",
   "add_confidence_column": true
 }

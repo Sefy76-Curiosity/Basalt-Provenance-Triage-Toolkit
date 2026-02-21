@@ -1,0 +1,147 @@
+{
+  "scheme_name": "QAPF Mineralogical Classification",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "IUGS modal mineralogy classification using Quartz (Q), Alkali Feldspar (A), Plagioclase (P), and Feldspathoids (F)",
+  "category": "software",
+  "icon": "🪨",
+  "reference": "IUGS Subcommission on the Systematics of Igneous Rocks (Le Maitre et al., 2002)",
+  "field": "Igneous Petrology",
+
+  "requires_fields": [
+    "Q_pct",
+    "A_pct",
+    "P_pct",
+    "F_pct"
+  ],
+
+  "classifications": [
+    {
+      "name": "GRANITE (Q 20–60%, A > P)",
+      "color": "#F44336",
+      "description": "Quartz-rich plutonic rock with alkali feldspar dominance",
+      "priority": 1,
+      "rules": [
+        { "field": "Q_pct", "operator": "between", "min": 20.0, "max": 60.0 },
+        { "field": "A_pct", "operator": ">", "value": "P_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "GRANODIORITE (Q 20–60%, P > A)",
+      "color": "#E91E63",
+      "description": "Quartz-rich plutonic rock with plagioclase dominance",
+      "priority": 2,
+      "rules": [
+        { "field": "Q_pct", "operator": "between", "min": 20.0, "max": 60.0 },
+        { "field": "P_pct", "operator": ">", "value": "A_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "TONALITE (Q 5–20%, P > A)",
+      "color": "#9C27B0",
+      "description": "Moderately quartz-bearing plutonic rock dominated by plagioclase",
+      "priority": 3,
+      "rules": [
+        { "field": "Q_pct", "operator": "between", "min": 5.0, "max": 20.0 },
+        { "field": "P_pct", "operator": ">", "value": "A_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "SYENITE (Q < 5%, A > 90% of A+P)",
+      "color": "#673AB7",
+      "description": "Quartz-poor plutonic rock dominated by alkali feldspar",
+      "priority": 4,
+      "rules": [
+        { "field": "Q_pct", "operator": "<", "value": 5.0 },
+        { "field": "A_pct/(A_pct+P_pct)", "operator": ">", "value": 0.90 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "MONZONITE (Q < 5%, A/P between 0.5–2.0)",
+      "color": "#3F51B5",
+      "description": "Quartz-poor plutonic rock with balanced A and P",
+      "priority": 5,
+      "rules": [
+        { "field": "Q_pct", "operator": "<", "value": 5.0 },
+        { "field": "A_pct/P_pct", "operator": "between", "min": 0.5, "max": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "DIORITE (Q < 5%, P > A)",
+      "color": "#2196F3",
+      "description": "Quartz-poor plutonic rock dominated by plagioclase",
+      "priority": 6,
+      "rules": [
+        { "field": "Q_pct", "operator": "<", "value": 5.0 },
+        { "field": "P_pct", "operator": ">", "value": "A_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "FOID-SYENITE (F > 10%, A > P)",
+      "color": "#009688",
+      "description": "Feldspathoid-bearing plutonic rock with alkali feldspar dominance",
+      "priority": 7,
+      "rules": [
+        { "field": "F_pct", "operator": ">", "value": 10.0 },
+        { "field": "A_pct", "operator": ">", "value": "P_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "FOID-MONZONITE (F > 10%, A/P between 0.5–2.0)",
+      "color": "#4CAF50",
+      "description": "Feldspathoid-bearing plutonic rock with balanced A and P",
+      "priority": 8,
+      "rules": [
+        { "field": "F_pct", "operator": ">", "value": 10.0 },
+        { "field": "A_pct/P_pct", "operator": "between", "min": 0.5, "max": 2.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "FOID-DIORITE (F > 10%, P > A)",
+      "color": "#8BC34A",
+      "description": "Feldspathoid-bearing plutonic rock dominated by plagioclase",
+      "priority": 9,
+      "rules": [
+        { "field": "F_pct", "operator": ">", "value": 10.0 },
+        { "field": "P_pct", "operator": ">", "value": "A_pct" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "INSUFFICIENT MODAL DATA",
+      "color": "#9E9E9E",
+      "description": "Missing Q, A, P, or F modal percentages",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "QAPF_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
+}

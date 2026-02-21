@@ -1,391 +1,532 @@
-# 🚀 Quick Start Guide
+🚀 Quick Start Guide
 
-**Get Scientific Toolkit running in 5 minutes.**
+Get Scientific Toolkit running in 5 minutes.
+*70 classification engines · 50 protocols · 37 software plugins · 23 add-ons · 7 hardware suites*
+⚠️ Before You Start
 
----
+This software is provided "AS IS" - you are responsible for validating results.
 
-## ⚠️ Before You Start
+    Always check that results make sense for your samples
 
-**This software is provided "AS IS" - you are responsible for validating results.**
+    Verify methods are appropriate for your data type
 
-- Always check that results make sense for your samples
-- Verify methods are appropriate for your data type
-- Report bugs and issues on GitLab
-- Read citations for methods you use
+    Report bugs and issues on GitLab
 
-**Found a problem?** → https://gitlab.com/sefy76/scientific-toolkit/-/issues
+    Read citations for methods you use
 
----
+Found a problem? → https://gitlab.com/sefy76/scientific-toolkit/-/issues
+✅ Prerequisites
+Requirement	Minimum	Recommended
+Python	3.8	3.10+
+pip	Any version	Latest
+Disk Space	50 MB	500 MB (with all plugins)
+RAM	2 GB	4 GB
+OS	Windows 10, macOS 10.14, Linux	Latest versions
+📦 Installation (3 minutes)
+Step 1: Download
+bash
 
-## Prerequisites
-
-✅ Python 3.8 or higher installed  
-✅ pip package manager  
-✅ 50 MB free disk space  
-
----
-
-## Installation (3 minutes)
-
-### Step 1: Download
-
-```bash
 # Clone the repository
 git clone https://gitlab.com/sefy76/scientific-toolkit.git
 cd scientific-toolkit
-```
 
-Or download ZIP from GitLab and extract.
+# Or download ZIP from GitLab and extract
 
-### Step 2: Install Dependencies
+Step 2: Install Dependencies
 
-**Minimal installation (core features):**
-```bash
-pip install numpy pandas matplotlib
-```
+Choose your installation type:
+Installation	Command	What You Get
+Minimal	pip install numpy pandas matplotlib	Core features, 70 engines, basic plotting
+Standard	pip install -r requirements.txt	All 37 software plugins + 23 add-ons
+Hardware	Add pyserial hidapi bleak	All 7 hardware suites
+Full	All of the above	Everything
+Step 3: Launch
+bash
 
-**Full installation (all features):**
-```bash
-pip install -r requirements.txt
-```
-
-### Step 3: Launch
-
-```bash
 python Scientific-Toolkit.py
-```
 
-**Windows users:** Double-click `Scientific-Toolkit.py`
+Windows users: Double-click Scientific-Toolkit.py
+First launch: May take 30-60 seconds to initialize plugins
+🎯 First Use (2 minutes)
+1. Load Sample Data
+text
 
----
+File → Import Data → CSV
+Navigate to /samples/master_test_list.csv
+Click Open
 
-## First Use (2 minutes)
+✅ You should see data loaded in the main table (center panel)
+2. Run Your First Classification
+text
 
-### Load Sample Data
+Classify → Geochemistry → TAS Volcanic Classification
 
-1. **File → Import Data → CSV**
-2. Navigate to `/samples/master_test_list.csv`
-3. Click Open
+✅ Results dialog shows rock types for your samples
+✅ Click "Add to Dataset" to save classifications
+3. Create Your First Plot
+text
 
-You should see data loaded in the main table.
-
-### Run Your First Classification
-
-1. **Classify → Geochemistry → TAS Volcanic Classification**
-2. A results dialog will show rock types for your samples
-3. Click "Add to Dataset" to save classifications
-
-### Create Your First Plot
-
-1. Select samples in the table (Ctrl+Click or Shift+Click)
-2. **Visualize → Scatter Plot**
-3. Choose X-axis: `SiO2_wt%`
-4. Choose Y-axis: `Na2O_K2O_wt%` (total alkalis)
+1. Select samples (Ctrl+Click or Shift+Click)
+2. Visualize → Scatter Plot
+3. X-axis: SiO2_wt%
+4. Y-axis: Na2O_wt + K2O_wt
 5. Click "Plot"
 
-Congratulations! You've created a TAS diagram.
+✅ Congratulations! You've created a TAS diagram
+4. Try a Protocol
+text
 
----
+Protocols → Behrensmeyer Weathering Protocol
+Select a sample with weathering data
+Run protocol
 
-## Common First Tasks
+✅ Returns weathering stage (0-5) with description
+🧭 Understanding the Interface
+Main Window Layout
+text
 
-### Task 1: Import Your Own Data
+┌─────────────────────────────────────────────────────────────┐
+│  Menu Bar: File | Classify | Protocols | Visualize | Hardware │
+├─────────┬───────────────────────────┬───────────────────────┤
+│  LEFT   │        CENTER              │        RIGHT          │
+│  Panel  │     (Data Table)           │       Panel           │
+│  (10%)  │        80%                 │        (10%)          │
+│         │                            │                       │
+│ 📂 Import│ Sample_ID  Zr_ppm  Nb_ppm  │   🔬 Classification   │
+│ 📝 Manual│ HAZ-001    245     22.3    │   • TAS Diagram       │
+│ Entry   │ HAZ-002    238     21.8    │   • AFM Series        │
+│         │ HAZ-003    252     23.1    │   • REE Patterns      │
+│ 🔌      │ ...                       │   ▶ Apply              │
+│ Hardware│                            │                       │
+│ Buttons │                            │   📊 HUD Preview       │
+└─────────┴───────────────────────────┴───────────────────────┘
+│  Status: 156 samples | 24 columns | Memory: 245MB | Ready   │
+└─────────────────────────────────────────────────────────────┘
 
-**Supported formats:**
-- CSV files
-- Excel (.xlsx, .xls)
-- Tab-delimited text
+Key Controls
+Shortcut	Action
+Ctrl+A	Select all samples
+Ctrl+F	Focus search box
+Ctrl+S	Save project
+Delete	Remove selected samples
+Right-click	Context menu with quick actions
+F1	Keyboard shortcuts help
+📋 Common First Tasks
+Task 1: Import Your Own Data
 
-**Required columns:**
-- `Sample_ID` (or will auto-generate)
-- Your measurement columns (any naming convention works)
+Supported formats:
 
-**Import steps:**
-1. File → Import Data → Choose format
-2. Select your file
-3. Data appears in main table
+    ✅ CSV files (any delimiter)
 
-### Task 2: Connect a Hardware Device
+    ✅ Excel (.xlsx, .xls)
 
-**Example: Bruker pXRF**
+    ✅ Tab-delimited text
 
-1. **Hardware → XRF Analyzers → Bruker Tracer Suite**
-2. Click "File Monitor" tab
-3. Select folder where Bruker saves files
-4. Click "Start Monitoring"
-5. New measurements auto-import as you collect them
+    ✅ Spectral files (.spa, .opj, .dpt)
 
-**Supported devices:** 26+ instruments (see Plugin Guide)
+Required columns:
 
-### Task 3: Apply a Classification
+    Sample_ID (will auto-generate if missing)
 
-**Example: Soil Texture**
+    Your measurement columns (any naming works)
 
-1. Ensure you have `Sand_%`, `Silt_%`, `Clay_%` columns
-2. **Classify → Soil Science → USDA Soil Texture**
-3. Results show texture class (e.g., "Loam", "Sandy Clay")
-4. Add to dataset
+Import steps:
+text
 
-**Available classifications:** 41 engines across all fields
+File → Import Data → Choose format → Select file
 
-### Task 4: Run Statistical Analysis
+Task 2: Connect a Hardware Device
 
-**Example: PCA**
+Example: Mitutoyo Digital Caliper
+text
+
+Hardware → Physical Properties → Digital Calipers
+Select brand: Mitutoyo
+Connection: USB HID
+Click "Connect"
+Place caliper in measurement field
+Click "Read"
+
+✅ Value appears in the field
+
+All 7 hardware suites work the same way:
+
+    Barcode/QR Scanner
+
+    Elemental Geochemistry
+
+    Mineralogy (RRUFF)
+
+    Physical Properties
+
+    Solution Chemistry
+
+    Spectroscopy
+
+    Zooarchaeology
+
+Task 3: Apply a Classification
+
+Example: Soil Texture
+
+    Ensure you have Sand_%, Silt_%, Clay_% columns
+
+    Classify → Soil Science → USDA Soil Texture
+
+    Results show texture class (e.g., "Loam", "Sandy Clay")
+
+    Click "Add to Dataset"
+
+Available classifications: 70 across all fields
+Task 4: Run a Protocol
+
+Example: Zooarchaeology Fragmentation
+text
+
+Protocols → Zooarchaeology Fragmentation Protocol
+Select sample with bone measurements
+Run protocol
+
+✅ Returns fragmentation index, breakage pattern, freshness
+Task 5: Statistical Analysis
+
+Example: PCA
+text
 
 1. Select samples with numeric data
-2. **Advanced → PCA+LDA Explorer**
-3. Choose variables to include
+2. Advanced → PCA+LDA Explorer
+3. Choose variables (e.g., Zr, Nb, Ba, Rb)
 4. Click "Run PCA"
 5. Interactive biplot appears with variance explained
 
-### Task 5: Export Publication Figure
+Task 6: Export Publication Figure
+text
 
 1. Create your plot
-2. **Plot → Apply Template → Journal Styles → Nature Style**
-3. Adjust labels, colors as needed
-4. **File → Export → High-Resolution PDF**
-5. 300+ DPI publication-ready output
+2. Plot → Apply Template → Journal Styles → Nature Style
+3. Adjust labels as needed
+4. File → Export → High-Resolution PDF
+5. 300 DPI publication-ready output
 
----
+🔍 Example Workflows by Field
+🌋 Igneous Petrology Workflow
+text
 
-## Understanding the Interface
-
-### Main Window Layout
-
-```
-┌─────────────────────────────────────────────────┐
-│  Menu Bar: File | Classify | Visualize |        │
-│           Hardware | Advanced                    │
-├─────────┬───────────────────────────┬───────────┤
-│  Left   │   Center (Data Table)     │  Right    │
-│  Panel  │                           │  Panel    │
-│         │   Your samples display    │           │
-│ Filters │   here with all columns   │  Stats    │
-│ Search  │                           │  Info     │
-│         │                           │           │
-└─────────┴───────────────────────────┴───────────┘
-│  Status Bar: Sample count | Memory | Messages   │
-└─────────────────────────────────────────────────┘
-```
-
-### Key Controls
-
-- **Ctrl+A**: Select all samples
-- **Ctrl+F**: Find/Filter
-- **Ctrl+S**: Save project
-- **Delete**: Remove selected samples
-- **Right-click**: Context menu with quick actions
-
----
-
-## Example Workflows
-
-### Workflow 1: Geochemistry Analysis (Igneous Rocks)
-
-```
 1. Import XRF data (CSV or direct from instrument)
-2. Classify → TAS Volcanic Classification
-3. Classify → AFM Series (Tholeiitic vs Calc-Alkaline)
-4. Classify → REE Patterns (if trace elements available)
-5. Visualize → Scatter Plot (SiO2 vs K2O)
-6. Apply Template → AGU Style
-7. Export → PDF
-```
+2. Classify → TAS Volcanic Classification (Le Bas et al. 1986)
+3. Classify → AFM Series (Irvine & Baragar 1971)
+4. Classify → REE Patterns (Sun & McDonough 1989)
+5. Software → Advanced Normative Calculations (CIPW norm)
+6. Visualize → Ternary Diagram (QAPF)
+7. Apply Template → AGU Style
+8. Export → PDF
 
-### Workflow 2: Archaeological Bone Analysis
+Time: 5 minutes | Outputs: Rock type, magma series, normative minerals
+🦴 Zooarchaeology Workflow
+text
 
-```
-1. Import FTIR or ICP-MS data
-2. Classify → Bone Collagen QC (check C:N ratios)
-3. Classify → Bone Diagenesis (Ca/P ratios)
-4. Classify → Trophic Diet (δ13C, δ15N if available)
-5. Advanced → PCA Explorer (compare preservation states)
-6. Export results to CSV
-```
+1. Hardware → Zooarchaeology Suite → Connect calipers
+2. Measure bone (GL, Bd, SD, etc.)
+3. Protocol → Behrensmeyer Weathering Protocol
+4. Protocol → Shipman & Rose Burning Protocol
+5. Classify → Bone Collagen QC (C:N ratio)
+6. Classify → Trophic Level (Sr/Ca)
+7. Software → Zooarchaeology Analytics (NISP/MNI)
+8. Export results to CSV
 
-### Workflow 3: Field Work with Portable XRF
+Time: 10 minutes | Outputs: Species, age, taphonomy, diet
+⛏️ Field Geology Workflow
+text
 
-```
-1. Hardware → XRF Analyzers → Niton/Vanta Parser
-2. Connect USB drive or set file monitor
-3. Measurements auto-import as you scan
-4. Real-time classification (e.g., provenance)
-5. Export daily summary
-6. Sync to cloud (manual copy to Dropbox/Drive)
-```
+1. Hardware → GNSS (connect Emlid Reach)
+2. Start streaming position
+3. Hardware → pXRF (connect SciAps/Bruker)
+4. Scan samples in field
+5. Data auto-imports with coordinates
+6. Classify → Provenance Fingerprinting
+7. Visualize → 3D GIS Viewer
+8. Export → Google Earth KML
 
-### Workflow 4: Soil Survey
+Time: Real-time | Outputs: Geochemical maps with coordinates
+🌱 Soil Science Workflow
+text
 
-```
-1. Import field data (texture, EC, GPS coords)
+1. Import field data (texture, EC, pH, coordinates)
 2. Classify → USDA Soil Texture
 3. Classify → Soil Salinity (EC-based)
-4. Advanced → 3D GIS Viewer
-5. Load GPS points + attribute data
-6. Export to Google Earth KML
-```
+4. Classify → Soil Sodicity (SAR)
+5. Protocol → USDA Soil Morphology Protocol
+6. Visualize → 3D GIS Viewer with terrain
+7. Export → Google Earth KML
 
----
+Time: 5 minutes | Outputs: Soil classification, salinity hazard, 3D maps
+⏳ Geochronology Workflow
+text
 
-## Enabling Optional Features
+1. Import LA-ICP-MS data
+2. Software → LA-ICP-MS Pro (signal processing)
+3. Software → Geochronology Suite
+4. Plot U-Pb concordia (Wetherill or Tera-Wasserburg)
+5. Calculate ages with discordance filter
+6. Export ages to main table
 
-### Enable AI Assistants
+Time: 10 minutes | Outputs: U-Pb ages, concordia diagrams
+🧪 Isotope Geochemistry Workflow
+text
 
-1. **Plugins → Add-ons → Claude AI** (or ChatGPT, Gemini, etc.)
-2. Enter your API key (get free tier from provider)
-3. Ask questions about your data
-4. Get interpretation suggestions
+1. Import Sr-Nd-Pb isotope data
+2. Software → Isotope Mixing Models
+3. Select end-members (MORB, OIB, EM1, EM2, HIMU)
+4. Run binary or ternary mixing
+5. Optional: Monte Carlo for uncertainty
+6. Optional: Bayesian MCMC inversion
+7. Export mixing proportions
 
-**Free option:** Use **Ollama** for fully local AI (no API key needed)
+Time: 5 minutes | Outputs: Mixing proportions, provenance
+🔌 Enabling Optional Features
+Enable AI Assistants
+text
 
-### Enable Advanced Plotting
+Advanced → Plugin Manager → Add-ons → Select AI plugin
+Click "Install Dependencies" (auto-installs required packages)
+Enter API key when prompted
 
-Already installed with full requirements.txt:
-- **Matplotlib Plotter**: Standard plots
-- **Seaborn Plotter**: Statistical visualizations
-- **Ternary Plotter**: Three-component diagrams
-- **GIS Plotter**: Spatial maps
+Free options:
 
-### Enable Hardware Devices
+    Ollama AI - Fully local, no API key needed
 
-**No additional software needed** - plugins detect instruments via:
-- USB serial (XRF, FTIR, GPS, meters)
-- File monitoring (universal fallback)
+    Claude/Gemini/ChatGPT - Free tiers available
 
----
+Enable Advanced Plotting
 
-## Troubleshooting Quick Fixes
+Already included in full installation:
 
-### "Module not found" error
-```bash
+    Matplotlib Plotter: Standard plots
+
+    Seaborn Plotter: Statistical visualizations
+
+    Ternary Plotter: Three-component diagrams
+
+    GIS Plotter: Spatial maps with basemaps
+
+Enable Hardware Devices
+
+No additional software needed - plugins auto-detect:
+
+    USB serial (XRF, FTIR, GPS, meters)
+
+    USB HID (calipers)
+
+    Bluetooth LE (wireless devices)
+
+    File monitoring (universal fallback)
+
+🆘 Troubleshooting Quick Fixes
+"Module not found" error
+bash
+
 pip install [module-name]
-```
+# Or use Plugin Manager (auto-installs dependencies)
 
-### Data won't import
-- Check file encoding (UTF-8 recommended)
-- Ensure first row has column headers
-- Check for special characters in column names
+Data won't import
 
-### Classification returns no results
-- Verify required columns exist (check engine documentation)
-- Check for numeric data (not text) in measurement columns
-- Look for missing values (NaN)
+    Check file encoding (UTF-8 recommended)
 
-### Plots look wrong
-- Try different templates (some optimize for B&W, others for color)
-- Check data ranges (outliers can skew axes)
-- Use "Auto-scale" button to reset view
+    Ensure first row has column headers
 
-### Slow performance
-- Large datasets (>10,000 samples)? Enable pagination in settings
-- Close unused plugin windows
-- Restart application to clear memory
+    Check for special characters in column names
 
----
+    Try: File → Import Data → CSV with explicit delimiter
 
-## Next Steps
+Classification returns no results
 
-### Learn More
-- **[User Guide](USER_GUIDE.md)**: Comprehensive reference
-- **[Field Coverage](FIELDS_COVERED.md)**: Explore all 31 fields
-- **[Plugin Guide](PLUGIN_GUIDE.md)**: Deep dive into plugins
-- **[Classification Engines](CLASSIFICATION_ENGINES.md)**: All 41 engines explained
+    Verify required columns exist (check engine documentation)
 
-### Get Help
-- **[FAQ](FAQ.md)**: Common questions
-- **[Troubleshooting](TROUBLESHOOTING.md)**: Detailed problem solving
-- **GitLab Issues**: Ask the community
+    Check for numeric data (not text) in measurement columns
 
-### Contribute
-- Share your workflows
-- Request new features
-- Report bugs
-- Add translations
+    Look for missing values (NaN)
 
----
+    Try with sample data first to verify engine works
 
-## Tips for Success
+Protocol fails
 
-✅ **Start small**: Import 10-20 samples to learn the interface  
-✅ **Use sample data**: Practice with included datasets  
-✅ **One field at a time**: Don't try to learn all 31 fields at once  
-✅ **Read classification descriptions**: Hover over engines to see what they do  
-✅ **Save often**: Projects save to .toolkit files (JSON format)  
-✅ **Explore templates**: Try different journal styles to see preferences  
-✅ **Join community**: Share questions and discoveries  
+    Check that all required fields are present
 
----
+    Verify data types (text vs numbers)
 
-## Quick Reference Card
+    Some protocols need specific fields (e.g., weathering stage needs integer)
 
-### File Operations
-| Action | Menu Path | Shortcut |
-|--------|-----------|----------|
-| Import CSV | File → Import Data → CSV | Ctrl+O |
-| Save Project | File → Save Project | Ctrl+S |
-| Export Data | File → Export → CSV | Ctrl+E |
+Hardware not detected
 
-### Classification
-| Field | Menu Path |
-|-------|-----------|
-| Geochemistry | Classify → Geochemistry |
-| Archaeology | Classify → Archaeology |
-| Soil Science | Classify → Soil Science |
-| Meteoritics | Classify → Meteoritics |
+    Check USB connection
 
-### Visualization
-| Plot Type | Menu Path |
-|-----------|-----------|
-| Scatter | Visualize → Scatter Plot |
-| Ternary | Visualize → Ternary Diagram |
-| 3D | Advanced → 3D GIS Viewer |
-| Statistical | Advanced → PCA+LDA Explorer |
+    Ensure device is powered on
 
-### Hardware
-| Device Category | Menu Path |
-|-----------------|-----------|
-| XRF | Hardware → XRF Analyzers |
-| FTIR | Hardware → Spectroscopy → FTIR |
-| Universal | Hardware → File Monitor |
+    Linux: Add user to dialout group
 
----
+    Windows: Install device driver
 
-## You're Ready!
+    Try File Monitor fallback
+
+Plots look wrong
+
+    Try different templates (some optimize for B&W, others for color)
+
+    Check data ranges (outliers can skew axes)
+
+    Use "Auto-scale" button to reset view
+
+    Log scale may help with wide ranges
+
+Slow performance
+
+    Large datasets (>10,000 samples)? Enable pagination in settings
+
+    Close unused plugin windows
+
+    Restart application to clear memory
+
+    Use filters to work with subsets
+
+📚 Next Steps
+Learn More
+Document	What It Covers
+User Guide	Complete reference for all features
+CITATIONS.md	200+ academic citations for all methods
+Plugin Guide	Deep dive into all 67 plugins
+Protocol Guide	Using the 50 scientific protocols
+Hardware Guide	Setting up all 7 hardware suites
+Get Help
+
+    FAQ - Common questions answered
+
+    Troubleshooting - Detailed problem solving
+
+    GitLab Issues - Ask the community
+
+Contribute
+
+    Share your workflows
+
+    Request new features
+
+    Report bugs
+
+    Add translations
+
+    Create new classification schemes
+
+💡 Tips for Success
+
+✅ Start small: Import 10-20 samples to learn the interface
+✅ Use sample data: Practice with included datasets in /samples/
+✅ One field at a time: Don't try to learn all fields at once
+✅ Read descriptions: Hover over engines to see what they do
+✅ Save often: Projects save to .stproj files (Ctrl+S)
+✅ Use macros: Record repetitive tasks (Ctrl+R to start)
+✅ Explore templates: Try different journal styles
+✅ Join community: Share questions and discoveries
+✅ Report bugs: Every report makes the software better
+✅ Cite properly: Use CITATIONS.md for references
+📋 Quick Reference Card
+File Operations
+Action	Menu Path	Shortcut
+Import CSV	File → Import Data → CSV	Ctrl+I
+Save Project	File → Save Project	Ctrl+S
+Open Project	File → Open Project	Ctrl+O
+Export CSV	File → Export → CSV	Ctrl+E
+Export Script	File → Export to Python Script	(menu)
+Classification (70 engines)
+Field	Menu Path
+Geochemistry	Classify → Geochemistry
+Metamorphic	Classify → Metamorphic
+Sedimentology	Classify → Sedimentology
+Archaeology	Classify → Archaeology
+Soil Science	Classify → Soil Science
+Environmental	Classify → Environmental
+Meteoritics	Classify → Meteoritics
+Isotope	Classify → Isotope Geochemistry
+Protocols (50 workflows)
+Field	Menu Path
+Taphonomy	Protocols → Behrensmeyer Weathering
+Sediment	Protocols → Folk–Shepard Texture
+Environmental	Protocols → Hakanson Ecological Risk
+Igneous	Protocols → IUGS Igneous
+Zooarch	Protocols → Maresha Zooarchaeology
+Visualization
+Plot Type	Menu Path
+Scatter	Visualize → Scatter Plot
+Ternary	Visualize → Ternary Diagram
+Spider	Visualize → REE Spider
+3D Map	Advanced → 3D GIS Viewer
+Statistical	Advanced → PCA+LDA Explorer
+Hardware (7 suites)
+Device Category	Menu Path
+Barcode/QR	Hardware → Barcode Scanner
+XRF	Hardware → Elemental Geochemistry
+Mineralogy	Hardware → Mineralogy
+Calipers/Balances	Hardware → Physical Properties
+pH/EC Meters	Hardware → Solution Chemistry
+Spectrometers	Hardware → Spectroscopy
+Zooarchaeology	Hardware → Zooarchaeology
+🎉 You're Ready!
 
 You now know enough to:
-- ✅ Import data
-- ✅ Run classifications
-- ✅ Create plots
-- ✅ Export results
 
-**Explore at your own pace.** Scientific Toolkit grows with your needs.
+    ✅ Import data from files or instruments
 
----
+    ✅ Run 70 classification engines
 
-## 🧪 Help Improve This Software
+    ✅ Execute 50 scientific protocols
 
-**Your testing and feedback is essential!**
+    ✅ Create publication-quality plots
+
+    ✅ Export results and scripts
+
+    ✅ Record macros for automation
+
+Explore at your own pace. Scientific Toolkit grows with your needs.
+🧪 Help Improve This Software
+
+Your testing and feedback is essential!
 
 As you use the toolkit:
-- ✅ Verify results make sense for your samples
-- ✅ Cross-check important results with other tools
-- ✅ Report bugs or unexpected behavior
-- ✅ Share what works well (and what doesn't)
 
-**Found an issue?** → [Report on GitLab](https://gitlab.com/sefy76/scientific-toolkit/-/issues)
+    ✅ Verify results make sense for your samples
 
-**Everything working great?** → Star the repository and tell colleagues!
+    ✅ Cross-check important results with other tools
+
+    ✅ Report bugs or unexpected behavior
+
+    ✅ Share what works well (and what doesn't)
+
+Found an issue? → Report on GitLab
+
+Everything working great? → Star the repository and tell colleagues!
 
 Every bug report and piece of feedback makes this better for the entire scientific community.
+📞 Quick Contacts
 
----
+    Email: sefy76@gmail.com
 
-**Questions?** See [FAQ](FAQ.md) or open an issue on GitLab.
+    GitLab Issues: https://gitlab.com/sefy76/scientific-toolkit/-/issues
 
-**Want to go deeper?** Continue to [User Guide](USER_GUIDE.md).
+    DOI: https://doi.org/10.5281/zenodo.18499129
 
-<p align="center">
-  <a href="README.md">← Back to Main</a> •
-  <a href="INSTALLATION.md">Installation Details</a> •
-  <a href="USER_GUIDE.md">Full User Guide →</a>
-</p>
+Questions? See FAQ or open an issue on GitLab.
+
+Want to go deeper? Continue to User Guide.
+<p align="center"> <a href="README.md">← Back to Main</a> • <a href="INSTALLATION.md">Installation Details</a> • <a href="USER_GUIDE.md">Full User Guide →</a> </p>
+📊 Quick Stats Summary
+Category	Count
+Classification Engines	70
+Scientific Protocols	50
+Software Plugins	37
+Add-on Plugins	23
+Hardware Suites	7
+Total Plugins	67
+Built-in Citations	200+
+Sample Files	15+
+Lines of Code	~77,000
+
+⬇️ Download Now | ⭐ Star on GitLab | 🐛 Report Bug

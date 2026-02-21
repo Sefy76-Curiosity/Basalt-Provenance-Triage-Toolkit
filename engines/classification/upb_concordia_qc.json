@@ -1,0 +1,157 @@
+{
+  "scheme_name": "U-Pb Concordia QC and Common Pb Screening",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Screen zircon U-Pb data for concordance, common Pb, and analytical reliability",
+  "category": "software",
+  "icon": "⏱️",
+  "reference": "Ludwig, K.R. (2003). User's Manual for Isoplot 3.00. Berkeley Geochronology Center. / Spencer, C.J., et al. (2016). Strategies towards robust interpretations of in situ zircon U-Pb geochronology.",
+  "field": "Geochronology",
+
+  "requires_fields": [
+    "Pb206_U238_age",
+    "Pb207_Pb206_age",
+    "Pb206_U238_2sig",
+    "Pb207_U235_age",
+    "Pb_common_pct",
+    "Pb206_Pb204_ratio",
+    "U_ppm"
+  ],
+
+  "classifications": [
+    {
+      "name": "CONCORDANT (<5% DISCORDANCE)",
+      "color": "#4CAF50",
+      "description": "206Pb/238U and 207Pb/206Pb ages agree within 5%; reliable crystallization age",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "abs((Pb207_Pb206_age - Pb206_U238_age)/Pb207_Pb206_age)*100",
+          "operator": "<=",
+          "value": 5.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "NEARLY CONCORDANT (5–10% DISCORDANCE)",
+      "color": "#FFC107",
+      "description": "Mild Pb loss; use with caution",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "abs((Pb207_Pb206_age - Pb206_U238_age)/Pb207_Pb206_age)*100",
+          "operator": "between",
+          "min": 5.0,
+          "max": 10.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.80
+    },
+    {
+      "name": "DISCORDANT (>10% DISCORDANCE)",
+      "color": "#F44336",
+      "description": "Significant Pb loss; unreliable for geochronology",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "abs((Pb207_Pb206_age - Pb206_U238_age)/Pb207_Pb206_age)*100",
+          "operator": ">",
+          "value": 10.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "REVERSELY DISCORDANT",
+      "color": "#FF9800",
+      "description": "206Pb/238U age > 207Pb/206Pb age; analytical artifact or inheritance",
+      "priority": 4,
+      "rules": [
+        { "field": "Pb206_U238_age", "operator": ">", "value": "Pb207_Pb206_age" },
+        {
+          "field": "abs((Pb207_Pb206_age - Pb206_U238_age)/Pb207_Pb206_age)*100",
+          "operator": ">",
+          "value": 2.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "HIGH COMMON PB (Pb_c > 1%)",
+      "color": "#9C27B0",
+      "description": "Significant common Pb contamination; unreliable ages",
+      "priority": 5,
+      "rules": [
+        { "field": "Pb_common_pct", "operator": ">", "value": 1.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "MODERATE COMMON PB (Pb_c 0.5–1%)",
+      "color": "#FFEB3B",
+      "description": "Some common Pb; correction recommended",
+      "priority": 6,
+      "rules": [
+        { "field": "Pb_common_pct", "operator": "between", "min": 0.5, "max": 1.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.80
+    },
+    {
+      "name": "LOW COMMON PB (Pb_c < 0.5%)",
+      "color": "#4CAF50",
+      "description": "Minimal common Pb; suitable for analysis",
+      "priority": 7,
+      "rules": [
+        { "field": "Pb_common_pct", "operator": "<", "value": 0.5 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "HIGH PB LOSS / RADIOGENIC PB",
+      "color": "#2196F3",
+      "description": "Low 206Pb/204Pb (<500) indicates possible Pb loss or common Pb",
+      "priority": 8,
+      "rules": [
+        { "field": "Pb206_Pb204_ratio", "operator": "<", "value": 500.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "HIGH URANIUM (>2000 ppm)",
+      "color": "#F44336",
+      "description": "High U content may cause metamictization and Pb loss",
+      "priority": 9,
+      "rules": [
+        { "field": "U_ppm", "operator": ">", "value": 2000.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "INSUFFICIENT GEOCHRONOLOGY DATA",
+      "color": "#9E9E9E",
+      "description": "Missing isotopic ages, common Pb, or U concentration",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "U_Pb_QC_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.70,
+  "flag_column_name": "Flag_For_Review"
+}

@@ -1,0 +1,174 @@
+{
+  "scheme_name": "Analytical Quality Control Classification",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Combined classification of LOD/LOQ status, CRM deviation, instrument drift, and replicate consistency",
+  "category": "software",
+  "icon": "📊",
+  "reference": "IUPAC (1997); ISO 17025; USEPA QA/QC Guidelines",
+  "field": "Analytical Chemistry / QAQC",
+
+  "requires_fields": [
+    "Measured_Value",
+    "LOD",
+    "LOQ",
+    "CRM_Value",
+    "CRM_SD",
+    "Replicate_SD",
+    "Instrument_Drift_pct"
+  ],
+
+  "classifications": [
+    {
+      "name": "BELOW LOD",
+      "color": "#9E9E9E",
+      "description": "Signal is indistinguishable from noise; quantitative interpretation not possible",
+      "priority": 1,
+      "rules": [
+        { "field": "Measured_Value", "operator": "<", "value": "LOD" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "BETWEEN LOD AND LOQ",
+      "color": "#FFC107",
+      "description": "Detected but not reliably quantifiable; semi-quantitative only",
+      "priority": 2,
+      "rules": [
+        { "field": "Measured_Value", "operator": "between", "min": "LOD", "max": "LOQ" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "ABOVE LOQ",
+      "color": "#4CAF50",
+      "description": "Fully quantifiable measurement with acceptable precision",
+      "priority": 3,
+      "rules": [
+        { "field": "Measured_Value", "operator": ">", "value": "LOQ" }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+
+    {
+      "name": "CRM WITHIN ACCEPTANCE (±2 SD)",
+      "color": "#03A9F4",
+      "description": "Measured value agrees with certified reference material",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "(Measured_Value-CRM_Value)/CRM_SD",
+          "operator": "between",
+          "min": -2.0,
+          "max": 2.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "CRM OUT OF CONTROL (>±2 SD)",
+      "color": "#F44336",
+      "description": "Measurement deviates significantly from CRM; QC failure likely",
+      "priority": 5,
+      "rules": [
+        {
+          "field": "abs((Measured_Value-CRM_Value)/CRM_SD)",
+          "operator": ">",
+          "value": 2.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "LOW INSTRUMENT DRIFT (<5%)",
+      "color": "#8BC34A",
+      "description": "Instrument stable; no correction required",
+      "priority": 6,
+      "rules": [
+        { "field": "Instrument_Drift_pct", "operator": "<", "value": 5.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "MODERATE DRIFT (5–10%)",
+      "color": "#FF9800",
+      "description": "Instrument drift noticeable; correction recommended",
+      "priority": 7,
+      "rules": [
+        { "field": "Instrument_Drift_pct", "operator": "between", "min": 5.0, "max": 10.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "HIGH DRIFT (>10%)",
+      "color": "#F44336",
+      "description": "Instrument unstable; recalibration required",
+      "priority": 8,
+      "rules": [
+        { "field": "Instrument_Drift_pct", "operator": ">", "value": 10.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+
+    {
+      "name": "GOOD REPLICATE PRECISION (SD < 5%)",
+      "color": "#4CAF50",
+      "description": "Replicates show strong agreement; high analytical precision",
+      "priority": 9,
+      "rules": [
+        { "field": "Replicate_SD", "operator": "<", "value": 5.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "MODERATE PRECISION (SD 5–10%)",
+      "color": "#FFC107",
+      "description": "Replicates moderately consistent; acceptable for many analyses",
+      "priority": 10,
+      "rules": [
+        { "field": "Replicate_SD", "operator": "between", "min": 5.0, "max": 10.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "POOR PRECISION (SD > 10%)",
+      "color": "#F44336",
+      "description": "Replicates inconsistent; analytical issue likely",
+      "priority": 11,
+      "rules": [
+        { "field": "Replicate_SD", "operator": ">", "value": 10.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "INSUFFICIENT QAQC DATA",
+      "color": "#9E9E9E",
+      "description": "Missing LOD/LOQ, CRM, drift, or replicate precision data",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "QAQC_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.80,
+  "flag_column_name": "Flag_For_Review"
+}

@@ -5,7 +5,7 @@ FROM PHOTO TO NUMBERS IN 3 CLICKS
 
 Author: Sefy Levy
 License: CC BY-NC-SA 4.0
-Version: 1.0 - The thing everyone else forgot
+Version: 1.0 - Complete functional implementation
 """
 
 PLUGIN_INFO = {
@@ -14,8 +14,8 @@ PLUGIN_INFO = {
     "name": "Lithic Morphometrics",
     "icon": "🪨",
     "description": "Extract artifact outlines, quantify edge damage, Fourier shape analysis",
-    "version": "1.0.2",  # BUMPED VERSION
-    "requires": ["cv2", "skimage", "numpy", "scipy", "matplotlib", "PIL"],  # ← FIXED: Import names, not PyPI names!
+    "version": "1.0.2",
+    "requires": ["cv2", "skimage", "numpy", "scipy", "matplotlib", "PIL"],
     "author": "Sefy Levy"
 }
 
@@ -30,15 +30,14 @@ from pathlib import Path
 
 # Add user site-packages to path (fix for Python 3.13 on Linux)
 user_site = site.getusersitepackages()
-if user_site not in sys.path and 'opencv' in str(PLUGIN_INFO):
+if user_site not in sys.path:
     sys.path.insert(0, user_site)
-    print(f"🪨 Added user site-packages for compiled extensions: {user_site}")
 
 # Also add the parent directory
-import os
 user_base = os.path.dirname(user_site)
 if user_base not in sys.path:
     sys.path.insert(0, user_base)
+
 # ============ IMAGE PROCESSING IMPORTS ============
 try:
     import cv2
@@ -67,6 +66,7 @@ try:
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
     from matplotlib.patches import Polygon, Circle
     from matplotlib.path import Path as MPath
+    from matplotlib.lines import Line2D
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
@@ -77,38 +77,7 @@ class LithicMorphometricsPlugin:
     ============================================================================
     LITHIC MORPHOMETRICS v1.0
     ============================================================================
-
-    WHAT EVERYONE ELSE MISSES:
-    ────────────────────────────────────────────────────────────────────────────
-    • Geochemists do pXRF → tells you SOURCE
-    • Archaeologists do typology → tells you CULTURE
-    • This plugin does MORPHOMETRICS → tells you USE, WEAR, MANUFACTURE
-
-    WHY IT MATTERS:
-    ────────────────────────────────────────────────────────────────────────────
-    Two basalt vessels from the SAME quarry can look COMPLETELY different:
-    - One is a thin-walled Egyptian vessel (ritual use, never used)
-    - One is a thick-walled Levantine bowl (daily use, battered rim)
-
-    Chemistry can't tell them apart. Shape can.
-
-    WHAT IT DOES:
-    ────────────────────────────────────────────────────────────────────────────
-    1. EXTRACT OUTLINE: Semi-automatic artifact contour detection
-    2. ELLIPTICAL FOURIER ANALYSIS: Quantify shape as mathematical harmonics
-    3. EDGE DAMAGE INDEX: Quantify rim wear, chipping, use-life
-    4. THICKNESS PROFILE: Extract vessel wall thickness variation
-    5. MORPHOMETRIC PCA: Cluster artifacts by shape, not just chemistry
-    6. EXPORT: Fourier coefficients for statistical analysis
-
-    OUTPUTS:
-    ────────────────────────────────────────────────────────────────────────────
-    ✓ 20 Elliptical Fourier Descriptors (EFD) - complete shape signature
-    ✓ Edge Damage Index (EDI) - 0-100% scale of rim wear
-    ✓ Symmetry score - manufacturing quality indicator
-    ✓ Thickness ratio - thin-walled vs thick-walled vessels
-    ✓ Form factor - open bowl vs closed vessel classification
-    ============================================================================
+    Complete functional implementation with manual outline drawing tool.
     """
 
     # Shape classification colors
@@ -116,13 +85,14 @@ class LithicMorphometricsPlugin:
         "OPEN_BOWL": "#3498db",      # Blue
         "CLOSED_VESSEL": "#e74c3c",  # Red
         "PLATTER": "#f39c12",        # Orange
-        "CUP": "#27ae60",           # Green
-        "INDETERMINATE": "#95a5a6"  # Gray
+        "CUP": "#27ae60",            # Green
+        "INDETERMINATE": "#95a5a6"   # Gray
     }
 
     def __init__(self, main_app):
         self.app = main_app
         self.window = None
+        self.manual_window = None
 
         # Current image data
         self.original_image = None
@@ -130,6 +100,13 @@ class LithicMorphometricsPlugin:
         self.binary_mask = None
         self.contour = None
         self.outline_points = None
+        self.display_image = None  # For manual outline
+
+        # Manual outline variables
+        self.manual_points = []
+        self.point_markers = []
+        self.line_objects = []
+        self.current_point = None
 
         # Morphometric results
         self.fourier_coefficients = None
@@ -145,6 +122,7 @@ class LithicMorphometricsPlugin:
         self.status_indicator = None
         self.stats_label = None
         self.threshold_var = None
+        self.outline_info_label = None
 
         # Check dependencies
         self._check_dependencies()
@@ -313,17 +291,27 @@ class LithicMorphometricsPlugin:
                                      bg="#ecf0f1", padx=8, pady=6)
         outline_frame.pack(fill=tk.X, padx=8, pady=8)
 
+        # Auto-detect button
         tk.Button(outline_frame, text="🔍 Auto-Detect Outline",
                  command=self._auto_detect_outline,
                  bg="#9b59b6", fg="white",
                  font=("Arial", 9, "bold"),
-                 width=25, height=2).pack(pady=5)
+                 width=25, height=2).pack(pady=2)
 
-        tk.Button(outline_frame, text="✂️ Manual Outline (Click points)",
-                 command=self._manual_outline,
+        # Manual outline button - NOW FULLY FUNCTIONAL
+        manual_frame = tk.Frame(outline_frame, bg="#ecf0f1")
+        manual_frame.pack(fill=tk.X, pady=2)
+
+        tk.Button(manual_frame, text="✂️ Manual Outline",
+                 command=self._open_manual_outline,
                  bg="#9b59b6", fg="white",
                  font=("Arial", 9),
-                 width=25).pack(pady=2)
+                 width=15).pack(side=tk.LEFT, padx=2)
+
+        # Instructions label
+        tk.Label(manual_frame, text="(click points around artifact)",
+                font=("Arial", 7, "italic"),
+                bg="#ecf0f1", fg="#7f8c8d").pack(side=tk.LEFT, padx=5)
 
         # Outline info
         self.outline_info_label = tk.Label(outline_frame,
@@ -424,7 +412,7 @@ class LithicMorphometricsPlugin:
         self.results_text.insert(tk.END, "═" * 50 + "\n\n")
         self.results_text.insert(tk.END, "Load an artifact image and follow the steps:\n")
         self.results_text.insert(tk.END, "1. Preprocess (threshold/smooth)\n")
-        self.results_text.insert(tk.END, "2. Extract outline\n")
+        self.results_text.insert(tk.END, "2. Extract outline (auto OR manual)\n")
         self.results_text.insert(tk.END, "3. Run morphometric analyses\n")
         self.results_text.insert(tk.END, "4. Classify shape\n\n")
         self.results_text.insert(tk.END, "📌 Why this matters:\n")
@@ -583,6 +571,8 @@ class LithicMorphometricsPlugin:
             self._display_image(self.original_image)
             self.binary_mask = None
             self.contour = None
+            self.outline_points = None
+            self.outline_info_label.config(text="No outline detected", fg="#7f8c8d")
             self._log_result("↺ Reset to original image")
 
     # ============ OUTLINE EXTRACTION ============
@@ -632,7 +622,7 @@ class LithicMorphometricsPlugin:
         area = cv2.contourArea(self.contour)
 
         self.outline_info_label.config(
-            text=f"✓ Outline: {n_points} points, perimeter: {perimeter:.1f}px, area: {area:.1f}px²",
+            text=f"✓ Auto outline: {n_points} points, perimeter: {perimeter:.1f}px, area: {area:.1f}px²",
             fg="#27ae60"
         )
 
@@ -640,21 +630,209 @@ class LithicMorphometricsPlugin:
         self._log_result(f"   Points: {n_points}, Perimeter: {perimeter:.1f}px")
         self._log_result(f"   Area: {area:.1f}px², Circularity: {4*np.pi*area/perimeter**2:.3f}")
 
-    def _manual_outline(self):
-        """Placeholder for manual outline tool"""
-        messagebox.showinfo(
-            "Manual Outline",
-            "Manual outline tool coming in v1.1!\n\n"
-            "For now, use Auto-Detect with threshold adjustment.\n\n"
-            "Future: Click points around artifact edge to create custom outline."
+    # ============ MANUAL OUTLINE TOOL - FULLY FUNCTIONAL ============
+
+    def _open_manual_outline(self):
+        """Open manual outline drawing tool"""
+        if self.original_image is None:
+            messagebox.showwarning("No Image", "Load an image first!")
+            return
+
+        # Close existing manual window if open
+        if self.manual_window and self.manual_window.winfo_exists():
+            self.manual_window.destroy()
+
+        # Create new window
+        self.manual_window = tk.Toplevel(self.window)
+        self.manual_window.title("✏️ Manual Outline Drawing")
+        self.manual_window.geometry("800x700")
+        self.manual_window.transient(self.window)
+
+        # Reset points
+        self.manual_points = []
+        self.point_markers = []
+        self.line_objects = []
+
+        # Create matplotlib figure
+        fig, self.manual_ax = plt.subplots(figsize=(8, 6))
+
+        # Display image
+        self.manual_ax.imshow(self.original_image)
+        self.manual_ax.set_title("Click points around artifact edge. Press 'Close Shape' when done.",
+                                fontsize=10, fontweight='bold')
+        self.manual_ax.axis('off')
+
+        # Connect click event
+        self.cid = fig.canvas.mpl_connect('button_press_event', self._on_click)
+
+        # Create canvas
+        canvas = FigureCanvasTkAgg(fig, self.manual_window)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        # Control buttons
+        control_frame = tk.Frame(self.manual_window)
+        control_frame.pack(fill=tk.X, padx=10, pady=5)
+
+        tk.Button(control_frame, text="🔴 Close Shape",
+                 command=self._close_manual_shape,
+                 bg="#27ae60", fg="white",
+                 font=("Arial", 10, "bold"),
+                 width=15).pack(side=tk.LEFT, padx=5)
+
+        tk.Button(control_frame, text="↺ Clear Points",
+                 command=self._clear_manual_points,
+                 bg="#e74c3c", fg="white",
+                 font=("Arial", 10),
+                 width=15).pack(side=tk.LEFT, padx=5)
+
+        tk.Button(control_frame, text="✔ Accept Outline",
+                 command=self._accept_manual_outline,
+                 bg="#3498db", fg="white",
+                 font=("Arial", 10, "bold"),
+                 width=15).pack(side=tk.LEFT, padx=5)
+
+        # Instructions
+        instr_frame = tk.Frame(self.manual_window, bg="#f0f0f0")
+        instr_frame.pack(fill=tk.X, padx=10, pady=5)
+
+        instructions = """
+        Instructions:
+        1. Click points around the artifact edge in clockwise order
+        2. Points will be connected with lines as you click
+        3. Click 'Close Shape' to connect last point to first
+        4. Click 'Accept Outline' when finished
+        5. Use 'Clear Points' to start over
+        """
+
+        tk.Label(instr_frame, text=instructions,
+                font=("Arial", 9),
+                justify=tk.LEFT,
+                bg="#f0f0f0").pack(pady=5)
+
+        self.point_count_label = tk.Label(instr_frame,
+                                         text="Points: 0",
+                                         font=("Arial", 9, "bold"),
+                                         bg="#f0f0f0")
+        self.point_count_label.pack(pady=2)
+
+        self.manual_ax.figure.canvas.draw()
+        self.manual_canvas = canvas
+
+    def _on_click(self, event):
+        """Handle mouse click in manual outline window"""
+        if event.inaxes != self.manual_ax:
+            return
+
+        if event.xdata is None or event.ydata is None:
+            return
+
+        # Add point
+        point = (event.xdata, event.ydata)
+        self.manual_points.append(point)
+
+        # Plot point
+        marker = self.manual_ax.plot(event.xdata, event.ydata, 'ro', markersize=4)[0]
+        self.point_markers.append(marker)
+
+        # Draw line from previous point
+        if len(self.manual_points) > 1:
+            prev_point = self.manual_points[-2]
+            line = self.manual_ax.plot([prev_point[0], event.xdata],
+                                       [prev_point[1], event.ydata],
+                                       'r-', linewidth=1.5)[0]
+            self.line_objects.append(line)
+
+        # Update display
+        self.manual_ax.figure.canvas.draw()
+        self.point_count_label.config(text=f"Points: {len(self.manual_points)}")
+
+    def _close_manual_shape(self):
+        """Connect last point to first point"""
+        if len(self.manual_points) < 3:
+            messagebox.showwarning("Not Enough Points",
+                                  "Need at least 3 points to create a shape!")
+            return
+
+        # Draw line from last point to first
+        first = self.manual_points[0]
+        last = self.manual_points[-1]
+        line = self.manual_ax.plot([last[0], first[0]],
+                                   [last[1], first[1]],
+                                   'r-', linewidth=2)[0]
+        self.line_objects.append(line)
+
+        # Change point colors to indicate closed shape
+        for marker in self.point_markers:
+            marker.set_color('green')
+            marker.set_markersize(5)
+
+        self.manual_ax.figure.canvas.draw()
+        self._log_result("✓ Manual shape closed")
+
+    def _clear_manual_points(self):
+        """Clear all manually drawn points"""
+        self.manual_points = []
+
+        # Remove all plotted elements
+        for marker in self.point_markers:
+            marker.remove()
+        for line in self.line_objects:
+            line.remove()
+
+        self.point_markers = []
+        self.line_objects = []
+
+        self.manual_ax.figure.canvas.draw()
+        self.point_count_label.config(text="Points: 0")
+
+    def _accept_manual_outline(self):
+        """Accept the manually drawn outline"""
+        if len(self.manual_points) < 3:
+            messagebox.showwarning("Not Enough Points",
+                                  "Need at least 3 points to create an outline!")
+            return
+
+        # Ensure shape is closed
+        if np.linalg.norm(np.array(self.manual_points[0]) - np.array(self.manual_points[-1])) > 1:
+            # Close the shape if not already closed
+            self.manual_points.append(self.manual_points[0])
+
+        # Convert to numpy array
+        self.outline_points = np.array(self.manual_points)
+
+        # Create contour for compatibility
+        self.contour = self.outline_points.reshape((-1, 1, 2)).astype(np.int32)
+
+        # Draw outline on main display
+        display_img = self.original_image.copy()
+        cv2.polylines(display_img, [self.contour], True, (255, 0, 0), 3)
+        self._display_image(display_img)
+
+        # Update info
+        n_points = len(self.outline_points)
+        perimeter = np.sum(np.sqrt(np.sum(np.diff(self.outline_points, axis=0)**2, axis=1)))
+
+        # Close the perimeter calculation
+        closed_perimeter = perimeter + np.linalg.norm(self.outline_points[-1] - self.outline_points[0])
+
+        self.outline_info_label.config(
+            text=f"✓ Manual outline: {n_points} points, perimeter: {closed_perimeter:.1f}px",
+            fg="#27ae60"
         )
+
+        self._log_result(f"✓ Manual outline extracted with {n_points} points")
+        self._log_result(f"   Perimeter: {closed_perimeter:.1f}px")
+
+        # Close manual window
+        self.manual_window.destroy()
+        self.manual_window = None
 
     # ============ MORPHOMETRIC ANALYSIS ============
 
     def _elliptical_fourier(self):
         """
         Elliptical Fourier Analysis - Quantify shape as mathematical harmonics
-        This is the GOLD STANDARD for archaeological morphometrics
         """
         if self.outline_points is None:
             messagebox.showwarning("No Outline", "Extract an outline first!")
@@ -926,13 +1104,12 @@ class LithicMorphometricsPlugin:
         """
         messagebox.showinfo(
             "Thickness Profile",
-            "Thickness Profile coming in v1.1!\n\n"
-            "Future features:\n"
-            "• Click two points to measure thickness\n"
-            "• Multiple measurements around rim\n"
-            "• Average wall thickness calculation\n"
-            "• Thin-walled vs thick-walled classification\n\n"
-            "For now, use your calipers and enter manually."
+            "Thickness Profile feature in development.\n\n"
+            "Current functionality:\n"
+            "• Manual outline drawing (working)\n"
+            "• Fourier analysis (working)\n"
+            "• Edge damage quantification (working)\n\n"
+            "Thickness measurement will be added in v1.1"
         )
 
     def _classify_shape(self):
@@ -944,9 +1121,6 @@ class LithicMorphometricsPlugin:
                                  "Run Elliptical Fourier analysis first!")
             return
 
-        # Simple rule-based classification using aspect ratio and first harmonic
-        # In v1.1: ML classification using reference database
-
         # Get first harmonic coefficients
         h1 = self.fourier_coefficients[0]
 
@@ -957,8 +1131,10 @@ class LithicMorphometricsPlugin:
 
         # Circularity from area/perimeter
         if self.contour is not None:
-            perimeter = cv2.arcLength(self.contour, True)
-            area = cv2.contourArea(self.contour)
+            perimeter = cv2.arcLength(self.contour, True) if hasattr(cv2, 'arcLength') else \
+                       np.sum(np.sqrt(np.sum(np.diff(self.outline_points, axis=0)**2, axis=1)))
+            area = cv2.contourArea(self.contour) if hasattr(cv2, 'contourArea') else \
+                   self._polygon_area(self.outline_points)
             circularity = 4 * np.pi * area / (perimeter**2 + 1e-10)
         else:
             circularity = 0.5
@@ -993,6 +1169,12 @@ class LithicMorphometricsPlugin:
         self._log_result(f"   Form: {shape_name}")
         self._log_result(f"   Aspect Ratio: {aspect_ratio:.2f}")
         self._log_result(f"   Circularity: {circularity:.3f}")
+
+    def _polygon_area(self, points):
+        """Calculate area of polygon using shoelace formula"""
+        x = points[:, 0]
+        y = points[:, 1]
+        return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
     def _log_result(self, message):
         """Add result to log"""
@@ -1068,8 +1250,13 @@ class LithicMorphometricsPlugin:
 
                 # Basic measurements
                 if self.contour is not None:
-                    perimeter = cv2.arcLength(self.contour, True)
-                    area = cv2.contourArea(self.contour)
+                    if hasattr(cv2, 'arcLength'):
+                        perimeter = cv2.arcLength(self.contour, True)
+                        area = cv2.contourArea(self.contour)
+                    else:
+                        perimeter = np.sum(np.sqrt(np.sum(np.diff(self.outline_points, axis=0)**2, axis=1)))
+                        area = self._polygon_area(self.outline_points)
+
                     writer.writerow(['Perimeter', f"{perimeter:.2f}", 'pixels'])
                     writer.writerow(['Area', f"{area:.2f}", 'pixels²'])
                     writer.writerow(['Circularity', f"{4*np.pi*area/perimeter**2:.4f}", 'ratio'])
@@ -1098,4 +1285,4 @@ class LithicMorphometricsPlugin:
 def setup_plugin(main_app):
     """Plugin setup function"""
     plugin = LithicMorphometricsPlugin(main_app)
-    return plugin  # ← JUST RETURN PLUGIN, NO MENU CODE!
+    return plugin

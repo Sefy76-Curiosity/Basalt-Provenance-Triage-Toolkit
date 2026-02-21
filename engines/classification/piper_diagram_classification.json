@@ -1,0 +1,144 @@
+{
+  "scheme_name": "Piper Diagram Water Type Classification",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Classify water chemistry using Piper diagram fields based on cation and anion percentages",
+  "category": "software",
+  "icon": "💧",
+  "reference": "Piper, A.M. (1944). A graphic procedure in the geochemical interpretation of water analyses. USGS Transactions, American Geophysical Union.",
+  "field": "Hydrogeochemistry",
+
+  "requires_fields": [
+    "Ca_pct",
+    "Mg_pct",
+    "Na_pct",
+    "K_pct",
+    "Cl_pct",
+    "SO4_pct",
+    "HCO3_pct"
+  ],
+
+  "classifications": [
+    {
+      "name": "CALCIUM-BICARBONATE TYPE",
+      "color": "#4CAF50",
+      "description": "Ca > 50%, HCO3 > 50%; fresh, shallow groundwater",
+      "priority": 1,
+      "rules": [
+        { "field": "Ca_pct", "operator": ">", "value": 50.0 },
+        { "field": "HCO3_pct", "operator": ">", "value": 50.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "MIXED TYPE (NO DOMINANT ION)",
+      "color": "#FFC107",
+      "description": "No cation >50%, no anion >50%; mixed waters",
+      "priority": 2,
+      "rules": [
+        { "field": "Ca_pct", "operator": "<=", "value": 50.0 },
+        { "field": "Mg_pct", "operator": "<=", "value": 50.0 },
+        { "field": "Na_pct", "operator": "<=", "value": 50.0 },
+        { "field": "Cl_pct", "operator": "<=", "value": 50.0 },
+        { "field": "SO4_pct", "operator": "<=", "value": 50.0 },
+        { "field": "HCO3_pct", "operator": "<=", "value": 50.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.80
+    },
+    {
+      "name": "SODIUM-CHLORIDE TYPE",
+      "color": "#2196F3",
+      "description": "Na+K > 50%, Cl > 50%; marine, brine, or anthropogenic",
+      "priority": 3,
+      "rules": [
+        { "field": "Na_pct", "operator": ">", "value": 50.0 },
+        { "field": "Cl_pct", "operator": ">", "value": 50.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "MIXED CATION - BICARBONATE",
+      "color": "#8BC34A",
+      "description": "No dominant cation, HCO3 > 50%",
+      "priority": 4,
+      "rules": [
+        { "field": "Ca_pct", "operator": "<=", "value": 50.0 },
+        { "field": "Mg_pct", "operator": "<=", "value": 50.0 },
+        { "field": "Na_pct", "operator": "<=", "value": 50.0 },
+        { "field": "HCO3_pct", "operator": ">", "value": 50.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "MIXED CATION - CHLORIDE/SULFATE",
+      "color": "#FF9800",
+      "description": "No dominant cation, Cl+SO4 > 50%",
+      "priority": 5,
+      "rules": [
+        { "field": "Ca_pct", "operator": "<=", "value": 50.0 },
+        { "field": "Mg_pct", "operator": "<=", "value": 50.0 },
+        { "field": "Na_pct", "operator": "<=", "value": 50.0 },
+        { "field": "Cl_pct+SO4_pct", "operator": ">", "value": 50.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.80
+    },
+    {
+      "name": "CALCIUM-SULFATE TYPE",
+      "color": "#F44336",
+      "description": "Ca > 50%, SO4 > 50%; gypsum dissolution, mining impact",
+      "priority": 6,
+      "rules": [
+        { "field": "Ca_pct", "operator": ">", "value": 50.0 },
+        { "field": "SO4_pct", "operator": ">", "value": 50.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "SODIUM-BICARBONATE TYPE",
+      "color": "#9C27B0",
+      "description": "Na > 50%, HCO3 > 50%; alkaline, ion exchange waters",
+      "priority": 7,
+      "rules": [
+        { "field": "Na_pct", "operator": ">", "value": 50.0 },
+        { "field": "HCO3_pct", "operator": ">", "value": 50.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "MAGNESIUM-BICARBONATE TYPE",
+      "color": "#673AB7",
+      "description": "Mg > 50%, HCO3 > 50%; ultramafic terrains",
+      "priority": 8,
+      "rules": [
+        { "field": "Mg_pct", "operator": ">", "value": 50.0 },
+        { "field": "HCO3_pct", "operator": ">", "value": 50.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "INSUFFICIENT ION DATA",
+      "color": "#9E9E9E",
+      "description": "Missing major cation or anion percentages",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Piper_Water_Type",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
+}

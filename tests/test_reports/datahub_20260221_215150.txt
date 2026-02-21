@@ -1,0 +1,50 @@
+================================================================================
+SCIENTIFIC TOOLKIT TEST REPORT
+Category: DATAHUB
+Date: 2026-02-21 21:51:50
+Duration: 0.00 seconds
+================================================================================
+
+SUMMARY
+----------------------------------------
+Total Tests: 10
+Passed:      10
+Failed:      0
+Success Rate: 100.0%
+
+DETAILED RESULTS
+----------------------------------------
+
+✅ PASS [ 1] Add samples
+      Added 2 samples
+
+✅ PASS [ 2] Row count
+      Got 2 rows
+
+✅ PASS [ 3] Get all samples
+      Retrieved 2 samples
+
+✅ PASS [ 4] Get by ID
+      Found sample: TEST001
+
+✅ PASS [ 5] Update row
+      Zr_ppm: 175, Notes: Updated
+
+✅ PASS [ 6] Get page
+      Page has 1 samples
+
+✅ PASS [ 7] Column names
+      Columns: ['Nb_ppm', 'Notes', 'Sample_ID', 'Zr_ppm']
+
+✅ PASS [ 8] Delete rows
+      1 rows remaining after deletion
+
+✅ PASS [ 9] Unsaved changes tracking
+      Unsaved: True, After save: False
+
+✅ PASS [10] Clear all
+      Rows after clear: 0
+
+================================================================================
+END OF REPORT
+================================================================================

@@ -2,6 +2,9 @@
 Classification Engine for Basalt Provenance Triage Toolkit v10.2
 Dynamically loads classification schemes from JSON files
 Derived fields loaded from engines/derived_fields.json
+
+*** READ-ONLY VERSION ***
+Does not modify input samples.
 """
 
 import json
@@ -12,6 +15,8 @@ class ClassificationEngine:
     """
     Dynamic classification engine that loads schemes from JSON files
     """
+
+    DEBUG = False  # Set to True to enable verbose classification logging
 
     def __init__(self, schemes_dir: str = None):
         """Initialize classification engine"""
@@ -90,7 +95,9 @@ class ClassificationEngine:
                 'name': scheme['scheme_name'],
                 'description': scheme.get('description', ''),
                 'icon': scheme.get('icon', '📊'),
-                'version': scheme.get('version', '1.0')
+                'version': scheme.get('version', '1.0'),
+                'field': scheme.get('field', 'General'),
+                'category': scheme.get('category', ''),
             })
         return schemes_list
 
@@ -120,6 +127,7 @@ class ClassificationEngine:
         Loads formulas from derived_fields.json
         """
         fields = self.derived_fields.get('fields', [])
+        derived = {}
 
         for field_def in fields:
             field_name = field_def.get('name')
@@ -139,25 +147,24 @@ class ClassificationEngine:
                         eval_context[req] = float(sample[req])
 
                     # Safely evaluate the formula
-                    # Note: Using eval is safe here because we control the formulas
                     result = eval(formula, {"__builtins__": {}}, eval_context)
-
-                    # Store the computed value
-                    sample[field_name] = result
-                    print(f"    Computed {field_name}: {result:.4f}")
+                    derived[field_name] = result
+                    if self.DEBUG:
+                        print(f"    Computed {field_name}: {result:.4f}")
 
                 except Exception as e:
-                    print(f"    Warning: Could not compute {field_name}: {e}")
-                    sample[field_name] = None
+                    if self.DEBUG:
+                        print(f"    Warning: Could not compute {field_name}: {e}")
+                    derived[field_name] = None
             else:
-                # Check if this field is critical for any scheme that might run
-                # We'll just skip silently for now
-                pass
+                # Not all required fields present
+                derived[field_name] = None
 
-        return sample
+        return derived
 
     def _clean_error_fields(self, sample: Dict) -> Dict:
         """Clean up error fields that might have symbols"""
+        cleaned = {}
         error_fields = ["Zr_error"]
 
         for field in error_fields:
@@ -165,195 +172,122 @@ class ClassificationEngine:
                 try:
                     raw = str(sample[field])
                     raw = raw.replace("±", "").replace("%", "").replace("ppm", "").strip()
-                    sample[field] = float(raw)
-                    print(f"    Cleaned {field}: {sample[field]}")
+                    cleaned[field] = float(raw)
+                    if self.DEBUG:
+                        print(f"    Cleaned {field}: {cleaned[field]}")
                 except:
-                    sample[field] = None
+                    cleaned[field] = None
 
-        return sample
+        return cleaned
 
-    def classify_sample(self, sample: Dict, scheme_id: str) -> Tuple[str, float, str]:
-        print("\n" + "="*60)
-        print(f">>> CLASSIFY_SAMPLE: {scheme_id}")
-        print(f">>> Sample ID: {sample.get('Sample_ID', 'Unknown')}")
-        print("="*60)
+    def classify_sample(self, sample: Dict, scheme_id: str) -> Tuple[str, float, str, Dict]:
+        """
+        Classify a single sample.
+        Returns (classification_name, confidence, color, derived_fields)
+        Does NOT modify the input sample.
+        """
+        def _log(msg):
+            if self.DEBUG:
+                print(msg)
+
+        _log(f"\n{'='*60}\n>>> CLASSIFY_SAMPLE: {scheme_id} | Sample: {sample.get('Sample_ID', 'Unknown')}\n{'='*60}")
 
         if scheme_id not in self.schemes:
-            print(f">>> ERROR: Scheme '{scheme_id}' not found")
-            return ("SCHEME_NOT_FOUND", 0.0, "#808080")
+            _log(f">>> ERROR: Scheme '{scheme_id}' not found")
+            return ("SCHEME_NOT_FOUND", 0.0, "#808080", {})
 
-        sample = self._normalize_sample(sample)
-        if sample is None:
-            print(">>> ERROR: Invalid sample after normalization")
-            return ("INVALID_SAMPLE", 0.0, "#808080")
+        sample_norm = self._normalize_sample(sample)
+        if sample_norm is None:
+            _log(">>> ERROR: Invalid sample after normalization")
+            return ("INVALID_SAMPLE", 0.0, "#808080", {})
 
-        # Print ALL sample values for debugging
-        print("\n>>> SAMPLE VALUES:")
-        for key in sorted(sample.keys()):
-            if key not in ['Sample_ID', 'Notes'] and sample[key] is not None:
-                print(f"    {key}: {sample[key]}")
-
-        # Clean error fields
-        sample = self._clean_error_fields(sample)
-
-        # Compute ALL derived fields from JSON
-        print("\n>>> COMPUTING DERIVED FIELDS:")
-        sample = self._compute_derived_fields(sample)
+        cleaned_errors = self._clean_error_fields(sample_norm)
+        derived = self._compute_derived_fields(sample_norm)
 
         scheme = self.schemes[scheme_id]
-        print(f"\n>>> SCHEME: {scheme.get('scheme_name')}")
+        _log(f"\n>>> SCHEME: {scheme.get('scheme_name')}")
 
-        # Get classifications
         classifications = scheme.get("classifications") or scheme.get("rules") or []
-        print(f">>> Found {len(classifications)} classifications in scheme")
+        _log(f">>> Found {len(classifications)} classifications in scheme")
 
-        # Try each classification
         for i, classification in enumerate(classifications):
             name = classification.get("name", "UNNAMED")
-            print(f"\n>>> Testing classification #{i+1}: {name}")
-
             rules = classification.get('rules', [])
-            print(f"    Rules: {len(rules)}")
+            logic = classification.get('logic', 'AND')
 
-            # Check each rule
+            _log(f"\n>>> Testing classification #{i+1}: {name} | Logic: {logic} | Rules: {len(rules)}")
+
+            # DEFAULT classification (fallback)
+            if logic == 'DEFAULT' and not rules:
+                _log(f"    ✓ DEFAULT FALLBACK: {name}")
+                confidence = classification.get("confidence_score", 0.0)
+                color = classification.get("color", "#A9A9A9")
+                return (name, confidence, color, derived)
+
             all_rules_passed = True
             for j, rule in enumerate(rules):
                 field = rule.get('field', '')
-                operator = rule.get('operator', '')
 
-                # Print what we're checking
-                if field in sample:
-                    val = sample[field]
-                    print(f"      Rule {j+1}: {field} = {val}")
+                if field in sample_norm:
+                    val = sample_norm[field]
+                elif field in cleaned_errors:
+                    val = cleaned_errors[field]
+                elif field in derived:
+                    val = derived[field]
                 else:
-                    print(f"      Rule {j+1}: {field} = [MISSING]")
+                    _log(f"      Rule {j+1}: {field} = [MISSING]")
                     all_rules_passed = False
                     continue
 
-                # Evaluate the rule
-                if self.evaluate_rule(sample, rule):
-                    print(f"        ✓ PASSED")
+                _log(f"      Rule {j+1}: {field} = {val}")
+
+                if self.evaluate_rule_with_value(val, rule):
+                    _log(f"        ✓ PASSED")
                 else:
-                    print(f"        ✗ FAILED")
+                    _log(f"        ✗ FAILED")
                     all_rules_passed = False
 
             if all_rules_passed:
-                print(f"    ✓ ALL RULES PASSED! Classification: {name}")
+                _log(f"    ✓ ALL RULES PASSED! Classification: {name}")
                 confidence = classification.get("confidence_score", 0.0)
                 color = classification.get("color", "#A9A9A9")
-                return (name, confidence, color)
-            else:
-                print(f"    ✗ NOT ALL RULES PASSED")
+                return (name, confidence, color, derived)
 
-        print("\n>>> No matching classification found")
-        return ("UNCLASSIFIED", 0.0, "#A9A9A9")
+        _log("\n>>> No matching classification found")
+        return ("UNCLASSIFIED", 0.0, "#A9A9A9", derived)
 
-    def matches_classification(self, sample: Dict, classification: Dict) -> bool:
-        """
-        Check if sample matches classification rules
-
-        Rules can be:
-        - Simple: {"field": "Zr_ppm", "operator": ">", "value": 100}
-        - Ratio: {"field": "Zr_ppm/Nb_ppm", "operator": "between", "value": [6, 10]}
-        - Compound: {"logic": "AND", "rules": [...]}
-        """
-        if not isinstance(classification, dict):
+    def evaluate_rule_with_value(self, sample_value: float, rule: Dict) -> bool:
+        """Evaluate a rule using a pre‑extracted value."""
+        if sample_value is None:
             return False
 
-        rules = classification.get('rules', [])
-        logic = classification.get('logic', 'AND')
-
-        if not rules:
-            return False
-
-        # Evaluate all rules
-        results: List[bool] = []
-        for rule in rules:
-            if not isinstance(rule, dict):
-                results.append(False)
-                continue
-            result = self.evaluate_rule(sample, rule)
-            results.append(result)
-
-        # Apply logic
-        if logic == 'AND':
-            return all(results)
-        elif logic == 'OR':
-            return any(results)
-        else:
-            return False
-
-    def evaluate_rule(self, sample: Dict, rule: Dict) -> bool:
-        """Evaluate a single classification rule"""
-        if not isinstance(rule, dict):
-            return False
-
-        field = rule.get('field', '')
         operator = rule.get('operator', '')
 
-        # Get the value from sample
-        if field not in sample:
-            print(f"      Field '{field}' not in sample")
-            return False
-
-        sample_value = sample[field]
-        if sample_value is None:
-            print(f"      Field '{field}' is None")
-            return False
-
-        try:
-            sample_value = float(sample_value)
-        except (ValueError, TypeError):
-            print(f"      Cannot convert '{field}' value '{sample_value}' to float")
-            return False
-
-        # Apply operator
         try:
             if operator == '>':
                 value = float(rule.get('value', 0))
-                result = sample_value > value
-                print(f"      {sample_value} > {value} = {result}")
-                return result
-
+                return sample_value > value
             elif operator == '<':
                 value = float(rule.get('value', 0))
-                result = sample_value < value
-                print(f"      {sample_value} < {value} = {result}")
-                return result
-
+                return sample_value < value
             elif operator == '>=':
                 value = float(rule.get('value', 0))
-                result = sample_value >= value
-                print(f"      {sample_value} >= {value} = {result}")
-                return result
-
+                return sample_value >= value
             elif operator == '<=':
                 value = float(rule.get('value', 0))
-                result = sample_value <= value
-                print(f"      {sample_value} <= {value} = {result}")
-                return result
-
+                return sample_value <= value
             elif operator == '==':
                 value = float(rule.get('value', 0))
-                result = abs(sample_value - value) < 0.0001
-                print(f"      {sample_value} == {value} = {result}")
-                return result
-
+                return abs(sample_value - value) < 0.0001
             elif operator == 'between':
-                # Handle both formats: [min, max] or {"min": X, "max": Y}
                 if 'min' in rule and 'max' in rule:
                     min_val = float(rule['min'])
                     max_val = float(rule['max'])
                 elif isinstance(rule.get('value'), list):
                     min_val, max_val = map(float, rule['value'])
                 else:
-                    print(f"      Invalid between format")
                     return False
-
-                result = min_val <= sample_value <= max_val
-                print(f"      {min_val} <= {sample_value} <= {max_val} = {result}")
-                return result
-
+                return min_val <= sample_value <= max_val
             elif operator == 'not_between':
                 if 'min' in rule and 'max' in rule:
                     min_val = float(rule['min'])
@@ -362,29 +296,25 @@ class ClassificationEngine:
                     min_val, max_val = map(float, rule['value'])
                 else:
                     return False
-
-                result = not (min_val <= sample_value <= max_val)
-                print(f"      NOT({min_val} <= {sample_value} <= {max_val}) = {result}")
-                return result
-
+                return not (min_val <= sample_value <= max_val)
             else:
                 print(f"      Unknown operator: {operator}")
                 return False
-
-        except (ValueError, TypeError, KeyError) as e:
+        except (ValueError, TypeError) as e:
             print(f"      Error evaluating rule: {e}")
             return False
 
-    def classify_all_samples(self, samples: Any, scheme_id: str,
-                            output_column: str = None) -> List[Dict]:
+    def classify_all_samples(self, samples: Any, scheme_id: str) -> List[Dict]:
         """
         Classify all samples using ONLY the selected scheme.
-        Removes all default/secondary scheme execution.
+        Returns a list of result dictionaries (one per sample) with keys:
+            'classification', 'confidence', 'color', 'derived_fields', 'flag_for_review'
+        Does NOT modify input samples.
         """
-
         if scheme_id not in self.schemes:
             print(f"⚠️ Classification scheme not found: {scheme_id}")
-            return samples
+            return [{'classification': 'SCHEME_NOT_FOUND', 'confidence': 0.0,
+                     'color': '#808080', 'derived_fields': {}, 'flag_for_review': False} for _ in samples]
 
         scheme = self.schemes[scheme_id]
 
@@ -399,56 +329,38 @@ class ClassificationEngine:
 
         if not isinstance(samples, list):
             print("⚠️ 'samples' must be a list of dicts or a pandas DataFrame")
-            return samples
+            return []
 
-        # Get column names from scheme (respecting JSON configuration)
-        if output_column is None:
-            output_column = scheme.get('output_column_name', 'Auto_Classification')
-
-        confidence_column = scheme.get('confidence_column_name', 'Auto_Confidence')
-        add_confidence = scheme.get('add_confidence_column', True)
-
-        flag_column = scheme.get('flag_column_name', 'Flag_For_Review')
-        flag_uncertain = scheme.get('flag_uncertain', False)
-        uncertain_threshold = scheme.get('uncertain_threshold', 0.7)
-
+        results = []
         classified_count = 0
 
         for i, sample in enumerate(samples):
-            normalized = self._normalize_sample(sample)
-            if normalized is None:
-                if isinstance(sample, dict):
-                    sample[output_column] = "INVALID_SAMPLE"
-                    if add_confidence:
-                        sample[confidence_column] = 0.0
-                    if flag_uncertain:
-                        sample[flag_column] = True
-                continue
+            classification, confidence, color, derived = self.classify_sample(sample, scheme_id)
 
-            # Run ONLY the selected scheme
-            classification, confidence, color = self.classify_sample(normalized, scheme_id)
-
-            # Add classification result
-            sample[output_column] = classification
-
-            # Add confidence using correct column name from scheme
-            if add_confidence:
-                sample[confidence_column] = confidence
+            # Build result entry
+            result = {
+                'classification': classification,
+                'confidence': confidence,
+                'color': color,
+                'derived_fields': derived
+            }
 
             # Add flag for review based on confidence threshold
+            flag_uncertain = scheme.get('flag_uncertain', False)
+            uncertain_threshold = scheme.get('uncertain_threshold', 0.7)
             if flag_uncertain:
-                # Flag samples with confidence below threshold
-                sample[flag_column] = (confidence < uncertain_threshold)
+                result['flag_for_review'] = (confidence < uncertain_threshold)
+            else:
+                result['flag_for_review'] = False
 
-            # Store color (for internal use)
-            sample['Display_Color'] = color
+            results.append(result)
 
             if classification not in ['INSUFFICIENT_DATA', 'UNCLASSIFIED', 'INVALID_SAMPLE']:
                 classified_count += 1
 
         print(f"✅ Classified {classified_count}/{len(samples)} samples using '{scheme['scheme_name']}'")
 
-        return samples
+        return results
 
     def get_scheme_info(self, scheme_id: str) -> Dict[str, Any]:
         """Get detailed information about a classification scheme"""
@@ -511,9 +423,10 @@ if __name__ == '__main__':
     print(f"   Zr/Nb ratio: {test_sample['Zr_ppm'] / test_sample['Nb_ppm']:.2f}")
 
     if 'regional_triage' in engine.schemes:
-        classification, confidence, color = engine.classify_sample(test_sample, 'regional_triage')
+        classification, confidence, color, derived = engine.classify_sample(test_sample, 'regional_triage')
         print(f"\n🎯 Classification: {classification}")
         print(f"   Confidence: {confidence:.0%}")
         print(f"   Color: {color}")
+        print(f"   Derived: {derived}")
 
     print("\n" + "=" * 60)

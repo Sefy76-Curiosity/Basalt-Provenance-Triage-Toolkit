@@ -1,0 +1,107 @@
+{
+  "scheme_name": "Winchester-Floyd Discrimination (Zr/TiO₂ vs Nb/Y)",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Classify volcanic rocks using immobile element ratios: Zr/TiO₂ vs Nb/Y (Winchester & Floyd, 1977)",
+  "category": "software",
+  "icon": "🧪",
+  "reference": "Winchester, J.A. & Floyd, P.A. (1977). Geochemical discrimination of different magma series and their differentiation products using immobile elements. Chemical Geology, 20, 325-343.",
+  "field": "Igneous Petrology",
+
+  "requires_fields": [
+    "Zr_TiO2_ratio",
+    "Nb_Y_ratio"
+  ],
+
+  "classifications": [
+    {
+      "name": "SUBALKALINE BASALT",
+      "color": "#4CAF50",
+      "description": "Low Nb/Y (<0.67) and low Zr/TiO2 (<0.015)",
+      "priority": 1,
+      "rules": [
+        { "field": "Nb_Y_ratio", "operator": "<", "value": 0.67 },
+        { "field": "Zr_TiO2_ratio", "operator": "<", "value": 0.015 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "ANDESITE / BASALTIC ANDESITE",
+      "color": "#8BC34A",
+      "description": "Nb/Y 0.67–1.2, Zr/TiO2 0.015–0.06",
+      "priority": 2,
+      "rules": [
+        { "field": "Nb_Y_ratio", "operator": "between", "min": 0.67, "max": 1.2 },
+        { "field": "Zr_TiO2_ratio", "operator": "between", "min": 0.015, "max": 0.06 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "RHYOLITE / DACITE",
+      "color": "#F44336",
+      "description": "Zr/TiO2 >0.06, Nb/Y <1.2",
+      "priority": 3,
+      "rules": [
+        { "field": "Zr_TiO2_ratio", "operator": ">", "value": 0.06 },
+        { "field": "Nb_Y_ratio", "operator": "<", "value": 1.2 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "ALKALINE BASALT",
+      "color": "#2196F3",
+      "description": "Nb/Y 1.2–4.0, Zr/TiO2 0.015–0.06",
+      "priority": 4,
+      "rules": [
+        { "field": "Nb_Y_ratio", "operator": "between", "min": 1.2, "max": 4.0 },
+        { "field": "Zr_TiO2_ratio", "operator": "between", "min": 0.015, "max": 0.06 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "TRACHYANDESITE / TRACHYTE",
+      "color": "#9C27B0",
+      "description": "Nb/Y >4.0, Zr/TiO2 0.06–0.2",
+      "priority": 5,
+      "rules": [
+        { "field": "Nb_Y_ratio", "operator": ">", "value": 4.0 },
+        { "field": "Zr_TiO2_ratio", "operator": "between", "min": 0.06, "max": 0.2 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "PHONOLITE",
+      "color": "#673AB7",
+      "description": "Very high Nb/Y (>4.0) and moderate Zr/TiO2 (>0.2)",
+      "priority": 6,
+      "rules": [
+        { "field": "Nb_Y_ratio", "operator": ">", "value": 4.0 },
+        { "field": "Zr_TiO2_ratio", "operator": ">", "value": 0.2 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "INSUFFICIENT DATA",
+      "color": "#9E9E9E",
+      "description": "Missing Zr/TiO2 or Nb/Y ratio values",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Winchester_Floyd_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.75,
+  "flag_column_name": "Flag_For_Review"
+}

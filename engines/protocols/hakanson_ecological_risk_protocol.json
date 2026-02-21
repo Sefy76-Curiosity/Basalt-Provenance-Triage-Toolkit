@@ -1,0 +1,207 @@
+{
+  "protocol_name": "Hakanson Ecological Risk Protocol",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "description": "Pure JSON implementation of the Hakanson ecological risk index using CF, Er, and RI thresholds.",
+  "icon": "⚠️",
+
+  "requires_fields": [
+    "Sample_ID",
+    "As_CF",
+    "Cd_CF",
+    "Cr_CF",
+    "Cu_CF",
+    "Hg_CF",
+    "Ni_CF",
+    "Pb_CF",
+    "Zn_CF"
+  ],
+
+  "stages": [
+
+    {
+      "id": "missing_data",
+      "name": "Missing Data Screening",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "MISSING_CF_VALUES",
+          "conditions_logic": "OR",
+          "conditions": [
+            { "field": "As_CF", "operator": "is_null" },
+            { "field": "Cd_CF", "operator": "is_null" },
+            { "field": "Cr_CF", "operator": "is_null" },
+            { "field": "Cu_CF", "operator": "is_null" },
+            { "field": "Hg_CF", "operator": "is_null" },
+            { "field": "Ni_CF", "operator": "is_null" },
+            { "field": "Pb_CF", "operator": "is_null" },
+            { "field": "Zn_CF", "operator": "is_null" }
+          ],
+          "outputs": {
+            "QC_Class": "INSUFFICIENT_DATA",
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Missing CF values for metals"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "cf_classification",
+      "name": "Contamination Factor Classification",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "LOW_CF",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "As_CF", "operator": "<", "value": 1 }
+          ],
+          "outputs": { "As_CF_Class": "LOW" }
+        },
+        {
+          "label": "MODERATE_CF",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "As_CF", "operator": "between", "value": [1, 3] }
+          ],
+          "outputs": { "As_CF_Class": "MODERATE" }
+        },
+        {
+          "label": "CONSIDERABLE_CF",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "As_CF", "operator": "between", "value": [3, 6] }
+          ],
+          "outputs": { "As_CF_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "VERY_HIGH_CF",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "As_CF", "operator": ">=", "value": 6 }
+          ],
+          "outputs": { "As_CF_Class": "VERY_HIGH" }
+        }
+      ]
+    },
+
+    {
+      "id": "er_classification",
+      "name": "Ecological Risk (Er) Classification",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "LOW_RISK",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "As_CF", "operator": "<", "value": 40 }
+          ],
+          "outputs": { "As_Er_Class": "LOW" }
+        },
+        {
+          "label": "MODERATE_RISK",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "As_CF", "operator": "between", "value": [40, 80] }
+          ],
+          "outputs": { "As_Er_Class": "MODERATE" }
+        },
+        {
+          "label": "CONSIDERABLE_RISK",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "As_CF", "operator": "between", "value": [80, 160] }
+          ],
+          "outputs": { "As_Er_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "HIGH_RISK",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "As_CF", "operator": "between", "value": [160, 320] }
+          ],
+          "outputs": { "As_Er_Class": "HIGH" }
+        },
+        {
+          "label": "VERY_HIGH_RISK",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "As_CF", "operator": ">=", "value": 320 }
+          ],
+          "outputs": { "As_Er_Class": "VERY_HIGH" }
+        }
+      ]
+    },
+
+    {
+      "id": "ri_grouping",
+      "name": "Total Ecological Risk (RI) Grouping",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "LOW_RI",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "RI", "operator": "<", "value": 150 }
+          ],
+          "outputs": { "RI_Class": "LOW" }
+        },
+        {
+          "label": "MODERATE_RI",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "RI", "operator": "between", "value": [150, 300] }
+          ],
+          "outputs": { "RI_Class": "MODERATE" }
+        },
+        {
+          "label": "CONSIDERABLE_RI",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "RI", "operator": "between", "value": [300, 600] }
+          ],
+          "outputs": { "RI_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "VERY_HIGH_RI",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "RI", "operator": ">=", "value": 600 }
+          ],
+          "outputs": { "RI_Class": "VERY_HIGH" }
+        }
+      ]
+    },
+
+    {
+      "id": "review_stage",
+      "name": "Review Flags",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "UNCLASSIFIED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "RI_Class", "operator": "is_null" }
+          ],
+          "outputs": {
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Ecological risk classification incomplete"
+          }
+        }
+      ]
+    }
+  ],
+
+  "final_outputs": {
+    "primary_classification_field": "RI_Class",
+    "qc_field": "QC_Class",
+    "flag_field": "Flag_For_Review"
+  }
+}

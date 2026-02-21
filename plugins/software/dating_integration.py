@@ -9,7 +9,7 @@ PLUGIN_INFO = {
     "id": "dating_integration",
     "name": "Chronological Dating (Enhanced)",
     "description": "Bayesian age-depth with MCMC, parallel processing, user-supplied curves",
-    "icon": "⏳🔬",
+    "icon": "🔬",
     "version": "8.0",
     "requires": ["numpy", "scipy", "matplotlib", "pandas", "emcee", "corner", "joblib"],
     "author": "Enhanced from Sefy Levy & DeepSeek",

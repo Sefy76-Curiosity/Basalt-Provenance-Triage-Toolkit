@@ -1,0 +1,214 @@
+{
+  "scheme_name": "Sediment Texture and Maturity Classification",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2026-02-21",
+  "description": "Combined Shepard ternary, Folk sandstone, sorting, roundness, and sphericity classifications",
+  "category": "software",
+  "icon": "🧱",
+  "reference": "Shepard (1954); Folk (1974); Powers (1953); Udden-Wentworth Scale",
+  "field": "Sedimentology",
+
+  "requires_fields": [
+    "Sand_pct",
+    "Silt_pct",
+    "Clay_pct",
+    "Sorting_phi",
+    "Roundness_index",
+    "Sphericity_index"
+  ],
+
+  "classifications": [
+    {
+      "name": "SAND (Shepard)",
+      "color": "#FFC107",
+      "description": "Dominantly sand-sized particles (>85% sand)",
+      "priority": 1,
+      "rules": [
+        { "field": "Sand_pct", "operator": ">", "value": 85.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "SILT (Shepard)",
+      "color": "#8BC34A",
+      "description": "Dominantly silt-sized particles (>60% silt)",
+      "priority": 2,
+      "rules": [
+        { "field": "Silt_pct", "operator": ">", "value": 60.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "CLAY (Shepard)",
+      "color": "#3F51B5",
+      "description": "Dominantly clay-sized particles (>40% clay)",
+      "priority": 3,
+      "rules": [
+        { "field": "Clay_pct", "operator": ">", "value": 40.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+
+    {
+      "name": "SANDY MUD (Shepard)",
+      "color": "#9C27B0",
+      "description": "Mud-dominated sediment with 20–50% sand",
+      "priority": 4,
+      "rules": [
+        { "field": "Sand_pct", "operator": "between", "min": 20.0, "max": 50.0 },
+        { "field": "Clay_pct+Silt_pct", "operator": ">", "value": 50.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "MUDDY SAND (Shepard)",
+      "color": "#009688",
+      "description": "Sand-dominated sediment with 10–20% mud",
+      "priority": 5,
+      "rules": [
+        { "field": "Sand_pct", "operator": ">", "value": 50.0 },
+        { "field": "Clay_pct+Silt_pct", "operator": "between", "min": 10.0, "max": 20.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+
+    {
+      "name": "ARENITE (Folk)",
+      "color": "#F44336",
+      "description": "Sandstone with <15% matrix; texturally mature",
+      "priority": 6,
+      "rules": [
+        { "field": "Clay_pct+Silt_pct", "operator": "<", "value": 15.0 },
+        { "field": "Sand_pct", "operator": ">", "value": 85.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "WACKE (Folk)",
+      "color": "#FF9800",
+      "description": "Sandstone with >15% matrix; texturally immature",
+      "priority": 7,
+      "rules": [
+        { "field": "Clay_pct+Silt_pct", "operator": ">=", "value": 15.0 },
+        { "field": "Sand_pct", "operator": ">", "value": 50.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+
+    {
+      "name": "VERY WELL SORTED (Sorting < 0.35 φ)",
+      "color": "#4CAF50",
+      "description": "High-energy environments (beach, aeolian)",
+      "priority": 8,
+      "rules": [
+        { "field": "Sorting_phi", "operator": "<", "value": 0.35 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "WELL SORTED (0.35–0.5 φ)",
+      "color": "#8BC34A",
+      "description": "Moderate to high-energy transport",
+      "priority": 9,
+      "rules": [
+        { "field": "Sorting_phi", "operator": "between", "min": 0.35, "max": 0.5 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "POORLY SORTED (>1.0 φ)",
+      "color": "#CDDC39",
+      "description": "Low-energy or mixed processes (glacial, debris flow)",
+      "priority": 10,
+      "rules": [
+        { "field": "Sorting_phi", "operator": ">", "value": 1.0 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+
+    {
+      "name": "VERY ROUNDED (Roundness > 0.6)",
+      "color": "#03A9F4",
+      "description": "Long transport distance; beach or aeolian",
+      "priority": 11,
+      "rules": [
+        { "field": "Roundness_index", "operator": ">", "value": 0.6 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.90
+    },
+    {
+      "name": "SUBROUNDED (0.3–0.6)",
+      "color": "#00BCD4",
+      "description": "Moderate transport; fluvial systems",
+      "priority": 12,
+      "rules": [
+        { "field": "Roundness_index", "operator": "between", "min": 0.3, "max": 0.6 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "ANGULAR (<0.3)",
+      "color": "#0097A7",
+      "description": "Short transport; proximal alluvial or talus",
+      "priority": 13,
+      "rules": [
+        { "field": "Roundness_index", "operator": "<", "value": 0.3 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+
+    {
+      "name": "HIGH SPHERICITY (>0.7)",
+      "color": "#9C27B0",
+      "description": "Well-rounded grains; stable transport regime",
+      "priority": 14,
+      "rules": [
+        { "field": "Sphericity_index", "operator": ">", "value": 0.7 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "LOW SPHERICITY (<0.5)",
+      "color": "#673AB7",
+      "description": "Platy or elongated grains; immature sediment",
+      "priority": 15,
+      "rules": [
+        { "field": "Sphericity_index", "operator": "<", "value": 0.5 }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.85
+    },
+
+    {
+      "name": "INSUFFICIENT TEXTURAL DATA",
+      "color": "#9E9E9E",
+      "description": "Missing sand/silt/clay percentages or grain shape metrics",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+
+  "output_column_name": "Sediment_Texture_Class",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.80,
+  "flag_column_name": "Flag_For_Review"
+}

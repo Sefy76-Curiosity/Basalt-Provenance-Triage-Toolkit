@@ -1,0 +1,139 @@
+{
+  "scheme_name": "Ore-Grade Multi-Element Anomaly Grid",
+  "version": "1.1",
+  "author": "Sefy Levy",
+  "date_created": "2025-02-08",
+  "description": "Classify multi-element soil/rock anomalies for Cu-Pb-Zn mineral exploration",
+  "category": "software",
+  "icon": "⚒️",
+  "reference": "Levinson, A. A. (1974). Introduction to Exploration Geochemistry.",
+  "field": "Economic Geology",
+  "requires_fields": [
+    "Cu_ppm",
+    "Pb_ppm",
+    "Zn_ppm"
+  ],
+  "classifications": [
+    {
+      "name": "BACKGROUND",
+      "color": "#4CAF50",
+      "description": "Geochemical background; no significant enrichment",
+      "priority": 1,
+      "rules": [
+        {
+          "field": "Cu_ppm",
+          "operator": "<",
+          "value": 50.0
+        },
+        {
+          "field": "Pb_ppm",
+          "operator": "<",
+          "value": 30.0
+        },
+        {
+          "field": "Zn_ppm",
+          "operator": "<",
+          "value": 80.0
+        }
+      ],
+      "logic": "AND",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "LOW-GRADE ANOMALY",
+      "color": "#FFC107",
+      "description": "Target zone; 2-5x background levels",
+      "priority": 2,
+      "rules": [
+        {
+          "field": "Cu_ppm",
+          "operator": "between",
+          "min": 50.0,
+          "max": 200.0
+        },
+        {
+          "field": "Pb_ppm",
+          "operator": "between",
+          "min": 30.0,
+          "max": 100.0
+        },
+        {
+          "field": "Zn_ppm",
+          "operator": "between",
+          "min": 80.0,
+          "max": 200.0
+        }
+      ],
+      "logic": "OR",
+      "confidence_score": 0.8
+    },
+    {
+      "name": "HIGH-GRADE ANOMALY",
+      "color": "#FF9800",
+      "description": "Significant enrichment; indicates proximity to mineralization",
+      "priority": 3,
+      "rules": [
+        {
+          "field": "Cu_ppm",
+          "operator": "between",
+          "min": 200.0,
+          "max": 1000.0
+        },
+        {
+          "field": "Pb_ppm",
+          "operator": "between",
+          "min": 100.0,
+          "max": 500.0
+        },
+        {
+          "field": "Zn_ppm",
+          "operator": "between",
+          "min": 200.0,
+          "max": 1000.0
+        }
+      ],
+      "logic": "OR",
+      "confidence_score": 0.85
+    },
+    {
+      "name": "ORE-GRADE",
+      "color": "#F44336",
+      "description": "Potential economic mineralization (Cu > 0.1%, Pb > 0.05%, Zn > 0.1%)",
+      "priority": 4,
+      "rules": [
+        {
+          "field": "Cu_ppm",
+          "operator": ">",
+          "value": 1000.0
+        },
+        {
+          "field": "Pb_ppm",
+          "operator": ">",
+          "value": 500.0
+        },
+        {
+          "field": "Zn_ppm",
+          "operator": ">",
+          "value": 1000.0
+        }
+      ],
+      "logic": "OR",
+      "confidence_score": 0.95
+    },
+    {
+      "name": "INSUFFICIENT DATA",
+      "color": "#9E9E9E",
+      "description": "Missing key base-metal measurements",
+      "priority": 999,
+      "rules": [],
+      "logic": "DEFAULT",
+      "confidence_score": 0.0
+    }
+  ],
+  "output_column_name": "Exploration_Priority",
+  "add_confidence_column": true,
+  "confidence_column_name": "Auto_Confidence",
+  "flag_uncertain": true,
+  "uncertain_threshold": 0.7,
+  "flag_column_name": "Flag_For_Review"
+}

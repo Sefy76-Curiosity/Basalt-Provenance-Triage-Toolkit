@@ -1,0 +1,120 @@
+{
+  "protocol_name": "Behrensmeyer Weathering Protocol",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "description": "Pure JSON implementation of Behrensmeyer's standardized bone weathering stages.",
+  "icon": "⛈️",
+
+  "requires_fields": [
+    "Sample_ID",
+    "Weathering"
+  ],
+
+  "stages": [
+
+    {
+      "id": "missing_data",
+      "name": "Missing Data Screening",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "MISSING_WEATHERING",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Weathering", "operator": "is_null" }
+          ],
+          "outputs": {
+            "QC_Class": "INSUFFICIENT_DATA",
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Missing weathering score"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "weathering_stage",
+      "name": "Assign Behrensmeyer Stage",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+
+      "rules": [
+        {
+          "label": "STAGE_0",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Weathering", "operator": "==", "value": 0 }
+          ],
+          "outputs": { "Weathering_Class": "Stage 0" }
+        },
+        {
+          "label": "STAGE_1",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Weathering", "operator": "==", "value": 1 }
+          ],
+          "outputs": { "Weathering_Class": "Stage 1" }
+        },
+        {
+          "label": "STAGE_2",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Weathering", "operator": "==", "value": 2 }
+          ],
+          "outputs": { "Weathering_Class": "Stage 2" }
+        },
+        {
+          "label": "STAGE_3",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Weathering", "operator": "==", "value": 3 }
+          ],
+          "outputs": { "Weathering_Class": "Stage 3" }
+        },
+        {
+          "label": "STAGE_4",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Weathering", "operator": "==", "value": 4 }
+          ],
+          "outputs": { "Weathering_Class": "Stage 4" }
+        },
+        {
+          "label": "STAGE_5",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Weathering", "operator": "==", "value": 5 }
+          ],
+          "outputs": { "Weathering_Class": "Stage 5" }
+        }
+      ]
+    },
+
+    {
+      "id": "review_stage",
+      "name": "Review Flags",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "UNCLASSIFIED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Weathering_Class", "operator": "is_null" }
+          ],
+          "outputs": {
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Weathering stage not assigned"
+          }
+        }
+      ]
+    }
+  ],
+
+  "final_outputs": {
+    "primary_classification_field": "Weathering_Class",
+    "qc_field": "QC_Class",
+    "flag_field": "Flag_For_Review"
+  }
+}

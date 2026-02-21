@@ -1,0 +1,191 @@
+{
+  "protocol_name": "IUGS Igneous Rock Protocol",
+  "version": "1.0",
+  "author": "Sefy Levy",
+  "description": "Pure JSON rule-based workflow approximating the IUGS igneous rock naming procedure without external classification schemes.",
+  "icon": "🪨",
+
+  "requires_fields": [
+    "Sample_ID",
+    "SiO2",
+    "Na2O",
+    "K2O",
+    "Q",
+    "A",
+    "P",
+    "F",
+    "M"
+  ],
+
+  "stages": [
+
+    {
+      "id": "missing_data",
+      "name": "Missing Data Screening",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "MISSING_MAJOR_OXIDES",
+          "conditions_logic": "OR",
+          "conditions": [
+            { "field": "SiO2", "operator": "is_null" },
+            { "field": "Na2O", "operator": "is_null" },
+            { "field": "K2O", "operator": "is_null" }
+          ],
+          "outputs": {
+            "QC_Class": "INSUFFICIENT_DATA",
+            "Flag_For_Review": "YES",
+            "Review_Reason": "Missing major oxide data"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "tas_field",
+      "name": "TAS Field Assignment",
+      "description": "Assign broad volcanic field based on SiO2 and total alkalis.",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "BASALT",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "SiO2", "operator": "<", "value": 52 },
+            { "field": "Na2O", "operator": ">=", "value": 0 },
+            { "field": "K2O", "operator": ">=", "value": 0 }
+          ],
+          "outputs": { "TAS_Class": "BASALT" }
+        },
+        {
+          "label": "ANDESITE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "SiO2", "operator": "between", "value": [52, 63] }
+          ],
+          "outputs": { "TAS_Class": "ANDESITE" }
+        },
+        {
+          "label": "DACITE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "SiO2", "operator": "between", "value": [63, 69] }
+          ],
+          "outputs": { "TAS_Class": "DACITE" }
+        },
+        {
+          "label": "RHYOLITE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "SiO2", "operator": ">=", "value": 69 }
+          ],
+          "outputs": { "TAS_Class": "RHYOLITE" }
+        }
+      ]
+    },
+
+    {
+      "id": "qapf_field",
+      "name": "QAPF Field Assignment",
+      "description": "Assign plutonic field based on Q-A-P proportions.",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "GRANITE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Q", "operator": ">=", "value": 20 },
+            { "field": "A", "operator": ">=", "value": 20 }
+          ],
+          "outputs": { "QAPF_Class": "GRANITE" }
+        },
+        {
+          "label": "GRANODIORITE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Q", "operator": "between", "value": [5, 20] },
+            { "field": "A", "operator": ">=", "value": 20 }
+          ],
+          "outputs": { "QAPF_Class": "GRANODIORITE" }
+        },
+        {
+          "label": "TONALITE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Q", "operator": "between", "value": [5, 20] },
+            { "field": "A", "operator": "<", "value": 20 }
+          ],
+          "outputs": { "QAPF_Class": "TONALITE" }
+        },
+        {
+          "label": "GABBRO",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Q", "operator": "<", "value": 5 },
+            { "field": "M", "operator": ">=", "value": 35 }
+          ],
+          "outputs": { "QAPF_Class": "GABBRO" }
+        }
+      ]
+    },
+
+    {
+      "id": "final_assignment",
+      "name": "Final Igneous Assignment",
+      "description": "Combine TAS and QAPF into a final IUGS-style class.",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "VOLCANIC_FINAL",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "TAS_Class", "operator": "is_not_null" }
+          ],
+          "outputs": {
+            "Final_Class": { "copy_field": "TAS_Class" }
+          }
+        },
+        {
+          "label": "PLUTONIC_FINAL",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "QAPF_Class", "operator": "is_not_null" }
+          ],
+          "outputs": {
+            "Final_Class": { "copy_field": "QAPF_Class" }
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "review_stage",
+      "name": "Review Flags",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+        {
+          "label": "UNCLASSIFIED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Final_Class", "operator": "is_null" }
+          ],
+          "outputs": {
+            "Flag_For_Review": "YES",
+            "Review_Reason": "No igneous classification possible"
+          }
+        }
+      ]
+    }
+  ],
+
+  "final_outputs": {
+    "primary_classification_field": "Final_Class",
+    "qc_field": "QC_Class",
+    "flag_field": "Flag_For_Review"
+  }
+}

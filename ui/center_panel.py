@@ -569,6 +569,12 @@ class CenterPanel:
         # Clear and repopulate
         self.tree.delete(*self.tree.get_children())
 
+        # ===== NEW: Configure special tags for all‑schemes mode =====
+        if not hasattr(self.tree, '_all_tags_configured'):
+            self.tree.tag_configure('ALL_MATCHED', background='#ccffcc')  # light green
+            self.tree.tag_configure('ALL_NONE', background='#f0f0f0')      # light gray
+            self.tree._all_tags_configured = True
+
         for i, sample in enumerate(samples):
             actual_idx = self.current_page * self.page_size + i
             checkbox = "☑" if actual_idx in self.selected_rows else "☐"
@@ -598,17 +604,39 @@ class CenterPanel:
 
             item_id = self.tree.insert("", tk.END, values=tuple(values))
 
-            # Apply color tag if classification exists
-            # Try to get the most relevant classification for coloring
-            tag = "UNCLASSIFIED"
-            for class_col in ["Auto_Classification", "TAS_Classification", "Weathering_State"]:
-                if class_col in sample and sample[class_col] and sample[class_col] != "UNCLASSIFIED":
-                    tag = sample[class_col]
-                    break
+            # ===== DETERMINE TAG BASED ON CURRENT MODE =====
+            if hasattr(self.app.right, 'all_mode') and self.app.right.all_mode:
+                # All‑schemes mode: find the best classification and use its color
+                all_results = getattr(self.app.right, 'all_results', None)
+                if all_results and actual_idx < len(all_results) and all_results[actual_idx] is not None:
+                    # Find the best (non-UNCLASSIFIED) classification with highest confidence
+                    best_class = "UNCLASSIFIED"
+                    best_conf = 0.0
+                    for r in all_results[actual_idx]:
+                        if r[1] not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', '']:
+                            # r is (scheme_name, classification, confidence)
+                            if r[2] > best_conf:
+                                best_class = r[1]
+                                best_conf = r[2]
+                    tag = best_class
+                else:
+                    tag = 'ALL_NONE'
+            else:
+                # Single‑scheme mode: use classification from cache or sample
+                tag = "UNCLASSIFIED"
+                if hasattr(self.app.right, 'classification_results') and actual_idx < len(self.app.right.classification_results):
+                    result = self.app.right.classification_results[actual_idx]
+                    if result and result.get('classification'):
+                        tag = result['classification']
+                if tag == "UNCLASSIFIED":
+                    for class_col in ["Auto_Classification", "TAS_Classification", "Weathering_State"]:
+                        if class_col in sample and sample[class_col] and sample[class_col] != "UNCLASSIFIED":
+                            tag = sample[class_col]
+                            break
 
             self.tree.item(item_id, tags=(tag,))
 
-        # Auto-size columns
+        # Auto-size columns (only on first refresh)
         if self._first_refresh:
             self.app.auto_size_columns(self.tree, samples, force=False)
             self._first_refresh = False
@@ -616,7 +644,7 @@ class CenterPanel:
         # Update pagination
         pages = (total + self.page_size - 1) // self.page_size if total > 0 else 1
         self.app.update_pagination(self.current_page, pages, total)
-        self.sel_label.config(text=f"Selected: {len(self.selected_rows)}")
+        self._notify_selection_changed()
 
     def auto_size_columns(self, tree, samples, force=False):
         """Auto-size columns based on content"""
@@ -689,19 +717,25 @@ class CenterPanel:
             self.tree.item(item_id, values=tuple(values))
 
         self.sel_label.config(text=f"Selected: {len(self.selected_rows)}")
-        self.app.update_selection(len(self.selected_rows))
+        self._notify_selection_changed()
 
     def select_all(self):
         total = self.app.data_hub.row_count()
-        start = self.current_page * self.page_size
-        end = min(start + self.page_size, total)
-        for i in range(start, end):
+        for i in range(total):
             self.selected_rows.add(i)
+        self._notify_selection_changed()
         self._refresh()
 
     def deselect_all(self):
         self.selected_rows.clear()
+        self._notify_selection_changed()
         self._refresh()
+
+    def _notify_selection_changed(self):
+        """Update both the inline label and the bottom bar label."""
+        count = len(self.selected_rows)
+        self.sel_label.config(text=f"Selected: {count}")
+        self.app.update_selection(count)
 
     def get_selected_indices(self):
         return list(self.selected_rows)
@@ -711,6 +745,8 @@ class CenterPanel:
         if self.current_page > 0:
             self.current_page -= 1
             self._refresh()
+            if hasattr(self.app.right, '_update_hud'):
+                self.app.right._update_hud()
 
     def next_page(self):
         total = self.app.data_hub.row_count()
@@ -718,6 +754,8 @@ class CenterPanel:
         if self.current_page < pages - 1:
             self.current_page += 1
             self._refresh()
+            if hasattr(self.app.right, '_update_hud'):
+                self.app.right._update_hud()
 
     def _get_display_name(self, column_name):
         """Get display name from chemical_elements.json"""
@@ -773,10 +811,24 @@ class CenterPanel:
         samples = self.app.data_hub.get_all()
         if sample_idx < len(samples):
             sample = samples[sample_idx]
+            # Try to get cached classification result from right panel
+            if hasattr(self.app.right, 'classification_results') and sample_idx < len(self.app.right.classification_results):
+                result = self.app.right.classification_results[sample_idx]
+                if result:
+                    classification = result.get('classification', 'UNCLASSIFIED')
+                    confidence = result.get('confidence', 0.0)
+                    color = result.get('color', '#A9A9A9')
+                    derived = result.get('derived_fields', {})
+                    flag = result.get('flag_for_review', False)
+                    self._show_classification_explanation(
+                        sample, classification, confidence, color, derived, flag
+                    )
+                    return
+            # Fallback: no cached result
             self._show_classification_explanation(sample)
 
-    def _show_classification_explanation(self, sample):
-        """Show classification explanation popup"""
+    def _show_classification_explanation(self, sample, classification=None, confidence=None, color=None, derived=None, flag=False):
+        """Show classification explanation popup – accepts optional pre‑computed results."""
         win = tk.Toplevel(self.app.root)
         win.title(f"Classification: {sample.get('Sample_ID', 'Unknown')}")
         win.geometry("600x500")
@@ -793,8 +845,16 @@ class CenterPanel:
         ttk.Label(main, text=f"Sample: {sample.get('Sample_ID', 'Unknown')}",
                  font=("Arial", 14, "bold")).pack(pady=5)
 
-        classification = self.app.right._get_classification(sample)
-        confidence = sample.get('Auto_Confidence', 'N/A')
+        # Use provided classification or get from sample (if any)
+        if classification is None:
+            classification = (sample.get('Final_Classification') or
+                              sample.get('Auto_Classification') or
+                              sample.get('Classification') or
+                              "UNCLASSIFIED")
+        if confidence is None:
+            confidence = sample.get('Auto_Confidence', 'N/A')
+        if color is None:
+            color = '#A9A9A9'
 
         class_frame = ttk.Frame(main)
         class_frame.pack(fill=tk.X, pady=10)
@@ -931,8 +991,113 @@ class CenterPanel:
 
         return "\n".join(lines)
 
+    def _classify_selected_sample(self, sample_idx):
+        """
+        Classify a single selected sample (read‑only) and show result popup.
+        Called from the context menu.
+        """
+        print(f"\n🔍 CLASSIFY SELECTED SAMPLE - Index: {sample_idx}")
+
+        samples = self.app.data_hub.get_all()
+        if sample_idx >= len(samples):
+            print(f"❌ Sample index {sample_idx} out of range (max: {len(samples)-1})")
+            return
+
+        sample = samples[sample_idx]
+        print(f"📋 Sample ID: {sample.get('Sample_ID', 'Unknown')}")
+
+        # Get current classification scheme from right panel
+        if not hasattr(self.app, 'right') or not hasattr(self.app.right, 'scheme_var'):
+            messagebox.showerror("Error", "Right panel not available")
+            return
+
+        display_name = self.app.right.scheme_var.get()
+        print(f"🎯 Selected scheme display name: '{display_name}'")
+
+        if not display_name:
+            messagebox.showinfo("No Scheme", "Please select a classification scheme first")
+            return
+
+        # Find scheme ID
+        scheme_id = None
+        if hasattr(self.app.right, 'schemes'):
+            for sid, info in self.app.right.schemes.items():
+                if info.get('name') == display_name or info.get('scheme_name') == display_name:
+                    scheme_id = sid
+                    break
+
+        if not scheme_id and self.app.classification_engine:
+            for sid, scheme in self.app.classification_engine.schemes.items():
+                if scheme.get('scheme_name') == display_name:
+                    scheme_id = sid
+                    break
+
+        if not scheme_id:
+            import re
+            clean_name = re.sub(r'[✅🔬🏛🌍🪐🏺💎⚒🌋🎯]', '', display_name).strip()
+            if self.app.classification_engine:
+                for sid, scheme in self.app.classification_engine.schemes.items():
+                    scheme_clean = re.sub(r'[✅🔬🏛🌍🪐🏺💎⚒🌋🎯]', '', scheme.get('scheme_name', '')).strip()
+                    if scheme_clean == clean_name:
+                        scheme_id = sid
+                        break
+
+        if not scheme_id:
+            print(f"❌ Could not find scheme ID for '{display_name}'")
+            messagebox.showerror("Error", f"Could not find scheme ID for '{display_name}'")
+            return
+
+        if self.app.classification_engine:
+            try:
+                print(f"🚀 Running classification with scheme: {scheme_id}")
+
+                # Run classification (read‑only)
+                classification, confidence, color, derived = self.app.classification_engine.classify_sample(sample, scheme_id)
+                print(f"✅ Classification result: {classification}")
+                print(f"   Confidence: {confidence}")
+                print(f"   Color: {color}")
+                print(f"   Derived: {derived}")
+
+                # Determine flag
+                scheme_info = self.app.classification_engine.get_scheme_info(scheme_id)
+                flag_uncertain = scheme_info.get('flag_uncertain', False)
+                uncertain_threshold = scheme_info.get('uncertain_threshold', 0.7)
+                flag = (confidence < uncertain_threshold) if flag_uncertain else False
+
+                # Show result popup
+                self._show_classification_explanation(
+                    sample, classification, confidence, color, derived, flag
+                )
+
+                # Optionally, update the HUD cache for this sample (so the result persists)
+                if hasattr(self.app.right, 'classification_results') and sample_idx < len(self.app.right.classification_results):
+                    result = {
+                        'classification': classification,
+                        'confidence': confidence,
+                        'color': color,
+                        'derived_fields': derived,
+                        'flag_for_review': flag
+                    }
+                    self.app.right.classification_results[sample_idx] = result
+                    self.app.right._update_hud()
+
+                # Also refresh the table to update row color based on cached result
+                self._refresh()
+
+                # Show success in status bar
+                self.set_status(f"✅ Classified as: {classification}", "success")
+
+            except Exception as e:
+                print(f"❌ Classification error: {e}")
+                import traceback
+                traceback.print_exc()
+                messagebox.showerror("Error", f"Classification failed: {e}")
+        else:
+            print(f"❌ Classification engine not available")
+            messagebox.showerror("Error", "Classification engine not available")
+
     def _show_context_menu(self, event):
-        """Right-click context menu"""
+        """Right-click context menu – includes 'Classify This Sample' (read‑only)."""
         item = self.tree.identify_row(event.y)
         if not item:
             return
@@ -943,7 +1108,7 @@ class CenterPanel:
         sample = self.app.data_hub.get_all()[sample_idx]
 
         menu = tk.Menu(self.tree, tearoff=0)
-        # ADD THIS LINE 👇
+        # Keep the user option to classify a single sample
         menu.add_command(label="🔍 Classify This Sample",
                         command=lambda: self._classify_selected_sample(sample_idx))
         menu.add_command(label="Edit Cell",
@@ -958,142 +1123,6 @@ class CenterPanel:
             menu.tk_popup(event.x_root, event.y_root)
         finally:
             menu.grab_release()
-
-    def _classify_selected_sample(self, sample_idx):
-        """Classify a single selected sample"""
-        print(f"\n🔍 CLASSIFY SELECTED SAMPLE - Index: {sample_idx}")
-
-        samples = self.app.data_hub.get_all()
-        if sample_idx >= len(samples):
-            print(f"❌ Sample index {sample_idx} out of range (max: {len(samples)-1})")
-            return
-
-        sample = samples[sample_idx]
-        print(f"📋 Sample ID: {sample.get('Sample_ID', 'Unknown')}")
-
-        # Get current classification scheme from right panel
-        if hasattr(self.app, 'right') and hasattr(self.app.right, 'scheme_var'):
-            display_name = self.app.right.scheme_var.get()
-            print(f"🎯 Selected scheme display name: '{display_name}'")
-
-            if not display_name:
-                messagebox.showinfo("No Scheme", "Please select a classification scheme first")
-                return
-
-            # Find scheme ID
-            scheme_id = None
-            if hasattr(self.app.right, 'schemes'):
-                print("🔍 Checking right panel schemes:")
-                for sid, info in self.app.right.schemes.items():
-                    print(f"   {sid} -> {info.get('name', '')}")
-                    if info.get('name') == display_name or info.get('scheme_name') == display_name:
-                        scheme_id = sid
-                        print(f"✓ Found in right panel: {scheme_id}")
-                        break
-
-            if not scheme_id and self.app.classification_engine:
-                print("🔍 Checking engine schemes directly:")
-                for sid, scheme in self.app.classification_engine.schemes.items():
-                    print(f"   {sid} -> {scheme.get('scheme_name', '')}")
-                    if scheme.get('scheme_name') == display_name:
-                        scheme_id = sid
-                        print(f"✓ Found in engine: {scheme_id}")
-                        break
-
-            if not scheme_id:
-                import re
-                clean_name = re.sub(r'[✅🔬🏛🌍🪐🏺💎⚒🌋🎯]', '', display_name).strip()
-                print(f"🔍 Trying clean name: '{clean_name}'")
-
-                if self.app.classification_engine:
-                    for sid, scheme in self.app.classification_engine.schemes.items():
-                        scheme_clean = re.sub(r'[✅🔬🏛🌍🪐🏺💎⚒🌋🎯]', '', scheme.get('scheme_name', '')).strip()
-                        if scheme_clean == clean_name:
-                            scheme_id = sid
-                            print(f"✓ Found via clean name: {scheme_id}")
-                            break
-
-            if not scheme_id:
-                print(f"❌ Could not find scheme ID for '{display_name}'")
-                messagebox.showerror("Error", f"Could not find scheme ID for '{display_name}'")
-                return
-
-            if self.app.classification_engine:
-                try:
-                    print(f"🚀 Running classification with scheme: {scheme_id}")
-
-                    # Run classification
-                    result, confidence, color = self.app.classification_engine.classify_sample(sample, scheme_id)
-                    print(f"✅ Classification result: {result}")
-                    print(f"   Confidence: {confidence}")
-                    print(f"   Color: {color}")
-
-                    # ============ FIX: SAVE THE RESULT ============
-                    # Get scheme info to know which column to update
-                    scheme_info = self.app.classification_engine.get_scheme_info(scheme_id)
-                    output_column = scheme_info.get('output_column', 'Auto_Classification')
-                    confidence_column = scheme_info.get('confidence_column_name', 'Auto_Confidence')
-                    flag_column = scheme_info.get('flag_column_name', 'Flag_For_Review')
-
-                    print(f"📌 Output column: {output_column}")
-                    print(f"📌 Confidence column: {confidence_column}")
-
-                    # Create updates dictionary
-                    updates = {
-                        output_column: result,
-                        confidence_column: confidence,
-                        'Display_Color': color
-                    }
-
-                    print(f"📝 Updates to apply: {updates}")
-
-                    # Add flag if scheme uses it
-                    if scheme_info.get('flag_uncertain', False):
-                        uncertain_threshold = scheme_info.get('uncertain_threshold', 0.7)
-                        updates[flag_column] = (confidence < uncertain_threshold)
-                        print(f"🚩 Flag set to: {updates[flag_column]}")
-
-                    # Also add any computed ratios that might be useful
-                    ratio_keys = ['Zr_Nb_Ratio', 'Cr_Ni_Ratio', 'Ba_Rb_Ratio',
-                                'Ti_V_Ratio', 'Nb_Yb_Ratio', 'Th_Yb_Ratio',
-                                'Fe_Mn_Ratio', 'CIA_Value', 'V_Ratio',
-                                'Total_Alkali', 'Mg_Number', 'ACNK']
-
-                    for key in ratio_keys:
-                        if key in sample and sample[key] is not None:
-                            updates[key] = sample[key]
-                            print(f"📊 Adding computed ratio: {key} = {sample[key]}")
-
-                    # Update the sample in DataHub
-                    print(f"💾 Updating DataHub row {sample_idx}")
-                    self.app.data_hub.update_row(sample_idx, updates)
-
-                    # Force a refresh of the table to show the new classification
-                    print(f"🔄 Refreshing table...")
-                    self._refresh()
-
-                    # Also update the HUD in right panel
-                    if hasattr(self.app, 'right') and hasattr(self.app.right, '_update_hud'):
-                        print(f"🔄 Updating HUD...")
-                        self.app.right._update_hud()
-
-                    # Show result popup
-                    print(f"📊 Showing result popup...")
-                    self._show_classification_result(result, confidence, color, sample)
-
-                    # Show success in status bar
-                    self.set_status(f"✅ Classified as: {result}", "success")
-
-                    print(f"✅ Classification complete!")
-
-                except Exception as e:
-                    print(f"❌ Classification error: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    messagebox.showerror("Error", f"Classification failed: {e}")
-            else:
-                print(f"❌ Classification engine not available")
-                messagebox.showerror("Error", "Classification engine not available")
 
     def _edit_selected_cell(self, event, item, sample_idx):
         column = self.tree.identify_column(event.x)

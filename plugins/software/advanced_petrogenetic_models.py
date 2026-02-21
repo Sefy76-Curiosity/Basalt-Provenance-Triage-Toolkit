@@ -11,7 +11,7 @@ PLUGIN_INFO = {
     "category": "software",
     "id": "advanced_petrogenetic_models",
     "name": "Advanced Petrogenetic Models",
-    "icon": "🌋⚗️",
+    "icon": "⚗️",
     "description": "AFC · Zone Refining · In-Situ Crystallization — Complete magma evolution models",
     "version": "1.0.0",
     "requires": ["numpy", "scipy", "matplotlib"],
