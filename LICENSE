@@ -48,7 +48,7 @@ When using or citing this software, please include:
 ```
 Levy, S. (2026). Scientific Toolkit v2.0 [Computer software]. 
 Based on Basalt Provenance Triage Toolkit v10.2.
-https://doi.org/10.5281/zenodo.18499129
+https://doi.org/10.5281/zenodo.18727756
 ```
 
 **BibTeX Format**:
@@ -59,7 +59,7 @@ https://doi.org/10.5281/zenodo.18499129
   year = {2026},
   note = {Based on Basalt Provenance Triage Toolkit v10.2},
   url = {https://github.com/sefy-levy/scientific-toolkit},
-  doi = {10.5281/zenodo.18499129}
+  doi = {10.5281/zenodo.18727756}
 }
 ```
 

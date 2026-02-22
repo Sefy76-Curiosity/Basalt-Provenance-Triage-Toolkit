@@ -707,7 +707,7 @@ text
 Scientific Toolkit v2.0 - Enhanced Edition (2026)
 Sefy Levy
 https://gitlab.com/sefy76/scientific-toolkit
-DOI: 10.5281/zenodo.18499129
+DOI: 10.5281/zenodo.18727756
 
 📧 Support & Feedback
 
@@ -715,7 +715,7 @@ DOI: 10.5281/zenodo.18499129
 
     GitLab Issues: https://gitlab.com/sefy76/scientific-toolkit/-/issues
 
-    DOI: https://doi.org/10.5281/zenodo.18499129
+    DOI: https://doi.org/10.5281/zenodo.18727756
 
 When Reporting Issues
 

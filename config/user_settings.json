@@ -2,22 +2,22 @@
   "auto_save": {
     "enabled": false,
     "interval": 300,
-    "notify_on_save": true
+    "notify_on_save": false
   },
   "macro_recorder": {
-    "enabled": true,
+    "enabled": false,
     "max_macros": 50,
-    "confirm_delete": true
+    "confirm_delete": false
   },
   "project_manager": {
     "enabled": false,
-    "auto_load_recent": true,
+    "auto_load_recent": false,
     "max_recent_projects": 10
   },
   "script_exporter": {
-    "enabled": true,
+    "enabled": false,
     "default_language": "python",
-    "include_comments": true
+    "include_comments": false
   },
   "recent_files": {
     "enabled": true,
@@ -35,7 +35,10 @@
   },
   "last_session": {
     "last_project": null,
-    "window_geometry": "1400x850+255+59",
-    "last_accessed": "2026-02-21T23:28:47.306995"
+    "window_geometry": "1400x850+255+60",
+    "last_accessed": "2026-02-22T19:41:34.962490"
+  },
+  "theme": {
+    "name": "superhero"
   }
 }

@@ -1,88 +1,125 @@
 """
 All Schemes Detail Dialog
-Shows a table of all scheme results for a single sample.
-Includes Previous/Next navigation.
+Fully converted to ttkbootstrap with dark theme consistency
+Navigation uses ttkbootstrap buttons, treeview is ttkbootstrap-themed
 """
 
 import tkinter as tk
-from tkinter import ttk
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
+
 
 class AllSchemesDetailDialog:
     def __init__(self, parent, samples, all_results, current_index, scheme_names):
-        """
-        samples: list of sample dicts
-        all_results: list of lists, each inner list is (scheme_name, classification, confidence)
-        current_index: index of sample to display
-        scheme_names: list of all scheme names for reference
-        """
         self.parent = parent
         self.samples = samples
         self.all_results = all_results
         self.current_index = current_index
         self.scheme_names = scheme_names
 
-        self.window = tk.Toplevel(parent)
+        # Use ttkbootstrap Toplevel
+        self.window = ttk.Toplevel(parent)
         self.window.title(f"All Schemes: {self._get_sample_id()}")
-        self.window.geometry("750x500")
+        self.window.geometry("780x520")
         self.window.transient(parent)
 
+        # Main container with padding
         main = ttk.Frame(self.window, padding=10)
-        main.pack(fill=tk.BOTH, expand=True)
+        main.pack(fill=BOTH, expand=True)
 
-        # Header with navigation
+        # ---- Header with navigation ----
         header = ttk.Frame(main)
-        header.pack(fill=tk.X, pady=(0, 10))
+        header.pack(fill=X, pady=(0, 8))
 
-        self.prev_btn = ttk.Button(header, text="◀ Previous", command=self._prev_sample, width=10)
-        self.prev_btn.pack(side=tk.LEFT, padx=2)
+        # Previous button
+        self.prev_btn = ttk.Button(
+            header,
+            text="◀ Previous",
+            command=self._prev_sample,
+            bootstyle="secondary",
+            width=10
+        )
+        self.prev_btn.pack(side=LEFT, padx=2)
 
-        self.sample_label = ttk.Label(header, text=self._get_header_text(),
-                                      font=("TkDefaultFont", 12, "bold"))
-        self.sample_label.pack(side=tk.LEFT, expand=True, padx=10)
+        # Sample label
+        self.sample_label = ttk.Label(
+            header,
+            text=self._get_header_text(),
+            font=("TkDefaultFont", 13, "bold"),
+            bootstyle="light"
+        )
+        self.sample_label.pack(side=LEFT, expand=True, padx=10)
 
-        self.next_btn = ttk.Button(header, text="Next ▶", command=self._next_sample, width=10)
-        self.next_btn.pack(side=tk.RIGHT, padx=2)
+        # Next button
+        self.next_btn = ttk.Button(
+            header,
+            text="Next ▶",
+            command=self._next_sample,
+            bootstyle="secondary",
+            width=10
+        )
+        self.next_btn.pack(side=RIGHT, padx=2)
 
-        ttk.Separator(main, orient='horizontal').pack(fill=tk.X, pady=(0, 10))
+        # Separator
+        ttk.Separator(main, bootstyle="secondary").pack(fill=X, pady=(0, 8))
 
-        # Results table
+        # ---- Results table ----
         table_frame = ttk.Frame(main)
-        table_frame.pack(fill=tk.BOTH, expand=True)
+        table_frame.pack(fill=BOTH, expand=True)
 
+        # Treeview with ttkbootstrap styling
         columns = ("Scheme", "Classification", "Confidence")
-        self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=20)
+        self.tree = ttk.Treeview(
+            table_frame,
+            columns=columns,
+            show="headings",
+            height=20,
+            bootstyle="dark"
+        )
 
-        self.tree.heading("Scheme", text="Classification Scheme")
-        self.tree.heading("Classification", text="Result")
-        self.tree.heading("Confidence", text="Confidence")
+        # Configure headings
+        self.tree.heading("Scheme", text="Classification Scheme", anchor=W)
+        self.tree.heading("Classification", text="Result", anchor=W)
+        self.tree.heading("Confidence", text="Confidence", anchor=CENTER)
 
-        self.tree.column("Scheme", width=300, anchor="w", minwidth=250)
-        self.tree.column("Classification", width=300, anchor="w", minwidth=250)
-        self.tree.column("Confidence", width=100, anchor="center", minwidth=80)
+        # Configure columns
+        self.tree.column("Scheme", width=310, anchor=W, minwidth=250)
+        self.tree.column("Classification", width=310, anchor=W, minwidth=250)
+        self.tree.column("Confidence", width=100, anchor=CENTER, minwidth=80)
 
-        scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(
+            table_frame,
+            orient="vertical",
+            command=self.tree.yview,
+            bootstyle="dark-round"
+        )
         self.tree.configure(yscrollcommand=scrollbar.set)
 
-        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        # Layout
+        self.tree.pack(side=LEFT, fill=BOTH, expand=True)
+        scrollbar.pack(side=RIGHT, fill=Y)
 
-        # Status bar
+        # ---- Status bar ----
         status_frame = ttk.Frame(main)
-        status_frame.pack(fill=tk.X, pady=(10, 0))
+        status_frame.pack(fill=X, pady=(8, 0))
 
-        self.status_label = ttk.Label(status_frame, text="", font=("TkDefaultFont", 9))
-        self.status_label.pack(side=tk.LEFT)
+        self.status_label = ttk.Label(
+            status_frame,
+            text="",
+            font=("TkDefaultFont", 10),
+            bootstyle="light"
+        )
+        self.status_label.pack(side=LEFT)
 
+        # ---- Keyboard bindings ----
         self._update_nav_buttons()
         self.window.bind("<Left>", lambda e: self._prev_sample())
         self.window.bind("<Right>", lambda e: self._next_sample())
         self.window.bind("<Escape>", lambda e: self.window.destroy())
 
-        self.window.update_idletasks()
-        x = (self.window.winfo_screenwidth() // 2) - (self.window.winfo_width() // 2)
-        y = (self.window.winfo_screenheight() // 2) - (self.window.winfo_height() // 2)
-        self.window.geometry(f"+{x}+{y}")
-
+        # Initialize display
+        self._center_window()
         self._display_current_sample()
         self.window.focus_force()
         self.window.grab_set()
@@ -96,10 +133,20 @@ class AllSchemesDetailDialog:
         return f"Sample: {sample_id}  ({self.current_index + 1} of {total})"
 
     def _update_nav_buttons(self):
-        self.prev_btn.config(state=tk.NORMAL if self.current_index > 0 else tk.DISABLED)
-        self.next_btn.config(state=tk.NORMAL if self.current_index < len(self.samples) - 1 else tk.DISABLED)
+        """Enable/disable navigation buttons based on position"""
+        if self.current_index > 0:
+            self.prev_btn.configure(state=NORMAL)
+        else:
+            self.prev_btn.configure(state=DISABLED)
+
+        if self.current_index < len(self.samples) - 1:
+            self.next_btn.configure(state=NORMAL)
+        else:
+            self.next_btn.configure(state=DISABLED)
 
     def _display_current_sample(self):
+        """Display results for current sample"""
+        # Clear existing items
         for item in self.tree.get_children():
             self.tree.delete(item)
 
@@ -107,13 +154,14 @@ class AllSchemesDetailDialog:
 
         if not results_list:
             self.tree.insert("", tk.END, values=("No results available", "", ""))
-            self.status_label.config(text="⚠️ No classification results for this sample")
+            self.status_label.configure(text="⚠️ No classification results for this sample")
             return
 
         matched = 0
         total = len(results_list)
 
         for scheme_name, classification, confidence in results_list:
+            # Format confidence
             if confidence not in (None, 'N/A', ''):
                 try:
                     conf_val = float(confidence)
@@ -126,23 +174,55 @@ class AllSchemesDetailDialog:
             else:
                 conf_str = ""
 
-            self.tree.insert("", tk.END, values=(scheme_name, classification, conf_str))
+            # Insert row
+            item_id = self.tree.insert("", tk.END, values=(scheme_name, classification, conf_str))
 
+            # Apply tag for classification if valid
             if classification not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', '']:
                 matched += 1
+                # Try to apply color tag if available
+                if hasattr(self.parent, 'color_manager'):
+                    try:
+                        self.tree.item(item_id, tags=(classification,))
+                    except:
+                        pass
 
-        self.status_label.config(text=f"✅ {matched} of {total} schemes matched this sample")
-        self.sample_label.config(text=self._get_header_text())
+        # Configure colors if color manager exists
+        if hasattr(self.parent, 'color_manager'):
+            for classification in self.parent.color_manager.get_all_classifications():
+                bg = self.parent.color_manager.get_background(classification)
+                fg = self.parent.color_manager.get_foreground(classification)
+                self.tree.tag_configure(classification, background=bg, foreground=fg)
+
+        # Update status
+        self.status_label.configure(
+            text=f"✅ {matched} of {total} schemes matched this sample",
+            bootstyle="success" if matched > 0 else "secondary"
+        )
+
+        # Update header
+        self.sample_label.configure(text=self._get_header_text())
         self.window.title(f"All Schemes: {self._get_sample_id()}")
 
     def _prev_sample(self):
+        """Navigate to previous sample"""
         if self.current_index > 0:
             self.current_index -= 1
             self._update_nav_buttons()
             self._display_current_sample()
 
     def _next_sample(self):
+        """Navigate to next sample"""
         if self.current_index < len(self.samples) - 1:
             self.current_index += 1
             self._update_nav_buttons()
             self._display_current_sample()
+
+    def _center_window(self):
+        """Center the window on screen"""
+        self.window.update_idletasks()
+        w = self.window.winfo_width()
+        h = self.window.winfo_height()
+        x = (self.window.winfo_screenwidth() // 2) - (w // 2)
+        y = (self.window.winfo_screenheight() // 2) - (h // 2)
+        self.window.geometry(f"+{x}+{y}")

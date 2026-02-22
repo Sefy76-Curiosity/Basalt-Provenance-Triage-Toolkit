@@ -175,11 +175,14 @@ def check_dependencies():
 DEPS = check_dependencies()
 
 try:
-    from pyzbar import pyzbar as pyzbar
+    import pyzbar
+    from pyzbar.pyzbar import decode
+    # Verify it actually works by trying to decode something simple
+    _ = decode(b'dummy')
     HAS_PYZBAR = True
-except ImportError:
+except (ImportError, AttributeError, TypeError):
+    HAS_PYBAR = False  # Fixed the typo
     pyzbar = None
-    HAS_PYZBAR = False
 # ============================================================================
 # BLUETOOTH SPP SCANNER DATABASE - 50+ MODELS
 # ============================================================================
@@ -750,7 +753,7 @@ class BluetoothLEScanner:
 # ============================================================================
 
 class WebcamScanner:
-    """Webcam-based QR/barcode scanner"""
+    """Webcam-based QR/barcode scanner supporting both OpenCV QR and pyzbar (for 1D codes)"""
 
     def __init__(self, camera_id: int, callback: Callable, ui_queue: ThreadSafeUI,
                  preview_queue: Optional[queue.Queue] = None):
@@ -762,83 +765,275 @@ class WebcamScanner:
         self.running = False
         self.thread = None
         self.model = f"Webcam (Camera {camera_id})"
-        self.cooldown = {}
+        self.cooldown = {}  # Prevent duplicate scans
+        self.cooldown_time = 2.0  # Seconds between same code
+        self.frame_count = 0
+        self.scan_every_n_frames = 5  # Scan every 5 frames to save CPU
+
+        # Initialize detectors
+        self.qr_detector = cv2.QRCodeDetector()
+        self.has_pyzbar = False
+        self.pyzbar = None
+        self.cap_properties_set = False
+
+        # Try to import pyzbar optionally
+        try:
+            from pyzbar import pyzbar
+            self.pyzbar = pyzbar
+            self.has_pyzbar = True
+            print(f"✅ pyzbar loaded for 1D barcode support")
+        except ImportError as e:
+            print(f"📝 pyzbar not available: {e}")
+        except Exception as e:
+            print(f"⚠️ Error loading pyzbar: {e}")
 
     def connect(self) -> Tuple[bool, str]:
-        if not DEPS['opencv'] or not DEPS['pyzbar']:
-            return False, "OpenCV or pyzbar not installed"
+        """Connect to camera and initialize detectors"""
+        if not DEPS.get('opencv', False):
+            return False, "OpenCV not installed"
 
         try:
-            self.cap = cv2.VideoCapture(self.camera_id)
-            if self.cap.isOpened():
-                self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-                self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-                self.cap.set(cv2.CAP_PROP_FPS, 15)
-                return True, f"Camera {self.camera_id} opened"
-            return False, f"Could not open camera {self.camera_id}"
+            # Try different backends based on platform
+            if IS_WINDOWS:
+                self.cap = cv2.VideoCapture(self.camera_id, cv2.CAP_DSHOW)  # DirectShow for Windows
+            else:
+                self.cap = cv2.VideoCapture(self.camera_id)
+
+            if not self.cap.isOpened():
+                # Try with default backend as fallback
+                self.cap = cv2.VideoCapture(self.camera_id)
+                if not self.cap.isOpened():
+                    return False, f"Could not open camera {self.camera_id}"
+
+            # Give camera time to initialize
+            time.sleep(0.5)
+
+            # Set camera properties with error handling
+            try:
+                self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)  # Higher res for better detection
+                self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+                self.cap.set(cv2.CAP_PROP_FPS, 30)
+                self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Reduce latency
+                self.cap_properties_set = True
+            except Exception as e:
+                print(f"⚠️ Could not set camera properties: {e}")
+
+            # Test frame capture
+            ret, test_frame = self.cap.read()
+            if not ret or test_frame is None:
+                return False, "Camera opened but not returning frames"
+
+            # Initialize QR detector
+            self.qr_detector = cv2.QRCodeDetector()
+
+            # Build status message
+            msg = f"✅ Camera {self.camera_id} ready"
+            if self.has_pyzbar:
+                msg += " (QR + 1D barcodes)"
+                # Test pyzbar briefly
+                try:
+                    _ = self.pyzbar.decode(test_frame)
+                except Exception as e:
+                    print(f"⚠️ pyzbar test failed: {e}")
+                    self.has_pyzbar = False
+                    msg = f"✅ Camera {self.camera_id} ready (QR only - pyzbar test failed)"
+            else:
+                msg += " (QR codes only)"
+
+            return True, msg
+
         except Exception as e:
-            return False, str(e)
+            return False, f"Camera error: {str(e)}"
 
     def start(self):
+        """Start the scanning thread"""
+        if self.thread and self.thread.is_alive():
+            return
         self.running = True
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.thread.start()
+        print(f"📹 Webcam scanner thread started")
+
+    def stop(self):
+        """Stop the scanning thread"""
+        self.running = False
+        if self.thread and self.thread.is_alive():
+            self.thread.join(timeout=2.0)
+        print(f"📹 Webcam scanner thread stopped")
+
+    def disconnect(self):
+        """Disconnect and clean up"""
+        self.stop()
+        if self.cap:
+            try:
+                self.cap.release()
+            except:
+                pass
+            self.cap = None
+
+    def _clean_cooldown(self):
+        """Remove expired cooldown entries"""
+        now = time.time()
+        expired = [code for code, timestamp in self.cooldown.items()
+                  if now - timestamp > self.cooldown_time]
+        for code in expired:
+            del self.cooldown[code]
+
+    def _process_frame(self, frame):
+        """Process a single frame for barcodes"""
+        results = []
+
+        # Method 1: OpenCV QR detector (always available)
+        try:
+            data, points, _ = self.qr_detector.detectAndDecode(frame)
+            if data and data.strip():
+                # Verify it's a valid detection
+                if points is not None and len(points) > 0 and points[0] is not None:
+                    results.append((data, "QR_CODE", points[0]))
+        except Exception as e:
+            print(f"OpenCV QR error: {e}")
+
+        # Method 2: pyzbar for 1D barcodes (if available)
+        if self.has_pyzbar and self.pyzbar:
+            try:
+                barcodes = self.pyzbar.decode(frame)
+                for barcode in barcodes:
+                    data = barcode.data.decode('utf-8')
+                    if data.strip():
+                        barcode_type = barcode.type
+                        rect = barcode.rect
+                        results.append((data, barcode_type, rect))
+            except Exception as e:
+                print(f"pyzbar error: {e}")
+
+        return results
+
+    def _draw_detections(self, frame, results):
+        """Draw bounding boxes around detected codes"""
+        for result in results:
+            data, code_type, geometry = result
+
+            if code_type == "QR_CODE":
+                # Draw QR code polygon
+                pts = geometry.astype(int)
+                for i in range(4):
+                    pt1 = tuple(pts[i])
+                    pt2 = tuple(pts[(i+1) % 4])
+                    cv2.line(frame, pt1, pt2, (0, 255, 0), 2)
+
+                # Add label
+                x, y = tuple(pts[0])
+                cv2.putText(frame, f"QR: {data[:20]}", (x, y-10),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            else:
+                # Draw 1D barcode rectangle
+                x, y, w, h = geometry
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                cv2.putText(frame, f"{code_type}: {data[:20]}", (x, y-10),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
     def _run(self):
+        """Main scanning loop"""
+        consecutive_errors = 0
+        max_errors = 10
+
         while self.running and self.cap:
             try:
+                # Read frame
                 ret, frame = self.cap.read()
-                if not ret:
+                if not ret or frame is None:
+                    consecutive_errors += 1
+                    if consecutive_errors > max_errors:
+                        print(f"❌ Camera: Too many errors, stopping")
+                        break
                     time.sleep(0.1)
                     continue
 
-                try:
-                    barcodes = pyzbar.decode(frame)
-                    for barcode in barcodes:
-                        data = barcode.data.decode('utf-8')
-                        barcode_type = barcode.type
+                consecutive_errors = 0  # Reset error counter on success
+                self.frame_count += 1
 
+                # Only scan every N frames to save CPU
+                if self.frame_count % self.scan_every_n_frames == 0:
+                    # Clean expired cooldown entries
+                    self._clean_cooldown()
+
+                    # Process frame for barcodes
+                    results = self._process_frame(frame)
+
+                    # Handle results
+                    for data, code_type, geometry in results:
+                        # Check cooldown
                         now = time.time()
-                        if now - self.cooldown.get(data, 0) < 2.0:
+                        if now - self.cooldown.get(data, 0) < self.cooldown_time:
                             continue
+
+                        # Update cooldown
                         self.cooldown[data] = now
 
-                        x, y, w, h = barcode.rect
-                        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                        # Draw detection
+                        self._draw_detections(frame, [results[0]])  # Draw first detection
 
-                        self.callback(data, barcode_type, self.model)
-                except:
-                    pass
+                        # Trigger callback
+                        try:
+                            self.callback(data, code_type, self.model)
+                            print(f"📸 Scanned: {code_type} - {data[:50]}")
+                        except Exception as e:
+                            print(f"Callback error: {e}")
 
+                # Update preview (every frame for smooth video)
                 if self.preview_queue is not None:
                     try:
+                        # Resize for preview if needed
                         h, w = frame.shape[:2]
-                        max_h = 200
+                        max_h = 240
                         if h > max_h:
                             scale = max_h / h
                             new_w = int(w * scale)
-                            frame = cv2.resize(frame, (new_w, max_h))
+                            preview_frame = cv2.resize(frame, (new_w, max_h))
+                        else:
+                            preview_frame = frame.copy()
 
-                        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        # Convert to RGB for tkinter
+                        preview_rgb = cv2.cvtColor(preview_frame, cv2.COLOR_BGR2RGB)
 
-                        if self.preview_queue.qsize() < 3:
-                            self.preview_queue.put(frame_rgb.copy())
-                    except:
-                        pass
+                        # Add status overlay
+                        status_text = f"{'QR+1D' if self.has_pyzbar else 'QR Only'}"
+                        cv2.putText(preview_rgb, status_text, (10, 20),
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
-                time.sleep(0.03)
-            except:
+                        # Queue preview (limit queue size)
+                        if self.preview_queue.qsize() < 2:
+                            self.preview_queue.put(preview_rgb.copy())
+                    except Exception as e:
+                        print(f"Preview error: {e}")
+
+                # Small delay to prevent CPU overload
+                time.sleep(0.01)
+
+            except Exception as e:
+                print(f"⚠️ Webcam loop error: {e}")
+                consecutive_errors += 1
+                if consecutive_errors > max_errors:
+                    break
                 time.sleep(0.1)
 
-    def stop(self):
-        self.running = False
-        if self.thread and self.thread.is_alive():
-            self.thread.join(timeout=1)
-        if self.cap:
-            self.cap.release()
+        # Clean up on exit
+        print(f"📹 Webcam scanner loop ended")
+        if self.running:  # Unexpected exit
+            self.running = False
+            # Notify UI
+            if self.ui_queue:
+                self.ui_queue.schedule(lambda: messagebox.showerror(
+                    "Camera Error", "Camera connection lost"))
 
-    def disconnect(self):
-        self.stop()
+    def get_capabilities(self) -> Dict[str, bool]:
+        """Return what barcode types this scanner supports"""
+        return {
+            'qr_codes': True,  # Always true with OpenCV
+            '1d_barcodes': self.has_pyzbar,
+            'pdf417': self.has_pyzbar,
+            'datamatrix': False,  # Not supported by either
+        }
 
 
 # ============================================================================
@@ -1630,76 +1825,357 @@ class BarcodeScannerUnifiedSuitePlugin:
         self.ble_device_list.insert(tk.END, "✨ No devices found - click Scan")
         self.ble_device_list.itemconfig(0, fg="#7f8c8d")
 
-    def _build_webcam_controls(self):
-        tk.Label(self.left_panel_content, text="📹 Webcam Scanner",
-                font=("Arial", 10, "bold"), bg="white", fg="#27ae60").pack(anchor=tk.W, pady=5)
+    def _update_preview_for_device(self, device_type):
+        if device_type == "Webcam" and self.preview_var.get():
+            self.preview_label.config(text="Camera starting...", fg="white")
+        elif device_type == "USB HID":
+            self.preview_label.config(text="⌨️ USB HID Mode\n\nClick in the scan field\nand scan with your device",
+                                    fg="#ccc", font=("Arial", 9))
+        elif device_type == "USB Serial":
+            self.preview_label.config(text="🔌 USB Serial Mode\n\nConnect to a port\nand start scanning",
+                                    fg="#ccc", font=("Arial", 9))
+        elif device_type == "Bluetooth SPP":
+            self.preview_label.config(text="📱 Bluetooth SPP Mode\n\nSelect a device and connect",
+                                    fg="#ccc", font=("Arial", 9))
+        elif device_type == "Bluetooth LE":
+            self.preview_label.config(text="📡 Bluetooth LE Mode\n\nScan for devices and connect",
+                                    fg="#ccc", font=("Arial", 9))
 
-        missing = []
-        install_packages = []
-        if not self.deps['opencv']:
-            missing.append("opencv-python")
-            install_packages.append("opencv-python")
-        if not self.deps['pyzbar']:
-            missing.append("pyzbar")
-            install_packages.append("pyzbar")
-        if not self.deps['pillow']:
-            missing.append("pillow")
-            install_packages.append("pillow")
+    # Move these methods from wherever they are (around line 2350-2400) to here, before _build_webcam_controls:
 
-        if missing:
-            self._show_install_button("Webcam", install_packages, missing)
-            return
-
-        tk.Label(self.left_panel_content, text="Camera:", font=("Arial", 8, "bold"),
+    def _build_manual_entry(self):
+        tk.Label(self.left_panel_content, text="Manual Entry:", font=("Arial", 8, "bold"),
                 bg="white").pack(anchor=tk.W, pady=(10,2))
 
-        cam_frame = tk.Frame(self.left_panel_content, bg="white")
-        cam_frame.pack(fill=tk.X, pady=2)
+        manual_frame = tk.Frame(self.left_panel_content, bg="white")
+        manual_frame.pack(fill=tk.X, pady=2)
+
+        self.manual_var = tk.StringVar()
+        manual_entry = tk.Entry(manual_frame, textvariable=self.manual_var)
+        manual_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        ToolTip(manual_entry, "Type barcode manually and click Add")
+        tk.Button(manual_frame, text="Add", command=self._add_manual,
+                bg="#3498db", fg="white", width=6).pack(side=tk.RIGHT, padx=(5,0))
+
+    def _build_context_fields(self):
+        tk.Label(self.left_panel_content, text="Context Fields:", font=("Arial", 8, "bold"),
+                bg="white").pack(anchor=tk.W, pady=(10,2))
+
+        fields = [("Batch ID:", "batch_var"), ("Sample ID:", "sample_var"),
+                ("Context:", "context_var")]
+
+        for label, name in fields:
+            f = tk.Frame(self.left_panel_content, bg="white")
+            f.pack(fill=tk.X, pady=1)
+            tk.Label(f, text=label, font=("Arial", 7),
+                    bg="white", width=8, anchor=tk.W).pack(side=tk.LEFT)
+            var = tk.StringVar()
+            entry = tk.Entry(f, textvariable=var, width=20)
+            entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            ToolTip(entry, f"Enter {label.lower()} for scans")
+            self.context_vars[name] = var
+
+    def _build_webcam_controls(self):
+        """Build webcam controls with smart dependency handling"""
+
+        # Header
+        tk.Label(self.left_panel_content, text="📹 Webcam Scanner",
+                font=("Arial", 12, "bold"), bg="white", fg="#27ae60").pack(anchor=tk.W, pady=5)
+
+        # ========================================================================
+        # DEPENDENCY STATUS SECTION
+        # ========================================================================
+        status_frame = tk.Frame(self.left_panel_content, bg="#f8f9fa", relief=tk.GROOVE, bd=1)
+        status_frame.pack(fill=tk.X, pady=5, padx=2)
+
+        tk.Label(status_frame, text="🔧 Scanner Capabilities",
+                font=("Arial", 9, "bold"), bg="#f8f9fa").pack(anchor=tk.W, padx=5, pady=2)
+
+        # Check what's actually available
+        opencv_available = self.deps.get('opencv', False)
+        pyzbar_available = self.deps.get('pyzbar', False)
+        pillow_available = self.deps.get('pillow', False)
+
+        # Test pyzbar functionality (not just import)
+        pyzbar_working = False
+        if pyzbar_available:
+            try:
+                from pyzbar.pyzbar import decode
+                # Try a dummy decode to see if C library loads
+                _ = decode(b'test')
+                pyzbar_working = True
+            except:
+                pyzbar_working = False
+
+        # Determine actual capabilities
+        can_scan_qr = opencv_available
+        can_scan_1d = pyzbar_working
+        can_show_preview = pillow_available
+
+        # Build status display
+        status_items = [
+            ("📷 OpenCV (Camera)", "✅ Ready" if opencv_available else "❌ Not installed",
+            "#2ecc71" if opencv_available else "#e74c3c"),
+            ("🔲 QR Codes", "✅ Supported" if can_scan_qr else "❌ Not available",
+            "#2ecc71" if can_scan_qr else "#e74c3c"),
+        ]
+
+        # 1D barcode status with specific message
+        if pyzbar_available and not pyzbar_working:
+            status_items.append(("📊 1D Barcodes", "⚠️ Library error (zbar missing)", "#f39c12"))
+        elif can_scan_1d:
+            status_items.append(("📊 1D Barcodes", "✅ Full support", "#2ecc71"))
+        else:
+            status_items.append(("📊 1D Barcodes", "❌ Not available", "#e74c3c"))
+
+        # Preview status
+        status_items.append(("🖼️ Live Preview", "✅ Available" if can_show_preview else "❌ Not available",
+                            "#2ecc71" if can_show_preview else "#e74c3c"))
+
+        # Display status grid
+        for i, (label, value, color) in enumerate(status_items):
+            row = tk.Frame(status_frame, bg="#f8f9fa")
+            row.pack(fill=tk.X, padx=5, pady=1)
+            tk.Label(row, text=label, font=("Arial", 8),
+                    bg="#f8f9fa", width=15, anchor=tk.W).pack(side=tk.LEFT)
+            tk.Label(row, text=value, font=("Arial", 8, "bold"),
+                    bg="#f8f9fa", fg=color).pack(side=tk.LEFT)
+
+        # ========================================================================
+        # MISSING DEPENDENCIES SECTION
+        # ========================================================================
+        missing_packages = []
+        system_libs_needed = []
+
+        if not opencv_available:
+            missing_packages.append("opencv-python")
+        if not pillow_available:
+            missing_packages.append("pillow")
+
+        # Special handling for pyzbar
+        if pyzbar_available and not pyzbar_working:
+            system_libs_needed.append("zbar library")
+            if IS_LINUX:
+                system_libs_needed.append("libzbar0 (sudo apt-get install libzbar0)")
+            elif IS_WINDOWS:
+                system_libs_needed.append("zbar DLL (included with pyzbar should work)")
+        elif not pyzbar_available and can_scan_qr:
+            # Optional package for 1D support
+            missing_packages.append("pyzbar (optional - adds 1D barcodes)")
+
+        if missing_packages or system_libs_needed:
+            # Create warning frame
+            warn_frame = tk.Frame(self.left_panel_content, bg="#fff3cd", relief=tk.SOLID, bd=1)
+            warn_frame.pack(fill=tk.X, pady=5, padx=2)
+
+            tk.Label(warn_frame, text="⚠️ Scanner Limitations",
+                    font=("Arial", 9, "bold"), bg="#fff3cd", fg="#856404").pack(anchor=tk.W, padx=5, pady=2)
+
+            # Explain current capabilities
+            if can_scan_qr and not can_scan_1d:
+                msg = "✓ QR codes only (OpenCV)\n✗ 1D barcodes not available"
+                if pyzbar_available and not pyzbar_working:
+                    msg += "\n\npyzbar installed but zbar library missing"
+                tk.Label(warn_frame, text=msg, bg="#fff3cd", fg="#856404",
+                        font=("Arial", 8), justify=tk.LEFT).pack(anchor=tk.W, padx=5, pady=2)
+
+            # Install buttons for missing packages
+            if missing_packages:
+                btn_frame = tk.Frame(warn_frame, bg="#fff3cd")
+                btn_frame.pack(fill=tk.X, padx=5, pady=2)
+
+                tk.Label(btn_frame, text="Install:", bg="#fff3cd",
+                        font=("Arial", 8, "bold")).pack(side=tk.LEFT, padx=2)
+
+                # Create button for each package or group
+                if "opencv-python" in missing_packages or "pillow" in missing_packages:
+                    core_pkgs = [p for p in missing_packages if p in ["opencv-python", "pillow"]]
+                    if core_pkgs:
+                        tk.Button(btn_frame, text="📦 Core (QR only)",
+                                command=lambda: self._install_and_refresh("Core Dependencies", core_pkgs),
+                                bg="#f39c12", fg="black", font=("Arial", 7),
+                                relief=tk.RAISED, bd=1).pack(side=tk.LEFT, padx=2)
+
+                if "pyzbar (optional - adds 1D barcodes)" in missing_packages:
+                    tk.Button(btn_frame, text="📦 +1D Barcodes",
+                            command=lambda: self._install_and_refresh("1D Barcode Support", ["pyzbar"]),
+                            bg="#3498db", fg="white", font=("Arial", 7),
+                            relief=tk.RAISED, bd=1).pack(side=tk.LEFT, padx=2)
+
+            # System library instructions
+            if system_libs_needed:
+                lib_frame = tk.Frame(warn_frame, bg="#fff3cd")
+                lib_frame.pack(fill=tk.X, padx=5, pady=2)
+
+                tk.Label(lib_frame, text="System:", bg="#fff3cd",
+                        font=("Arial", 8, "bold")).pack(side=tk.LEFT, padx=2)
+
+                if IS_LINUX and "libzbar0" in str(system_libs_needed):
+                    tk.Label(lib_frame, text="sudo apt-get install libzbar0",
+                            bg="#fff3cd", fg="#e67e22", font=("Arial", 7, "bold")).pack(side=tk.LEFT, padx=2)
+
+        # ========================================================================
+        # CAMERA SELECTION (always show if OpenCV available)
+        # ========================================================================
+        if not opencv_available:
+            # Show big install button if core missing
+            self._show_install_button("Webcam", ["opencv-python", "pillow"],
+                                    ["OpenCV", "Pillow"])
+            self._build_manual_entry()
+            self._build_context_fields()
+            return
+
+        # Camera selection frame
+        cam_section = tk.LabelFrame(self.left_panel_content, text="📷 Camera Settings",
+                                    bg="white", font=("Arial", 9, "bold"))
+        cam_section.pack(fill=tk.X, pady=5)
+
+        tk.Label(cam_section, text="Camera:", font=("Arial", 8, "bold"),
+                bg="white").pack(anchor=tk.W, padx=5, pady=(5,2))
+
+        cam_frame = tk.Frame(cam_section, bg="white")
+        cam_frame.pack(fill=tk.X, padx=5, pady=2)
 
         self.webcam_combo = ttk.Combobox(cam_frame, values=["Camera 0", "Camera 1", "Camera 2"],
-                                         width=15)
+                                        width=15)
         self.webcam_combo.set("Camera 0")
         self.webcam_combo.pack(side=tk.LEFT, fill=tk.X, expand=True)
         ToolTip(self.webcam_combo, "Select camera device (0 = built-in, 1+ = external)")
-        tk.Button(cam_frame, text="⟳", command=self._refresh_cameras,
-                 width=2).pack(side=tk.RIGHT, padx=(2,0))
 
+        tk.Button(cam_frame, text="⟳ Refresh", command=self._refresh_cameras,
+                bg="#3498db", fg="white", font=("Arial", 7), width=8).pack(side=tk.RIGHT, padx=(2,0))
+
+        # ========================================================================
+        # CAPABILITY SUMMARY
+        # ========================================================================
+        if opencv_available:
+            summary_frame = tk.Frame(cam_section, bg="white")
+            summary_frame.pack(fill=tk.X, padx=5, pady=2)
+
+            if can_scan_1d:
+                tk.Label(summary_frame,
+                        text="✓ Full barcode support (QR + 1D codes)",
+                        fg="#2ecc71", bg="white", font=("Arial", 7, "bold")).pack(anchor=tk.W)
+            elif pyzbar_available and not pyzbar_working:
+                tk.Label(summary_frame,
+                        text="⚠️ QR only - 1D codes need zbar library",
+                        fg="#f39c12", bg="white", font=("Arial", 7)).pack(anchor=tk.W)
+            else:
+                tk.Label(summary_frame,
+                        text="📱 QR code mode (install pyzbar for 1D codes)",
+                        fg="#3498db", bg="white", font=("Arial", 7)).pack(anchor=tk.W)
+
+        # ========================================================================
+        # CONTROL BUTTONS
+        # ========================================================================
         btn_frame = tk.Frame(self.left_panel_content, bg="white")
         btn_frame.pack(fill=tk.X, pady=10)
 
         self.webcam_connect_btn = tk.Button(btn_frame, text="▶ Start Camera",
                                             command=self._connect_webcam,
                                             bg="#27ae60", fg="white", font=("Arial", 9, "bold"),
-                                            width=15)
-        self.webcam_connect_btn.pack(side=tk.LEFT)
+                                            width=15, height=1)
+        self.webcam_connect_btn.pack(side=tk.LEFT, padx=2)
         ToolTip(self.webcam_connect_btn, "Start webcam and begin scanning")
 
         self.webcam_status = tk.Label(btn_frame, text="⚪", fg="#e74c3c",
-                                      font=("Arial", 10), bg="white")
+                                    font=("Arial", 12, "bold"), bg="white", width=2)
         self.webcam_status.pack(side=tk.LEFT, padx=5)
+
+        # Add info button about limitations
+        if not can_scan_1d:
+            tk.Button(btn_frame, text="ℹ️", command=self._show_barcode_info,
+                    bg="#3498db", fg="white", font=("Arial", 8, "bold"),
+                    width=2, height=1).pack(side=tk.LEFT, padx=2)
 
         self._build_manual_entry()
         self._build_context_fields()
 
+        # Refresh camera list
+        self._refresh_cameras()
+
+    def _show_barcode_info(self):
+        """Show information about barcode limitations"""
+        info = tk.Toplevel(self.window)
+        info.title("📊 Barcode Scanner Information")
+        info.geometry("400x300")
+        info.transient(self.window)
+
+        tk.Label(info, text="Webcam Barcode Scanning",
+                font=("Arial", 12, "bold"), fg="#27ae60").pack(pady=10)
+
+        text_widget = tk.Text(info, wrap=tk.WORD, padx=10, pady=10)
+        text_widget.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+        info_text = """Supported Barcode Types:
+
+    ✅ QR Codes (always available via OpenCV)
+    • QR Code
+    • Micro QR Code (basic support)
+
+    ❌ 1D Barcodes (need pyzbar)
+    • UPC-A / UPC-E
+    • EAN-8 / EAN-13
+    • Code 39 / Code 93 / Code 128
+    • ITF-14
+    • Codabar
+    • PDF417
+
+    {status}
+
+    {instructions}"""
+
+        if self.deps.get('pyzbar', False):
+            try:
+                from pyzbar.pyzbar import decode
+                # Test if it works
+                test_result = decode(b'test')
+                status = "✓ pyzbar is installed and working correctly"
+                instructions = "You have full barcode support!"
+            except Exception as e:
+                status = "⚠️ pyzbar installed but zbar library not found"
+                if IS_LINUX:
+                    instructions = "Run this in terminal:\nsudo apt-get install libzbar0\nThen restart the plugin"
+                elif IS_WINDOWS:
+                    instructions = "Try reinstalling pyzbar:\npip uninstall pyzbar\npip install pyzbar"
+                else:
+                    instructions = "Please reinstall pyzbar or install the zbar library"
+        else:
+            status = "⚠️ pyzbar not installed"
+            instructions = "Click '📦 +1D Barcodes' button above to install support for 1D codes"
+
+        text_widget.insert(tk.END, info_text.format(status=status, instructions=instructions))
+        text_widget.config(state=tk.DISABLED)
+
+        # Close button
+        btn_frame = tk.Frame(info, bg="white")
+        btn_frame.pack(fill=tk.X, pady=5)
+        tk.Button(btn_frame, text="Close", command=info.destroy,
+                bg="#e74c3c", fg="white", width=10).pack()
+
     def _install_and_refresh(self, feature: str, packages: List[str]):
-        """Install dependencies directly to the current Python environment"""
+        """Install dependencies and restart plugin"""
         import sys
         import subprocess
         import os
+        import platform
 
         win = tk.Toplevel(self.window)
         win.title(f"📦 Installing: {feature}")
-        win.geometry("600x400")
+        win.geometry("650x450")
         win.transient(self.window)
 
-        header = tk.Frame(win, bg="#f39c12", height=32)
+        # Header with platform info
+        header = tk.Frame(win, bg="#f39c12", height=40)
         header.pack(fill=tk.X)
         header.pack_propagate(False)
-        tk.Label(header, text=f"Installing to: {sys.executable}",
+
+        tk.Label(header, text=f"Python: {sys.version.split()[0]} on {platform.system()}",
                 font=("Consolas", 8), bg="#f39c12", fg="white").pack(pady=2)
         tk.Label(header, text=f"pip install {' '.join(packages)}",
-                font=("Consolas", 9), bg="#f39c12", fg="white").pack(pady=2)
+                font=("Consolas", 9, "bold"), bg="#f39c12", fg="white").pack(pady=2)
 
+        # Main text area
         text = tk.Text(win, wrap=tk.WORD, font=("Consolas", 9),
                     bg="#1e1e1e", fg="#d4d4d4")
         scroll = tk.Scrollbar(win, command=text.yview)
@@ -1708,18 +2184,26 @@ class BarcodeScannerUnifiedSuitePlugin:
         scroll.pack(side=tk.RIGHT, fill=tk.Y, pady=5)
 
         def run_install():
-            text.insert(tk.END, f"$ {sys.executable} -m pip install {' '.join(packages)}\n\n")
+            import os
+            import sys
+            import subprocess
+            import tempfile
+            import platform
+            import textwrap
 
-            # Use --user flag if needed
-            cmd = [sys.executable, "-m", "pip", "install"]
+            text.insert(tk.END, f"$ {sys.executable} -m pip install {' '.join(packages)} -v\n\n")
 
-            # Add --user if we're in a system location
+            # Build command
+            cmd = [sys.executable, "-m", "pip", "install", "-v"]
+
+            # Add --user if needed
             if sys.prefix.startswith('/usr') and not os.access(sys.prefix, os.W_OK):
                 cmd.append("--user")
-                text.insert(tk.END, "Note: Using --user (system site-packages not writable)\n\n")
+                text.insert(tk.END, "📌 Using --user (system not writable)\n\n")
 
             cmd.extend(packages)
 
+            # Run installation
             proc = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -1727,35 +2211,86 @@ class BarcodeScannerUnifiedSuitePlugin:
                 text=True,
                 bufsize=1
             )
+
             for line in proc.stdout:
                 text.insert(tk.END, line)
                 text.see(tk.END)
                 win.update()
+
             proc.wait()
 
             if proc.returncode == 0:
-                text.insert(tk.END, "\n✅ SUCCESS! Dependencies installed.\n")
+                text.insert(tk.END, "\n" + "="*50 + "\n")
+                text.insert(tk.END, "✅ INSTALLATION SUCCESSFUL\n")
+                text.insert(tk.END, "="*50 + "\n\n")
 
-                # On Linux, pyzbar needs libzbar0
-                if IS_LINUX and 'pyzbar' in str(packages):
-                    text.insert(tk.END, "\nChecking for libzbar0...\n")
+                # Test imports
+                text.insert(tk.END, "🔍 Testing imports...\n")
+
+                # Find this section in _install_and_refresh (around line where it says "Test imports")
+                # Replace the test_code block with this properly indented version:
+
+                if 'pyzbar' in str(packages):
+                    # Create test code with proper indentation using textwrap.dedent
+                    test_code = textwrap.dedent("""
+                    import sys
                     try:
-                        subprocess.run(['ldconfig', '-p'], capture_output=True, text=True)
-                        # Can't easily install system libs from here, just warn
-                        text.insert(tk.END, "NOTE: If you get import errors, you may need:\n")
-                        text.insert(tk.END, "  sudo apt-get install libzbar0\n")
-                    except:
-                        pass
+                        from pyzbar.pyzbar import decode
+                        print("✓ pyzbar imported")
+                        try:
+                            # Test with a simple string
+                            test_result = decode(b'test')
+                            print("✓ zbar library loaded")
+                            sys.exit(0)
+                        except Exception as e:
+                            print(f"✗ zbar library error: {e}")
+                            if 'linux' in sys.platform:
+                                print("  → Run: sudo apt-get install libzbar0")
+                            sys.exit(1)
+                    except ImportError as e:
+                        print(f"✗ Import failed: {e}")
+                        sys.exit(1)
+                    """).strip()  # strip() removes the first empty line
 
-                text.insert(tk.END, "\nRestarting plugin to load new modules...\n")
-                win.update()
-                time.sleep(2)
+                    # Write test code to temp file
+                    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+                        f.write(test_code)
+                        temp_file = f.name
 
-                # Restart the plugin
-                self.window.after(0, self._restart_plugin)
-                win.after(500, win.destroy)
-            else:
-                text.insert(tk.END, f"\n❌ FAILED (code {proc.returncode})\n")
+                    # Run the test
+                    test_result = subprocess.run(
+                        [sys.executable, temp_file],
+                        capture_output=True, text=True
+                    )
+
+                    # Clean up temp file
+                    os.unlink(temp_file)
+
+                    # Show results
+                    if test_result.stdout:
+                        text.insert(tk.END, test_result.stdout + "\n")
+                    if test_result.stderr:
+                        text.insert(tk.END, f"Errors: {test_result.stderr}\n")
+                    if test_result.returncode == 0:
+                        text.insert(tk.END, "✅ pyzbar is working correctly!\n")
+                    else:
+                        text.insert(tk.END, "⚠️ pyzbar installed but not working properly\n")
+
+                # Helpful hints based on platform
+                if IS_LINUX and 'pyzbar' in str(packages):
+                    text.insert(tk.END, "\n" + "="*50 + "\n")
+                    text.insert(tk.END, "💡 Linux Troubleshooting:\n")
+                    text.insert(tk.END, "1. Install system library:\n")
+                    text.insert(tk.END, "   sudo apt-get update\n")
+                    text.insert(tk.END, "   sudo apt-get install libzbar0 libzbar-dev\n")
+                    text.insert(tk.END, "2. Install Python package:\n")
+                    text.insert(tk.END, "   pip install --no-cache-dir pyzbar\n")
+
+                elif IS_WINDOWS and 'pyzbar' in str(packages):
+                    text.insert(tk.END, "\n" + "="*50 + "\n")
+                    text.insert(tk.END, "💡 Windows Troubleshooting:\n")
+                    text.insert(tk.END, "1. Install Visual C++ Build Tools\n")
+                    text.insert(tk.END, "2. Or use: pip install pyzbar-whl\n")
 
         threading.Thread(target=run_install, daemon=True).start()
 
@@ -1777,9 +2312,6 @@ class BarcodeScannerUnifiedSuitePlugin:
         if hasattr(self, 'tab_var'):
             self.tab_var.set(last_tab)
             self._switch_tab(last_tab)
-
-        # Refresh the current tab
-        current_tab = self.tab_var.get()
 
         self.status_var.set("✅ Dependencies installed - view refreshed")
 
@@ -1804,84 +2336,6 @@ class BarcodeScannerUnifiedSuitePlugin:
         tk.Label(msg_frame,
                 text="Click to install required packages",
                 fg="#7f8c8d", bg="white", font=("Arial", 8)).pack()
-
-    def _build_manual_entry(self):
-        tk.Label(self.left_panel_content, text="Manual Entry:", font=("Arial", 8, "bold"),
-                bg="white").pack(anchor=tk.W, pady=(10,2))
-
-        manual_frame = tk.Frame(self.left_panel_content, bg="white")
-        manual_frame.pack(fill=tk.X, pady=2)
-
-        self.manual_var = tk.StringVar()
-        manual_entry = tk.Entry(manual_frame, textvariable=self.manual_var)
-        manual_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        ToolTip(manual_entry, "Type barcode manually and click Add")
-        tk.Button(manual_frame, text="Add", command=self._add_manual,
-                 bg="#3498db", fg="white", width=6).pack(side=tk.RIGHT, padx=(5,0))
-
-    def _build_context_fields(self):
-        tk.Label(self.left_panel_content, text="Context Fields:", font=("Arial", 8, "bold"),
-                bg="white").pack(anchor=tk.W, pady=(10,2))
-
-        fields = [("Batch ID:", "batch_var"), ("Sample ID:", "sample_var"),
-                  ("Context:", "context_var")]
-
-        for label, name in fields:
-            f = tk.Frame(self.left_panel_content, bg="white")
-            f.pack(fill=tk.X, pady=1)
-            tk.Label(f, text=label, font=("Arial", 7),
-                    bg="white", width=8, anchor=tk.W).pack(side=tk.LEFT)
-            var = tk.StringVar()
-            entry = tk.Entry(f, textvariable=var, width=20)
-            entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
-            ToolTip(entry, f"Enter {label.lower()} for这批 scans")
-            self.context_vars[name] = var
-
-    def _update_preview_for_device(self, device_type):
-        if device_type == "Webcam" and self.preview_var.get():
-            self.preview_label.config(text="Camera starting...", fg="white")
-        elif device_type == "USB HID":
-            self.preview_label.config(text="⌨️ USB HID Mode\n\nClick in the scan field\nand scan with your device",
-                                     fg="#ccc", font=("Arial", 9))
-        elif device_type == "USB Serial":
-            self.preview_label.config(text="🔌 USB Serial Mode\n\nConnect to a port\nand start scanning",
-                                     fg="#ccc", font=("Arial", 9))
-        elif device_type == "Bluetooth SPP":
-            self.preview_label.config(text="📱 Bluetooth SPP Mode\n\nSelect a device and connect",
-                                     fg="#ccc", font=("Arial", 9))
-        elif device_type == "Bluetooth LE":
-            self.preview_label.config(text="📡 Bluetooth LE Mode\n\nScan for devices and connect",
-                                     fg="#ccc", font=("Arial", 9))
-
-    def _activate_hid_scanner(self):
-        if self._disconnecting:
-            return
-        if self.active_type == "USB HID" and self.focused_scanner:
-            return
-        self._disconnect_scanner()
-        self.focused_scanner = FocusedScanner(self._on_scan)
-        self.active_scanner = self.focused_scanner
-        self.active_type = "USB HID"
-        self.status_var.set("USB HID mode - Click field and scan")
-        self._update_connection_status(True)
-
-    def _open_bluetooth_settings(self):
-        try:
-            if IS_WINDOWS:
-                subprocess.run('start ms-settings:bluetooth', shell=True)
-            elif IS_MAC:
-                subprocess.run('open /System/Library/PreferencePanes/Bluetooth.prefPane', shell=True)
-            else:
-                try:
-                    subprocess.run('gnome-control-center bluetooth', shell=True)
-                except:
-                    try:
-                        subprocess.run('blueman-manager', shell=True)
-                    except:
-                        messagebox.showinfo("Bluetooth", "Please pair your scanner using system Bluetooth settings")
-        except:
-            messagebox.showinfo("Bluetooth", "Please pair your scanner using system Bluetooth settings")
-
     # ========================================================================
     # SCANNER CONNECTION METHODS
     # ========================================================================

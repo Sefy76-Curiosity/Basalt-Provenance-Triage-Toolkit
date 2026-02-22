@@ -1,12 +1,16 @@
 """
 Settings Manager - Centralized user preferences and feature toggles
+Fully converted to ttkbootstrap with dark theme consistency
 """
 
 import json
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox
 from pathlib import Path
 from datetime import datetime
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
+from collections import defaultdict
 
 class SettingsManager:
     """
@@ -21,6 +25,10 @@ class SettingsManager:
     def _load_settings(self):
         """Load settings from file or create defaults"""
         default_settings = {
+            # Theme settings
+            "theme": {
+                "name": "darkly"  # default theme
+            },
             # Auto-save settings
             "auto_save": {
                 "enabled": True,
@@ -123,8 +131,16 @@ class SettingsManager:
     def _apply_setting(self, category, key, value):
         """Apply a setting immediately"""
         try:
+            # Theme settings
+            if category == "theme" and key == "name":
+                if hasattr(self.app, 'root'):
+                    try:
+                        self.app.root.style.theme_use(value)
+                    except Exception as e:
+                        print(f"⚠️ Could not apply theme: {e}")
+
             # Auto-save settings
-            if category == "auto_save" and key == "enabled" and hasattr(self.app, 'auto_save'):
+            elif category == "auto_save" and key == "enabled" and hasattr(self.app, 'auto_save'):
                 if value:
                     # Restart auto-save if disabled
                     if not self.app.auto_save.is_running:
@@ -184,29 +200,44 @@ class SettingsManager:
 class SettingsDialog:
     """
     Settings dialog with tabs for different feature categories
+    Fully converted to ttkbootstrap
     """
     def __init__(self, parent, settings_manager):
         self.settings = settings_manager
-        self.window = tk.Toplevel(parent)
+        self.window = ttk.Toplevel(parent)
         self.window.title("⚙️ Settings")
-        self.window.geometry("700x600")
+        self.window.geometry("700x650")
         self.window.transient(parent)
         self.window.grab_set()
 
         self._build_ui()
+        self._center_window()
+
+    def _center_window(self):
+        """Center the window on screen"""
+        self.window.update_idletasks()
+        w = self.window.winfo_width()
+        h = self.window.winfo_height()
+        x = (self.window.winfo_screenwidth() // 2) - (w // 2)
+        y = (self.window.winfo_screenheight() // 2) - (h // 2)
+        self.window.geometry(f"+{x}+{y}")
 
     def _build_ui(self):
         """Build the settings UI with tabs"""
+        # Remove bootstyle from main Frame - it doesn't support it
         main = ttk.Frame(self.window, padding=10)
-        main.pack(fill=tk.BOTH, expand=True)
+        main.pack(fill=BOTH, expand=True)
 
-        # Title
+        # Title - use style instead of bootstyle for Label
         ttk.Label(main, text="Application Settings",
                  font=("TkDefaultFont", 14, "bold")).pack(pady=(0, 10))
 
-        # Create notebook for tabs
+        # Create notebook for tabs - use style instead of bootstyle
         notebook = ttk.Notebook(main)
-        notebook.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        notebook.pack(fill=BOTH, expand=True, pady=(0, 10))
+
+        # Theme Tab (NEW)
+        self._build_theme_tab(notebook)
 
         # Feature Toggles Tab
         self._build_features_tab(notebook)
@@ -229,25 +260,91 @@ class SettingsDialog:
         # Classification Schemes Tab
         self._build_schemes_tab(notebook)
 
-        # Buttons
+        # Buttons - remove bootstyle from Frame
         btn_frame = ttk.Frame(main)
-        btn_frame.pack(fill=tk.X)
+        btn_frame.pack(fill=X, pady=(10, 0))
 
-        ttk.Button(btn_frame, text="Save", command=self._save_settings, width=10).pack(side=tk.RIGHT, padx=2)
-        ttk.Button(btn_frame, text="Cancel", command=self.window.destroy, width=10).pack(side=tk.RIGHT, padx=2)
-        ttk.Button(btn_frame, text="Reset to Defaults", command=self._reset_defaults, width=15).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_frame, text="Save", command=self._save_settings,
+                  bootstyle="primary", width=10).pack(side=RIGHT, padx=2)
+        ttk.Button(btn_frame, text="Cancel", command=self.window.destroy,
+                  bootstyle="secondary", width=10).pack(side=RIGHT, padx=2)
+        ttk.Button(btn_frame, text="Reset to Defaults", command=self._reset_defaults,
+                  bootstyle="warning", width=15).pack(side=LEFT, padx=2)
+
+    def _build_theme_tab(self, notebook):
+        """Build theme selection tab"""
+        tab = ttk.Frame(notebook, padding=10)
+        notebook.add(tab, text="🎨 Theme")
+
+        ttk.Label(tab, text="Application Theme",
+                 font=("TkDefaultFont", 11, "bold")).pack(anchor=W, pady=(0, 10))
+
+        # Theme selector frame
+        theme_frame = ttk.LabelFrame(tab, text="Theme Selection")
+        theme_frame.pack(fill=X, pady=5)
+
+        inner = ttk.Frame(theme_frame, padding=10)
+        inner.pack(fill=BOTH, expand=True)
+
+        # Theme dropdown
+        theme_row = ttk.Frame(inner)
+        theme_row.pack(fill=X, pady=5)
+
+        ttk.Label(theme_row, text="Select Theme:",
+                 bootstyle="light").pack(side=LEFT)
+
+        # List of all available ttkbootstrap themes
+        themes = [
+            "darkly", "superhero", "solar", "cyborg", "vapor",
+            "flatly", "journal", "litera", "lumen", "minty",
+            "pulse", "sandstone", "simplex", "sketchy",
+            "united", "yeti", "morph", "quartz"
+        ]
+
+        self.theme_var = tk.StringVar(value=self.settings.get('theme', 'name'))
+        theme_combo = ttk.Combobox(theme_row, textvariable=self.theme_var,
+                                   values=themes, state="readonly",
+                                   width=15, bootstyle="light")
+        theme_combo.pack(side=LEFT, padx=10)
+        theme_combo.bind('<<ComboboxSelected>>', self._preview_theme)
+
+        # Preview button
+        ttk.Button(inner, text="Preview Theme",
+                  command=self._preview_theme,
+                  bootstyle="info", width=15).pack(pady=10)
+
+        # Theme info
+        info_frame = ttk.LabelFrame(tab, text="Theme Information")
+        info_frame.pack(fill=X, pady=10)
+
+        info_inner = ttk.Frame(info_frame, padding=10)
+        info_inner.pack(fill=BOTH, expand=True)
+
+        info_text = """
+        Themes change the entire look and feel of the application.
+        Choose from dark themes (darkly, superhero, solar, cyborg, vapor)
+        or light themes (flatly, journal, litera, lumen, minty, etc.)
+        """
+        ttk.Label(info_inner, text=info_text, justify=LEFT,
+                 bootstyle="secondary", wraplength=500).pack()
 
     def _build_features_tab(self, notebook):
         """Build the main features toggle tab"""
+        # Remove bootstyle from Frame
         tab = ttk.Frame(notebook, padding=10)
         notebook.add(tab, text="🔌 Features")
 
+        # Use style parameter instead of bootstyle for Label
         ttk.Label(tab, text="Enable/Disable Features",
-                 font=("TkDefaultFont", 11, "bold")).pack(anchor=tk.W, pady=(0, 10))
+                 font=("TkDefaultFont", 11, "bold")).pack(anchor=W, pady=(0, 10))
 
-        # Feature toggles
-        features_frame = ttk.LabelFrame(tab, text="Feature Toggles", padding=10)
-        features_frame.pack(fill=tk.X, pady=5)
+        # Feature toggles - LabelFrame doesn't support bootstyle
+        features_frame = ttk.LabelFrame(tab, text="Feature Toggles")
+        features_frame.pack(fill=X, pady=5)
+
+        # Inner frame - remove bootstyle
+        inner = ttk.Frame(features_frame, padding=10)
+        inner.pack(fill=BOTH, expand=True)
 
         self.feature_vars = {}
         features = [
@@ -260,176 +357,253 @@ class SettingsDialog:
         ]
 
         for feature_id, label, desc in features:
-            frame = ttk.Frame(features_frame)
-            frame.pack(fill=tk.X, pady=5)
+            # Remove bootstyle from Frame
+            frame = ttk.Frame(inner)
+            frame.pack(fill=X, pady=5)
 
             var = tk.BooleanVar(value=self.settings.get(feature_id, 'enabled'))
             self.feature_vars[feature_id] = var
 
-            cb = ttk.Checkbutton(frame, text=label, variable=var)
-            cb.pack(anchor=tk.W)
+            # Checkbutton supports bootstyle
+            cb = ttk.Checkbutton(frame, text=label, variable=var,
+                                bootstyle="primary")
+            cb.pack(anchor=W)
 
+            # Label supports bootstyle
             ttk.Label(frame, text=desc, font=("TkDefaultFont", 8),
-                     foreground="gray").pack(anchor=tk.W, padx=(20, 0))
+                     bootstyle="secondary").pack(anchor=W, padx=(20, 0))
 
     def _build_autosave_tab(self, notebook):
         """Build auto-save settings tab"""
+        # Remove bootstyle from Frame
         tab = ttk.Frame(notebook, padding=10)
         notebook.add(tab, text="💾 Auto-Save")
 
         ttk.Label(tab, text="Auto-Save Settings",
-                 font=("TkDefaultFont", 11, "bold")).pack(anchor=tk.W, pady=(0, 10))
+                 font=("TkDefaultFont", 11, "bold")).pack(anchor=W, pady=(0, 10))
 
-        # Main enable
+        # Settings container - LabelFrame doesn't support bootstyle
+        settings_frame = ttk.LabelFrame(tab, text="Auto-Save Options")
+        settings_frame.pack(fill=X, pady=5)
+
+        # Remove bootstyle from inner Frame
+        inner = ttk.Frame(settings_frame, padding=10)
+        inner.pack(fill=BOTH, expand=True)
+
+        # Main enable - Checkbutton supports bootstyle
         self.autosave_enabled = tk.BooleanVar(value=self.settings.get('auto_save', 'enabled'))
-        ttk.Checkbutton(tab, text="Enable Auto-Save",
-                       variable=self.autosave_enabled).pack(anchor=tk.W, pady=5)
+        ttk.Checkbutton(inner, text="Enable Auto-Save",
+                       variable=self.autosave_enabled,
+                       bootstyle="primary").pack(anchor=W, pady=5)
 
         # Interval
-        interval_frame = ttk.Frame(tab)
-        interval_frame.pack(fill=tk.X, pady=10, padx=20)
+        interval_frame = ttk.Frame(inner)
+        interval_frame.pack(fill=X, pady=10, padx=20)
 
-        ttk.Label(interval_frame, text="Auto-save interval (seconds):").pack(side=tk.LEFT)
+        ttk.Label(interval_frame, text="Auto-save interval (seconds):",
+                 bootstyle="light").pack(side=LEFT)
         self.autosave_interval = tk.IntVar(value=self.settings.get('auto_save', 'interval'))
-        ttk.Spinbox(interval_frame, from_=30, to=3600, textvariable=self.autosave_interval,
-                   width=10).pack(side=tk.LEFT, padx=10)
+        ttk.Spinbox(interval_frame, from_=30, to=3600,
+                   textvariable=self.autosave_interval,
+                   width=10, bootstyle="light").pack(side=LEFT, padx=10)
 
         # Notify on save
         self.autosave_notify = tk.BooleanVar(value=self.settings.get('auto_save', 'notify_on_save'))
-        ttk.Checkbutton(tab, text="Show notification when auto-save completes",
-                       variable=self.autosave_notify).pack(anchor=tk.W, padx=20, pady=5)
+        ttk.Checkbutton(inner, text="Show notification when auto-save completes",
+                       variable=self.autosave_notify,
+                       bootstyle="primary").pack(anchor=W, padx=20, pady=5)
 
-        # Info
+        # Info - LabelFrame doesn't support bootstyle
+        info_frame = ttk.LabelFrame(tab, text="Information")
+        info_frame.pack(fill=X, pady=10)
+
+        info_inner = ttk.Frame(info_frame, padding=10)
+        info_inner.pack(fill=BOTH, expand=True)
+
         info_text = """
         Auto-save automatically saves your work every X seconds.
         If the application crashes, you'll be prompted to recover
         your work on the next startup.
         """
-        ttk.Label(tab, text=info_text, justify=tk.LEFT,
-                 foreground="gray", wraplength=500).pack(pady=20)
+        ttk.Label(info_inner, text=info_text, justify=LEFT,
+                 bootstyle="secondary", wraplength=500).pack()
 
     def _build_macro_tab(self, notebook):
         """Build macro recorder settings tab"""
+        # Remove bootstyle from Frame
         tab = ttk.Frame(notebook, padding=10)
         notebook.add(tab, text="🎬 Macros")
 
         ttk.Label(tab, text="Macro Recorder Settings",
-                 font=("TkDefaultFont", 11, "bold")).pack(anchor=tk.W, pady=(0, 10))
+                 font=("TkDefaultFont", 11, "bold")).pack(anchor=W, pady=(0, 10))
+
+        # Settings container - LabelFrame doesn't support bootstyle
+        settings_frame = ttk.LabelFrame(tab, text="Macro Options")
+        settings_frame.pack(fill=X, pady=5)
+
+        # Remove bootstyle from inner Frame
+        inner = ttk.Frame(settings_frame, padding=10)
+        inner.pack(fill=BOTH, expand=True)
 
         # Main enable
         self.macro_enabled = tk.BooleanVar(value=self.settings.get('macro_recorder', 'enabled'))
-        ttk.Checkbutton(tab, text="Enable Macro Recorder",
-                       variable=self.macro_enabled).pack(anchor=tk.W, pady=5)
+        ttk.Checkbutton(inner, text="Enable Macro Recorder",
+                       variable=self.macro_enabled,
+                       bootstyle="primary").pack(anchor=W, pady=5)
 
         # Max macros
-        max_frame = ttk.Frame(tab)
-        max_frame.pack(fill=tk.X, pady=10, padx=20)
+        max_frame = ttk.Frame(inner)
+        max_frame.pack(fill=X, pady=10, padx=20)
 
-        ttk.Label(max_frame, text="Maximum saved macros:").pack(side=tk.LEFT)
+        ttk.Label(max_frame, text="Maximum saved macros:",
+                 bootstyle="light").pack(side=LEFT)
         self.macro_max = tk.IntVar(value=self.settings.get('macro_recorder', 'max_macros'))
-        ttk.Spinbox(max_frame, from_=5, to=200, textvariable=self.macro_max,
-                   width=10).pack(side=tk.LEFT, padx=10)
+        ttk.Spinbox(max_frame, from_=5, to=200,
+                   textvariable=self.macro_max,
+                   width=10, bootstyle="light").pack(side=LEFT, padx=10)
 
         # Confirm delete
         self.macro_confirm = tk.BooleanVar(value=self.settings.get('macro_recorder', 'confirm_delete'))
-        ttk.Checkbutton(tab, text="Confirm before deleting macros",
-                       variable=self.macro_confirm).pack(anchor=tk.W, padx=20, pady=5)
+        ttk.Checkbutton(inner, text="Confirm before deleting macros",
+                       variable=self.macro_confirm,
+                       bootstyle="primary").pack(anchor=W, padx=20, pady=5)
 
     def _build_project_tab(self, notebook):
         """Build project manager settings tab"""
+        # Remove bootstyle from Frame
         tab = ttk.Frame(notebook, padding=10)
         notebook.add(tab, text="📁 Projects")
 
         ttk.Label(tab, text="Project Manager Settings",
-                 font=("TkDefaultFont", 11, "bold")).pack(anchor=tk.W, pady=(0, 10))
+                 font=("TkDefaultFont", 11, "bold")).pack(anchor=W, pady=(0, 10))
+
+        # Settings container - LabelFrame doesn't support bootstyle
+        settings_frame = ttk.LabelFrame(tab, text="Project Options")
+        settings_frame.pack(fill=X, pady=5)
+
+        # Remove bootstyle from inner Frame
+        inner = ttk.Frame(settings_frame, padding=10)
+        inner.pack(fill=BOTH, expand=True)
 
         # Main enable
         self.project_enabled = tk.BooleanVar(value=self.settings.get('project_manager', 'enabled'))
-        ttk.Checkbutton(tab, text="Enable Project Manager",
-                       variable=self.project_enabled).pack(anchor=tk.W, pady=5)
+        ttk.Checkbutton(inner, text="Enable Project Manager",
+                       variable=self.project_enabled,
+                       bootstyle="primary").pack(anchor=W, pady=5)
 
         # Auto-load recent
         self.project_autoload = tk.BooleanVar(value=self.settings.get('project_manager', 'auto_load_recent'))
-        ttk.Checkbutton(tab, text="Automatically load most recent project on startup",
-                       variable=self.project_autoload).pack(anchor=tk.W, padx=20, pady=5)
+        ttk.Checkbutton(inner, text="Automatically load most recent project on startup",
+                       variable=self.project_autoload,
+                       bootstyle="primary").pack(anchor=W, padx=20, pady=5)
 
         # Max recent projects
-        recent_frame = ttk.Frame(tab)
-        recent_frame.pack(fill=tk.X, pady=10, padx=20)
+        recent_frame = ttk.Frame(inner)
+        recent_frame.pack(fill=X, pady=10, padx=20)
 
-        ttk.Label(recent_frame, text="Maximum recent projects:").pack(side=tk.LEFT)
+        ttk.Label(recent_frame, text="Maximum recent projects:",
+                 bootstyle="light").pack(side=LEFT)
         self.project_max = tk.IntVar(value=self.settings.get('project_manager', 'max_recent_projects'))
-        ttk.Spinbox(recent_frame, from_=3, to=30, textvariable=self.project_max,
-                   width=10).pack(side=tk.LEFT, padx=10)
+        ttk.Spinbox(recent_frame, from_=3, to=30,
+                   textvariable=self.project_max,
+                   width=10, bootstyle="light").pack(side=LEFT, padx=10)
 
     def _build_script_tab(self, notebook):
         """Build script exporter settings tab"""
+        # Remove bootstyle from Frame
         tab = ttk.Frame(notebook, padding=10)
         notebook.add(tab, text="🐍 Scripts")
 
         ttk.Label(tab, text="Script Exporter Settings",
-                 font=("TkDefaultFont", 11, "bold")).pack(anchor=tk.W, pady=(0, 10))
+                 font=("TkDefaultFont", 11, "bold")).pack(anchor=W, pady=(0, 10))
+
+        # Settings container - LabelFrame doesn't support bootstyle
+        settings_frame = ttk.LabelFrame(tab, text="Script Options")
+        settings_frame.pack(fill=X, pady=5)
+
+        # Remove bootstyle from inner Frame
+        inner = ttk.Frame(settings_frame, padding=10)
+        inner.pack(fill=BOTH, expand=True)
 
         # Main enable
         self.script_enabled = tk.BooleanVar(value=self.settings.get('script_exporter', 'enabled'))
-        ttk.Checkbutton(tab, text="Enable Script Exporter",
-                       variable=self.script_enabled).pack(anchor=tk.W, pady=5)
+        ttk.Checkbutton(inner, text="Enable Script Exporter",
+                       variable=self.script_enabled,
+                       bootstyle="primary").pack(anchor=W, pady=5)
 
         # Default language
-        lang_frame = ttk.Frame(tab)
-        lang_frame.pack(fill=tk.X, pady=10, padx=20)
+        lang_frame = ttk.Frame(inner)
+        lang_frame.pack(fill=X, pady=10, padx=20)
 
-        ttk.Label(lang_frame, text="Default script language:").pack(side=tk.LEFT)
+        ttk.Label(lang_frame, text="Default script language:",
+                 bootstyle="light").pack(side=LEFT)
         self.script_lang = tk.StringVar(value=self.settings.get('script_exporter', 'default_language'))
         ttk.Combobox(lang_frame, textvariable=self.script_lang,
-                    values=["python", "r"], state="readonly", width=10).pack(side=tk.LEFT, padx=10)
+                    values=["python", "r"], state="readonly",
+                    width=10, bootstyle="light").pack(side=LEFT, padx=10)
 
         # Include comments
         self.script_comments = tk.BooleanVar(value=self.settings.get('script_exporter', 'include_comments'))
-        ttk.Checkbutton(tab, text="Include explanatory comments in generated scripts",
-                       variable=self.script_comments).pack(anchor=tk.W, padx=20, pady=5)
+        ttk.Checkbutton(inner, text="Include explanatory comments in generated scripts",
+                       variable=self.script_comments,
+                       bootstyle="primary").pack(anchor=W, padx=20, pady=5)
 
     def _build_ui_tab(self, notebook):
         """Build UI settings tab"""
+        # Remove bootstyle from Frame
         tab = ttk.Frame(notebook, padding=10)
         notebook.add(tab, text="🎨 UI")
 
         ttk.Label(tab, text="User Interface Settings",
-                 font=("TkDefaultFont", 11, "bold")).pack(anchor=tk.W, pady=(0, 10))
+                 font=("TkDefaultFont", 11, "bold")).pack(anchor=W, pady=(0, 10))
+
+        # Settings container - LabelFrame doesn't support bootstyle
+        settings_frame = ttk.LabelFrame(tab, text="UI Options")
+        settings_frame.pack(fill=X, pady=5)
+
+        # Remove bootstyle from inner Frame
+        inner = ttk.Frame(settings_frame, padding=10)
+        inner.pack(fill=BOTH, expand=True)
 
         # Show unsaved indicator
         self.ui_unsaved = tk.BooleanVar(value=self.settings.get('ui', 'show_unsaved_indicator'))
-        ttk.Checkbutton(tab, text="Show unsaved changes indicator (●)",
-                       variable=self.ui_unsaved).pack(anchor=tk.W, pady=5)
+        ttk.Checkbutton(inner, text="Show unsaved changes indicator (●)",
+                       variable=self.ui_unsaved,
+                       bootstyle="primary").pack(anchor=W, pady=5)
 
         # Auto-size columns
         self.ui_autosize = tk.BooleanVar(value=self.settings.get('ui', 'auto_size_columns'))
-        ttk.Checkbutton(tab, text="Auto-size columns on refresh",
-                       variable=self.ui_autosize).pack(anchor=tk.W, pady=5)
+        ttk.Checkbutton(inner, text="Auto-size columns on refresh",
+                       variable=self.ui_autosize,
+                       bootstyle="primary").pack(anchor=W, pady=5)
 
         # Confirm deletes
         self.ui_confirm = tk.BooleanVar(value=self.settings.get('ui', 'confirm_deletes'))
-        ttk.Checkbutton(tab, text="Confirm before deleting rows",
-                       variable=self.ui_confirm).pack(anchor=tk.W, pady=5)
+        ttk.Checkbutton(inner, text="Confirm before deleting rows",
+                       variable=self.ui_confirm,
+                       bootstyle="primary").pack(anchor=W, pady=5)
 
         # Tooltip delay
-        delay_frame = ttk.Frame(tab)
-        delay_frame.pack(fill=tk.X, pady=10, padx=20)
+        delay_frame = ttk.Frame(inner)
+        delay_frame.pack(fill=X, pady=10, padx=20)
 
-        ttk.Label(delay_frame, text="Tooltip delay (ms):").pack(side=tk.LEFT)
+        ttk.Label(delay_frame, text="Tooltip delay (ms):",
+                 bootstyle="light").pack(side=LEFT)
         self.tooltip_delay = tk.IntVar(value=self.settings.get('tooltips', 'delay'))
-        ttk.Spinbox(delay_frame, from_=0, to=2000, textvariable=self.tooltip_delay,
-                   width=10).pack(side=tk.LEFT, padx=10)
+        ttk.Spinbox(delay_frame, from_=0, to=2000,
+                   textvariable=self.tooltip_delay,
+                   width=10, bootstyle="light").pack(side=LEFT, padx=10)
 
     def _build_schemes_tab(self, notebook):
         """Build classification schemes enable/disable tab."""
+        # Remove bootstyle from Frame
         tab = ttk.Frame(notebook, padding=10)
         notebook.add(tab, text="🔬 Schemes")
 
         ttk.Label(tab, text="Classification Schemes",
-                  font=("TkDefaultFont", 11, "bold")).pack(anchor=tk.W, pady=(0, 4))
+                  font=("TkDefaultFont", 11, "bold")).pack(anchor=W, pady=(0, 4))
         ttk.Label(tab, text="Uncheck schemes to hide them from the dropdown and exclude from Run All.",
-                  foreground="gray", font=("TkDefaultFont", 8)).pack(anchor=tk.W, pady=(0, 8))
+                  bootstyle="secondary", font=("TkDefaultFont", 8)).pack(anchor=W, pady=(0, 8))
 
         self._scheme_vars = {}
 
@@ -447,23 +621,28 @@ class SettingsDialog:
 
         if not schemes:
             ttk.Label(tab, text="No classification engine loaded.",
-                      foreground="gray").pack(pady=20)
+                      bootstyle="secondary").pack(pady=20)
             return
 
         # Summary label
         self._schemes_summary_var = tk.StringVar()
         ttk.Label(tab, textvariable=self._schemes_summary_var,
-                  font=("TkDefaultFont", 8)).pack(anchor=tk.E, pady=(0, 4))
+                  font=("TkDefaultFont", 8),
+                  bootstyle="light").pack(anchor=E, pady=(0, 4))
 
         # Scrollable area
         outer = ttk.Frame(tab)
-        outer.pack(fill=tk.BOTH, expand=True)
+        outer.pack(fill=BOTH, expand=True)
 
-        canvas = tk.Canvas(outer, highlightthickness=0)
-        vsb = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
+        # Create canvas with dark background
+        style = ttk.Style()
+        canvas = tk.Canvas(outer, highlightthickness=0, bg=style.colors.bg)
+        vsb = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview,
+                           bootstyle="dark-round")
         canvas.configure(yscrollcommand=vsb.set)
-        vsb.pack(side=tk.RIGHT, fill=tk.Y)
-        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        vsb.pack(side=RIGHT, fill=Y)
+        canvas.pack(side=LEFT, fill=BOTH, expand=True)
 
         inner = ttk.Frame(canvas)
         win_id = canvas.create_window((0, 0), window=inner, anchor="nw")
@@ -476,7 +655,6 @@ class SettingsDialog:
                     lambda e: canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
 
         # Group by field
-        from collections import defaultdict
         by_field = defaultdict(list)
         for s in schemes:
             by_field[s.get('field', 'General')].append(s)
@@ -484,8 +662,9 @@ class SettingsDialog:
         for field in sorted(by_field.keys()):
             ttk.Label(inner, text=field,
                       font=("TkDefaultFont", 9, "bold"),
-                      foreground="#555").pack(anchor=tk.W, padx=6, pady=(8, 2))
-            ttk.Separator(inner, orient='horizontal').pack(fill=tk.X, padx=6, pady=(0, 4))
+                      bootstyle="secondary").pack(anchor=W, padx=6, pady=(8, 2))
+            ttk.Separator(inner, orient='horizontal',
+                         bootstyle="secondary").pack(fill=X, padx=6, pady=(0, 4))
 
             for s in sorted(by_field[field], key=lambda x: x['name']):
                 sid = s['id']
@@ -494,23 +673,27 @@ class SettingsDialog:
                 self._scheme_vars[sid] = var
 
                 row = ttk.Frame(inner)
-                row.pack(fill=tk.X, padx=14, pady=1)
-                ttk.Checkbutton(row, variable=var).pack(side=tk.LEFT)
-                ttk.Label(row, text=f"{s.get('icon','📊')} {s['name']}").pack(side=tk.LEFT, padx=4)
+                row.pack(fill=X, padx=14, pady=1)
+                ttk.Checkbutton(row, variable=var,
+                               bootstyle="primary").pack(side=LEFT)
+                ttk.Label(row, text=f"{s.get('icon','📊')} {s['name']}",
+                         bootstyle="light").pack(side=LEFT, padx=4)
                 desc = s.get('description', s.get('category', ''))
                 if desc:
-                    ttk.Label(row, text=desc, foreground="gray",
-                              font=("TkDefaultFont", 7)).pack(side=tk.LEFT, padx=4)
+                    ttk.Label(row, text=desc, bootstyle="secondary",
+                              font=("TkDefaultFont", 7)).pack(side=LEFT, padx=4)
 
         self._update_schemes_summary()
 
         # Enable All / Disable All buttons
         btn_row = ttk.Frame(tab)
-        btn_row.pack(fill=tk.X, pady=(6, 0))
+        btn_row.pack(fill=X, pady=(6, 0))
         ttk.Button(btn_row, text="Enable All",
-                   command=lambda: [v.set(True) for v in self._scheme_vars.values()]).pack(side=tk.LEFT, padx=2)
+                   command=lambda: [v.set(True) for v in self._scheme_vars.values()],
+                   bootstyle="success", width=12).pack(side=LEFT, padx=2)
         ttk.Button(btn_row, text="Disable All",
-                   command=lambda: [v.set(False) for v in self._scheme_vars.values()]).pack(side=tk.LEFT, padx=2)
+                   command=lambda: [v.set(False) for v in self._scheme_vars.values()],
+                   bootstyle="danger", width=12).pack(side=LEFT, padx=2)
 
     def _update_schemes_summary(self):
         if not hasattr(self, '_scheme_vars') or not self._scheme_vars:
@@ -545,8 +728,18 @@ class SettingsDialog:
         except Exception as e:
             print(f"⚠️ Could not save scheme settings: {e}")
 
+    def _preview_theme(self, event=None):
+        """Preview selected theme"""
+        try:
+            self.window.style.theme_use(self.theme_var.get())
+        except Exception as e:
+            print(f"⚠️ Theme preview error: {e}")
+
     def _save_settings(self):
         """Save all settings"""
+        # Theme settings
+        self.settings.set('theme', 'name', self.theme_var.get())
+
         # Feature toggles
         for feature_id, var in self.feature_vars.items():
             self.settings.set(feature_id, 'enabled', var.get())
@@ -582,6 +775,12 @@ class SettingsDialog:
 
         # Force save
         self.settings._save_settings()
+
+        # --- ADD THIS DEBUG ---
+        print(f"✅ Saved theme: {self.theme_var.get()}")
+        # Verify file was written
+        with open(self.settings.settings_file, 'r') as f:
+            print("File contents:", f.read())
 
         # Refresh right panel dropdown to reflect scheme changes
         app = self.settings.app

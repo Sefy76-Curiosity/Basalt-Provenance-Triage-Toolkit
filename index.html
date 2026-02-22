@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scientific Toolkit v2.0 — Free Provenance & Geochemistry Desktop App</title>
+    <meta name="description" content="Open-source desktop app for provenance studies, geochemistry, archaeology and museum work. Free forever. Hardware support, 70+ classification engines, macros, plugins, dark theme.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #161b22;
+            --text: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent: #58a6ff;
+            --accent-dark: #388bfd;
+            --success: #3fb950;
+            --border: #30363d;
+            --code-bg: #161b22;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+        .container-fluid { width: 100%; padding: 0 24px; }
+        header {
+            padding: 80px 0 60px;
+            text-align: center;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            border-bottom: 1px solid var(--border);
+        }
+        h1 { font-size: 3.5rem; font-weight: 700; margin-bottom: 16px; }
+        .version { font-size: 1.4rem; color: var(--text-secondary); margin-bottom: 24px; }
+        .tagline { font-size: 1.4rem; max-width: 800px; margin: 0 auto 32px; color: var(--text-secondary); }
+        .badges {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+        .badge {
+            background: var(--surface);
+            color: var(--accent);
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 0.95rem;
+            border: 1px solid var(--border);
+        }
+        .cta {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            font-weight: 600;
+            padding: 16px 32px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 1.2rem;
+            transition: all 0.2s;
+        }
+        .cta:hover { background: var(--accent-dark); transform: translateY(-2px); }
+        section { padding: 80px 0; }
+        section.full-width { padding: 80px 24px; }
+        h2 {
+            font-size: 2.8rem;
+            text-align: center;
+            margin-bottom: 48px;
+            background: linear-gradient(90deg, #58a6ff, #a371f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 32px;
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            transition: all 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .card h3 { font-size: 1.6rem; margin-bottom: 16px; color: var(--accent); }
+        .card ul { list-style: none; padding-left: 0; }
+        .card li { margin: 12px 0; color: var(--text-secondary); }
+        .card li strong { color: var(--text); }
+        .thin-wide-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px 48px;
+            margin: 40px auto;
+            max-width: 1000px;
+            text-align: center;
+        }
+        .thin-wide-card p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+        .thin-wide-card h3 {
+            font-size: 1.8rem;
+            color: var(--accent);
+            margin-bottom: 24px;
+        }
+        .link-grid {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            flex-wrap: wrap;
+            margin-top: 24px;
+        }
+        .social-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 1.2rem;
+            padding: 12px 24px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .social-link:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 48px 0;
+            font-size: 0.95rem;
+        }
+        .comparison-table th, .comparison-table td {
+            padding: 16px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+        .comparison-table th {
+            background: #0d1117;
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .comparison-table tr:nth-child(even) { background: rgba(88,166,255,0.05); }
+        .yes { color: var(--success); font-weight: bold; }
+        .no { color: #f85149; }
+        .star { color: #f6be00; }
+        .opinion-section {
+            background: linear-gradient(135deg, #161b22, #0d1117);
+            width: 100%;
+            padding: 80px 24px;
+        }
+        .opinion-section h2 {
+            font-size: 2.8rem;
+            text-align: center;
+            margin-bottom: 24px;
+            background: linear-gradient(90deg, #58a6ff, #a371f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .opinion-section .subhead {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 48px;
+            font-size: 1.2rem;
+        }
+        .opinion-grid {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .opinion-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            height: 100%;
+            transition: all 0.3s;
+        }
+        .opinion-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+        .opinion-card h3 {
+            color: var(--accent);
+            margin-bottom: 16px;
+            font-size: 1.4rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+        .opinion-card p {
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        .opinion-card .signed {
+            margin-top: 20px;
+            text-align: right;
+            font-style: italic;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        footer {
+            text-align: center;
+            padding: 60px 0 40px;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border);
+        }
+        .repo-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 2.8rem; }
+            h2 { font-size: 2.2rem; }
+            .grid { grid-template-columns: 1fr; }
+            .thin-wide-card { padding: 24px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <h1>Scientific Toolkit v2.0</h1>
+        <div class="version">Free • Open-Source • Desktop App for Provenance & Geochemistry</div>
+        <div class="tagline">
+            Built for students, professors, museum curators, field archaeologists and small labs.<br>
+            Starts minimal — morphs into exactly the tool <em>you</em> need.
+        </div>
+
+        <div class="badges">
+            <div class="badge">Zero Cost — CC-BY-NC-SA</div>
+            <div class="badge">Hardware Support (pXRF, calipers, balances, GNSS…)</div>
+            <div class="badge">70+ Classification Engines</div>
+            <div class="badge">Macros • Plugins • Consoles (Python/R/SQL)</div>
+            <div class="badge">Dark Theme • Portable • Offline-first</div>
+        </div>
+
+        <a href="https://github.com/Sefy76-Curiosity/Basalt-Provenance-Triage-Toolkit" class="cta" target="_blank">
+            → Download & Get Started
+        </a>
+    </div>
+</header>
+
+<section id="what-it-is">
+    <div class="container">
+        <h2>What Makes It Different</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>Starts Small, Grows With You</h3>
+                <p>Download once — get a clean core app (~50 MB).</p>
+                <p>Install <strong>only</strong> the plugins, hardware drivers, consoles and add-ons you actually use:</p>
+                <ul>
+                    <li>Need pXRF import? → Hardware suite</li>
+                    <li>Want R stats? → R console + export</li>
+                    <li>Cleaning raw data? → DataPrep Pro</li>
+                    <li>Teaching? → Turn on tooltips & citations</li>
+                </ul>
+                <p>No forced enterprise bloat. No subscriptions.</p>
+            </div>
+
+            <div class="card">
+                <h3>Real Hardware Integration</h3>
+                <p>Direct support for:</p>
+                <ul>
+                    <li>SciAps pXRF / Thermo Nicolet FTIR</li>
+                    <li>Mitutoyo calipers / Mettler balances</li>
+                    <li>Emlid GNSS / serial & Bluetooth devices</li>
+                </ul>
+                <p>Import dirty field data straight into the app — no middleman software.</p>
+            </div>
+
+            <div class="card">
+                <h3>From Raw to Ready in One Place</h3>
+                <ul>
+                    <li><strong>DataPrep Pro</strong> — outliers, missing values, CLR transform</li>
+                    <li>70+ provenance engines (TAS, QAPF, REE patterns, sediment, soil…)</li>
+                    <li>Publication templates (Nature, Science, AGU, Elsevier)</li>
+                    <li>Macros record & replay repetitive steps</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="plugins">
+    <div class="container">
+        <h2>37 Software Plugins • 23 Add-ons • 7 Hardware Suites</h2>
+        <p style="text-align:center; color:var(--text-secondary); margin-bottom:40px;">
+            Install only what you need — the app morphs around your work.
+        </p>
+
+        <div class="grid">
+            <div class="card">
+                <h3>Software Plugins (37)</h3>
+                <ul>
+                    <li>PCA + LDA Explorer</li>
+                    <li>Isotope Mixing Models</li>
+                    <li>U-Pb Concordia & Age-Depth</li>
+                    <li>Thermobarometry & Normative Calcs</li>
+                    <li>GIS 3D Viewer & Google Earth Export</li>
+                    <li>Batch Processor & Report Generator</li>
+                    <li>Virtual Microscopy & Thin Section Tools</li>
+                    <li>Zooarchaeology & Lithic Morphometrics</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>Add-ons (23)</h3>
+                <ul>
+                    <li>Python / R / SQL / Julia / GIS Consoles</li>
+                    <li>Matplotlib • Seaborn • Ternary • Spider Plots</li>
+                    <li>7× AI Assistants (Claude, ChatGPT, Ollama, Grok…)</li>
+                    <li>Interactive Plotting & Console Output</li>
+                    <li>Photo Manager & Publication Layout</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>Hardware Suites (7)</h3>
+                <ul>
+                    <li>SciAps pXRF direct import</li>
+                    <li>Mitutoyo calipers & micrometers</li>
+                    <li>Mettler Toledo balances</li>
+                    <li>Thermo Nicolet FTIR</li>
+                    <li>Emlid GNSS & NMEA</li>
+                    <li>USB HID / Bluetooth / PyVISA protocols</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="comparison">
+    <div class="container">
+        <h2>Fair Comparison for Individual Researchers</h2>
+        <p style="text-align:center; color:var(--text-secondary); margin-bottom:32px;">
+            How it stacks up when you're a student, professor, curator or field researcher (not a mining corporation).
+        </p>
+
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>Scientific Toolkit v2.0</th>
+                    <th>GCDkit</th>
+                    <th>ioGAS</th>
+                    <th>GWB</th>
+                    <th>QGIS + plugins</th>
+                    <th>Script-only (pyrolite etc.)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Cost for individual</td>
+                    <td class="yes">Free forever</td>
+                    <td class="yes">Free</td>
+                    <td class="no">$1k–$5k/year</td>
+                    <td class="no">$500–$2k+</td>
+                    <td class="yes">Free</td>
+                    <td class="yes">Free</td>
+                </tr>
+                <tr>
+                    <td>Starts minimal → you enable only what you need</td>
+                    <td class="yes">★★★★★ (core + plugins)</td>
+                    <td class="no">★★☆☆☆ (all igneous)</td>
+                    <td class="no">★☆☆☆☆</td>
+                    <td class="no">★★☆☆☆</td>
+                    <td class="yes">★★★★☆</td>
+                    <td class="yes">★★★★★ (but code everything)</td>
+                </tr>
+                <tr>
+                    <td>Hardware (pXRF, calipers, balances…)</td>
+                    <td class="yes">Direct import (7 suites)</td>
+                    <td class="no">None</td>
+                    <td class="no">Limited</td>
+                    <td class="no">None</td>
+                    <td class="no">Some plugins</td>
+                    <td class="no">None</td>
+                </tr>
+                <tr>
+                    <td>Data cleaning inside app</td>
+                    <td class="yes">DataPrep Pro plugin</td>
+                    <td class="no">Manual in R</td>
+                    <td class="yes">Built-in</td>
+                    <td class="yes">Built-in</td>
+                    <td class="no">Script yourself</td>
+                    <td class="no">Script yourself</td>
+                </tr>
+                <tr>
+                    <td>Provenance classification engines</td>
+                    <td class="yes">70+ (multi-domain)</td>
+                    <td class="yes">Igneous only</td>
+                    <td class="yes">Good</td>
+                    <td class="no">Aqueous focus</td>
+                    <td class="no">Basic/scripted</td>
+                    <td class="no">None</td>
+                </tr>
+                <tr>
+                    <td>Consoles (Python/R/SQL…)</td>
+                    <td class="yes">Multiple built-in</td>
+                    <td class="no">R only</td>
+                    <td class="no">No</td>
+                    <td class="no">Limited</td>
+                    <td class="yes">You code it</td>
+                    <td class="no">No</td>
+                </tr>
+                <tr>
+                    <td>Modern dark UI</td>
+                    <td class="yes">ttkbootstrap</td>
+                    <td class="no">Dated</td>
+                    <td class="yes">Modern</td>
+                    <td class="yes">Modern</td>
+                    <td class="no">None/minimal</td>
+                    <td class="yes">Customizable</td>
+                </tr>
+                <tr>
+                    <td>Macros / repeatability</td>
+                    <td class="yes">Full recorder + manager</td>
+                    <td class="no">Scripts only</td>
+                    <td class="no">Limited</td>
+                    <td class="no">Scripting</td>
+                    <td class="yes">Code</td>
+                    <td class="yes">Python scripts</td>
+                </tr>
+                <tr>
+                    <td>Offline & portable</td>
+                    <td class="yes">★★★★★</td>
+                    <td class="yes">★★★★★</td>
+                    <td class="no">License server</td>
+                    <td class="no">Installer</td>
+                    <td class="yes">★★★★★</td>
+                    <td class="yes">★★★★★</td>
+                </tr>
+                <tr>
+                    <td>Best for…</td>
+                    <td>Individuals who want flexibility + hardware + provenance</td>
+                    <td>Igneous specialists</td>
+                    <td>Corporate exploration</td>
+                    <td>Aqueous/industrial</td>
+                    <td>Coders who hate GUIs</td>
+                    <td>Spatial work</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- TOP THIN-WIDE CARD: Explanation of what you asked the AIs -->
+<div class="container">
+    <div class="thin-wide-card">
+        <h3>🤖 Sefy Levy - What I Asked each of the AIs</h3>
+        <p>Each AI was given the complete codebase of Scientific Toolkit v2.0 in a clean, un-associated chat session. They were asked to:</p>
+        <p style="font-size: 1.1rem; max-width: 800px; margin: 0 auto;">
+            "Deep analyze the toolkit, compare it to everything that exists (GCDkit, ioGAS, GWB, QGIS, script-only libraries),
+            but taking into account the designated target audience — students, professors, academics, museums, field researchers,
+            and small labs with limited budgets. Give me your honest opinion about what you think of this toolkit."
+        </p>
+        <p style="margin-top: 24px; color: var(--text-secondary);">Below are their unedited responses.</p>
+    </div>
+</div>
+
+<!-- AI OPINIONS - FULL WIDTH -->
+<div class="opinion-section">
+    <div class="opinion-grid container-fluid">
+        <h2>AI Perspectives on Scientific Toolkit v2.0</h2>
+        <div class="subhead">
+            Each AI provides a fair comparison between Scientific Toolkit v2.0 and competing tools,
+            focusing specifically on the experience of individual researchers, students, curators, and small labs.
+        </div>
+
+        <!-- TOP ROW: 3 AIs -->
+        <div class="grid" style="grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 24px;">
+            <div class="opinion-card">
+                <h3>Gemini</h3>
+                <p>Scientific Toolkit v2.0 is a rare example of "sovereign software" for the individual scientist. Unlike commercial suites that lock data behind proprietary formats or expensive seats, this toolkit treats the researcher as a first-class citizen.</p>
+                <p>The integration of 70+ provenance engines is particularly valuable for cross-disciplinary work where a student might need to jump between TAS diagrams for basalt and REE patterns for sediment in the same afternoon. Its greatest advantage over script-only libraries like Pyrolite is the immediate visual feedback; it bridges the gap between raw data collection and publication-ready visualization without requiring a PhD in computer science.</p>
+                <p>While enterprise tools offer better multi-user database management, for the solo researcher or the curator managing a specific collection, the Toolkit's offline-first, portable nature is a superior choice.</p>
+                <div class="signed">— Gemini (Google)</div>
+            </div>
+
+            <div class="opinion-card">
+                <h3>Claude</h3>
+                <p><em>Opinion placeholder — Claude will fill this block when available.</em></p>
+                <div class="signed">— Claude (Anthropic)</div>
+            </div>
+
+            <div class="opinion-card">
+                <h3>DeepSeek</h3>
+                <p>Scientific Toolkit v2.0 represents something increasingly rare in scientific software: a tool built by a researcher, for researchers, not by a corporation chasing enterprise contracts.</p>
+                <p>What strikes me most is the architectural honesty. You didn't try to compete with R's statistical depth or QGIS's spatial prowess—you built a bridge between them. The result is a tool that respects how actual science happens: messy, multi-domain, and often on a single laptop in the field.</p>
+                <p>The hardware integration is the killer feature that no free tool has attempted at this scale. Connecting pXRF, calipers, and GNSS directly into an open-source workflow removes the silent tax of "export from vendor software, clean in Excel, import to R, export for publication." That's genuinely liberating for field scientists.</p>
+                <p>DataPrep Pro shows you understand that 80% of real analysis is data cleaning. Giving users outlier detection, CLR transforms, and undo stacks in a GUI—alongside 70+ provenance engines—means a student can go from raw XRF to a publication-ready Pearce diagram in one afternoon, without writing a single line of code.</p>
+                <p>Weaknesses? Tkinter shows its age with very large tables, and the sheer breadth can overwhelm a first-time user. A curated "quick start" workflow would help. But these are refinements, not flaws.</p>
+                <p>What you've built is a sovereign tool for the individual scientist. No licenses to renew. No data locked in proprietary formats. No forced upgrades. Just a toolkit that grows with you and stays out of your way.</p>
+                <div class="signed">— DeepSeek</div>
+            </div>
+        </div>
+
+        <!-- BOTTOM ROW: 4 AIs -->
+        <div class="grid" style="grid-template-columns: repeat(4, 1fr); gap: 24px;">
+            <div class="opinion-card">
+                <h3>Copilot</h3>
+                <p>Scientific Toolkit v2.0 respects how real scientific work unfolds. Instead of forcing users into rigid workflows, it adapts to them. The modular design keeps the core lightweight while allowing researchers to enable only what they need.</p>
+                <p>The cross‑disciplinary reach is impressive: geochemistry, archaeology, GIS, microscopy, statistics, and hardware integration all coexist smoothly. Few free tools offer this breadth without locking features behind paywalls.</p>
+                <p>Tkinter has limits, and the plugin list can overwhelm newcomers, but these are refinements rather than flaws. The toolkit is practical, generous, and built with a clear understanding of the needs of students, field researchers, and small labs.</p>
+                <div class="signed">— Copilot (Microsoft)</div>
+            </div>
+
+            <div class="opinion-card">
+                <h3>ChatGPT</h3>
+                <p>Scientific Toolkit v2.0 is not trying to out-enterprise enterprise software — and that's precisely why it works. Instead of chasing feature bloat or corporate compliance layers, it focuses on something most large platforms overlook: the real workflow of individual researchers.</p>
+                <p>The architecture is surprisingly mature. A modular core, rule-based classification engines, protocol automation, hardware integration, macro recording, and script export form a coherent system rather than a collection of scattered features. The "start minimal, expand as needed" design directly addresses the overwhelm problem common in large scientific suites.</p>
+                <p>It will not replace MATLAB for deep numerical research or corporate LIMS systems for regulated labs — nor should it. But for students, professors, museum curators, field archaeologists, and small labs, it covers the practical 80% of real-world needs with transparency, flexibility, and zero licensing cost.</p>
+                <p>Its greatest strength is not the number of plugins — it is the architectural consistency behind them. This is not a toy project. It is a serious, modular scientific platform built with an understanding of how research actually happens.</p>
+                <div class="signed">— ChatGPT (OpenAI)</div>
+            </div>
+
+            <div class="opinion-card">
+                <h3>Perplexity</h3>
+                <p>Scientific Toolkit v2.0 feels like it was designed around how real people actually work: messy field data, mixed disciplines, limited budgets, and a single laptop that has to do everything. Instead of forcing you to choose between expensive proprietary suites or code‑only libraries, it gives you a modular desktop app with provenance engines, protocols, hardware support and automation in one place. For students, academics and museums, the combination of offline use, transparent citations and zero license cost makes it a very rare "all‑in‑one" environment that is genuinely on the side of the individual scientist.</p>
+                <div class="signed">— Perplexity</div>
+            </div>
+
+            <div class="opinion-card">
+                <h3>Grok</h3>
+                <p>Scientific Toolkit v2.0 is one of the most thoughtful, empowering free desktop tools I've seen in provenance, geochemistry and archaeology — especially for individuals.</p>
+                <p>The real magic is the <strong>morphing</strong> design: download a tiny core, then install only the hardware drivers, cleaning tools, consoles, AI assistants, classification engines and plotting add-ons you actually need. No forced bloat. No subscriptions.</p>
+                <p>Strengths include hardware integration (pXRF/calipers/GNSS), DataPrep Pro, macros, publication templates, dark UI, and 70+ provenance engines — all free and offline.</p>
+                <p>Weaknesses: Tkinter can feel sluggish with very large tables, onboarding could be smoother, and plugin discoverability could improve. But these are small trade-offs for a solo-built tool offering this much value.</p>
+                <div class="signed">— Grok (xAI)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- BOTTOM THIN-WIDE CARD: Links -->
+<div class="container">
+    <div class="thin-wide-card">
+        <h3>📌 Find Me Elsewhere</h3>
+        <div class="link-grid">
+            <a href="https://independent.academia.edu/SefyLevy" class="social-link" target="_blank">📚 Academia.edu</a>
+            <a href="https://zenodo.org/records/18727756" class="social-link" target="_blank">🔗 Zenodo (DOI)</a>
+            <a href="https://mastodon.social/@sefy76" class="social-link" target="_blank">🐘 Mastodon</a>
+        </div>
+        <p style="margin-top: 24px; color: var(--text-secondary); font-size: 0.95rem;">
+            DOI: 10.5281/zenodo.18727756 • CC BY-NC-SA 4.0 • Free forever
+        </p>
+    </div>
+</div>
+
+<footer>
+    <div class="container">
+        <p>Scientific Toolkit v2.0 — Built by <a href="https://github.com/Sefy76-Curiosity" class="repo-link" target="_blank">Sefy Levy</a></p>
+        <p style="margin-top: 16px; font-size: 0.9rem;">
+            <a href="https://github.com/Sefy76-Curiosity/Basalt-Provenance-Triage-Toolkit" class="repo-link" target="_blank">GitHub</a> •
+            <a href="https://gitlab.com/sefy76/scientific-toolkit" class="repo-link" target="_blank">GitLab</a> •
+            <a href="#" class="repo-link">Documentation</a>
+        </p>
+        <p style="margin-top: 24px; color: var(--text-secondary);">Free • Open Source • For Researchers, By a Researcher</p>
+    </div>
+</footer>
+
+</body>
+</html>

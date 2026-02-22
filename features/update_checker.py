@@ -1,6 +1,7 @@
 """
-HTTP Update Checker – GitLab first, then GitHub, with status‑only feedback.
+HTTP Update Checker – GitLab first, then GitHub, with status-only feedback.
 All errors/messages go to status bar; details on click.
+Fully converted to ttkbootstrap.
 """
 import urllib.request
 import json
@@ -11,12 +12,15 @@ import threading
 import tempfile
 from pathlib import Path
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
+
 
 class HTTPUpdateChecker:
     def __init__(self, app, local_version, owner="Sefy76-Curiosity", repo="Basalt-Provenance-Triage-Toolkit", branch="main"):
         self.app = app
-        self.local_version = local_version          # store the local version string
+        self.local_version = local_version
         self.owner = owner
         self.repo = repo
         self.branch = branch
@@ -31,7 +35,7 @@ class HTTPUpdateChecker:
             errors = []
             remote_ver = None
 
-            # 1. Try GitLab (your exact working URL)
+            # 1. Try GitLab
             gitlab_url = f"https://gitlab.com/sefy76/scientific-toolkit/-/raw/{self.branch}/Scientific-Toolkit.py?ref_type=heads"
             try:
                 with urllib.request.urlopen(gitlab_url, timeout=10) as resp:
@@ -56,19 +60,17 @@ class HTTPUpdateChecker:
                 except Exception as e:
                     errors.append(f"GitHub ({github_url}): {str(e)}")
 
-            # If both failed, show the errors in status bar (clickable)
             if remote_ver is None:
                 error_msg = "\n".join(errors)
                 self.app.root.after(0, lambda msg=error_msg: self._set_error_status(msg))
                 return
 
-            local_ver = self.local_version   # use stored local version
+            local_ver = self.local_version
 
             if remote_ver == local_ver:
                 self.app.root.after(0, lambda: self.app.center.set_status("✅ No updates available", "info"))
                 return
 
-            # Version differs – proceed with update check using GitHub API
             try:
                 latest_sha = self._get_latest_commit()
             except Exception as e:
@@ -98,11 +100,7 @@ class HTTPUpdateChecker:
         threading.Thread(target=run, daemon=True).start()
 
     def _set_error_status(self, message):
-        """Store full error in last_operation and set status bar text."""
-        self.app.center.last_operation = {
-            'type': 'update_error',
-            'error': message
-        }
+        self.app.center.last_operation = {'type': 'update_error', 'error': message}
         self.app.center.set_status("❌ Update check failed – click for details", "error")
 
     def _set_update_available_status(self, new_version):
@@ -124,7 +122,7 @@ class HTTPUpdateChecker:
         self.app.center.set_status(f"🔄 {len(changed_files)} file(s) updated – click for details", "info")
 
     # ------------------------------------------------------------------
-    # GitHub API helpers (unchanged)
+    # GitHub API helpers
     # ------------------------------------------------------------------
     def _get_latest_commit(self):
         url = f"https://api.github.com/repos/{self.owner}/{self.repo}/branches/{self.branch}"
@@ -151,14 +149,13 @@ class HTTPUpdateChecker:
             return [f['filename'] for f in data['files'] if f['status'] != 'removed']
 
     # ------------------------------------------------------------------
-    # Download logic (same as before)
+    # Download logic
     # ------------------------------------------------------------------
     def _download_file(self, url, target_path, expected_sha256=None):
         try:
             with urllib.request.urlopen(url, timeout=15) as response:
                 with tempfile.NamedTemporaryFile(mode='wb', delete=False) as tmp:
                     sha256 = hashlib.sha256()
-                    total_size = int(response.headers.get('Content-Length', 0))
                     downloaded = 0
                     chunk_size = 8192
                     while True:
@@ -189,42 +186,70 @@ class HTTPUpdateChecker:
             return False
 
     # ------------------------------------------------------------------
-    # Update dialog (shown when user clicks status bar)
+    # Update dialog – fully ttkbootstrap
     # ------------------------------------------------------------------
     def show_update_dialog(self, changed_files, new_commit, new_version):
-        win = tk.Toplevel(self.app.root)
+        win = ttk.Toplevel(self.app.root)
         win.title(f"🔄 Update to v{new_version}")
         win.geometry("600x450")
         win.transient(self.app.root)
 
         main = ttk.Frame(win, padding=10)
-        main.pack(fill=tk.BOTH, expand=True)
+        main.pack(fill=BOTH, expand=True)
 
-        ttk.Label(main, text=f"The following {len(changed_files)} files will be updated:",
-                  font=("Arial", 10, "bold")).pack(anchor=tk.W, pady=5)
+        ttk.Label(
+            main,
+            text=f"The following {len(changed_files)} files will be updated:",
+            font=("TkDefaultFont", 10, "bold"),
+            bootstyle="light"
+        ).pack(anchor=W, pady=5)
 
+        # File list
         list_frame = ttk.Frame(main)
-        list_frame.pack(fill=tk.BOTH, expand=True, pady=5)
-        scrollbar = ttk.Scrollbar(list_frame)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        listbox = tk.Listbox(list_frame, yscrollcommand=scrollbar.set)
-        for f in changed_files:
-            listbox.insert(tk.END, f)
-        listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.config(command=listbox.yview)
+        list_frame.pack(fill=BOTH, expand=True, pady=5)
 
-        progress = ttk.Progressbar(main, mode='determinate')
-        progress.pack(fill=tk.X, pady=5)
+        scrollbar = ttk.Scrollbar(list_frame, orient="vertical", bootstyle="dark-round")
+        scrollbar.pack(side=RIGHT, fill=Y)
+
+        # Treeview instead of Listbox
+        file_tree = ttk.Treeview(
+            list_frame,
+            columns=("file",),
+            show="tree",
+            height=10,
+            bootstyle="dark"
+        )
+        file_tree.pack(side=LEFT, fill=BOTH, expand=True)
+
+        for f in changed_files:
+            file_tree.insert("", tk.END, text=f, values=(f,))
+
+        scrollbar.config(command=file_tree.yview)
+
+        progress = ttk.Progressbar(main, mode='determinate', bootstyle="info")
+        progress.pack(fill=X, pady=5)
+
         status_var = tk.StringVar(value="Ready to download")
-        ttk.Label(main, textvariable=status_var).pack()
+        ttk.Label(main, textvariable=status_var, bootstyle="light").pack()
 
         btn_frame = ttk.Frame(main)
-        btn_frame.pack(fill=tk.X, pady=10)
-        download_btn = ttk.Button(btn_frame, text="⬇️ Download Updates",
-                                  command=lambda: self._perform_update(win, changed_files, new_commit,
-                                                                        new_version, progress, status_var))
-        download_btn.pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Cancel", command=win.destroy).pack(side=tk.RIGHT, padx=5)
+        btn_frame.pack(fill=X, pady=10)
+
+        ttk.Button(
+            btn_frame,
+            text="⬇️ Download Updates",
+            command=lambda: self._perform_update(
+                win, changed_files, new_commit, new_version, progress, status_var
+            ),
+            bootstyle="primary"
+        ).pack(side=LEFT, padx=5)
+
+        ttk.Button(
+            btn_frame,
+            text="Cancel",
+            command=win.destroy,
+            bootstyle="secondary"
+        ).pack(side=RIGHT, padx=5)
 
     def _perform_update(self, win, changed_files, new_commit, new_version, progress, status_var):
         def download():
@@ -234,7 +259,6 @@ class HTTPUpdateChecker:
                 progress['value'] = (i / total) * 100
                 win.update()
 
-                # Use the active source for download
                 if self.active_source == 'gitlab':
                     url = f"https://gitlab.com/sefy76/scientific-toolkit/-/raw/{self.branch}/{path}?ref_type=heads"
                 else:

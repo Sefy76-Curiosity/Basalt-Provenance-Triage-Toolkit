@@ -511,7 +511,7 @@ Every bug report and piece of feedback makes this better for the entire scientif
 
     GitLab Issues: https://gitlab.com/sefy76/scientific-toolkit/-/issues
 
-    DOI: https://doi.org/10.5281/zenodo.18499129
+    DOI: https://doi.org/10.5281/zenodo.18727756
 
 Questions? See FAQ or open an issue on GitLab.
 

@@ -2,16 +2,19 @@
 Right Panel - 10% width, Classification Hub
 Redesigned with compact top controls and full-height HUD
 Now supports "Run All Schemes" via dropdown option.
+Fully converted to ttkbootstrap
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
 from .all_schemes_detail_dialog import AllSchemesDetailDialog
 
 class RightPanel:
     def __init__(self, parent, app):
         self.app = app
-        self.frame = ttk.Frame(parent, relief=tk.RAISED, borderwidth=1)
+        self.frame = ttk.Frame(parent, bootstyle="dark")
 
         # UI elements
         self.hud_tree = None
@@ -35,31 +38,47 @@ class RightPanel:
     def _build_ui(self):
         """Build right panel with compact top and full-height HUD"""
         # ============ ENGINE FRAME ============
-        self.engine_frame = ttk.Frame(self.frame)
-        self.engine_frame.pack(fill=tk.X, padx=2, pady=2)
+        self.engine_frame = ttk.Frame(self.frame, bootstyle="dark")
+        self.engine_frame.pack(fill=tk.X, padx=1, pady=1)
 
         self.refresh_for_engine(getattr(self.app, '_current_engine', 'classification'))
 
         # ============ RUN OPTIONS ============
-        row2 = ttk.Frame(self.frame)
-        row2.pack(fill=tk.X, padx=2, pady=2)
+        row2 = ttk.Frame(self.frame, bootstyle="dark")
+        row2.pack(fill=tk.X, padx=1, pady=1)
 
-        ttk.Radiobutton(row2, text="All Rows",
-                       variable=self.run_target,
-                       value="all").pack(side=tk.LEFT, padx=2)
-        ttk.Radiobutton(row2, text="Selected",
-                       variable=self.run_target,
-                       value="selected").pack(side=tk.LEFT, padx=2)
+        self.all_rows_radio = ttk.Radiobutton(
+            row2,
+            text="All Rows",
+            variable=self.run_target,
+            value="all",
+            bootstyle="primary-toolbutton"
+        )
+        self.all_rows_radio.pack(side=tk.LEFT, padx=2)
+
+        self.selected_radio = ttk.Radiobutton(
+            row2,
+            text="Selected",
+            variable=self.run_target,
+            value="selected",
+            bootstyle="primary-toolbutton"
+        )
+        self.selected_radio.pack(side=tk.LEFT, padx=2)
 
         # ============ HUD ============
-        hud_frame = ttk.Frame(self.frame)
-        hud_frame.pack(fill=tk.BOTH, expand=True, padx=3, pady=3)
+        hud_frame = ttk.Frame(self.frame, bootstyle="dark")
+        hud_frame.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
 
-        tree_frame = ttk.Frame(hud_frame)
+        tree_frame = ttk.Frame(hud_frame, bootstyle="dark")
         tree_frame.pack(fill=tk.BOTH, expand=True)
 
-        self.hud_tree = ttk.Treeview(tree_frame, columns=("ID", "Class", "Conf", "Flag"),
-                                     show='headings', height=1)
+        self.hud_tree = ttk.Treeview(
+            tree_frame,
+            columns=("ID", "Class", "Conf", "Flag"),
+            show='headings',
+            height=1,
+            bootstyle="dark"
+        )
 
         self.hud_tree.heading("ID", text="ID")
         self.hud_tree.heading("Class", text="Classification")
@@ -71,8 +90,18 @@ class RightPanel:
         self.hud_tree.column("Conf", width=45, anchor="center")
         self.hud_tree.column("Flag", width=30, anchor="center")
 
-        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self._on_hud_scroll)
-        hsb = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.hud_tree.xview)
+        vsb = ttk.Scrollbar(
+            tree_frame,
+            orient="vertical",
+            command=self._on_hud_scroll,
+            bootstyle="dark-round"
+        )
+        hsb = ttk.Scrollbar(
+            tree_frame,
+            orient="horizontal",
+            command=self.hud_tree.xview,
+            bootstyle="dark-round"
+        )
         self.hud_tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
 
         self.hud_tree.bind("<MouseWheel>", self._on_hud_mousewheel)
@@ -97,22 +126,42 @@ class RightPanel:
             widget.destroy()
 
         if engine_type == 'protocol':
-            self.protocol_combo = ttk.Combobox(self.engine_frame, textvariable=self.protocol_var,
-                                              state="readonly", width=15)
+            self.protocol_combo = ttk.Combobox(
+                self.engine_frame,
+                textvariable=self.protocol_var,
+                state="readonly",
+                width=15,
+                bootstyle="light"
+            )
             self.protocol_combo.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 2))
 
-            self.run_protocol_btn = ttk.Button(self.engine_frame, text="Run", width=6,
-                                              command=self._run_protocol)
+            self.run_protocol_btn = ttk.Button(
+                self.engine_frame,
+                text="Run",
+                width=6,
+                command=self._run_protocol,
+                bootstyle="primary"
+            )
             self.run_protocol_btn.pack(side=tk.RIGHT)
 
             self._refresh_protocols()
         else:
-            self.scheme_combo = ttk.Combobox(self.engine_frame, textvariable=self.scheme_var,
-                                            state="readonly", width=15)
+            self.scheme_combo = ttk.Combobox(
+                self.engine_frame,
+                textvariable=self.scheme_var,
+                state="readonly",
+                width=15,
+                bootstyle="light"
+            )
             self.scheme_combo.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 2))
 
-            self.apply_btn = ttk.Button(self.engine_frame, text="Apply", width=6,
-                                       command=self._run_classification)
+            self.apply_btn = ttk.Button(
+                self.engine_frame,
+                text="Apply",
+                width=6,
+                command=self._run_classification,
+                bootstyle="primary"
+            )
             self.apply_btn.pack(side=tk.RIGHT)
 
             self._refresh_schemes()
@@ -194,14 +243,27 @@ class RightPanel:
         configured_tags = set()
         for classification in self.app.color_manager.get_all_classifications():
             bg_color = self.app.color_manager.get_background(classification)
+            fg_color = self.app.color_manager.get_foreground(classification)
 
             if classification not in configured_tags:
-                self.hud_tree.tag_configure(classification, background=bg_color)
+                self.hud_tree.tag_configure(
+                    classification,
+                    background=bg_color,
+                    foreground=fg_color
+                )
                 configured_tags.add(classification)
 
-            if classification.upper() not in configured_tags:
-                self.hud_tree.tag_configure(classification.upper(), background=bg_color)
-                configured_tags.add(classification.upper())
+            upper = classification.upper()
+            if upper not in configured_tags:
+                self.hud_tree.tag_configure(
+                    upper,
+                    background=bg_color,
+                    foreground=fg_color
+                )
+                configured_tags.add(upper)
+
+        # Configure default tags
+        self.hud_tree.tag_configure('UNCLASSIFIED', background='#3b3b3b', foreground='white')
 
         print(f"✅ Configured {len(configured_tags)} HUD colors")
 
@@ -280,7 +342,7 @@ class RightPanel:
                 normal_schemes.append((display, scheme['id']))
                 self.all_schemes_list.append(display)
 
-            # Sort normal schemes alphabetically by name (strip icon prefix for comparison)
+            # Sort normal schemes alphabetically by name
             normal_schemes.sort(key=lambda x: x[0].split(' ', 1)[-1].lower())
 
             # Add to scheme_list

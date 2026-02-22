@@ -361,7 +361,7 @@
     "description": "AFC \u00b7 Zone Refining \u00b7 In-Situ Crystallization \u2014 Complete magma evolution models",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
-    "icon": "\ud83c\udf0b\u2697\ufe0f",
+    "icon": "\u2697\ufe0f",
     "requires": [
       "numpy",
       "scipy",
@@ -402,6 +402,22 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/compositional_stats_pro.py?ref_type=heads"
   },
   {
+    "id": "dataprep_pro",
+    "name": "DataPrep Pro",
+    "version": "1.1.0",
+    "description": "Outlier detection, missing imputation, CLR/ILR transforms, robust normalization",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\ud83e\uddf9",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "scikit-learn"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/dataprep_pro.py?ref_type=heads"
+  },
+  {
     "id": "data_validation_filter",
     "name": "Data Quality & Filter",
     "version": "1.0",
@@ -422,7 +438,7 @@
     "description": "Bayesian age-depth with MCMC, parallel processing, user-supplied curves",
     "author": "Enhanced from Sefy Levy & DeepSeek",
     "category": "software",
-    "icon": "\u23f3\ud83d\udd2c",
+    "icon": "\ud83d\udd2c",
     "requires": [
       "numpy",
       "scipy",
@@ -502,8 +518,10 @@
     "category": "software",
     "icon": "\ud83d\uddfa\ufe0f",
     "requires": [
-      "matplotlib>=3.5.0",
-      "numpy>=1.21.0"
+      "matplotlib",
+      "numpy",
+      "scipy",
+      "requests"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/gis_3d_viewer_pro.py?ref_type=heads"
   },

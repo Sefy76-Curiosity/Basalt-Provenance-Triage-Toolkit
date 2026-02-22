@@ -299,7 +299,7 @@ Contact Information
 
     GitLab: https://gitlab.com/sefy76/scientific-toolkit
 
-    DOI: https://doi.org/10.5281/zenodo.18499129
+    DOI: https://doi.org/10.5281/zenodo.18727756
 
 When Reporting Issues
 

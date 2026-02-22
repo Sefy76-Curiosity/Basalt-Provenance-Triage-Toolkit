@@ -63,5 +63,6 @@
   "thermobarometry_suite": true,
   "uncertainty_propagation": true,
   "virtual_microscopy_pro": true,
-  "zooarchaeology_analytics_suite": true
+  "zooarchaeology_analytics_suite": true,
+  "dataprep_pro": true
 }

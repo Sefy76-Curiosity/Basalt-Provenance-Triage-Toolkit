@@ -9,23 +9,16 @@ This software is provided "AS IS" without any warranty.
 Your responsibilities as a user:
 
     Validate all results - Check that classifications make sense for your samples
-
     Verify methods are appropriate - Not every classification applies to every sample type
-
     Check your input data - Errors in your data = errors in results
-
     Use scientific judgment - This is a tool to assist you, not replace expertise
-
     Report bugs and issues - If something seems wrong, report it!
 
 This is scientific software in active development. You MUST:
 
     Understand the methods you're using (read the citations)
-
     Verify results are reasonable for your samples
-
     Cross-check critical results with other methods/tools
-
     Report any bugs or unexpected behavior
 
 We rely on users to test and report issues. Your bug reports help everyone.
@@ -59,9 +52,7 @@ Yes! You can use Scientific Toolkit for commercial purposes - a mining company c
 What you CANNOT do:
 
     ❌ Sell the software itself (charging for Scientific Toolkit)
-
     ❌ Incorporate the code into commercial products you sell
-
     ❌ Take the code and use it in proprietary software you're selling
 
 Example scenarios:
@@ -88,13 +79,9 @@ See QUICK_START.md for examples.
 What can't it do?
 
     ❌ Handle massive datasets (performance degrades >10,000 samples)
-
     ❌ Replace specialized commercial tools in their single domains
-
     ❌ Provide enterprise-level support contracts
-
     ❌ Run in a web browser (desktop only)
-
     ❌ Perform every analysis imaginable (focused on common needs)
 
 How does this compare to commercial software?
@@ -121,9 +108,7 @@ Do I need to know Python?
 No. This is a GUI application - you interact through menus and buttons, not code. However, knowing Python helps if you want to:
 
     Create custom plugins
-
     Modify existing engines
-
     Export workflows as scripts
 
 Can I run this on a tablet or phone?
@@ -134,9 +119,7 @@ Does it work offline?
 Yes! All functionality works offline except:
 
     AI assistant plugins (require API keys and internet)
-
     Downloading additional dependencies via Plugin Manager
-
     Some online data sources (EarthChem, USGS)
 
 How do I update to new versions?
@@ -152,13 +135,9 @@ What about the Plugin Manager?
 The Plugin Manager (Advanced → Plugin Manager) handles:
 
     Discovering available plugins (67 total)
-
     Checking dependencies
-
     One-click installation
-
     Enabling/disabling plugins
-
     Uninstalling plugins
 
 No manual pip commands needed for most plugins!
@@ -168,31 +147,20 @@ What file formats are supported?
 Import:
 
     ✅ CSV (any delimiter)
-
     ✅ Excel (.xlsx, .xls)
-
     ✅ Tab-delimited text
-
     ✅ Hardware-specific: Bruker, Niton, Olympus, SciAps, Thermo
-
     ✅ Spectral: .spa, .opj, .dpt, .wdf, .ngs, .jdx
-
     ✅ Images: .jpg, .png, .tif (for lithics/photos)
 
 Export:
 
     ✅ CSV
-
     ✅ Excel
-
     ✅ JSON
-
     ✅ PDF (figures)
-
     ✅ PNG/SVG (figures)
-
     ✅ KML (for Google Earth)
-
     ✅ Shapefile (GIS)
 
 Can I import my existing data?
@@ -203,25 +171,17 @@ Will this modify my original files?
 No. Your original files are never changed. All work happens on imported copies in the application. The only files created are:
 
     Project files (.stproj) when you save
-
     Exported results when you choose to export
-
     Log files in config/
 
 Can I save my work and come back later?
-
 Yes. Save projects as .stproj files (JSON format). They store:
 
     All sample data
-
     Column order and structure
-
     Current filters and search terms
-
     Selected classification schemes
-
     UI state (tabs, page numbers)
-
     Window size and position
 
 How big can my datasets be?
@@ -234,11 +194,8 @@ Size	Performance
 For large datasets, consider:
 
     Using filters to work with subsets
-
     Enabling pagination (50-100 samples per page)
-
     Using the SQL console for queries
-
     Exporting to R/Python for heavy processing
 
 🧬 Classifications & Analysis
@@ -252,53 +209,32 @@ Protocol Engine	50	Multi-stage workflows
 These cover:
 
     Geochemistry (20+)
-
     Metamorphic petrology (5+)
-
     Sedimentology (12+)
-
     Geochronology (3+)
-
     Isotope geochemistry (3+)
-
     Environmental (8+)
-
     Soil science (8+)
-
     Archaeology (10+)
-
     Meteoritics (6+)
-
     Archaeometallurgy (5+)
-
     Hydrogeochemistry (5+)
-
     Provenance & tectonics (5+)
-
     Alteration & weathering (3+)
-
     Analytical QA/QC (4+)
 
 Are the methods peer-reviewed?
-
 Yes! We implement published methods from scientific literature. See CITATIONS.md for all 200+ references.
-
 Key examples:
 
     TAS diagram: Le Bas et al. (1986)
-
     AFM diagram: Irvine & Baragar (1971)
-
     Meteorite shock stages: Stöffler et al. (1991)
-
     Bone diagenesis: Hedges et al. (1995)
-
     Geoaccumulation index: Müller (1969, 1981)
-
     U-Pb concordia: Wetherill (1956), Tera & Wasserburg (1972)
 
 Can I cite Scientific Toolkit in papers?
-
 Yes, please do! Cite both this software AND the original methods:
 
     "Samples were classified using the TAS diagram (Le Bas et al., 1986) as implemented in Scientific Toolkit v2.0 (Levy, 2026)."
@@ -308,7 +244,7 @@ text
 
 Levy, S. (2026). Scientific Toolkit v2.0 [Computer software].
 GitLab: https://gitlab.com/sefy76/scientific-toolkit
-DOI: 10.5281/zenodo.18499129
+DOI: 10.5281/zenodo.18727756
 
 See CITATIONS.md for complete format.
 How accurate are the classifications?
@@ -318,43 +254,30 @@ They implement published formulas, but YOU must validate the results.
 What we guarantee:
 
     ✅ Formulas/boundaries from published literature are implemented correctly
-
     ✅ Code logic follows the cited methods
-
     ✅ Calculations are mathematically accurate
 
 What we DO NOT guarantee:
 
     ❌ That the method is appropriate for YOUR specific samples
-
     ❌ That your input data is correct
-
     ❌ That results are scientifically meaningful for your study
-
     ❌ That there are no bugs (software is complex!)
 
 Accuracy depends on:
 
     Quality of your input data - Bad data → bad results
-
     Appropriateness of method - TAS diagram for sedimentary rocks? Wrong!
-
     Correct column mapping - Did you map the right columns?
-
     Sample preparation - Was your sample properly prepared?
-
     Your scientific judgment - Does the result make sense?
 
 Best practices:
 
     Read the citation for each classification engine you use
-
     Understand what the method does and its limitations
-
     Cross-validate critical results with other tools
-
     Check outliers and unexpected results carefully
-
     When in doubt, consult with experts in the field
 
 Found incorrect results or bugs? → Report them! This helps everyone.
@@ -370,11 +293,8 @@ Can I add my own classification schemes?
 Yes! Classification engines are JSON files in engines/classification/:
 
     Copy _TEMPLATE.json to a new file
-
     Add your rules using supported operators (>, <, between, etc.)
-
     Save and restart
-
     Your scheme appears in the dropdown!
 
 See engines/classification/README.md for details.
@@ -383,11 +303,8 @@ Can I add my own protocols?
 Yes! Protocols are JSON files in engines/protocols/:
 
     Copy any existing protocol as template
-
     Define stages with rules
-
     Add conditions and outputs
-
     Save and restart
 
 🔌 Hardware Integration
@@ -413,9 +330,7 @@ Option 2: Universal Parser
 Many hardware plugins include generic parsers that can handle:
 
     Any 2-column CSV (time, intensity)
-
     Any tabular data with headers
-
     Custom delimiter detection
 
 Option 3: Create a plugin
@@ -425,11 +340,8 @@ Do I need special drivers?
 Usually not. Most devices work via:
 
     USB serial (XRF, GPS, meters) - standard drivers built into OS
-
     USB HID (calipers) - no drivers needed
-
     Bluetooth (wireless devices) - built-in OS support
-
     File monitoring (universal) - no drivers
 
 Some Windows devices may need manufacturer's USB serial driver (FTDI, Prolific, etc.).
@@ -449,39 +361,24 @@ What plot types are available?
 Built-in (from add-on plugins):
 
     Scatter plots (matplotlib)
-
     Ternary diagrams (ternary-plotter)
-
     REE spider diagrams
-
     Bar charts, histograms
-
     Box plots, violin plots (seaborn)
-
     Heatmaps, contour plots
-
     3D scatter/surface
-
     GIS maps with terrain
-
     ASCII art plots (for CLI lovers)
-
     Missing data visualizations
 
 From software plugins:
 
     PCA biplots
-
     LDA projections
-
     U-Pb concordia diagrams
-
     Ar-Ar age spectra
-
     KDE density plots
-
     MDS configurations
-
     Ternary mixing diagrams
 
 Can I customize the plots?
@@ -489,41 +386,28 @@ Can I customize the plots?
 Yes! Use the Plot Templates system:
 
     Create your plot
-
     Plot → Apply Template
-
     Choose from:
 
         Journal styles: Nature, Science, AGU, Elsevier, GSA
-
         Aesthetic: Color-blind safe, high contrast, B&W print
-
         Functional: Publication-ready, reviewer-friendly
-
         Discipline-specific: REE spider, TAS, stable isotopes
 
 Adjust:
 
     Colors and markers
-
     Axis labels and ranges
-
     Grid and tick styles
-
     Font sizes and families
-
     Color schemes (including color-blind safe)
 
 Are plots publication-quality?
-
 Yes. Export as:
 
     PDF (vector, 300+ DPI) - best for journals
-
     SVG (vector, editable in Inkscape/Illustrator)
-
     PNG (raster, adjustable DPI)
-
     EPS (LaTeX compatible)
 
 Journal-specific templates help match publication requirements.
@@ -533,21 +417,15 @@ What statistical methods are included?
 From core:
 
     Descriptive statistics (mean, median, std dev, quartiles)
-
     Correlation matrices with significance
-
     t-tests, ANOVA, Mann-Whitney
 
 From software plugins:
 
     PCA+LDA Explorer: PCA, LDA, PLS-DA, Random Forest, SVM, t-SNE, K-means
-
     Compositional Stats: CLR/ILR transforms, robust covariance, bootstrap
-
     Geochemical Explorer: Multivariate analysis, clustering
-
     Isotope Mixing: Binary/ternary mixing, Monte Carlo, Bayesian MCMC
-
     Geochronology: KDE, MDS, age calculations
 
 Is this a replacement for SPSS or R?
@@ -578,23 +456,16 @@ Do I need to pay for AI features?
 Depends:
 
     Ollama: Completely free, runs on your computer (no internet needed)
-
     Others: Most have free tiers with limits (e.g., Claude.ai free tier, OpenAI free trial)
-
     AI features are optional - core toolkit works fine without them
 
 Is my data sent to AI companies?
-
 Only if you use AI assistant plugins AND explicitly ask them questions. Your data stays local otherwise.
-
 When using AI:
 
     Only data you explicitly query is sent
-
     Follows the AI provider's privacy policy
-
     Consider data sensitivity before using with confidential samples
-
     Ollama keeps everything 100% local
 
 🐞 Errors & Troubleshooting
@@ -611,11 +482,8 @@ Classification returns no results
 Common causes:
 
     Required columns missing (check engine description)
-
     Data is text instead of numbers
-
     Missing values (NaN) in critical columns
-
     Column names don't match expected format
 
 Solution: Check the classification engine requirements in engines/classification/[scheme].json → requires_fields
@@ -624,38 +492,26 @@ Protocol fails
 Common causes:
 
     Required fields missing
-
     Data type mismatch (text vs number)
-
     Stage conditions not met
 
 Solution: Check protocol requirements in engines/protocols/[protocol].json → requires_fields
 Application is slow
 
     Large dataset? Try filtering/paging (bottom right)
-
     Many plugins loaded? Close unused windows
-
     Low RAM? Close other programs
-
     Restart application to clear memory
-
     Check Task Manager/Activity Monitor for memory usage
 
 Hardware device not detected
-
 Checklist:
 
     USB cable connected?
-
     Device powered on?
-
     Correct port selected? (try different COM ports)
-
     Linux: User in dialout group?
-
     Windows: Driver installed?
-
     Try Hardware → File Monitor as fallback
 
 Diagnostic:
@@ -670,19 +526,14 @@ for p in ports:
 Can't export figures
 
     Check write permission to output folder
-
     Try exporting to desktop first
-
     PDF export requires matplotlib - check installation
-
     Some formats need additional libraries (cairo for SVG)
 
 Plugin Manager shows errors
 
     Check config/plugin_manager.log for details
-
     Ensure plugins folder is writable
-
     Some plugins need restart after install
 
 🤝 Contributing & Development
@@ -704,43 +555,30 @@ See CONTRIBUTING.md for guidelines.
 I found a bug. What should I do?
 
     Search existing issues first (maybe already reported)
-
     Test with sample data to confirm it's not your data
-
     Open issue at https://gitlab.com/sefy76/scientific-toolkit/-/issues
 
 Include:
 
     Operating system and version
-
     Python version (python --version)
-
     Steps to reproduce
-
     Error message (copy-paste)
-
     What you expected vs what happened
-
     Screenshots if relevant
 
 Can I modify the code for my needs?
-
 Yes! CC BY-NC-SA 4.0 license allows modifications. If you improve it, please:
 
     Share improvements back (contribute)
-
     Keep same license (ShareAlike requirement)
-
     Credit original (Attribution requirement)
 
 Is there developer documentation?
 
     Code comments - Each plugin has detailed comments
-
     Classification schemes - JSON format documented in engines/classification/README.md
-
     Protocols - JSON format documented in engines/protocols/README.md
-
     Plugin system - See plugins/plugin_manager.py for registration
 
 More comprehensive developer guide planned for v2.1.
@@ -750,33 +588,25 @@ Where do I get help?
 Self-help (fastest):
 
     QUICK_START.md - 5-minute guide
-
     INSTALLATION.md - Setup help
-
     This FAQ
-
     Search GitLab Issues
 
 Community help:
 
     GitLab Issues/Discussions
-
     Email: sefy76@gmail.com
 
 Paid support:
 
     Custom development: sefy76@gmail.com
-
     Training/workshops: Contact for availability
 
 Is there a user community?
-
 Growing! Connect via:
 
     GitLab Issues - Report bugs, request features
-
     GitLab Discussions - Ask questions, share workflows
-
     Email list - Announcements only (contact to join)
 
 No Discord/Slack yet, but planned if community grows.
@@ -788,11 +618,8 @@ Can I hire you for custom development?
 Yes! Contact sefy76@gmail.com to discuss:
 
     Custom plugins for your hardware
-
     New classification engines
-
     Integration with your systems
-
     Consulting on specific projects
 
 💭 Misc
@@ -816,17 +643,13 @@ Yes. The software will always be free to use for anyone - researchers, students,
 What "free" means:
 
     No cost to download or use
-
     No license fees
-
     No subscription costs
-
     Use it for any purpose (research, education, commercial work)
 
 What's restricted:
 
     Cannot sell the software itself
-
     Cannot use the code in commercial products you sell
 
 Bottom line: Free to use forever. Just don't try to sell it or profit from the code itself.
@@ -845,29 +668,19 @@ Can I donate to support development?
 Not set up for donations currently. Best support:
 
     ⭐ Star on GitLab
-
     Share with colleagues
-
     Cite in publications
-
     Contribute code/documentation
-
     Report bugs
-
     Answer questions in Issues
 
 Why Tkinter instead of modern framework?
-
 Tkinter is:
 
     ✅ Built into Python (no extra dependencies)
-
     ✅ Cross-platform (Windows/Mac/Linux)
-
     ✅ Lightweight (runs on old hardware)
-
     ✅ Fast to develop
-
     ✅ Stable and reliable
 
 Yes, it looks dated. But it works reliably on any system with Python, which is more important for scientific software than visual flair.
@@ -876,9 +689,7 @@ Future versions may offer a web interface option alongside the desktop app.
 📝 Still have questions?
 
     Email: sefy76@gmail.com
-
     GitLab Issues: https://gitlab.com/sefy76/scientific-toolkit/-/issues
-
     Documentation: See /docs/ folder for more guides
 
 📋 Quick Reference
