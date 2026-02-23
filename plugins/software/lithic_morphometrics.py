@@ -654,7 +654,7 @@ class LithicMorphometricsPlugin:
         self.line_objects = []
 
         # Create matplotlib figure
-        fig, self.manual_ax = plt.subplots(figsize=(8, 6))
+        fig, self.manual_ax = plt.subplots(figsize=(6, 5))
 
         # Display image
         self.manual_ax.imshow(self.original_image)
@@ -971,7 +971,7 @@ class LithicMorphometricsPlugin:
         plot_window.title("📊 Elliptical Fourier Reconstruction")
         plot_window.geometry("700x500")
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
 
         # Plot original vs reconstructed
         ax1.plot(self.outline_points[:, 0], self.outline_points[:, 1],
@@ -1066,7 +1066,7 @@ class LithicMorphometricsPlugin:
         plot_window.title("🔨 Edge Damage Analysis")
         plot_window.geometry("800x500")
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9, 4))
 
         # Plot outline with damage highlighted
         ax1.plot(self.outline_points[:, 0], self.outline_points[:, 1],

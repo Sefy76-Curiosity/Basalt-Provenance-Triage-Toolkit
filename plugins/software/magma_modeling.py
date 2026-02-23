@@ -551,7 +551,7 @@ class MagmaModelingPlugin:
 
     def _create_rayleigh_plots(self, results, params):
         """Create Rayleigh fractionation plots"""
-        fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+        fig, axes = plt.subplots(2, 3, figsize=(10, 7))
         fig.suptitle("Rayleigh Fractionation Results", fontsize=14, fontweight='bold')
 
         F = np.array(results["F"])
@@ -662,7 +662,7 @@ class MagmaModelingPlugin:
             results = self.crystallization_results["results"]
             params = self.crystallization_results["parameters"]
 
-            fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+            fig, axes = plt.subplots(2, 2, figsize=(10, 7))
             fig.suptitle("Crystallization Evolution Path", fontsize=16, fontweight='bold')
 
             # Plot 1: AFM diagram
@@ -1040,7 +1040,7 @@ class MagmaModelingPlugin:
 
     def _create_melting_plots(self, results, params, model):
         """Create melting model plots"""
-        fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+        fig, axes = plt.subplots(2, 3, figsize=(10, 7))
         fig.suptitle(f"{model} Melting Results", fontsize=14, fontweight='bold')
 
         F = np.array(results["F"])
@@ -1249,7 +1249,7 @@ class MagmaModelingPlugin:
 
     def _plot_tas_diagram(self):
         """Plot REAL TAS diagram with proper fields"""
-        fig, ax = plt.subplots(figsize=(12, 10))
+        fig, ax = plt.subplots(figsize=(9, 7))
 
         # TAS diagram coordinates from Le Maitre et al. (2002)
         # Define fields
@@ -1303,7 +1303,7 @@ class MagmaModelingPlugin:
 
     def _plot_afm_diagram(self):
         """Plot AFM diagram with tholeiitic/calc-alkaline divide"""
-        fig, ax = plt.subplots(figsize=(10, 8))
+        fig, ax = plt.subplots(figsize=(8, 6))
 
         # Irvine & Baragar (1971) dividing line
         x_line = np.linspace(20, 80, 100)
@@ -1366,7 +1366,7 @@ class MagmaModelingPlugin:
         and nadir = F (bottom).  Each field is defined as a polygon in that
         coordinate system: x = A/(A+P), y = Q or -F fraction.
         """
-        fig, ax = plt.subplots(figsize=(10, 12))
+        fig, ax = plt.subplots(figsize=(7, 8))
         ax.set_aspect('equal')
         ax.axis('off')
 
@@ -1585,7 +1585,7 @@ class MagmaModelingPlugin:
 
     def _plot_sio2_mg_diagram(self):
         """Plot SiO2 vs Mg# diagram"""
-        fig, ax = plt.subplots(figsize=(10, 8))
+        fig, ax = plt.subplots(figsize=(8, 6))
 
         if self.show_model.get() and self.crystallization_results:
             results = self.crystallization_results["results"]
@@ -1614,7 +1614,7 @@ class MagmaModelingPlugin:
 
     def _plot_pearce_diagram(self):
         """Plot Pearce tectonic discrimination diagram"""
-        fig, ax = plt.subplots(figsize=(10, 8))
+        fig, ax = plt.subplots(figsize=(8, 6))
 
         # Define fields
         ax.axvline(x=100, color='k', linestyle='--', alpha=0.5)
@@ -1645,7 +1645,7 @@ class MagmaModelingPlugin:
 
     def _plot_ree_diagram(self):
         """Plot REE pattern diagram"""
-        fig, ax = plt.subplots(figsize=(10, 8))
+        fig, ax = plt.subplots(figsize=(8, 6))
 
         ree_elements = ["La", "Ce", "Pr", "Nd", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu"]
 
@@ -1694,7 +1694,7 @@ class MagmaModelingPlugin:
 
     def _plot_spider_diagram_external(self):
         """Plot spider diagram"""
-        fig, ax = plt.subplots(figsize=(12, 8))
+        fig, ax = plt.subplots(figsize=(9, 6))
 
         spider_elements = ["Rb", "Ba", "Th", "U", "Nb", "Ta", "La", "Ce", "Sr", "Nd", "Zr", "Hf", "Sm", "Ti", "Y", "Yb", "Lu"]
 
@@ -1838,7 +1838,7 @@ class MagmaModelingPlugin:
                 messagebox.showwarning("No Elements", "Select at least one element.", parent=self.window)
                 return
 
-            fig, ax = plt.subplots(figsize=(12, 8))
+            fig, ax = plt.subplots(figsize=(9, 6))
 
             if model_type == "REE Pattern":
                 self._plot_ree_pattern_trace(ax, selected_elements, norm_type)
@@ -2423,7 +2423,7 @@ class MagmaModelingPlugin:
 
     def _create_melts_plots(self):
         """Create MELTS results plots"""
-        fig, axes = plt.subplots(2, 3, figsize=(16, 10))
+        fig, axes = plt.subplots(2, 3, figsize=(11, 7))
         fig.suptitle("Simple MELTS Modeling Results", fontsize=16, fontweight='bold')
 
         params = self.melts_results["parameters"]
@@ -3242,7 +3242,7 @@ class MagmaModelingPlugin:
 
     def _create_melts_actual_plots(self):
         """Create plots for Rhyolite-MELTS results"""
-        fig, axes = plt.subplots(2, 3, figsize=(16, 10))
+        fig, axes = plt.subplots(2, 3, figsize=(11, 7))
         fig.suptitle("Rhyolite-MELTS Thermodynamic Modeling Results", fontsize=16, fontweight='bold')
 
         params = self.melts_actual_results["parameters"]
@@ -3391,7 +3391,7 @@ class MagmaModelingPlugin:
 
     def _create_melts_phase_diagram(self):
         """Create phase diagram from MELTS results"""
-        fig, ax = plt.subplots(figsize=(12, 8))
+        fig, ax = plt.subplots(figsize=(9, 6))
 
         results = self.melts_actual_results["results"]
         T = np.array(results['T'])
@@ -3434,7 +3434,7 @@ class MagmaModelingPlugin:
             messagebox.showwarning("No Data", "Run both MELTS models first.", parent=self.window)
             return
 
-        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        fig, axes = plt.subplots(2, 2, figsize=(10, 7))
         fig.suptitle("MELTS Model Comparison: Simplified vs Actual Rhyolite-MELTS",
                     fontsize=14, fontweight='bold')
 

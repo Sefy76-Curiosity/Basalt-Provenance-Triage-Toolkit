@@ -53,9 +53,8 @@ class DataPrepPro:
     """
     Data Preparation Plugin for Scientific Toolkit.
 
-    Import : reads app.data_hub.get_all() on open/refresh
-    Export : app.import_data_from_plugin() for new columns (quartz_gis_pro pattern)
-             app.data_hub.update_row() + notify_observers() for changed values
+    Reads from app.data_hub on open, exports via app.import_data_from_plugin()
+    and app.data_hub.update_row() for in-place edits.
     """
 
     def __init__(self, main_app):
@@ -95,7 +94,6 @@ class DataPrepPro:
                     pass
             return True
         except Exception:
-            print(f"DataPrepPro._read_from_app:\n{traceback.format_exc()}")
             return False
 
     # ------------------------------------------------------------------
@@ -627,7 +625,7 @@ class DataPrepPro:
             self._populate_tree(self.after_tree,
                                 self.preview_df if self.preview_df is not None else self.df, cols)
         except Exception:
-            print(f"DataPrepPro._update_preview:\n{traceback.format_exc()}")
+            pass
 
     def _update_missing_summary(self):
         if self.df is None:
@@ -714,7 +712,6 @@ class DataPrepPro:
             self.status_var.set(f"✅ {int(outlier_mask.sum())} outliers detected")
         except Exception as e:
             self.status_var.set(f"❌ {e}")
-            print(traceback.format_exc())
 
     def _flag_outliers(self):
         if self.outlier_mask is None:
@@ -819,7 +816,6 @@ class DataPrepPro:
             self.status_var.set(f"✅ Preview: {count} values imputed in {len(imputed_cols)} cols")
         except Exception as e:
             self.status_var.set(f"❌ Imputation failed: {e}")
-            print(traceback.format_exc())
 
     # ------------------------------------------------------------------
     # Operations — Transforms
@@ -879,7 +875,6 @@ class DataPrepPro:
             self.status_var.set(f"✅ {transform.upper()} applied — review in AFTER panel then Apply")
         except Exception as e:
             self.status_var.set(f"❌ Transform failed: {e}")
-            print(traceback.format_exc())
 
     # ------------------------------------------------------------------
     # Operations — Normalization
@@ -949,7 +944,6 @@ class DataPrepPro:
             self.status_var.set(f"✅ {method} normalization applied — review then Apply")
         except Exception as e:
             self.status_var.set(f"❌ Normalization failed: {e}")
-            print(traceback.format_exc())
 
     # ------------------------------------------------------------------
     # Apply

@@ -149,7 +149,7 @@ class AgueHgMobilityPlugin:
 
         self.window = tk.Toplevel(self.app.root)
         self.window.title(f"☿ {PLUGIN_INFO['name']} v{PLUGIN_INFO['version']}")
-        self.window.geometry("1600x950")
+        self.window.geometry("1100x700")
         self._create_ui()
 
     def _create_ui(self):
@@ -361,7 +361,7 @@ class AgueHgMobilityPlugin:
         viz_frame = tk.Frame(notebook, bg="white")
         notebook.add(viz_frame, text="📈 Visualization")
 
-        self.figure = Figure(figsize=(12, 6), dpi=100, facecolor='white')
+        self.figure = Figure(figsize=(8, 4), dpi=100, facecolor='white')
         self.canvas = FigureCanvasTkAgg(self.figure, master=viz_frame)
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 

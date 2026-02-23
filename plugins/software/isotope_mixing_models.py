@@ -324,10 +324,8 @@ class IsotopeMixingModelsPlugin:
                             'uncertainty': info['uncertainty'],
                             'data': self.samples[col].values
                         }
-                        print(f"✅ Detected isotope: {info['display']} (column: {col})")
                         break
 
-        print(f"📊 Found {len(self.available_isotopes)} isotope systems")
 
     def _detect_ree_from_app(self):
         """Auto-detect REE columns from main app data"""
@@ -348,10 +346,8 @@ class IsotopeMixingModelsPlugin:
                         'display': f'{ree} (ppm)',
                         'data': self.samples[col].values
                     }
-                    print(f"✅ Detected REE: {ree} (column: {col})")
                     break
 
-        print(f"📊 Found {len(self.available_ree)} REE elements")
 
     def _safe_import_message(self):
         """Show friendly import instructions"""

@@ -771,7 +771,7 @@ class PCALDAExplorerPlugin:
 
         self.window = tk.Toplevel(self.app.root)
         self.window.title("📊 PCA+LDA Explorer Pro v2.1")
-        self.window.geometry("1200x700")
+        self.window.geometry("1050x680")
         self.window.transient(self.app.root)
 
         self._create_interface()
@@ -2853,5 +2853,4 @@ class SettingsDialog:
 
 def setup_plugin(main_app):
     """Plugin setup"""
-    print("📊 PCA+LDA Explorer Pro v2.1 loaded")
     return PCALDAExplorerPlugin(main_app)

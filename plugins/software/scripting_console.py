@@ -854,5 +854,4 @@ if processed:
 
 def setup_plugin(main_app):
     """Plugin setup function"""
-    print("🐍 Scripting Console v1.0 loading...")
     return ScriptingConsolePlugin(main_app)

@@ -77,8 +77,14 @@ class InteractiveContouringPlugin:
 
         self.window = tk.Toplevel(self.app.root)
         self.window.title(f"{PLUGIN_INFO['icon']} {PLUGIN_INFO['name']} v{PLUGIN_INFO['version']}")
-        self.window.geometry("1400x850")
+        self.window.geometry("1050x700")
         self._create_ui()
+
+        # AUTO-LOAD DATA FROM MAIN APP
+        if hasattr(self.app, 'samples') and self.app.samples:
+            self.window.after(500, self._load_data)  # Load after UI is ready
+        else:
+            self.status_label.config(text="No data in main app - please load data first", fg="orange")
 
     def _create_ui(self):
         """Create the user interface"""
@@ -193,11 +199,6 @@ class InteractiveContouringPlugin:
         button_frame = tk.Frame(parent, bg="#ecf0f1", pady=10)
         button_frame.pack(fill=tk.X, padx=10)
 
-        # Load Data button
-        self.load_btn = tk.Button(button_frame, text="📥 Load Data", bg="#3498db", fg="white",
-                                 width=15, command=self._load_data)
-        self.load_btn.pack(side=tk.LEFT, padx=5)
-
         # Generate button
         self.generate_btn = tk.Button(button_frame, text="🌀 Generate", bg="#9b59b6", fg="white",
                                      font=("Arial", 10, "bold"), width=15,
@@ -232,7 +233,7 @@ class InteractiveContouringPlugin:
         plot_tab = tk.Frame(self.notebook)
         self.notebook.add(plot_tab, text="📈 Contour Plot")
 
-        self.figure = plt.Figure(figsize=(10, 7), dpi=100)
+        self.figure = plt.Figure(figsize=(7, 5), dpi=100)
         self.ax = self.figure.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.figure, plot_tab)
 
@@ -675,30 +676,23 @@ class InteractiveContouringPlugin:
             return
 
         try:
-            # Clear existing
-            self.app.samples = []
-
-            # Add samples
+            table_data = []
             for idx, row in self.df.iterrows():
-                sample = {}
-
-                # Add all data
+                sample = {'Sample_ID': f"CNTR_{idx:04d}", 'Notes': "Contouring analysis"}
                 for col in self.df.columns:
                     val = row[col]
                     if not pd.isna(val):
                         sample[col] = str(val)
+                table_data.append(sample)
 
-                # Required fields
-                sample['Sample_ID'] = f"CNTR_{idx:04d}"
-                sample['Notes'] = "Contouring analysis"
+            if hasattr(self.app, 'import_data_from_plugin'):
+                self.app.import_data_from_plugin(table_data)
+            else:
+                self.app.samples = table_data
+                if hasattr(self.app, 'refresh_tree'):
+                    self.app.refresh_tree()
 
-                self.app.samples.append(sample)
-
-            # Refresh
-            if hasattr(self.app, 'refresh_tree'):
-                self.app.refresh_tree()
-
-            messagebox.showinfo("Success", f"Imported {len(self.df)} samples")
+            messagebox.showinfo("Success", f"Imported {len(table_data)} samples")
 
         except Exception as e:
             messagebox.showerror("Error", f"Import failed: {str(e)}")
@@ -706,4 +700,4 @@ class InteractiveContouringPlugin:
 def setup_plugin(main_app):
     """Plugin setup"""
     plugin = InteractiveContouringPlugin(main_app)
-    return plugin  # ← REMOVE ALL MENU CODE
+    return plugin

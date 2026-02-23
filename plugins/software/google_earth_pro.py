@@ -100,34 +100,6 @@ class GoogleEarthProPlugin:
         # Find Quartz plugin on init
         self._find_quartz_plugin()
 
-    def _find_quartz_plugin(self):
-        """Find and store reference to Quartz GIS plugin"""
-        for plugin_id, info in self.app._loaded_plugin_info.items():
-            if 'quartz_gis' in plugin_id.lower():
-                print(f"✅ Found Quartz GIS in _loaded_plugin_info: {plugin_id}")
-
-                if 'command' in info:
-                    open_method = info['command']
-                    if hasattr(open_method, '__self__'):
-                        self.quartz_plugin = open_method.__self__
-                        print(f"✅ Got Quartz instance from command.__self__")
-
-                        # Update the label if window exists
-                        if self.window and self.window.winfo_exists():
-                            self.quartz_status_label.config(
-                                text="🔗 Quartz GIS Connected",
-                                bg="#27ae60"
-                            )
-                        return True
-
-        print("❌ Quartz GIS plugin not found")
-        if self.window and self.window.winfo_exists():
-            self.quartz_status_label.config(
-                text="⚠️ Quartz GIS Not Found",
-                bg="#e74c3c"
-            )
-        return False
-
     # ============================================================================
     # EARTH ENGINE AUTHENTICATION (FIXED - OPENS BROWSER)
     # ============================================================================
@@ -922,7 +894,6 @@ class GoogleEarthProPlugin:
             return lat, lon, gps_data
 
         except Exception as e:
-            print(f"Error processing {photo_path}: {e}")
             return None
 
     def _dms_to_decimal(self, dms_tuple):
@@ -1622,13 +1593,11 @@ class GoogleEarthProPlugin:
         """Find and store reference to Quartz GIS plugin"""
         for plugin_id, info in self.app._loaded_plugin_info.items():
             if 'quartz_gis' in plugin_id.lower():
-                print(f"✅ Found Quartz GIS in _loaded_plugin_info: {plugin_id}")
 
                 if 'command' in info:
                     open_method = info['command']
                     if hasattr(open_method, '__self__'):
                         self.quartz_plugin = open_method.__self__
-                        print(f"✅ Got Quartz instance from command.__self__")
 
                         # Update UI elements
                         if self.window and self.window.winfo_exists():
@@ -1644,7 +1613,6 @@ class GoogleEarthProPlugin:
                                 self._update_integration_tab_status()
                         return True
 
-        print("❌ Quartz GIS plugin not found")
         if self.window and self.window.winfo_exists():
             # Update header label
             if hasattr(self, 'quartz_status_label'):
@@ -1721,6 +1689,5 @@ class GoogleEarthProPlugin:
 
 def setup_plugin(main_app):
     """Plugin setup function"""
-    print("🌏 Google Earth Pro v2.0 loading...")
     plugin = GoogleEarthProPlugin(main_app)
     return plugin

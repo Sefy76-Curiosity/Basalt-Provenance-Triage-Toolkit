@@ -534,7 +534,7 @@ class AdvancedExportPlugin:
                     ('FONTSIZE', (0, 1), (-1, -1), 8),
                     ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
                     ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colours.grey)
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
                 ]))
                 elements.append(stats_table)
 

@@ -19,14 +19,26 @@ class RightPanel:
         self.app = app
         self.frame = ttk.Frame(parent, bootstyle="dark")
 
-        # UI elements
+        # UI elements (will be created in _build_ui)
         self.hud_tree = None
+
+        # HUD sort state (set now, but binding happens after tree is created)
+        self.hud_headings = {
+            "ID": "ID",
+            "Class": "Classification",
+            "Conf": "Conf",
+            "Flag": "🚩"
+        }
+        self.hud_sort_column = None
+        self.hud_sort_reverse = False
+
         self.scheme_var = tk.StringVar()
         self.protocol_var = tk.StringVar()
         self.run_target = tk.StringVar(value="all")
         self.scheme_list = []
         self.protocol_list = []
-
+        self.sorted_indices = None      # Sort order from center panel
+        self.is_sorted = False          # Whether sorting is active
         # Cache for single‑scheme results
         self.classification_results = []
 
@@ -35,8 +47,107 @@ class RightPanel:
         self.all_mode = False
         self.all_schemes_list = []  # Store list of scheme names for reference
 
+        # Build the UI (this creates self.hud_tree)
         self._build_ui()
+
+        # NOW bind the heading click – hud_tree exists
+        self.hud_tree.bind("<Button-1>", self._on_hud_header_click)
+
         self._refresh_results_cache()
+
+    def _on_hud_header_click(self, event):
+        region = self.hud_tree.identify("region", event.x, event.y)
+        if region == "heading":
+            column = self.hud_tree.identify_column(event.x)   # "#1", "#2", ...
+            col_index = int(column[1:]) - 1
+            col_name = list(self.hud_headings.keys())[col_index]
+            self._sort_by_hud_column(col_name)
+
+    def _sort_by_hud_column(self, col_name):
+        # Toggle direction
+        if self.hud_sort_column == col_name:
+            self.hud_sort_reverse = not self.hud_sort_reverse
+        else:
+            self.hud_sort_column = col_name
+            self.hud_sort_reverse = False
+
+        all_samples = self.app.data_hub.get_all()
+        if not all_samples:
+            return
+
+        total = len(all_samples)
+
+        # Build list of (index, sort_key) for every sample
+        def get_key(idx):
+            sample = all_samples[idx]
+
+            if col_name == "ID":
+                return sample.get('Sample_ID', '')
+
+            elif col_name == "Class":
+                if self.all_mode and self.all_results and self.all_results[idx]:
+                    # All schemes: pick best classification (by confidence)
+                    best_class = "UNCLASSIFIED"
+                    best_conf = -1.0
+                    for _, cls, conf in self.all_results[idx]:
+                        if cls not in ['UNCLASSIFIED','INVALID_SAMPLE','SCHEME_NOT_FOUND','']:
+                            if conf > best_conf:
+                                best_class = cls
+                                best_conf = conf
+                    return best_class
+                else:
+                    # Single scheme
+                    if idx < len(self.classification_results) and self.classification_results[idx]:
+                        return self.classification_results[idx].get('classification', 'UNCLASSIFIED')
+                    return 'UNCLASSIFIED'
+
+            elif col_name == "Conf":
+                if self.all_mode and self.all_results and self.all_results[idx]:
+                    best_conf = 0.0
+                    for _, cls, conf in self.all_results[idx]:
+                        if cls not in ['UNCLASSIFIED','INVALID_SAMPLE','SCHEME_NOT_FOUND','']:
+                            best_conf = max(best_conf, conf)
+                    return best_conf
+                else:
+                    if idx < len(self.classification_results) and self.classification_results[idx]:
+                        return self.classification_results[idx].get('confidence', 0.0)
+                    return 0.0
+
+            elif col_name == "Flag":
+                if self.all_mode and self.all_results and self.all_results[idx]:
+                    # Count matches
+                    match_count = sum(1 for _, cls, _ in self.all_results[idx]
+                                    if cls not in ['UNCLASSIFIED','INVALID_SAMPLE','SCHEME_NOT_FOUND',''])
+                    return match_count
+                else:
+                    if idx < len(self.classification_results) and self.classification_results[idx]:
+                        return 1 if self.classification_results[idx].get('flag_for_review', False) else 0
+                    return 0
+
+        indexed = list(range(total))
+        indexed.sort(key=get_key, reverse=self.hud_sort_reverse)
+
+        # Update center panel's sort order
+        self.app.center.sorted_indices = indexed
+        self.app.center.sort_column = None          # HUD sort, not a data column
+        self.app.center.sort_reverse = False
+        self.app.center._update_header_indicators() # Remove any center arrows
+        self.app.center._refresh()                  # Rebuild table with new order
+
+        # Rebuild HUD (it will use the new sorted_indices)
+        self._update_hud()
+
+        # Update HUD headers with sort arrows
+        self._update_hud_header_indicators()
+
+    def _update_hud_header_indicators(self):
+        for i, col_name in enumerate(self.hud_headings.keys(), start=1):
+            base = self.hud_headings[col_name]
+            if col_name == self.hud_sort_column:
+                arrow = " ↑" if not self.hud_sort_reverse else " ↓"
+                self.hud_tree.heading(f"#{i}", text=base + arrow)
+            else:
+                self.hud_tree.heading(f"#{i}", text=base)
 
     def _build_ui(self):
         """Build right panel with compact top and full-height HUD"""
@@ -120,6 +231,16 @@ class RightPanel:
         tree_frame.grid_columnconfigure(0, weight=1)
 
         self._configure_hud_colors()
+
+    def update_hud_with_sort(self, sorted_indices, is_sorted):
+        self.sorted_indices = sorted_indices
+        self.is_sorted = is_sorted
+
+        # Clear HUD sort state (sorting now comes from center)
+        self.hud_sort_column = None
+        self.hud_sort_reverse = False
+        self._update_hud_header_indicators()
+        self._update_hud()
 
     # ============ ENGINE SWITCHING ============
 
@@ -408,34 +529,76 @@ class RightPanel:
     # ============ HUD MANAGEMENT ============
 
     def _update_hud(self):
-        """Update HUD with current page samples."""
+        """Update HUD with EXACT same rows shown in CenterPanel (fully synced)"""
+
         if not self.hud_tree:
             return
 
+        # Clear existing items
         for item in self.hud_tree.get_children():
             self.hud_tree.delete(item)
 
-        samples = self.app.data_hub.get_page(
-            self.app.center.current_page,
-            self.app.center.page_size
-        )
+        center = self.app.center
+        all_samples = self.app.data_hub.get_all()
 
-        if not samples:
+        # =========================================
+        # CRITICAL FIX:
+        # Use the actual indices that CenterPanel is displaying
+        # =========================================
+        if hasattr(center, "sorted_indices") and center.sorted_indices:
+            ordered_indices = center.sorted_indices
+        else:
+            ordered_indices = list(range(len(all_samples)))
+
+        # Apply same filtering logic as center (search + class filter)
+        search = center.search_var.get().lower().strip()
+        filter_class = center.filter_var.get()
+        all_results = getattr(self, 'classification_results', [])
+
+        filtered_indices = []
+
+        for idx in ordered_indices:
+            if idx >= len(all_samples):
+                continue
+
+            s = all_samples[idx]
+
+            if search:
+                if not any(search in str(v).lower() for v in s.values()):
+                    continue
+
+            if filter_class and filter_class != "All":
+                cls = ''
+                if idx < len(all_results) and all_results[idx]:
+                    cls = all_results[idx].get('classification', '')
+                if not cls:
+                    cls = (s.get('Auto_Classification') or s.get('Classification') or '')
+                if cls != filter_class:
+                    continue
+
+            filtered_indices.append(idx)
+
+        # Pagination (same as center)
+        start = center.current_page * center.page_size
+        page_indices = filtered_indices[start:start + center.page_size]
+
+        if not page_indices:
             return
 
-        start_idx = self.app.center.current_page * self.app.center.page_size
+        # =========================================
+        # Populate HUD
+        # =========================================
+        for actual_idx in page_indices:
 
-        for i, sample in enumerate(samples):
-            actual_idx = start_idx + i
+            sample = all_samples[actual_idx]
             sample_id = sample.get('Sample_ID', 'N/A')
             if len(sample_id) > 8:
                 sample_id = sample_id[:8]
 
+            # --- Classification lookup ---
             if self.all_mode and self.all_results is not None and actual_idx < len(self.all_results):
-                # All‑schemes mode - show best classification with multi-match indicator
                 results_list = self.all_results[actual_idx]
                 if results_list:
-                    # Find the best (non-UNCLASSIFIED) classification
                     best_class = "UNCLASSIFIED"
                     best_conf = 0.0
                     match_count = 0
@@ -447,14 +610,9 @@ class RightPanel:
                                 best_class = classification
                                 best_conf = confidence
 
-                    # Format flag based on match count
                     if match_count > 0:
-                        flag = f"🎯 {match_count}"  # Target icon with count
-                        # Use multi-match tag if more than one scheme matched
-                        if match_count > 1:
-                            classification_tag = 'MULTI_MATCH'
-                        else:
-                            classification_tag = best_class
+                        flag = f"🎯 {match_count}"
+                        classification_tag = 'MULTI_MATCH' if match_count > 1 else best_class
                     else:
                         flag = "0"
                         classification_tag = 'ALL_NONE'
@@ -467,7 +625,6 @@ class RightPanel:
                     flag = "0"
                     classification_tag = 'ALL_NONE'
             else:
-                # Single‑scheme mode
                 result = self.classification_results[actual_idx] if actual_idx < len(self.classification_results) else None
                 if result:
                     classification = result.get('classification', 'UNCLASSIFIED')
@@ -480,25 +637,22 @@ class RightPanel:
                     flag = ""
                     classification_tag = 'UNCLASSIFIED'
 
-                # Format confidence
                 if confidence and confidence not in ('', 'N/A'):
                     try:
                         conf_val = float(confidence)
-                        if conf_val <= 1.0:
-                            confidence = f"{conf_val:.2f}"
-                        else:
-                            confidence = str(int(conf_val))
+                        confidence = f"{conf_val:.2f}" if conf_val <= 1.0 else str(int(conf_val))
                     except (ValueError, TypeError):
                         confidence = str(confidence)
 
-            item_id = self.hud_tree.insert("", tk.END,
-                                        values=(sample_id, classification[:20], confidence, flag))
+            item_id = self.hud_tree.insert(
+                "",
+                tk.END,
+                values=(sample_id, classification[:20], confidence, flag)
+            )
 
-            # Apply color tag
             if classification_tag not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', '']:
                 self.hud_tree.item(item_id, tags=(classification_tag,))
 
-        # Ensure MULTI_MATCH tag is configured
         self.hud_tree.tag_configure('MULTI_MATCH', background='#8B4513', foreground='white')
         self._auto_size_hud_columns()
 

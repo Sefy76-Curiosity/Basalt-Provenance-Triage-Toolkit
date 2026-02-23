@@ -140,11 +140,9 @@ class PetrogeneticSuitePlugin:
     def _load_from_main_app(self):
         """Load geochemical data from main app samples"""
         if not hasattr(self.app, 'samples') or not self.app.samples:
-            print("❌ No samples in main app")
             return False
 
         self.samples = self.app.samples
-        print(f"📊 Loading {len(self.samples)} samples from main app")
 
         # Detect numeric columns
         self.numeric_columns = []
@@ -161,7 +159,6 @@ class PetrogeneticSuitePlugin:
                 except (ValueError, TypeError):
                     pass
 
-        print(f"✅ Detected {len(self.numeric_columns)} numeric columns")
 
         # Update UI if window is open
         self._update_ui_columns()
@@ -627,7 +624,7 @@ class PetrogeneticSuitePlugin:
 
         self.window = tk.Toplevel(self.app.root)
         self.window.title("🌋 Petrogenetic Suite v1.0 - AFC · Fractional · Zone Refining · Mixing")
-        self.window.geometry("1200x700")
+        self.window.geometry("1050x680")
 
         self._create_interface()
 

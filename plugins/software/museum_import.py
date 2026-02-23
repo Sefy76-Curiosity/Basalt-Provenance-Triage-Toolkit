@@ -230,7 +230,6 @@ class RijksHandler(MuseumHandler):
         )
 
         if not success:
-            print(f"Rijksmuseum error: {error}")
             return [], False, 0
 
         # Check if we got valid data
@@ -377,7 +376,6 @@ class LouvreHandler(MuseumHandler):
             has_more = bool(soup.find('a', class_='next-page'))
 
         except Exception as e:
-            print(f"Louvre error: {e}")
             return [], False, 0
 
         return artifacts, has_more, len(artifacts)
@@ -513,12 +511,10 @@ class ScienceMuseumHandler(MuseumHandler):
         )
 
         if not success:
-            print(f"Science Museum error: {error}")
             return [], False, 0
 
         # If data is a string, it might be HTML error page
         if isinstance(data, str):
-            print("Science Museum returned HTML instead of JSON")
             # Try to parse error message from HTML
             if "Too Many Requests" in data or "429" in data:
                 return [{
@@ -598,7 +594,6 @@ class ScienceMuseumHandler(MuseumHandler):
             return artifacts, has_more, total
 
         except Exception as e:
-            print(f"Error parsing Science Museum data: {e}")
             return [], False, 0
 
 # ============================================================================

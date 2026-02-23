@@ -70,8 +70,12 @@ class AdvancedNormalizationPlugin:
 
         self.window = tk.Toplevel(self.app.root)
         self.window.title(f"{PLUGIN_INFO['icon']} {PLUGIN_INFO['name']} v{PLUGIN_INFO['version']}")
-        self.window.geometry("1400x850")
+        self.window.geometry("1000x700")
         self._create_ui()
+
+        # Auto-load data from main table if available
+        if hasattr(self.app, 'samples') and self.app.samples:
+            self.window.after(200, self._start_processing)
 
     def _create_ui(self):
         """Create the user interface"""
@@ -223,7 +227,7 @@ class AdvancedNormalizationPlugin:
         plot_tab = tk.Frame(self.notebook)
         self.notebook.add(plot_tab, text="📈 Comparison Plot")
 
-        self.figure = plt.Figure(figsize=(10, 6), dpi=100)
+        self.figure = plt.Figure(figsize=(7, 4), dpi=100)
         self.ax = self.figure.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.figure, plot_tab)
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -619,4 +623,4 @@ class AdvancedNormalizationPlugin:
 def setup_plugin(main_app):
     """Plugin setup function"""
     plugin = AdvancedNormalizationPlugin(main_app)
-    return plugin  # ← REMOVE ALL MENU CODE
+    return plugin

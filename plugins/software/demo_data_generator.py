@@ -73,8 +73,8 @@ class DemoDataGeneratorPlugin:
                 if hasattr(self.app, 'classify_all_with_scheme'):
                     try:
                         self.app.classify_all_with_scheme()
-                    except Exception as e:
-                        print(f"Classification trigger error: {e}")
+                    except Exception:
+                        pass
                 messagebox.showinfo(
                     "Success",
                     f"✅ Generated {len(demo_data)} Tel Hazor samples!\n"
@@ -100,8 +100,8 @@ class DemoDataGeneratorPlugin:
         if hasattr(self.app, 'classify_all_with_scheme'):
             try:
                 self.app.classify_all_with_scheme()
-            except Exception as e:
-                print(f"Classification Trigger Error: {e}")
+            except Exception:
+                pass
         if hasattr(self.app, '_mark_unsaved_changes'):
             self.app._mark_unsaved_changes()
         messagebox.showinfo(
@@ -111,43 +111,23 @@ class DemoDataGeneratorPlugin:
         )
 
 
-def register_plugin(main_app):
-    """
-    Called by the main app when loading plugins.
-    Creates the plugin instance and adds a command to the Tools menu.
-    """
+def setup_plugin(main_app):
+    """Plugin setup - registers menu item and returns plugin instance."""
     plugin = DemoDataGeneratorPlugin(main_app)
 
-    # Use the main app's _added_plugins set to track menu items
     menu_item_id = f"{PLUGIN_INFO['id']}_menu_item"
+    if menu_item_id in main_app._added_plugins:
+        return plugin
 
-    if menu_item_id not in main_app._added_plugins:
-        # Add to Tools menu if it exists
-        if hasattr(main_app, 'tools_menu') and main_app.tools_menu:
-            main_app.tools_menu.add_command(
+    # Try advanced_menu first (standard for software plugins)
+    for menu_attr in ('advanced_menu', 'tools_menu', 'file_menu'):
+        menu = getattr(main_app, menu_attr, None)
+        if menu:
+            menu.add_command(
                 label=f"{PLUGIN_INFO['icon']} Generate Demo Data",
                 command=plugin.show
             )
             main_app._added_plugins.add(menu_item_id)
-            print(f"✅ Added {PLUGIN_INFO['name']} to Tools menu")
-        # Alternative: if the menu is accessed via menubar
-        elif hasattr(main_app, 'menubar'):
-            # Check if Tools menu exists, create if it doesn't
-            tools_menu = None
-            for i, menu in enumerate(main_app.menubar.winfo_children()):
-                if isinstance(menu, tk.Menu) and hasattr(menu, 'entrycget'):
-                    # Try to find existing Tools menu
-                    pass
-
-            # Or simply add to an existing menu (like File or Edit)
-            if hasattr(main_app, 'file_menu'):
-                main_app.file_menu.add_command(
-                    label=f"{PLUGIN_INFO['icon']} Generate Demo Data",
-                    command=plugin.show
-                )
-                main_app._added_plugins.add(menu_item_id)
-                print(f"✅ Added {PLUGIN_INFO['name']} to File menu")
-    else:
-        print(f"ℹ️ {PLUGIN_INFO['name']} already added to menu, skipping")
+            break
 
     return plugin

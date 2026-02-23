@@ -403,13 +403,13 @@ class AllSchemesDetailDialog:
 
         # Description
         if classification.get('description'):
-            lines.append(f"📌 **Description:** {classification['description']}")
+            lines.append(f"📌 Description: {classification['description']}")
             lines.append("")
 
         # Rules that triggered
         rules = classification.get('rules', [])
         if rules:
-            lines.append("⚖️ **Classification Criteria:**")
+            lines.append("⚖️ Classification Criteria:")
             lines.append("")
 
             for i, rule in enumerate(rules, 1):
@@ -507,9 +507,9 @@ class AllSchemesDetailDialog:
 
         # Priority/confidence info
         if 'priority' in classification:
-            lines.append(f"📊 **Priority:** {classification['priority']}")
+            lines.append(f"📊 Priority: {classification['priority']}")
         if 'confidence_score' in classification:
-            lines.append(f"📈 **Base confidence:** {classification['confidence_score']}")
+            lines.append(f"📈 Base confidence: {classification['confidence_score']}")
 
         lines.append("")
         lines.append("=" * 70)

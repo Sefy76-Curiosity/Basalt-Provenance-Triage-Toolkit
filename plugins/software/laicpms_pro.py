@@ -219,7 +219,7 @@ class LAICPMSProPlugin:
 
         self.window = tk.Toplevel(self.app.root)
         self.window.title("⚛️ LA-ICP-MS Pro v1.0")
-        self.window.geometry("1400x850")
+        self.window.geometry("1100x720")
         self.window.transient(self.app.root)
 
         self._create_interface()
@@ -559,7 +559,7 @@ class LAICPMSProPlugin:
             messagebox.showerror("Load Error", f"Failed to load data:\n{str(e)}")
 
     def _import_from_main(self):
-        """Import data from main application"""
+        """Import data from main application - preserves original Sample_IDs"""
         if not hasattr(self.app, 'samples') or not self.app.samples:
             messagebox.showwarning("No Data", "No samples in main application!")
             return
@@ -574,15 +574,27 @@ class LAICPMSProPlugin:
             # Convert to DataFrame for processing
             df = pd.DataFrame(main_samples)
 
+            # IMPORTANT: Ensure Sample_ID is preserved
+            if 'Sample_ID' not in df.columns:
+                # If no Sample_ID column exists, create one from index (fallback)
+                df['Sample_ID'] = [f"SAMPLE_{i:04d}" for i in range(len(df))]
+                self._log_message("ℹ️ No Sample_ID column found - created sequential IDs")
+            else:
+                # Ensure Sample_ID is treated as string
+                df['Sample_ID'] = df['Sample_ID'].astype(str)
+                self._log_message(f"✅ Sample IDs preserved (e.g., {df['Sample_ID'].iloc[0] if len(df) > 0 else 'none'})")
+
             # Auto-detect time column (create synthetic time if none exists)
             if 'Time' not in df.columns and 'time' not in df.columns:
                 df['Time'] = np.linspace(0, len(df)-1, len(df))
                 self.time_col = 'Time'
+                self._log_message("ℹ️ Created synthetic Time column")
             else:
                 self.time_col = 'Time' if 'Time' in df.columns else 'time'
 
-            # Auto-detect element columns (any numeric columns except ID, time, notes)
-            exclude_cols = ['Sample_ID', 'Time', 'time', 'Notes', 'Location', 'Date']
+            # Auto-detect element columns (any numeric columns except metadata)
+            exclude_cols = ['Sample_ID', 'Time', 'time', 'Notes', 'Location', 'Date',
+                        'Auto_Classification', 'Auto_Confidence', 'Flag_For_Review']
             element_cols = []
 
             for col in df.columns:
@@ -600,6 +612,7 @@ class LAICPMSProPlugin:
                 self.progress.stop()
                 return
 
+            # Store the data WITH original Sample_IDs preserved
             self.raw_data = df
 
             self._log_message(f"✅ Imported {len(df)} samples from main app")
@@ -616,15 +629,19 @@ class LAICPMSProPlugin:
             self.status_label.config(text=f"Loaded {len(df)} samples from main app")
             self.progress.stop()
 
-            # Switch to signal tab
+            # Switch to signal tab and initialize plot
             self.notebook.select(1)
             self._initialize_signal_plot()
 
-            messagebox.showinfo("Success", f"Imported {len(df)} samples from main application")
+            messagebox.showinfo("Success",
+                            f"Imported {len(df)} samples from main application\n"
+                            f"Sample IDs preserved. Found {len(element_cols)} numeric channels.")
 
         except Exception as e:
             self.progress.stop()
             messagebox.showerror("Import Error", f"Failed to import from main app:\n{str(e)}")
+            import traceback
+            traceback.print_exc()
 
     # ============ TAB 2: SIGNAL PROCESSING ============
     def _create_signal_tab(self):
@@ -709,7 +726,7 @@ class LAICPMSProPlugin:
         plot_frame = tk.Frame(tab, bg="white")
         plot_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        self.signal_fig, self.signal_ax = plt.subplots(figsize=(8, 5), dpi=100)
+        self.signal_fig, self.signal_ax = plt.subplots(figsize=(6, 4), dpi=100)
         self.signal_fig.patch.set_facecolor('white')
         self.signal_ax.set_facecolor('#f8f9fa')
         self.signal_ax.set_xlabel('Time (seconds)')
@@ -1107,7 +1124,7 @@ class LAICPMSProPlugin:
         plot_frame = tk.Frame(tab, bg="white")
         plot_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        self.upb_fig, self.upb_ax = plt.subplots(figsize=(8, 6), dpi=100)
+        self.upb_fig, self.upb_ax = plt.subplots(figsize=(6, 5), dpi=100)
         self.upb_fig.patch.set_facecolor('white')
         self.upb_ax.set_facecolor('#f8f9fa')
         self.upb_ax.set_xlabel('238U/206Pb')
@@ -1906,15 +1923,16 @@ class LAICPMSProPlugin:
                     new_entries.append(entry)
 
             # Add to main app samples
-            if hasattr(self.app, 'samples'):
+            if hasattr(self.app, 'import_data_from_plugin'):
+                self.app.import_data_from_plugin(new_entries)
+                self._log_message(f"✅ Exported {len(new_entries)} entries to main app")
+                messagebox.showinfo("Success", f"Exported {len(new_entries)} entries to main table")
+            elif hasattr(self.app, 'samples'):
                 self.app.samples.extend(new_entries)
-
-                # Refresh main app display
                 if hasattr(self.app, 'refresh_tree'):
                     self.app.refresh_tree()
                 if hasattr(self.app, '_mark_unsaved_changes'):
                     self.app._mark_unsaved_changes()
-
                 self._log_message(f"✅ Exported {len(new_entries)} entries to main app")
                 messagebox.showinfo("Success", f"Exported {len(new_entries)} entries to main table")
             else:

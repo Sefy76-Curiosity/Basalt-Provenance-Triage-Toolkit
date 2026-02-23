@@ -43,25 +43,18 @@ try:
     # Strategy 1: Direct import (if in Python path)
     from classification_engine import ClassificationEngine
     HAS_ENGINE = True
-    print("🎲 ✓ Loaded ClassificationEngine (direct import)")
 except ImportError:
     try:
         # Strategy 2: Import from engines.classification_engine
         from engines.classification_engine import ClassificationEngine
         HAS_ENGINE = True
-        print("🎲 ✓ Loaded ClassificationEngine (from engines)")
     except ImportError:
         try:
             # Strategy 3: Import from engines.classification.classification_engine
             from engines.classification.classification_engine import ClassificationEngine
             HAS_ENGINE = True
-            print("🎲 ✓ Loaded ClassificationEngine (from engines/classification)")
         except ImportError as e:
             HAS_ENGINE = False
-            print(f"🎲 ⚠ Could not load classification_engine.py: {e}")
-            print(f"🎲   Current sys.path: {sys.path}")
-            print(f"🎲   Looking in: {main_dir}")
-            print(f"🎲   Using safe fallback classifier (rule-based)")
 # =========================================================================
 
 try:
@@ -119,7 +112,6 @@ class UncertaintyPropagationPlugin:
             try:
                 self.engine = ClassificationEngine()
             except Exception as e:
-                print(f"🎲 ⚠ Could not instantiate ClassificationEngine: {e}")
                 self.engine = None
 
         # Monte Carlo results
@@ -296,19 +288,33 @@ class UncertaintyPropagationPlugin:
         self.progress_window.update()
 
     def _update_progress(self, sample_idx, total_samples, iter_count):
-        """Update progress bar"""
-        if self.progress_window and self.progress_bar:
-            self.progress_label.config(
-                text=f"Sample {sample_idx+1}/{total_samples} - {iter_count:,} iterations complete"
-            )
-            self.progress_bar['value'] = sample_idx * (self.progress_bar['maximum'] / total_samples) + (iter_count / 1000)
+        """Update progress bar – safe against destroyed widgets"""
+        if self.progress_window is None or self.progress_label is None or self.progress_bar is None:
+            return
+        try:
+            if self.progress_label.winfo_exists():
+                self.progress_label.config(
+                    text=f"Sample {sample_idx+1}/{total_samples} - {iter_count:,} iterations complete"
+                )
+            if self.progress_bar.winfo_exists():
+                self.progress_bar['value'] = sample_idx * (self.progress_bar['maximum'] / total_samples) + (iter_count / 1000)
             self.progress_window.update()
+        except (tk.TclError, AttributeError):
+            # Widgets no longer exist – clean up references
+            self.progress_window = None
+            self.progress_label = None
+            self.progress_bar = None
 
     def _close_progress(self):
-        """Close progress window"""
+        """Close progress window and clean up references"""
         if self.progress_window:
-            self.progress_window.destroy()
+            try:
+                self.progress_window.destroy()
+            except:
+                pass
             self.progress_window = None
+            self.progress_label = None
+            self.progress_bar = None
 
     # ============ MAIN MONTE CARLO ENGINE ============
     def open_window(self):
@@ -316,9 +322,7 @@ class UncertaintyPropagationPlugin:
         if not HAS_SCIPY:
             messagebox.showerror(
                 "Missing Dependency",
-                "Install with:\n"
-                "python -m pip install reportlab\n\n"
-                "python -m pip install scipy"
+                "Uncertainty Propagation requires scipy:\n\npip install scipy"
             )
             return
 

@@ -1141,7 +1141,7 @@ _FOFAEN_REGIONS = [
 
 def make_charts(results_wt: Dict[str, float]) -> 'plt.Figure':
     """Generate pie chart + 3 ternary diagrams."""
-    fig = plt.figure(figsize=(11, 8))
+    fig = plt.figure(figsize=(8, 6))
     fig.suptitle("Normative Diagrams", fontsize=12, fontweight='bold')
 
     # ---- PIE CHART ----
@@ -1610,7 +1610,7 @@ class AdvancedNormativeCalculationsPlugin:
             messagebox.showerror("Error", "Calculate a norm first"); return
         win = tk.Toplevel(self.window)
         win.title("Normative Diagrams")
-        win.geometry("1100x860")
+        win.geometry("850x650")
 
         fig = make_charts(self.results_wt)
 

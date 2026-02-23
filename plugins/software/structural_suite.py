@@ -138,11 +138,9 @@ class StructuralSuitePlugin:
     def _load_from_main_app(self):
         """Load structural data from main app samples"""
         if not hasattr(self.app, 'samples') or not self.app.samples:
-            print("❌ No samples in main app")
             return False
 
         self.samples = self.app.samples
-        print(f"📊 Loading {len(self.samples)} samples from main app")
 
         # Clear existing data
         self.planes = []
@@ -233,7 +231,6 @@ class StructuralSuitePlugin:
         # Calculate poles from planes
         self._update_poles()
 
-        print(f"✅ Loaded {len(self.planes)} planes, {len(self.lines)} lines")
 
         # Update UI if window is open
         self._update_ui_counts()

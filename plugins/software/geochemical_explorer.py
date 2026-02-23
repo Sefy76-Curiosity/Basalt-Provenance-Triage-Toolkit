@@ -174,11 +174,9 @@ class GeochemicalExplorerPlugin:
     def _load_from_main_app(self):
         """Load geochemical data from main app samples"""
         if not hasattr(self.app, 'samples') or not self.app.samples:
-            print("❌ No samples in main app")
             return False
 
         self.samples = self.app.samples
-        print(f"📊 Loading {len(self.samples)} samples from main app")
 
         # Detect column types
         self.numeric_columns = []
@@ -216,7 +214,6 @@ class GeochemicalExplorerPlugin:
                 except (ValueError, TypeError):
                     self.categorical_columns.append(col)
 
-        print(f"✅ Detected {len(self.numeric_columns)} numeric, {len(self.categorical_columns)} categorical")
 
         # Update UI if window is open
         self._update_ui_columns()
@@ -479,15 +476,51 @@ class GeochemicalExplorerPlugin:
 
         # Scale data
         scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(self.X)
+        try:
+            X_scaled = scaler.fit_transform(self.X)
+        except Exception as e:
+            messagebox.showerror("Scaling Error", f"Could not scale data:\n{e}")
+            self.progress.stop()
+            return False
 
-        # Run LDA
+        n_samples = X_scaled.shape[0]
         n_classes = len(np.unique(self.y))
+
+        # LDA requires more samples than classes
+        if n_samples <= n_classes:
+            messagebox.showwarning(
+                "LDA Error",
+                f"LDA requires more samples than classes.\n"
+                f"You have {n_samples} samples and {n_classes} classes."
+            )
+            self.progress.stop()
+            return False
+
+        # Determine number of components (cannot exceed n_classes-1)
         n_comp = min(n_classes - 1, X_scaled.shape[1], 5)
 
         self.lda = LDA(n_components=n_comp, solver=self.lda_solver_var.get())
-        self.lda_scores = self.lda.fit_transform(X_scaled, self.y)
-        self.lda_classes = self.lda.classes_
+
+        try:
+            self.lda_scores = self.lda.fit_transform(X_scaled, self.y)
+            self.lda_classes = self.lda.classes_
+        except Exception as e:
+            messagebox.showerror("LDA Failed", f"LDA could not be computed:\n{e}")
+            self.progress.stop()
+            return False
+
+        # Calculate accuracy (optional, but nice)
+        y_pred = self.lda.predict(X_scaled)
+        acc = np.mean(y_pred == self.y) * 100
+
+        self.status_var.set(f"✅ LDA complete - {n_comp} components, accuracy: {acc:.1f}%")
+        self.progress.stop()
+
+        # Update plots
+        self._update_lda_plot()
+        self._update_confusion_matrix()
+
+        return True
 
         # Calculate accuracy
         y_pred = self.lda.predict(X_scaled)

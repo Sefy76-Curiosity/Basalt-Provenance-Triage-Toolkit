@@ -76,7 +76,7 @@ class GeochemAdvancedPlugin:
 
         self.window = tk.Toplevel(self.app.root)
         self.window.title(f"{PLUGIN_INFO['icon']} {PLUGIN_INFO['name']} v{PLUGIN_INFO['version']}")
-        self.window.geometry("1300x800")
+        self.window.geometry("1000x680")
         self._create_ui()
 
 
@@ -415,32 +415,32 @@ Cr, Ni, Co, V, Sc, Cu, Zn, Pb"""
             # Process each sample
             for idx, row in self.df.iterrows():
                 sample_entry = {
-                    # REQUIRED: Sample_ID
-                    'Sample_ID': f"GEO-{idx+1:04d}",
+                    # Use the original Sample_ID from the dataframe
+                    'Sample_ID': str(row.get('Sample_ID', f"SAMPLE_{idx+1:04d}")),
 
                     # Metadata
                     'Timestamp': timestamp,
-                    'Source': self.source_var.get(),
-                    'Rock_Type': self.rock_var.get(),
+                    'Source': str(row.get('Source', self.source_var.get())),
+                    'Rock_Type': str(row.get('Rock_Type', self.rock_var.get())),
                     'Analysis_Type': 'Geochemistry',
 
-                    # REQUIRED: Notes field
-                    'Notes': f"Source: {self.source_var.get()} | Rock Type: {self.rock_var.get()}"
+                    # Notes field
+                    'Notes': f"Source: {row.get('Source', self.source_var.get())} | Rock Type: {row.get('Rock_Type', self.rock_var.get())}"
                 }
 
                 # Add all geochemical data columns
                 for col in self.df.columns:
-                    if col not in ['Sample_ID']:  # Skip as we already set it
-                        val = row[col]
-                        if not pd.isna(val):
+                    if col not in ['Sample_ID', 'Source', 'Rock_Type', 'Date_Fetched', 'Reference']:
+                        val = row.get(col)
+                        if val is not None and not pd.isna(val):
                             # Format numbers appropriately
-                            if isinstance(val, float):
+                            if isinstance(val, (int, float)):
                                 if col in ["SiO2", "TiO2", "Al2O3", "Fe2O3", "MgO", "CaO", "Na2O", "K2O", "P2O5"]:
-                                    sample_entry[col] = f"{val:.2f}"
+                                    sample_entry[col] = float(f"{val:.2f}")  # Store as number
                                 elif col in ["La", "Ce", "Nd", "Sm", "Eu", "Gd", "Yb", "Lu", "Ba", "Sr", "Zr", "Nb"]:
-                                    sample_entry[col] = f"{val:.1f}"
+                                    sample_entry[col] = float(f"{val:.1f}")  # Store as number
                                 else:
-                                    sample_entry[col] = f"{val:.3f}"
+                                    sample_entry[col] = float(f"{val:.3f}")  # Store as number
                             else:
                                 sample_entry[col] = str(val)
 
@@ -464,6 +464,8 @@ Cr, Ni, Co, V, Sc, Cu, Zn, Pb"""
 
         except Exception as e:
             messagebox.showerror("Import Error", f"Failed to import data: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     # ==================== OTHER COMPATIBILITY METHODS ====================
 
