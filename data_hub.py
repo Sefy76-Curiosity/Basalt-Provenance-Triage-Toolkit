@@ -12,7 +12,7 @@ class DataHub:
         self.observers = []
         # Add these for auto-save tracking
         self._unsaved_changes = False
-        self._last_save_time = None
+        self._last_change_time = None   # time of last unsaved change
         self._change_count = 0
         self.id_to_index = {}
         self._column_order = []
@@ -21,7 +21,7 @@ class DataHub:
         """Mark that there are unsaved changes"""
         self._unsaved_changes = True
         self._change_count += 1
-        self._last_save_time = datetime.now()
+        self._last_change_time = datetime.now()  # time of most recent change
 
     def mark_saved(self):
         """Mark that changes have been saved"""
@@ -53,31 +53,30 @@ class DataHub:
         return len(new_samples)
 
     def update_rows(self, updated_samples):
+        """Bulk-replace samples by position while keeping id_to_index consistent."""
         for i, sample in enumerate(updated_samples):
             if i < len(self.samples):
+                old_id = self.samples[i].get('Sample_ID')
+                if old_id and old_id in self.id_to_index:
+                    del self.id_to_index[old_id]
                 self.samples[i] = sample
                 self.columns.update(sample.keys())
+                new_id = sample.get('Sample_ID')
+                if new_id is not None:
+                    self.id_to_index[new_id] = i
         self.mark_unsaved()
         self._notify('samples_updated')
 
     def update_row(self, index, updates):
         """Update a row with new values, adding new columns if needed"""
-        if 0 <= index < len(self.samples):  # ← FIX: use self.samples, not self.data
-            # Add any new columns to the master column list
+        if 0 <= index < len(self.samples):
             for key in updates.keys():
                 if key not in self.columns:
-                    self.columns.add(key)  # ← FIX: columns is a set, use .add() not .append()
+                    self.columns.add(key)
                     print(f"📝 Added new column: {key}")
-
-            # Update the row
-            self.samples[index].update(updates)  # ← FIX: use self.samples, not self.data
-
-            # Mark as unsaved
+            self.samples[index].update(updates)
             self.mark_unsaved()
-
-            # Notify observers
-            self._notify('update', index)  # ← FIX: use _notify, not notify_observers
-
+            self._notify('update', index)
             print(f"✅ Updated row {index} with: {list(updates.keys())}")
         else:
             print(f"❌ Index {index} out of range (max: {len(self.samples)-1})")
@@ -90,6 +89,7 @@ class DataHub:
                     del self.id_to_index[sample_id]
                 del self.samples[idx]
         self._rebuild_columns()
+        self._rebuild_index()   # re-number remaining rows after deletions shift positions
         self.mark_unsaved()
         self._notify('samples_deleted', len(indices))
 
@@ -129,6 +129,14 @@ class DataHub:
         self.columns.clear()
         for sample in self.samples:
             self.columns.update(sample.keys())
+
+    def _rebuild_index(self):
+        """Rebuild id_to_index from scratch — needed after deletions shift row positions."""
+        self.id_to_index = {
+            sample['Sample_ID']: i
+            for i, sample in enumerate(self.samples)
+            if 'Sample_ID' in sample
+        }
 
     def clear_all(self):
         """Clear all samples and reset state"""

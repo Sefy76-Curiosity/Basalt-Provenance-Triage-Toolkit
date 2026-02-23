@@ -390,9 +390,10 @@ class LeftPanel:
         raw_row: dict from parser
         existing_rows: list of already processed rows (used for generating IMP_ IDs)
         Returns a cleaned dictionary or None if row is empty.
+        Unmapped columns are kept under their original key so they appear as
+        their own columns in the table (e.g. Museum_Code, Date, Latitude, …).
         """
         clean_row = {}
-        notes_parts = []
         seen_standards = set()
         sample_id_found = False
 
@@ -432,9 +433,6 @@ class LeftPanel:
 
         if not sample_id_found:
             clean_row['Sample_ID'] = f"IMP_{len(existing_rows)+1:04d}"
-
-        if notes_parts:
-            clean_row['Notes'] = ' | '.join(notes_parts)
 
         return clean_row if clean_row else None
 

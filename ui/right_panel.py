@@ -9,6 +9,9 @@ import tkinter as tk
 from tkinter import messagebox
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
+from collections import Counter
+import json
+from pathlib import Path
 from .all_schemes_detail_dialog import AllSchemesDetailDialog
 
 class RightPanel:
@@ -41,7 +44,7 @@ class RightPanel:
         self.engine_frame = ttk.Frame(self.frame, bootstyle="dark")
         self.engine_frame.pack(fill=tk.X, padx=1, pady=1)
 
-        self.refresh_for_engine(getattr(self.app, '_current_engine', 'classification'))
+        self.refresh_for_engine(getattr(self.app, 'current_engine_name', 'classification'))
 
         # ============ RUN OPTIONS ============
         row2 = ttk.Frame(self.frame, bootstyle="dark")
@@ -269,6 +272,31 @@ class RightPanel:
 
     # ============ DOUBLE CLICK ============
 
+    def _open_sample_detail(self, sample_idx, samples=None):
+        """Open the appropriate detail dialog for a given sample index.
+        Called by center_panel._on_double_click so the dialog logic stays in one place.
+        """
+        if samples is None:
+            samples = self.app.data_hub.get_all()
+        if sample_idx >= len(samples):
+            return
+        if self.all_mode and self.all_results is not None:
+            AllSchemesDetailDialog(self.app.root, self.app, samples, self.all_results, sample_idx, self.all_schemes_list)
+            return
+        if sample_idx < len(self.classification_results):
+            result = self.classification_results[sample_idx]
+            if result:
+                classification = result.get('classification', 'UNCLASSIFIED')
+                confidence = result.get('confidence', 0.0)
+                color = result.get('color', '#A9A9A9')
+                derived = result.get('derived_fields', {})
+                flag = result.get('flag_for_review', False)
+                self.app.center._show_classification_explanation(
+                    samples[sample_idx], classification, confidence, color, derived, flag
+                )
+                return
+        self.app.center._show_classification_explanation(samples[sample_idx])
+
     def _on_hud_double_click(self, event):
         """Show appropriate detail dialog based on mode."""
         item = self.hud_tree.identify_row(event.y)
@@ -292,31 +320,23 @@ class RightPanel:
         if target_idx is None:
             return
 
-        # If we're in all-mode, ALWAYS show the all-schemes dialog
+        # IMPORTANT: If we're in all-mode, ALWAYS show the all-schemes dialog
         if self.all_mode and self.all_results is not None:
-            AllSchemesDetailDialog(self.app.root, samples, self.all_results, target_idx, self.all_schemes_list)
+            # Import here to avoid circular imports
+            from ui.all_schemes_detail_dialog import AllSchemesDetailDialog
+            AllSchemesDetailDialog(self.app.root, self.app, samples, self.all_results, target_idx, self.all_schemes_list)
             return
 
-        # Otherwise show single-scheme explanation
-        if target_idx < len(self.classification_results):
-            result = self.classification_results[target_idx]
-            if result:
-                classification = result.get('classification', 'UNCLASSIFIED')
-                confidence = result.get('confidence', 0.0)
-                color = result.get('color', '#A9A9A9')
-                derived = result.get('derived_fields', {})
-                flag = result.get('flag_for_review', False)
-                self.app.center._show_classification_explanation(
-                    samples[target_idx], classification, confidence, color, derived, flag
-                )
-                return
-        self.app.center._show_classification_explanation(samples[target_idx])
+        # Otherwise show single-scheme explanation (this should only happen when not in all-mode)
+        self._open_sample_detail(target_idx, samples)
+
+        return "break"
 
     # ============ SCHEMES ============
 
     def _refresh_schemes(self):
         """Refresh scheme dropdown from classification engine, adding a "Run All" option."""
-        if getattr(self.app, '_current_engine', 'classification') == 'protocol':
+        if getattr(self.app, 'current_engine_name', 'classification') == 'protocol':
             return
 
         if not hasattr(self.app, 'classification_engine') or self.app.classification_engine is None:
@@ -361,8 +381,6 @@ class RightPanel:
 
     def _load_disabled_schemes(self):
         """Return set of disabled scheme ids from config/disabled_schemes.json."""
-        from pathlib import Path
-        import json
         config = Path("config/disabled_schemes.json")
         if config.exists():
             try:
@@ -414,21 +432,32 @@ class RightPanel:
                 sample_id = sample_id[:8]
 
             if self.all_mode and self.all_results is not None and actual_idx < len(self.all_results):
-                # All‑schemes mode - show best classification
+                # All‑schemes mode - show best classification with multi-match indicator
                 results_list = self.all_results[actual_idx]
                 if results_list:
                     # Find the best (non-UNCLASSIFIED) classification
                     best_class = "UNCLASSIFIED"
                     best_conf = 0.0
+                    match_count = 0
+
                     for scheme_name, classification, confidence in results_list:
                         if classification not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', '']:
+                            match_count += 1
                             if confidence > best_conf:
                                 best_class = classification
                                 best_conf = confidence
 
-                    # Count matches for flag
-                    match_count = sum(1 for r in results_list if r[1] not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', ''])
-                    flag = f"{match_count}/{len(results_list)}" if match_count > 0 else "0"
+                    # Format flag based on match count
+                    if match_count > 0:
+                        flag = f"🎯 {match_count}"  # Target icon with count
+                        # Use multi-match tag if more than one scheme matched
+                        if match_count > 1:
+                            classification_tag = 'MULTI_MATCH'
+                        else:
+                            classification_tag = best_class
+                    else:
+                        flag = "0"
+                        classification_tag = 'ALL_NONE'
 
                     classification = best_class
                     confidence = f"{best_conf:.2f}" if best_conf > 0 else ""
@@ -436,6 +465,7 @@ class RightPanel:
                     classification = "UNCLASSIFIED"
                     confidence = ""
                     flag = "0"
+                    classification_tag = 'ALL_NONE'
             else:
                 # Single‑scheme mode
                 result = self.classification_results[actual_idx] if actual_idx < len(self.classification_results) else None
@@ -443,10 +473,12 @@ class RightPanel:
                     classification = result.get('classification', 'UNCLASSIFIED')
                     confidence = result.get('confidence', '')
                     flag = "🚩" if result.get('flag_for_review', False) else ""
+                    classification_tag = classification if classification not in ['UNCLASSIFIED'] else 'UNCLASSIFIED'
                 else:
                     classification = "UNCLASSIFIED"
                     confidence = ""
                     flag = ""
+                    classification_tag = 'UNCLASSIFIED'
 
                 # Format confidence
                 if confidence and confidence not in ('', 'N/A'):
@@ -460,39 +492,40 @@ class RightPanel:
                         confidence = str(confidence)
 
             item_id = self.hud_tree.insert("", tk.END,
-                                          values=(sample_id, classification[:20], confidence, flag))
+                                        values=(sample_id, classification[:20], confidence, flag))
 
-            # Apply color tag in both modes if we have a valid classification
-            if classification not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', '']:
-                self.hud_tree.item(item_id, tags=(classification,))
+            # Apply color tag
+            if classification_tag not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', '']:
+                self.hud_tree.item(item_id, tags=(classification_tag,))
 
+        # Ensure MULTI_MATCH tag is configured
+        self.hud_tree.tag_configure('MULTI_MATCH', background='#8B4513', foreground='white')
         self._auto_size_hud_columns()
 
     def _auto_size_hud_columns(self):
-        """Auto-size HUD columns"""
+        """Auto-size HUD columns based on content"""
         if not self.hud_tree or not self.hud_tree.get_children():
             return
 
-        items = self.hud_tree.get_children()
-        col_widths = {
-            "ID": 40,
-            "Class": 80,
-            "Conf": 35,
-            "Flag": 25
-        }
+        # Set minimum widths for each column
+        self.hud_tree.column('#0', width=50)  # Tree column
+        self.hud_tree.column('#1', width=80)  # Sample ID
+        self.hud_tree.column('#2', width=150) # Classification
+        self.hud_tree.column('#3', width=60)  # Confidence
+        self.hud_tree.column('#4', width=60)  # Flag (increase this!)
 
-        for item in items[:50]:
-            values = self.hud_tree.item(item, "values")
-            if len(values) >= 4:
-                col_widths["ID"] = max(col_widths["ID"], len(str(values[0])) * 7)
-                col_widths["Class"] = max(col_widths["Class"], len(str(values[1])) * 7)
-                col_widths["Conf"] = max(col_widths["Conf"], len(str(values[2])) * 7)
-                col_widths["Flag"] = max(col_widths["Flag"], len(str(values[3])) * 7)
+        # Or better - auto-size based on content
+        for col in ['#1', '#2', '#3', '#4']:
+            max_width = 0
+            for item in self.hud_tree.get_children():
+                text = self.hud_tree.item(item, 'values')[int(col[1:])-1]
+                width = len(str(text)) * 8
+                if width > max_width:
+                    max_width = width
 
-        self.hud_tree.column("ID", width=min(col_widths["ID"], 70))
-        self.hud_tree.column("Class", width=min(col_widths["Class"], 150))
-        self.hud_tree.column("Conf", width=min(col_widths["Conf"], 50))
-        self.hud_tree.column("Flag", width=min(col_widths["Flag"], 35))
+            # Add padding
+            max_width = min(max(max_width, 50), 200)
+            self.hud_tree.column(col, width=max_width)
 
     # ============ CLASSIFICATION ============
 
@@ -527,8 +560,9 @@ class RightPanel:
             samples = self.app.data_hub.get_all()
             indices = list(range(len(samples)))
         else:
+            all_samples = self.app.data_hub.get_all()
             indices = self.app.center.get_selected_indices()
-            samples = [self.app.data_hub.get_all()[i] for i in indices if i < len(self.app.data_hub.get_all())]
+            samples = [all_samples[i] for i in indices if i < len(all_samples)]
 
         if not samples:
             self.app.center.show_warning('classification', "No samples to classify")
@@ -548,11 +582,16 @@ class RightPanel:
 
             classified_count = sum(1 for r in results if r.get('classification') not in ['UNCLASSIFIED', 'INVALID_SAMPLE'])
 
+            classification_counts = Counter(
+                r['classification'] for r in results
+                if r.get('classification') not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', '']
+            )
+
             self.app.center.show_classification_status(
                 scheme_name=selected_display,
                 total_samples=len(samples),
                 classified_count=classified_count,
-                classification_counts={}
+                classification_counts=dict(classification_counts)
             )
             self.app.center.show_operation_complete('classification',
                                                 f"{classified_count}/{total_samples} classified")
@@ -586,8 +625,9 @@ class RightPanel:
             samples = self.app.data_hub.get_all()
             indices = list(range(len(samples)))
         else:
+            all_samples = self.app.data_hub.get_all()
             indices = self.app.center.get_selected_indices()
-            samples = [self.app.data_hub.get_all()[i] for i in indices if i < len(self.app.data_hub.get_all())]
+            samples = [all_samples[i] for i in indices if i < len(all_samples)]
 
         if not samples:
             self.app.center.show_warning('classification', "No samples to classify")

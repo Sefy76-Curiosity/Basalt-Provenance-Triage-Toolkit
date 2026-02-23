@@ -11,6 +11,25 @@ from ttkbootstrap.constants import *
 from collections import Counter
 
 class CenterPanel:
+    # Icon map shared by set_status / show_progress / show_operation_complete
+    STATUS_ICONS = {
+        "info":       "ℹ️",
+        "success":    "✅",
+        "warning":    "⚠️",
+        "error":      "❌",
+        "processing": "🔄",
+        "import":     "📥",
+        "export":     "📤",
+        "classification": "🔬",
+        "save":       "💾",
+        "load":       "📂",
+        "delete":     "🗑️",
+        "filter":     "🔍",
+        "plot":       "📈",
+        "macro":      "🎬",
+        "plugin":     "🔌",
+        "complete":   "✅",
+    }
     def __init__(self, parent, app):
         self.app = app
         self.frame = ttk.Frame(parent, bootstyle="dark")
@@ -156,10 +175,10 @@ class CenterPanel:
         table_container.grid_columnconfigure(0, weight=1)
 
         # Bindings
-        self.tree.bind("<Button-1>", self._on_click)
+        self.tree.bind("<ButtonRelease-3>", self._show_context_menu)      # Windows / Linux
+        self.tree.bind("<ButtonRelease-2>", self._show_context_menu)      # macOS alt
+        self.tree.bind("<Control-ButtonRelease-1>", self._show_context_menu)  # macOS ctrl-click
         self.tree.bind("<Double-1>", self._on_double_click)
-        self.tree.bind("<Button-3>", self._show_context_menu)
-        self.tree.bind("<ButtonRelease-1>", self._on_column_resize)
 
         # Mouse wheel for scroll sync
         self.tree.bind("<MouseWheel>", self._on_tree_mousewheel)
@@ -196,6 +215,7 @@ class CenterPanel:
         self.tree.tag_configure('ALL_MATCHED', background='#1a4a2e', foreground='white')
         self.tree.tag_configure('ALL_NONE', background='#3b3b3b', foreground='white')
         self.tree.tag_configure('UNCLASSIFIED', background='#3b3b3b', foreground='white')
+        self.tree.tag_configure('MULTI_MATCH', background='#8B4513', foreground='white')  # Brown/terra cotta to stand out
 
     def _build_plots_tab(self):
         """Build the plots tab with immediate plotter UI loading"""
@@ -404,8 +424,39 @@ class CenterPanel:
         if not self.tree:
             return
 
-        samples = self.app.data_hub.get_page(self.current_page, self.page_size)
-        total = self.app.data_hub.row_count()
+        search = self.search_var.get().lower().strip()
+        filter_class = self.filter_var.get()
+        filtering = bool(search) or (filter_class and filter_class != "All")
+
+        if filtering:
+            all_samples = self.app.data_hub.get_all()
+            all_results = getattr(self.app.right, 'classification_results', [])
+            filtered = []
+            for idx, s in enumerate(all_samples):
+                # Search filter — match any field value
+                if search:
+                    if not any(search in str(v).lower() for v in s.values()):
+                        continue
+                # Classification filter
+                if filter_class and filter_class != "All":
+                    cls = ''
+                    if idx < len(all_results) and all_results[idx]:
+                        cls = all_results[idx].get('classification', '')
+                    if not cls:
+                        cls = (s.get('Auto_Classification') or s.get('Classification') or '')
+                    if cls != filter_class:
+                        continue
+                filtered.append((idx, s))
+            total = len(filtered)
+            start = self.current_page * self.page_size
+            page_items = filtered[start:start + self.page_size]
+            samples = [s for _, s in page_items]
+            page_actual_indices = [i for i, _ in page_items]
+        else:
+            samples = self.app.data_hub.get_page(self.current_page, self.page_size)
+            total = self.app.data_hub.row_count()
+            start = self.current_page * self.page_size
+            page_actual_indices = list(range(start, start + len(samples)))
         all_columns = self.app.data_hub.get_column_names()
 
         # ============ PRIORITY COLUMN ORDER ============
@@ -475,7 +526,7 @@ class CenterPanel:
         self.tree.delete(*self.tree.get_children())
 
         for i, sample in enumerate(samples):
-            actual_idx = self.current_page * self.page_size + i
+            actual_idx = page_actual_indices[i]
             checkbox = "☑" if actual_idx in self.selected_rows else "☐"
             values = [checkbox]
 
@@ -500,17 +551,28 @@ class CenterPanel:
             if hasattr(self.app.right, 'all_mode') and self.app.right.all_mode:
                 all_results = getattr(self.app.right, 'all_results', None)
                 if all_results and actual_idx < len(all_results) and all_results[actual_idx] is not None:
-                    best_class = "UNCLASSIFIED"
-                    best_conf = 0.0
+                    # Check for matches in all-schemes mode
+                    match_count = 0
+                    best_class = None
+                    best_conf = -1.0
+
                     for r in all_results[actual_idx]:
                         if r[1] not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', '']:
+                            match_count += 1
                             if r[2] > best_conf:
                                 best_class = r[1]
                                 best_conf = r[2]
-                    tag = best_class
+
+                    if match_count > 1:
+                        tag = 'MULTI_MATCH'  # Multiple schemes matched
+                    elif match_count == 1:
+                        tag = best_class  # Single scheme matched - use its color
+                    else:
+                        tag = 'ALL_NONE'  # No matches
                 else:
                     tag = 'ALL_NONE'
             else:
+                # Single-scheme mode
                 tag = "UNCLASSIFIED"
                 if hasattr(self.app.right, 'classification_results') and actual_idx < len(self.app.right.classification_results):
                     result = self.app.right.classification_results[actual_idx]
@@ -522,7 +584,13 @@ class CenterPanel:
                             tag = sample[class_col]
                             break
 
+            # Insert row with appropriate tag
             self.tree.insert("", tk.END, values=tuple(values), tags=(tag,))
+
+        # Ensure MULTI_MATCH tag is configured
+        if not hasattr(self, '_multi_match_configured'):
+            self.tree.tag_configure('MULTI_MATCH', background='#8B4513', foreground='white')
+            self._multi_match_configured = True
 
         if self._first_refresh:
             self.app.auto_size_columns(self.tree, samples, force=False)
@@ -538,6 +606,9 @@ class CenterPanel:
             return
 
         columns = tree["columns"]
+        # Pre-compute index map to avoid O(n) .index() call inside double loop
+        col_index = {col: i for i, col in enumerate(columns)}
+
         for col in columns:
             if col == "☐":
                 tree.column(col, width=30, minwidth=30)
@@ -546,11 +617,11 @@ class CenterPanel:
             header_text = self._get_display_name(col)
             max_width = len(header_text) * 8
 
+            idx = col_index[col]
             for item in tree.get_children()[:50]:
                 values = tree.item(item, "values")
-                col_idx = columns.index(col)
-                if col_idx < len(values):
-                    text = str(values[col_idx])
+                if idx < len(values):
+                    text = str(values[idx])
                     width = len(text) * 7
                     if width > max_width:
                         max_width = width
@@ -608,7 +679,23 @@ class CenterPanel:
 
     def _notify_selection_changed(self):
         count = len(self.selected_rows)
-        self.sel_label.config(text=f"Selected: {count}")
+
+        # If in all-schemes mode, show multi-match count
+        if hasattr(self.app.right, 'all_mode') and self.app.right.all_mode:
+            multi_count = 0
+            for idx in self.selected_rows:
+                if (hasattr(self.app.right, 'all_results') and
+                    idx < len(self.app.right.all_results) and
+                    self.app.right.all_results[idx]):
+                    # Check if any scheme matched
+                    for r in self.app.right.all_results[idx]:
+                        if r[1] not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', '']:
+                            multi_count += 1
+                            break
+            self.sel_label.config(text=f"Selected: {count} ({multi_count} multi-match)")
+        else:
+            self.sel_label.config(text=f"Selected: {count}")
+
         self.app.update_selection(count)
 
     def get_selected_indices(self):
@@ -647,11 +734,13 @@ class CenterPanel:
             return name.replace('_', ' ')
 
     def _apply_filter(self):
+        self.current_page = 0   # always jump to page 1 when filter changes
         self._refresh()
 
     def _clear_filter(self):
         self.search_var.set("")
         self.filter_var.set("All")
+        self.current_page = 0
         self._refresh()
 
     def _reset_column_widths(self):
@@ -662,30 +751,39 @@ class CenterPanel:
             self.app.auto_size_columns(self.tree, samples, force=True)
 
     def _on_double_click(self, event):
+        """Handle double-click on table"""
         region = self.tree.identify("region", event.x, event.y)
         if region != "cell":
             return
+
         item = self.tree.identify_row(event.y)
         if not item:
             return
+
         item_idx = self.tree.index(item)
         sample_idx = self.current_page * self.page_size + item_idx
         samples = self.app.data_hub.get_all()
-        if sample_idx < len(samples):
-            sample = samples[sample_idx]
-            if hasattr(self.app.right, 'classification_results') and sample_idx < len(self.app.right.classification_results):
-                result = self.app.right.classification_results[sample_idx]
-                if result:
-                    classification = result.get('classification', 'UNCLASSIFIED')
-                    confidence = result.get('confidence', 0.0)
-                    color = result.get('color', '#A9A9A9')
-                    derived = result.get('derived_fields', {})
-                    flag = result.get('flag_for_review', False)
-                    self._show_classification_explanation(
-                        sample, classification, confidence, color, derived, flag
-                    )
-                    return
-            self._show_classification_explanation(sample)
+
+        if sample_idx >= len(samples):
+            return
+
+        # IMPORTANT: Check if we're in all-mode - if so, show all-schemes dialog
+        if hasattr(self.app.right, 'all_mode') and self.app.right.all_mode and self.app.right.all_results is not None:
+            # Import here to avoid circular imports
+            from ui.all_schemes_detail_dialog import AllSchemesDetailDialog
+            AllSchemesDetailDialog(
+                self.app.root,
+                self.app,
+                samples,
+                self.app.right.all_results,
+                sample_idx,
+                self.app.right.all_schemes_list
+            )
+        else:
+            # Delegate to right_panel for single scheme
+            self.app.right._open_sample_detail(sample_idx, samples)
+
+        return "break"  # Important: prevents event propagation
 
     def _show_classification_explanation(self, sample, classification=None, confidence=None, color=None, derived=None, flag=False):
         win = ttk.Toplevel(self.app.root)
@@ -877,6 +975,11 @@ class CenterPanel:
             messagebox.showinfo("No Scheme", "Please select a classification scheme first")
             return
 
+        # Check if this is the "Run All Schemes" option
+        if display_name == "🔁 Run All Schemes":
+            messagebox.showinfo("Info", "Please select a specific scheme to classify a single sample.\n'Run All Schemes' is for batch processing only.")
+            return
+
         scheme_id = None
         if hasattr(self.app.right, 'schemes'):
             for sid, info in self.app.right.schemes.items():
@@ -957,21 +1060,21 @@ class CenterPanel:
         sample_idx = self.current_page * self.page_size + item_idx
         sample = self.app.data_hub.get_all()[sample_idx]
 
+        clicked_col = self.tree.identify_column(event.x)
+
         menu = tk.Menu(self.tree, tearoff=0)
         menu.add_command(label="🔍 Classify This Sample",
                         command=lambda: self._classify_selected_sample(sample_idx))
         menu.add_command(label="Edit Cell",
                         command=lambda: self._edit_selected_cell(event, item, sample_idx))
         menu.add_separator()
-        menu.add_command(label="Copy Value", command=lambda: self._copy_cell_value(item))
+        menu.add_command(label="Copy Value", command=lambda: self._copy_cell_value(item, clicked_col))
         menu.add_command(label="Copy Row", command=lambda: self._copy_row(sample))
         menu.add_separator()
         menu.add_command(label="Delete Row", command=lambda: self._delete_row(sample_idx))
 
-        try:
-            menu.tk_popup(event.x_root, event.y_root)
-        finally:
-            menu.grab_release()
+        menu.tk_popup(event.x_root, event.y_root)
+        return "break"
 
     def _edit_selected_cell(self, event, item, sample_idx):
         column = self.tree.identify_column(event.x)
@@ -1008,14 +1111,18 @@ class CenterPanel:
         entry.bind("<Escape>", cancel_edit)
         entry.bind("<FocusOut>", save_edit)
 
-    def _copy_cell_value(self, item):
-        selection = self.tree.selection()
-        if not selection:
+    def _copy_cell_value(self, item, column="#2"):
+        """Copy the value of the right-clicked cell to the clipboard."""
+        values = self.tree.item(item, "values")
+        if not values:
             return
-        values = self.tree.item(selection[0], "values")
-        if values and len(values) > 1:
-            self.tree.clipboard_clear()
-            self.tree.clipboard_append(str(values[1]))
+        try:
+            col_idx = int(column[1:]) - 1  # "#3" → 2
+            if 0 <= col_idx < len(values):
+                self.tree.clipboard_clear()
+                self.tree.clipboard_append(str(values[col_idx]))
+        except (ValueError, IndexError):
+            pass
 
     def _copy_row(self, sample):
         import json
@@ -1065,14 +1172,7 @@ class CenterPanel:
         self.app.root.update_idletasks()
 
     def set_status(self, message, message_type="info"):
-        icons = {
-            "info": "ℹ️",
-            "success": "✅",
-            "warning": "⚠️",
-            "error": "❌",
-            "processing": "🔄"
-        }
-        icon = icons.get(message_type, "ℹ️")
+        icon = self.STATUS_ICONS.get(message_type, "ℹ️")
 
         if message_type not in ["success"] or "classified" not in message.lower():
             self.last_classification_details = None
@@ -1085,14 +1185,7 @@ class CenterPanel:
         self.status_var.set("Ready")
 
     def show_progress(self, operation, current=None, total=None, message=""):
-        icons = {
-            "import": "📥", "export": "📤", "classification": "🔬",
-            "save": "💾", "load": "📂", "delete": "🗑️",
-            "filter": "🔍", "plot": "📈", "macro": "🎬",
-            "plugin": "🔌", "processing": "🔄", "complete": "✅",
-            "error": "❌", "warning": "⚠️"
-        }
-        icon = icons.get(operation, "🔄")
+        icon = self.STATUS_ICONS.get(operation, "🔄")
 
         if current is not None and total is not None and total > 0:
             percentage = (current / total) * 100
@@ -1116,12 +1209,7 @@ class CenterPanel:
         self.app.root.update_idletasks()
 
     def show_operation_complete(self, operation, details=""):
-        icons = {
-            "import": "📥", "export": "📤", "classification": "🔬",
-            "save": "💾", "load": "📂", "delete": "🗑️",
-            "filter": "🔍", "plot": "📈", "macro": "🎬", "plugin": "🔌"
-        }
-        icon = icons.get(operation, "✅")
+        icon = self.STATUS_ICONS.get(operation, "✅")
 
         if details:
             status = f"{icon} {operation.title()} complete: {details}"

@@ -325,21 +325,11 @@ class ScientificToolkit:
         self.root.geometry("1400x850")
         self.settings = SettingsManager(self)
 
-        # DEBUG: What did we actually load?
-        loaded_theme = self.settings.get('theme', 'name')
-        print(f"📖 Loaded theme from settings: {loaded_theme}")
-
-        try:
-            self.root.style.theme_use(loaded_theme)
-            print(f"🎨 Applied theme: {loaded_theme}")
-        except Exception as e:
-            print(f"⚠️ Could not apply theme: {e}")
-
-        # Apply saved theme (ui.theme takes priority over theme.name)
-        saved_theme = self.settings.get('ui', 'theme')
+        # Apply theme: ui.theme takes priority; fall back to theme.name
+        saved_theme = self.settings.get('ui', 'theme') or self.settings.get('theme', 'name')
         try:
             self.root.style.theme_use(saved_theme)
-        except:
+        except Exception:
             pass
 
         self.engine_manager = EngineManager()
@@ -517,6 +507,9 @@ class ScientificToolkit:
                 pass
         return {}
 
+    # NOTE: normalize_columns is superseded by LeftPanel._normalize_row() for file imports
+    # and validate_plugin_data() for plugin data. It is kept here only for potential
+    # external callers and may be removed in a future cleanup pass.
     def normalize_columns(self, row_dict):
         normalized = {}
         notes_parts = []
@@ -1393,10 +1386,5 @@ def main():
     root.after(100, create_app)
     root.mainloop()
 
-def finish_loading(splash, root):
-    splash.destroy()
-    root.deiconify()
-
 if __name__ == "__main__":
     main()
-
