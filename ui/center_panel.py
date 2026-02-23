@@ -9,6 +9,8 @@ from tkinter import messagebox
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from collections import Counter
+import os
+import json
 
 class CenterPanel:
     # Icon map shared by set_status / show_progress / show_operation_complete
@@ -786,9 +788,15 @@ class CenterPanel:
         return "break"  # Important: prevents event propagation
 
     def _show_classification_explanation(self, sample, classification=None, confidence=None, color=None, derived=None, flag=False):
+        """Show detailed explanation for single scheme classification"""
+        # Get the current scheme name from right panel
+        scheme_name = "Unknown Scheme"
+        if hasattr(self.app.right, 'scheme_var'):
+            scheme_name = self.app.right.scheme_var.get()
+
         win = ttk.Toplevel(self.app.root)
         win.title(f"Classification: {sample.get('Sample_ID', 'Unknown')}")
-        win.geometry("600x500")
+        win.geometry("700x600")
         win.transient(self.app.root)
 
         def set_grab():
@@ -799,256 +807,415 @@ class CenterPanel:
         main = ttk.Frame(win, padding=10)
         main.pack(fill=tk.BOTH, expand=True)
 
-        ttk.Label(main, text=f"Sample: {sample.get('Sample_ID', 'Unknown')}",
-                 font=("Arial", 14, "bold"), bootstyle="light").pack(pady=5)
+        # Header
+        header_frame = ttk.Frame(main)
+        header_frame.pack(fill=tk.X, pady=(0, 10))
+
+        ttk.Label(
+            header_frame,
+            text=f"Sample: {sample.get('Sample_ID', 'Unknown')}",
+            font=("Arial", 14, "bold"),
+            bootstyle="light"
+        ).pack(anchor=tk.W)
 
         if classification is None:
             classification = (sample.get('Final_Classification') or
-                              sample.get('Auto_Classification') or
-                              sample.get('Classification') or
-                              "UNCLASSIFIED")
+                            sample.get('Auto_Classification') or
+                            sample.get('Classification') or
+                            "UNCLASSIFIED")
         if confidence is None:
             confidence = sample.get('Auto_Confidence', 'N/A')
         if color is None:
             color = '#A9A9A9'
 
+        # Classification and confidence
         class_frame = ttk.Frame(main)
-        class_frame.pack(fill=tk.X, pady=10)
-        ttk.Label(class_frame, text="Classification:", font=("Arial", 11, "bold"), bootstyle="light").pack(side=tk.LEFT)
+        class_frame.pack(fill=tk.X, pady=5)
+
+        ttk.Label(
+            class_frame,
+            text="Classification:",
+            font=("Arial", 11, "bold"),
+            bootstyle="light"
+        ).pack(side=tk.LEFT)
+
         fg_color = self.app.color_manager.get_foreground(classification)
-        ttk.Label(class_frame, text=classification, font=("Arial", 11),
-                 foreground=fg_color, bootstyle="light").pack(side=tk.LEFT, padx=10)
-        ttk.Label(class_frame, text=f"Confidence: {confidence}",
-                 font=("Arial", 10), bootstyle="light").pack(side=tk.RIGHT)
+        ttk.Label(
+            class_frame,
+            text=classification,
+            font=("Arial", 11),
+            foreground=fg_color,
+            bootstyle="light"
+        ).pack(side=tk.LEFT, padx=10)
+
+        ttk.Label(
+            class_frame,
+            text=f"Confidence: {confidence}",
+            font=("Arial", 10),
+            bootstyle="light"
+        ).pack(side=tk.RIGHT)
 
         ttk.Separator(main, orient=tk.HORIZONTAL, bootstyle="secondary").pack(fill=tk.X, pady=10)
-        ttk.Label(main, text="Geochemical Data:", font=("Arial", 11, "bold"), bootstyle="light").pack(anchor=tk.W)
 
-        data_frame = ttk.Frame(main)
-        data_frame.pack(fill=tk.X, pady=5)
+        # Create notebook for tabs
+        notebook = ttk.Notebook(main, bootstyle="dark")
+        notebook.pack(fill=tk.BOTH, expand=True)
 
-        elements = ['Zr_ppm', 'Nb_ppm', 'Ba_ppm', 'Rb_ppm', 'Cr_ppm', 'Ni_ppm']
-        ratios = ['Zr_Nb_Ratio', 'Cr_Ni_Ratio', 'Ba_Rb_Ratio']
-
-        row = 0
-        for elem in elements:
-            if elem in sample and sample[elem]:
-                val = sample[elem]
-                if val:
-                    ttk.Label(data_frame, text=f"{elem}:", font=("Arial", 9), bootstyle="light").grid(
-                        row=row, column=0, sticky=tk.W, padx=5, pady=2)
-                    ttk.Label(data_frame, text=str(val), font=("Arial", 9), bootstyle="light").grid(
-                        row=row, column=1, sticky=tk.W, padx=5, pady=2)
-                    row += 1
-
-        for ratio in ratios:
-            if ratio in sample and sample[ratio]:
-                val = sample[ratio]
-                if val:
-                    ttk.Label(data_frame, text=f"{ratio}:", font=("Arial", 9), bootstyle="light").grid(
-                        row=row, column=0, sticky=tk.W, padx=5, pady=2)
-                    try:
-                        display_val = f"{float(val):.2f}"
-                    except:
-                        display_val = str(val)
-                    ttk.Label(data_frame, text=display_val, font=("Arial", 9), bootstyle="light").grid(
-                        row=row, column=1, sticky=tk.W, padx=5, pady=2)
-                    row += 1
-
-        ttk.Separator(main, orient=tk.HORIZONTAL, bootstyle="secondary").pack(fill=tk.X, pady=10)
-        ttk.Label(main, text="Classification Logic:", font=("Arial", 11, "bold"), bootstyle="light").pack(anchor=tk.W, pady=5)
-
-        text_frame = ttk.Frame(main)
-        text_frame.pack(fill=tk.BOTH, expand=True)
+        # Tab 1: Explanation
+        explanation_frame = ttk.Frame(notebook, padding=10)
+        notebook.add(explanation_frame, text="📝 Explanation")
 
         style = ttk.Style.get_instance()
         bg = style.colors.get('dark') if hasattr(style, 'colors') else "#2b2b2b"
         fg = style.colors.get('light') if hasattr(style, 'colors') else "#dddddd"
-        text_widget = tk.Text(text_frame, wrap=tk.WORD, font=("TkDefaultFont", 10), height=10,
-                              bg=bg, fg=fg, insertbackground=fg, relief=tk.FLAT, bd=0)
-        scrollbar = ttk.Scrollbar(text_frame, command=text_widget.yview, bootstyle="dark-round")
+
+        text_widget = tk.Text(
+            explanation_frame,
+            wrap=tk.WORD,
+            font=("TkDefaultFont", 11),
+            height=20,
+            bg=bg,
+            fg=fg,
+            insertbackground=fg,
+            relief=tk.FLAT,
+            bd=0
+        )
+        scrollbar = ttk.Scrollbar(
+            explanation_frame,
+            command=text_widget.yview,
+            bootstyle="dark-round"
+        )
         text_widget.configure(yscrollcommand=scrollbar.set)
 
         text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        explanation = self._generate_classification_explanation(sample, classification)
+        # Generate intelligent explanation
+        explanation = self._generate_single_scheme_explanation(scheme_name, classification, sample)
         text_widget.insert(tk.END, explanation)
         text_widget.config(state=tk.DISABLED)
 
-        ttk.Button(main, text="Close", command=win.destroy, bootstyle="primary").pack(pady=10)
+        # Tab 2: Raw Data
+        raw_frame = ttk.Frame(notebook, padding=10)
+        notebook.add(raw_frame, text="📋 All Fields")
 
-    def _generate_classification_explanation(self, sample, classification):
+        raw_text = tk.Text(
+            raw_frame,
+            wrap=tk.NONE,
+            font=("Courier", 9),
+            height=20,
+            bg=bg,
+            fg=fg,
+            relief=tk.FLAT,
+            bd=0
+        )
+        raw_scroll_y = ttk.Scrollbar(
+            raw_frame,
+            orient=tk.VERTICAL,
+            command=raw_text.yview,
+            bootstyle="dark-round"
+        )
+        raw_scroll_x = ttk.Scrollbar(
+            raw_frame,
+            orient=tk.HORIZONTAL,
+            command=raw_text.xview,
+            bootstyle="dark-round"
+        )
+        raw_text.configure(yscrollcommand=raw_scroll_y.set, xscrollcommand=raw_scroll_x.set)
+
+        raw_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        raw_scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
+        raw_scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
+
+        # Show all sample data
+        import json
+        raw_text.insert(tk.END, json.dumps(sample, indent=2))
+        raw_text.config(state=tk.DISABLED)
+
+        # Close button
+        ttk.Button(
+            main,
+            text="Close",
+            command=win.destroy,
+            bootstyle="primary",
+            width=15
+        ).pack(pady=10)
+
+    def _generate_single_scheme_explanation(self, scheme_name, classification_name, sample):
+        """Generate detailed explanation using the scheme's JSON definition (for single scheme mode)"""
+
+        # Strip emojis and clean up scheme name for lookup
+        import re
+        # Comprehensive emoji pattern
+        emoji_pattern = re.compile("["
+            u"\U0001F600-\U0001F64F"  # emoticons
+            u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+            u"\U0001F680-\U0001F6FF"  # transport & map symbols
+            u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+            u"\U00002702-\U000027B0"  # dingbats
+            u"\U000024C2-\U0001F251"  # enclosed characters
+            u"\U0001F900-\U0001F9FF"  # supplemental symbols
+            u"\U0001FA70-\U0001FAFF"  # symbols and pictographs extended
+            u"\U00002600-\U000026FF"  # miscellaneous symbols
+            u"\U00002B50"              # star
+            "]+", flags=re.UNICODE)
+
+        clean_scheme_name = emoji_pattern.sub('', scheme_name).strip()
+
+        # Also remove any other common emoji that might appear
+        common_emojis = ['✅', '🔬', '🏛', '🌍', '🪐', '🏺', '💎', '⚒', '🌋', '🎯',
+                         '📊', '🧱', '🌱', '🪨', '☄️', '⚙️', '📈', '🧪', '🥩', '🦴']
+        for emoji in common_emojis:
+            clean_scheme_name = clean_scheme_name.replace(emoji, '')
+        clean_scheme_name = clean_scheme_name.strip()
+
+        # Determine path to classification schemes
+        possible_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), 'engines', 'classification'),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'engines', 'classification'),
+            os.path.join(self.app.app_dir, 'engines', 'classification') if hasattr(self.app, 'app_dir') else None,
+            os.path.join(os.getcwd(), 'engines', 'classification')
+        ]
+
+        schemes_dir = None
+        for path in possible_paths:
+            if path and os.path.exists(path):
+                schemes_dir = path
+                break
+
+        if not schemes_dir:
+            return self._fallback_single_explanation(sample, classification_name, "Scheme directory not found")
+
+        # Find the matching scheme JSON
+        scheme_data = None
+        try:
+            for filename in os.listdir(schemes_dir):
+                if filename.endswith('.json'):
+                    with open(os.path.join(schemes_dir, filename), 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        if data.get('scheme_name') == clean_scheme_name:
+                            scheme_data = data
+                            break
+        except Exception as e:
+            return self._fallback_single_explanation(sample, classification_name, f"Error loading scheme: {str(e)}")
+
+        if not scheme_data:
+            return self._fallback_single_explanation(sample, classification_name, f"Scheme data not found")
+
+        # Find the matching classification
+        classification = None
+        for c in scheme_data.get('classifications', []):
+            if c['name'] == classification_name:
+                classification = c
+                break
+
+        if not classification:
+            return self._fallback_single_explanation(sample, classification_name, f"Classification details not found")
+
+        # Build rich explanation (reuse the same formatting logic)
+        return self._format_explanation(scheme_data, classification, clean_scheme_name, classification_name, sample)
+
+    def _format_explanation(self, scheme_data, classification, scheme_name, classification_name, sample):
+        """Format the explanation text (shared between single and all schemes mode)"""
         lines = []
-        lines.append(f"This sample was classified as: {classification}\n")
-        lines.append("\n📊 Data values:")
 
-        def safe_float_display(value, format_str="{:.2f}"):
-            if value is None or value == '':
-                return "N/A"
-            try:
-                return format_str.format(float(value))
-            except (ValueError, TypeError):
-                return f"{value} (invalid)"
+        # Header
+        lines.append("=" * 70)
+        lines.append(f"📋 {scheme_name}")
+        lines.append(f"🎯 Classification: {classification_name}")
+        lines.append("=" * 70)
+        lines.append("")
 
-        if 'Zr_ppm' in sample:
-            lines.append(f"  • Zr: {sample['Zr_ppm']} ppm")
-        if 'Nb_ppm' in sample:
-            lines.append(f"  • Nb: {sample['Nb_ppm']} ppm")
-        if 'Zr_Nb_Ratio' in sample:
-            lines.append(f"  • Zr/Nb: {safe_float_display(sample['Zr_Nb_Ratio'])}")
+        # Description
+        if classification.get('description'):
+            lines.append(f"📌 **Description:** {classification['description']}")
+            lines.append("")
 
-        if 'Cr_ppm' in sample:
-            lines.append(f"  • Cr: {sample['Cr_ppm']} ppm")
-        if 'Ni_ppm' in sample:
-            lines.append(f"  • Ni: {sample['Ni_ppm']} ppm")
-        if 'Cr_Ni_Ratio' in sample:
-            lines.append(f"  • Cr/Ni: {safe_float_display(sample['Cr_Ni_Ratio'])}")
+        # Rules that triggered
+        rules = classification.get('rules', [])
+        if rules:
+            lines.append("⚖️ **Classification Criteria:**")
+            lines.append("")
 
-        if 'Ba_ppm' in sample:
-            lines.append(f"  • Ba: {sample['Ba_ppm']} ppm")
-        if 'Rb_ppm' in sample:
-            lines.append(f"  • Rb: {sample['Rb_ppm']} ppm")
-        if 'Ba_Rb_Ratio' in sample:
-            lines.append(f"  • Ba/Rb: {safe_float_display(sample['Ba_Rb_Ratio'])}")
+            for i, rule in enumerate(rules, 1):
+                field = rule.get('field')
+                operator = rule.get('operator')
 
-        lines.append("\n🎯 Classification criteria:")
-        if "EGYPTIAN" in classification:
-            if "HADDADIN" in classification:
-                lines.append("  • Matches Egyptian Haddadin Flow basalt")
-                lines.append("  • Zr/Nb ratio in range 7.0-12.0")
-                lines.append("  • Ba between 240-300 ppm")
-                lines.append("  • Cr/Ni between 1.1-1.6")
-                lines.append("\n📚 Reference: Hartung 2017")
-            elif "ALKALINE" in classification:
-                lines.append("  • Egyptian alkaline/exotic basalt")
-                lines.append("  • Zr/Nb > 22.0 (highly fractionated)")
-                lines.append("  • Ba > 350 ppm (enriched)")
-                lines.append("\n📚 Reference: Philip & Williams-Thorpe 2001")
-        elif "SINAI" in classification:
-            if "OPHIOLITIC" in classification:
-                lines.append("  • Sinai ophiolitic basalt")
-                lines.append("  • Zr/Nb ≥ 20.0 (depleted mantle)")
-                lines.append("  • Cr/Ni 1.8-2.3 (mantle-derived)")
-                lines.append("  • Ba ≤ 150 ppm (low)")
-                lines.append("  • Rb ≤ 30 ppm (very low)")
-                lines.append("\n📚 Reference: Williams-Thorpe & Thorpe 1993")
-            elif "TRANSITIONAL" in classification:
-                lines.append("  • Sinai transitional basalt")
-                lines.append("  • Zr/Nb 15.0-22.0 (intermediate)")
-                lines.append("\n📚 Reference: Williams-Thorpe & Thorpe 1993")
-        elif "LOCAL LEVANTINE" in classification:
-            lines.append("  • Local Levantine source (Golan/Galilee/Hula)")
-            lines.append("  • Zr/Nb < 15.0")
-            lines.append("  • Cr/Ni > 2.5 (distinctive high Cr/Ni)")
-            lines.append("  • Ba < 200 ppm")
-            lines.append("\n📚 Reference: Rosenberg et al. 2016")
-        elif "REVIEW REQUIRED" in classification:
-            lines.append("  • Sample does not match any known classification")
-            lines.append("  • May have missing data or unusual chemistry")
-            lines.append("  • Manual review recommended")
-        elif "UNCLASSIFIED" in classification:
-            lines.append("  • Sample has not been classified")
-            lines.append("  • Run classification from the right panel")
+                # Handle nested OR rules
+                if operator == 'OR' and 'rules' in rule:
+                    lines.append(f"  {i}. One of the following conditions must be true:")
+                    for sub_rule in rule['rules']:
+                        sub_field = sub_rule.get('field')
+                        sub_op = sub_rule.get('operator')
+                        sub_val = sub_rule.get('value')
+
+                        # Get sample value
+                        sample_val = sample.get(sub_field, 'N/A')
+                        if sample_val != 'N/A' and isinstance(sample_val, (int, float)):
+                            sample_val = f"{sample_val:.3f}".rstrip('0').rstrip('.')
+
+                        if sub_op == '>':
+                            lines.append(f"     • {sub_field} > {sub_val}")
+                            lines.append(f"       Your sample: {sample_val}")
+                            if self._compare_values(sample, sub_field, '>', sub_val):
+                                lines.append(f"       ✓ Condition met")
+                            else:
+                                lines.append(f"       ✗ Condition not met")
+                        elif sub_op == '<':
+                            lines.append(f"     • {sub_field} < {sub_val}")
+                            lines.append(f"       Your sample: {sample_val}")
+                            if self._compare_values(sample, sub_field, '<', sub_val):
+                                lines.append(f"       ✓ Condition met")
+                            else:
+                                lines.append(f"       ✗ Condition not met")
+                        elif sub_op == 'between':
+                            min_val = sub_rule.get('min')
+                            max_val = sub_rule.get('max')
+                            lines.append(f"     • {sub_field} between {min_val} and {max_val}")
+                            lines.append(f"       Your sample: {sample_val}")
+                            if self._compare_values(sample, sub_field, 'between', (min_val, max_val)):
+                                lines.append(f"       ✓ Condition met")
+                            else:
+                                lines.append(f"       ✗ Condition not met")
+                    lines.append("")
+                    continue
+
+                # Handle regular rules
+                sample_val = sample.get(field, 'N/A')
+                if sample_val != 'N/A' and isinstance(sample_val, (int, float)):
+                    sample_val = f"{sample_val:.3f}".rstrip('0').rstrip('.')
+
+                if operator == '>':
+                    threshold = rule.get('value')
+                    lines.append(f"  {i}. {field} > {threshold}")
+                    lines.append(f"     Your sample: {sample_val}")
+                    if self._compare_values(sample, field, '>', threshold):
+                        lines.append(f"     ✓ Threshold exceeded")
+                        if isinstance(sample.get(field), (int, float)) and isinstance(threshold, (int, float)):
+                            diff = sample[field] - threshold
+                            lines.append(f"       (by {diff:.3f})")
+                    else:
+                        lines.append(f"     ✗ Threshold not met")
+
+                elif operator == '<':
+                    threshold = rule.get('value')
+                    lines.append(f"  {i}. {field} < {threshold}")
+                    lines.append(f"     Your sample: {sample_val}")
+                    if self._compare_values(sample, field, '<', threshold):
+                        lines.append(f"     ✓ Below threshold")
+                        if isinstance(sample.get(field), (int, float)) and isinstance(threshold, (int, float)):
+                            diff = threshold - sample[field]
+                            lines.append(f"       (by {diff:.3f})")
+                    else:
+                        lines.append(f"     ✗ Threshold not met")
+
+                elif operator == 'between':
+                    min_val = rule.get('min')
+                    max_val = rule.get('max')
+                    lines.append(f"  {i}. {field} between {min_val} and {max_val}")
+                    lines.append(f"     Your sample: {sample_val}")
+                    if self._compare_values(sample, field, 'between', (min_val, max_val)):
+                        lines.append(f"     ✓ Within range")
+                    else:
+                        lines.append(f"     ✗ Outside range")
+
+                elif operator == '=':
+                    threshold = rule.get('value')
+                    lines.append(f"  {i}. {field} = {threshold}")
+                    lines.append(f"     Your sample: {sample_val}")
+                    if self._compare_values(sample, field, '=', threshold):
+                        lines.append(f"     ✓ Matches exactly")
+                    else:
+                        lines.append(f"     ✗ Does not match")
+
+                lines.append("")
+
+        # Priority/confidence info
+        if 'priority' in classification:
+            lines.append(f"📊 **Priority:** {classification['priority']}")
+        if 'confidence_score' in classification:
+            lines.append(f"📈 **Base confidence:** {classification['confidence_score']}")
+
+        lines.append("")
+        lines.append("=" * 70)
+
+        # References
+        if scheme_data.get('reference'):
+            lines.append(f"📚 **Reference:** {scheme_data['reference']}")
+        if scheme_data.get('author'):
+            lines.append(f"👤 **Author:** {scheme_data['author']}")
+        if scheme_data.get('date_created'):
+            lines.append(f"📅 **Date:** {scheme_data['date_created']}")
+
+        lines.append("=" * 70)
 
         return "\n".join(lines)
 
-    def _classify_selected_sample(self, sample_idx):
-        print(f"\n🔍 CLASSIFY SELECTED SAMPLE - Index: {sample_idx}")
+    def _fallback_single_explanation(self, sample, classification, error_msg=None):
+        """Fallback explanation if JSON loading fails (for single scheme mode)"""
+        lines = []
+        lines.append(f"Classification: {classification}")
+        lines.append("")
+        lines.append("=" * 50)
+        lines.append("")
 
-        samples = self.app.data_hub.get_all()
-        if sample_idx >= len(samples):
-            print(f"❌ Sample index {sample_idx} out of range (max: {len(samples)-1})")
-            return
+        if error_msg:
+            lines.append(f"⚠️ {error_msg}")
+            lines.append("")
+            lines.append("Showing available geochemical data instead:")
+            lines.append("")
 
-        sample = samples[sample_idx]
-        print(f"📋 Sample ID: {sample.get('Sample_ID', 'Unknown')}")
+        # Show relevant geochemical data
+        lines.append("📊 Geochemical Values:")
+        relevant = ['Zr_ppm', 'Nb_ppm', 'Ba_ppm', 'Rb_ppm', 'Cr_ppm', 'Ni_ppm',
+                   'SiO2_wt', 'TiO2_wt', 'Al2O3_wt', 'Fe2O3_T_wt', 'CaO_wt', 'MgO_wt',
+                   'K2O_wt', 'Na2O_wt', 'P2O5_wt']
 
-        if not hasattr(self.app, 'right') or not hasattr(self.app.right, 'scheme_var'):
-            messagebox.showerror("Error", "Right panel not available")
-            return
+        found = False
+        for key in relevant:
+            if key in sample and sample[key]:
+                val = sample[key]
+                if isinstance(val, (int, float)):
+                    val = f"{val:.3f}".rstrip('0').rstrip('.')
+                lines.append(f"  {key}: {val}")
+                found = True
 
-        display_name = self.app.right.scheme_var.get()
-        print(f"🎯 Selected scheme display name: '{display_name}'")
+        if not found:
+            # Show all available numeric fields
+            for key, val in sample.items():
+                if isinstance(val, (int, float)) and val not in (None, ''):
+                    lines.append(f"  {key}: {val:.3f}")
 
-        if not display_name:
-            messagebox.showinfo("No Scheme", "Please select a classification scheme first")
-            return
+        lines.append("")
+        lines.append("=" * 50)
 
-        # Check if this is the "Run All Schemes" option
-        if display_name == "🔁 Run All Schemes":
-            messagebox.showinfo("Info", "Please select a specific scheme to classify a single sample.\n'Run All Schemes' is for batch processing only.")
-            return
+        return "\n".join(lines)
 
-        scheme_id = None
-        if hasattr(self.app.right, 'schemes'):
-            for sid, info in self.app.right.schemes.items():
-                if info.get('name') == display_name or info.get('scheme_name') == display_name:
-                    scheme_id = sid
-                    break
+    def _compare_values(self, sample, field, operator, threshold):
+        """Compare sample value against threshold"""
+        if field not in sample:
+            return False
 
-        if not scheme_id and self.app.classification_engine:
-            for sid, scheme in self.app.classification_engine.schemes.items():
-                if scheme.get('scheme_name') == display_name:
-                    scheme_id = sid
-                    break
+        sample_val = sample[field]
+        if sample_val in (None, '', 'N/A'):
+            return False
 
-        if not scheme_id:
-            import re
-            clean_name = re.sub(r'[✅🔬🏛🌍🪐🏺💎⚒🌋🎯]', '', display_name).strip()
-            if self.app.classification_engine:
-                for sid, scheme in self.app.classification_engine.schemes.items():
-                    scheme_clean = re.sub(r'[✅🔬🏛🌍🪐🏺💎⚒🌋🎯]', '', scheme.get('scheme_name', '')).strip()
-                    if scheme_clean == clean_name:
-                        scheme_id = sid
-                        break
+        try:
+            sample_val = float(sample_val)
 
-        if not scheme_id:
-            print(f"❌ Could not find scheme ID for '{display_name}'")
-            messagebox.showerror("Error", f"Could not find scheme ID for '{display_name}'")
-            return
+            if operator == '>':
+                return sample_val > float(threshold)
+            elif operator == '<':
+                return sample_val < float(threshold)
+            elif operator == 'between':
+                min_val, max_val = threshold
+                return float(min_val) <= sample_val <= float(max_val)
+            elif operator == '=':
+                return abs(sample_val - float(threshold)) < 0.0001
+        except (ValueError, TypeError):
+            return False
 
-        if self.app.classification_engine:
-            try:
-                print(f"🚀 Running classification with scheme: {scheme_id}")
-
-                classification, confidence, color, derived = self.app.classification_engine.classify_sample(sample, scheme_id)
-                print(f"✅ Classification result: {classification}")
-                print(f"   Confidence: {confidence}")
-                print(f"   Color: {color}")
-                print(f"   Derived: {derived}")
-
-                scheme_info = self.app.classification_engine.get_scheme_info(scheme_id)
-                flag_uncertain = scheme_info.get('flag_uncertain', False)
-                uncertain_threshold = scheme_info.get('uncertain_threshold', 0.7)
-                flag = (confidence < uncertain_threshold) if flag_uncertain else False
-
-                self._show_classification_explanation(
-                    sample, classification, confidence, color, derived, flag
-                )
-
-                if hasattr(self.app.right, 'classification_results') and sample_idx < len(self.app.right.classification_results):
-                    result = {
-                        'classification': classification,
-                        'confidence': confidence,
-                        'color': color,
-                        'derived_fields': derived,
-                        'flag_for_review': flag
-                    }
-                    self.app.right.classification_results[sample_idx] = result
-                    self.app.right._update_hud()
-
-                self._refresh()
-                self.set_status(f"✅ Classified as: {classification}", "success")
-
-            except Exception as e:
-                print(f"❌ Classification error: {e}")
-                import traceback
-                traceback.print_exc()
-                messagebox.showerror("Error", f"Classification failed: {e}")
-        else:
-            print(f"❌ Classification engine not available")
-            messagebox.showerror("Error", "Classification engine not available")
+        return False
 
     def _show_context_menu(self, event):
         item = self.tree.identify_row(event.y)

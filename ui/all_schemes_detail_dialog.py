@@ -2,11 +2,14 @@
 All Schemes Detail Dialog
 Fully converted to ttkbootstrap with dark theme consistency
 Double-click a scheme to see detailed explanation with Back navigation
+Now with smart explanation generation from scheme JSON files
 """
 
 import tkinter as tk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
+import os
+import json
 
 
 class AllSchemesDetailDialog:
@@ -24,7 +27,7 @@ class AllSchemesDetailDialog:
 
         self.window = ttk.Toplevel(parent)
         self.window.title(f"All Schemes: {self._get_sample_id()}")
-        self.window.geometry("780x520")
+        self.window.geometry("780x620")
         self.window.transient(parent)
 
         main = ttk.Frame(self.window, padding=10)
@@ -237,26 +240,31 @@ class AllSchemesDetailDialog:
         # Get sample data
         sample = self.samples[self.current_index]
 
-        # Create detail view
-        text_frame = ttk.Frame(self.content_frame)
-        text_frame.pack(fill=BOTH, expand=True, pady=5)
+        # Create detail view with notebook for tabs
+        notebook = ttk.Notebook(self.content_frame, bootstyle="dark")
+        notebook.pack(fill=BOTH, expand=True)
+
+        # Tab 1: Explanation
+        explanation_frame = ttk.Frame(notebook, padding=10)
+        notebook.add(explanation_frame, text="📝 Explanation")
 
         style = ttk.Style.get_instance()
         bg = style.colors.get('dark') if hasattr(style, 'colors') else "#2b2b2b"
         fg = style.colors.get('light') if hasattr(style, 'colors') else "#dddddd"
 
         text_widget = tk.Text(
-            text_frame,
+            explanation_frame,
             wrap=tk.WORD,
             font=("TkDefaultFont", 11),
             height=20,
             bg=bg,
             fg=fg,
+            insertbackground=fg,
             relief=tk.FLAT,
             bd=0
         )
         scrollbar = ttk.Scrollbar(
-            text_frame,
+            explanation_frame,
             command=text_widget.yview,
             bootstyle="dark-round"
         )
@@ -265,15 +273,287 @@ class AllSchemesDetailDialog:
         text_widget.pack(side=LEFT, fill=BOTH, expand=True)
         scrollbar.pack(side=RIGHT, fill=Y)
 
-        # Generate explanation
-        explanation = self._generate_explanation(sample)
+        # Generate intelligent explanation
+        explanation = self._generate_explanation(self.current_scheme, self.current_classification, sample)
         text_widget.insert(tk.END, explanation)
         text_widget.config(state=tk.DISABLED)
 
+        # Tab 2: Raw Data
+        raw_frame = ttk.Frame(notebook, padding=10)
+        notebook.add(raw_frame, text="📋 All Fields")
+
+        raw_text = tk.Text(
+            raw_frame,
+            wrap=tk.NONE,
+            font=("Courier", 9),
+            height=20,
+            bg=bg,
+            fg=fg,
+            relief=tk.FLAT,
+            bd=0
+        )
+        raw_scroll_y = ttk.Scrollbar(
+            raw_frame,
+            orient=VERTICAL,
+            command=raw_text.yview,
+            bootstyle="dark-round"
+        )
+        raw_scroll_x = ttk.Scrollbar(
+            raw_frame,
+            orient=HORIZONTAL,
+            command=raw_text.xview,
+            bootstyle="dark-round"
+        )
+        raw_text.configure(yscrollcommand=raw_scroll_y.set, xscrollcommand=raw_scroll_x.set)
+
+        raw_text.pack(side=LEFT, fill=BOTH, expand=True)
+        raw_scroll_y.pack(side=RIGHT, fill=Y)
+        raw_scroll_x.pack(side=BOTTOM, fill=X)
+
+        # Show all sample data
+        raw_text.insert(tk.END, json.dumps(sample, indent=2))
+        raw_text.config(state=tk.DISABLED)
+
         self.window.title(f"Detail: {self.current_scheme} - {self._get_sample_id()}")
 
-    def _generate_explanation(self, sample):
-        """Generate simple explanation text"""
+    def _generate_explanation(self, scheme_name, classification_name, sample):
+        """Generate detailed explanation using the scheme's JSON definition"""
+
+        # Strip emojis and clean up scheme name for lookup
+        import re
+        # Comprehensive emoji pattern
+        emoji_pattern = re.compile("["
+            u"\U0001F600-\U0001F64F"  # emoticons
+            u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+            u"\U0001F680-\U0001F6FF"  # transport & map symbols
+            u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+            u"\U00002702-\U000027B0"  # dingbats
+            u"\U000024C2-\U0001F251"  # enclosed characters
+            u"\U0001F900-\U0001F9FF"  # supplemental symbols
+            u"\U0001FA70-\U0001FAFF"  # symbols and pictographs extended
+            u"\U00002600-\U000026FF"  # miscellaneous symbols
+            u"\U00002B50"              # star
+            "]+", flags=re.UNICODE)
+
+        clean_scheme_name = emoji_pattern.sub('', scheme_name).strip()
+
+        # Also remove any other common emoji that might appear
+        clean_scheme_name = clean_scheme_name.replace('✅', '').replace('🔬', '').replace('🏛', '').replace('🌍', '').strip()
+        clean_scheme_name = clean_scheme_name.replace('🪐', '').replace('🏺', '').replace('💎', '').replace('⚒', '').strip()
+        clean_scheme_name = clean_scheme_name.replace('🌋', '').replace('🎯', '').replace('📊', '').replace('🧱', '').strip()
+        clean_scheme_name = clean_scheme_name.replace('🌱', '').replace('🪨', '').replace('☄️', '').replace('⚙️', '').strip()
+        clean_scheme_name = clean_scheme_name.replace('📈', '').replace('🧪', '').replace('🥩', '').replace('🦴', '').strip()
+
+        # Determine path to classification schemes
+        # Try multiple possible paths
+        possible_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), 'engines', 'classification'),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'engines', 'classification'),
+            os.path.join(self.app.app_dir, 'engines', 'classification') if hasattr(self.app, 'app_dir') else None,
+            # Add path relative to current working directory
+            os.path.join(os.getcwd(), 'engines', 'classification')
+        ]
+
+        schemes_dir = None
+        for path in possible_paths:
+            if path and os.path.exists(path):
+                schemes_dir = path
+                break
+
+        if not schemes_dir:
+            return self._fallback_explanation(sample, "Scheme directory not found")
+
+        # Find the matching scheme JSON
+        scheme_data = None
+        try:
+            for filename in os.listdir(schemes_dir):
+                if filename.endswith('.json'):
+                    with open(os.path.join(schemes_dir, filename), 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        json_scheme_name = data.get('scheme_name', '')
+                        # Compare cleaned names
+                        if json_scheme_name == clean_scheme_name:
+                            scheme_data = data
+                            break
+        except Exception as e:
+            return self._fallback_explanation(sample, f"Error loading scheme: {str(e)}")
+
+        if not scheme_data:
+            return self._fallback_explanation(sample, f"Scheme data not found for: {clean_scheme_name}")
+
+        # Find the matching classification
+        classification = None
+        for c in scheme_data.get('classifications', []):
+            if c['name'] == classification_name:
+                classification = c
+                break
+
+        if not classification:
+            return self._fallback_explanation(sample, f"Classification details not found for: {classification_name}")
+
+        # Build rich explanation
+        lines = []
+
+        # Header
+        lines.append("=" * 70)
+        lines.append(f"📋 {clean_scheme_name}")
+        lines.append(f"🎯 Classification: {classification_name}")
+        lines.append("=" * 70)
+        lines.append("")
+
+        # Description
+        if classification.get('description'):
+            lines.append(f"📌 **Description:** {classification['description']}")
+            lines.append("")
+
+        # Rules that triggered
+        rules = classification.get('rules', [])
+        if rules:
+            lines.append("⚖️ **Classification Criteria:**")
+            lines.append("")
+
+            for i, rule in enumerate(rules, 1):
+                field = rule.get('field')
+                operator = rule.get('operator')
+
+                # Handle nested OR rules
+                if operator == 'OR' and 'rules' in rule:
+                    lines.append(f"  {i}. One of the following conditions must be true:")
+                    for sub_rule in rule['rules']:
+                        sub_field = sub_rule.get('field')
+                        sub_op = sub_rule.get('operator')
+                        sub_val = sub_rule.get('value')
+
+                        # Get sample value
+                        sample_val = sample.get(sub_field, 'N/A')
+                        if sample_val != 'N/A' and isinstance(sample_val, (int, float)):
+                            sample_val = f"{sample_val:.3f}".rstrip('0').rstrip('.')
+
+                        if sub_op == '>':
+                            lines.append(f"     • {sub_field} > {sub_val}")
+                            lines.append(f"       Your sample: {sample_val}")
+                            if self._compare_values(sample, sub_field, '>', sub_val):
+                                lines.append(f"       ✓ Condition met")
+                            else:
+                                lines.append(f"       ✗ Condition not met")
+                        elif sub_op == '<':
+                            lines.append(f"     • {sub_field} < {sub_val}")
+                            lines.append(f"       Your sample: {sample_val}")
+                            if self._compare_values(sample, sub_field, '<', sub_val):
+                                lines.append(f"       ✓ Condition met")
+                            else:
+                                lines.append(f"       ✗ Condition not met")
+                        elif sub_op == 'between':
+                            min_val = sub_rule.get('min')
+                            max_val = sub_rule.get('max')
+                            lines.append(f"     • {sub_field} between {min_val} and {max_val}")
+                            lines.append(f"       Your sample: {sample_val}")
+                            if self._compare_values(sample, sub_field, 'between', (min_val, max_val)):
+                                lines.append(f"       ✓ Condition met")
+                            else:
+                                lines.append(f"       ✗ Condition not met")
+                    lines.append("")
+                    continue
+
+                # Handle regular rules
+                sample_val = sample.get(field, 'N/A')
+                if sample_val != 'N/A' and isinstance(sample_val, (int, float)):
+                    sample_val = f"{sample_val:.3f}".rstrip('0').rstrip('.')
+
+                if operator == '>':
+                    threshold = rule.get('value')
+                    lines.append(f"  {i}. {field} > {threshold}")
+                    lines.append(f"     Your sample: {sample_val}")
+                    if self._compare_values(sample, field, '>', threshold):
+                        lines.append(f"     ✓ Threshold exceeded")
+                        if isinstance(sample.get(field), (int, float)) and isinstance(threshold, (int, float)):
+                            diff = sample[field] - threshold
+                            lines.append(f"       (by {diff:.3f})")
+                    else:
+                        lines.append(f"     ✗ Threshold not met")
+
+                elif operator == '<':
+                    threshold = rule.get('value')
+                    lines.append(f"  {i}. {field} < {threshold}")
+                    lines.append(f"     Your sample: {sample_val}")
+                    if self._compare_values(sample, field, '<', threshold):
+                        lines.append(f"     ✓ Below threshold")
+                        if isinstance(sample.get(field), (int, float)) and isinstance(threshold, (int, float)):
+                            diff = threshold - sample[field]
+                            lines.append(f"       (by {diff:.3f})")
+                    else:
+                        lines.append(f"     ✗ Threshold not met")
+
+                elif operator == 'between':
+                    min_val = rule.get('min')
+                    max_val = rule.get('max')
+                    lines.append(f"  {i}. {field} between {min_val} and {max_val}")
+                    lines.append(f"     Your sample: {sample_val}")
+                    if self._compare_values(sample, field, 'between', (min_val, max_val)):
+                        lines.append(f"     ✓ Within range")
+                    else:
+                        lines.append(f"     ✗ Outside range")
+
+                elif operator == '=':
+                    threshold = rule.get('value')
+                    lines.append(f"  {i}. {field} = {threshold}")
+                    lines.append(f"     Your sample: {sample_val}")
+                    if self._compare_values(sample, field, '=', threshold):
+                        lines.append(f"     ✓ Matches exactly")
+                    else:
+                        lines.append(f"     ✗ Does not match")
+
+                lines.append("")
+
+        # Priority/confidence info
+        if 'priority' in classification:
+            lines.append(f"📊 **Priority:** {classification['priority']}")
+        if 'confidence_score' in classification:
+            lines.append(f"📈 **Base confidence:** {classification['confidence_score']}")
+
+        lines.append("")
+        lines.append("=" * 70)
+
+        # References
+        if scheme_data.get('reference'):
+            lines.append(f"📚 **Reference:** {scheme_data['reference']}")
+        if scheme_data.get('author'):
+            lines.append(f"👤 **Author:** {scheme_data['author']}")
+        if scheme_data.get('date_created'):
+            lines.append(f"📅 **Date:** {scheme_data['date_created']}")
+
+        lines.append("=" * 70)
+
+        return "\n".join(lines)
+
+    def _compare_values(self, sample, field, operator, threshold):
+        """Compare sample value against threshold"""
+        if field not in sample:
+            return False
+
+        sample_val = sample[field]
+        if sample_val in (None, '', 'N/A'):
+            return False
+
+        try:
+            sample_val = float(sample_val)
+
+            if operator == '>':
+                return sample_val > float(threshold)
+            elif operator == '<':
+                return sample_val < float(threshold)
+            elif operator == 'between':
+                min_val, max_val = threshold
+                return float(min_val) <= sample_val <= float(max_val)
+            elif operator == '=':
+                return abs(sample_val - float(threshold)) < 0.0001
+        except (ValueError, TypeError):
+            return False
+
+        return False
+
+    def _fallback_explanation(self, sample, error_msg=None):
+        """Fallback explanation if JSON loading fails"""
         lines = []
         lines.append(f"Scheme: {self.current_scheme}")
         lines.append(f"Classification: {self.current_classification}")
@@ -281,14 +561,32 @@ class AllSchemesDetailDialog:
         lines.append("=" * 50)
         lines.append("")
 
+        if error_msg:
+            lines.append(f"⚠️ {error_msg}")
+            lines.append("")
+            lines.append("Showing available geochemical data instead:")
+            lines.append("")
+
         # Show relevant geochemical data
         lines.append("📊 Geochemical Values:")
         relevant = ['Zr_ppm', 'Nb_ppm', 'Ba_ppm', 'Rb_ppm', 'Cr_ppm', 'Ni_ppm',
-                   'SiO2_wt', 'TiO2_wt', 'Al2O3_wt', 'Fe2O3_T_wt']
+                   'SiO2_wt', 'TiO2_wt', 'Al2O3_wt', 'Fe2O3_T_wt', 'CaO_wt', 'MgO_wt',
+                   'K2O_wt', 'Na2O_wt', 'P2O5_wt']
 
+        found = False
         for key in relevant:
             if key in sample and sample[key]:
-                lines.append(f"  {key}: {sample[key]}")
+                val = sample[key]
+                if isinstance(val, (int, float)):
+                    val = f"{val:.3f}".rstrip('0').rstrip('.')
+                lines.append(f"  {key}: {val}")
+                found = True
+
+        if not found:
+            # Show all available numeric fields
+            for key, val in sample.items():
+                if isinstance(val, (int, float)) and val not in (None, ''):
+                    lines.append(f"  {key}: {val:.3f}")
 
         lines.append("")
         lines.append("=" * 50)
