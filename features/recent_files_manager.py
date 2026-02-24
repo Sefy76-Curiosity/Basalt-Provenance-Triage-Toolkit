@@ -31,7 +31,6 @@ class RecentFilesManager:
                         if Path(f['path']).exists()
                     ]
             except Exception as e:
-                print(f"⚠️ Error loading recent files: {e}")
                 self.recent_files = []
     
     def _save(self):
@@ -41,7 +40,7 @@ class RecentFilesManager:
             with open(self.config_file, 'w', encoding='utf-8') as f:
                 json.dump({'files': self.recent_files}, f, indent=2)
         except Exception as e:
-            print(f"⚠️ Error saving recent files: {e}")
+            pass
     
     def add(self, filepath: str):
         """Add file to recent files list"""

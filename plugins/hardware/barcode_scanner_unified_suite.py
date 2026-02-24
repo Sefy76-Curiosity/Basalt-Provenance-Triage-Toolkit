@@ -23,7 +23,7 @@ BARCODE/QR SCANNER UNIFIED SUITE v2.4 - POLISHED PRODUCTION RELEASE
 PLUGIN_INFO = {
     "category": "hardware",
     "id": "barcode_scanner_unified_suite",
-    "name": "Barcode/QR Scanner Unified Suite",
+    "name": "QR/Barcode Scanner Suite",
     "icon": "📷",
     "description": "USB HID · Serial · Bluetooth SPP/LE · Webcam · Unified UI",
     "version": "2.4.0",
@@ -1572,6 +1572,9 @@ class BarcodeScannerUnifiedSuitePlugin:
         # Save current context before switching
         self._save_context()
 
+        # Disconnect any active scanner from the previous tab
+        self._disconnect_scanner()
+
         self.tab_var.set(tab_name)
         self.config.set('last_tab', tab_name)
 
@@ -1824,6 +1827,15 @@ class BarcodeScannerUnifiedSuitePlugin:
         # Initial empty state
         self.ble_device_list.insert(tk.END, "✨ No devices found - click Scan")
         self.ble_device_list.itemconfig(0, fg="#7f8c8d")
+
+    def _activate_hid_scanner(self):
+        """Activate USB HID (keyboard emulation) scanner mode."""
+        if self.focused_scanner is None:
+            self.focused_scanner = FocusedScanner(self._on_scan)
+        self.active_scanner = self.focused_scanner
+        self.active_type = "USB HID"
+        self._update_connection_status(True)
+        self.status_var.set("USB HID mode active – click in the field and scan")
 
     def _update_preview_for_device(self, device_type):
         if device_type == "Webcam" and self.preview_var.get():
@@ -2666,11 +2678,16 @@ class BarcodeScannerUnifiedSuitePlugin:
             messagebox.showerror("Connection Failed", msg)
 
     def _disconnect_scanner(self):
-        """Disconnect current scanner - FIXED: with BLE cleanup"""
+        """Disconnect current scanner - FIXED: with BLE cleanup and HID reset."""
         if self._disconnecting:
             return
         self._disconnecting = True
         try:
+            # Handle focused (HID) scanner
+            if self.focused_scanner is not None:
+                self.focused_scanner.disconnect()
+                self.focused_scanner = None
+
             if self.active_scanner:
                 self.active_scanner.disconnect()
                 self.active_scanner = None
@@ -2731,6 +2748,54 @@ class BarcodeScannerUnifiedSuitePlugin:
         finally:
             self._disconnecting = False
 
+    def _open_bluetooth_settings(self):
+        """Open the system Bluetooth settings panel for pairing scanners."""
+        import platform
+        import subprocess
+        import os
+        from tkinter import messagebox
+
+        system = platform.system()
+        try:
+            if system == 'Windows':
+                # Windows 10/11 Bluetooth settings URI
+                os.startfile('ms-settings:bluetooth')
+            elif system == 'Darwin':
+                # macOS Bluetooth preference pane
+                subprocess.Popen(['open', '/System/Library/PreferencePanes/Bluetooth.prefPane'])
+            elif system == 'Linux':
+                # Try common Linux Bluetooth configuration tools
+                commands = [
+                    ['gnome-control-center', 'bluetooth'],
+                    ['bluetooth-settings'],
+                    ['xfce4-settings-manager', 'bluetooth'],
+                    ['kcmshell5', 'bluetooth'],
+                    ['blueman-manager']
+                ]
+                launched = False
+                for cmd in commands:
+                    try:
+                        subprocess.Popen(cmd)
+                        launched = True
+                        break
+                    except FileNotFoundError:
+                        continue
+                if not launched:
+                    messagebox.showinfo(
+                        "Bluetooth Settings",
+                        "Could not launch Bluetooth settings automatically.\n"
+                        "Please open your system's Bluetooth settings manually to pair your scanner."
+                    )
+            else:
+                messagebox.showinfo(
+                    "Bluetooth Settings",
+                    "Please open your system's Bluetooth settings manually."
+                )
+        except Exception as e:
+            messagebox.showerror(
+                "Error",
+                f"Failed to open Bluetooth settings: {e}\nPlease open manually."
+            )
     # ========================================================================
     # SCAN HANDLING
     # ========================================================================

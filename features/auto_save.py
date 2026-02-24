@@ -67,7 +67,7 @@ class AutoSaveManager:
                 self.app.root.after(0, lambda: self._show_auto_save_status())
 
         except Exception as e:
-            print(f"⚠️ Auto-save failed: {e}")
+            pass
 
     def _show_auto_save_status(self):
         """Show auto-save status in the status bar"""

@@ -158,3 +158,7 @@ class DataHub:
     def column_order(self, order):
         """Set column order"""
         self._column_order = order
+
+    def notify_all_observers(self, event, *args):
+        """Public method to notify all observers of a data change"""
+        self._notify(event, *args)

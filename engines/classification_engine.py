@@ -11,12 +11,23 @@ import json
 from pathlib import Path
 from typing import Dict, List, Any, Tuple, Optional
 
+# Lazy pandas import — loaded once, avoids repeated import overhead
+try:
+    import pandas as _pd
+except ImportError:
+    _pd = None
+
 class ClassificationEngine:
     """
     Dynamic classification engine that loads schemes from JSON files
     """
 
     DEBUG = False  # Set to True to enable verbose classification logging
+
+    def _log(self, msg):
+        """Internal debug logger — only prints when DEBUG is True."""
+        if self.DEBUG:
+            print(msg)
 
     def __init__(self, schemes_dir: str = None):
         """Initialize classification engine"""
@@ -106,13 +117,7 @@ class ClassificationEngine:
         Internal helper: ensure sample is a dict.
         Accepts plain dict or pandas Series; rejects everything else.
         """
-        # Lazy import to avoid hard dependency
-        try:
-            import pandas as pd  # type: ignore
-        except ImportError:
-            pd = None
-
-        if pd is not None and isinstance(sample, pd.Series):
+        if _pd is not None and isinstance(sample, _pd.Series):
             return sample.to_dict()
 
         if isinstance(sample, dict):
@@ -186,74 +191,94 @@ class ClassificationEngine:
         Returns (classification_name, confidence, color, derived_fields)
         Does NOT modify the input sample.
         """
-        def _log(msg):
-            if self.DEBUG:
-                print(msg)
-
-        _log(f"\n{'='*60}\n>>> CLASSIFY_SAMPLE: {scheme_id} | Sample: {sample.get('Sample_ID', 'Unknown')}\n{'='*60}")
+        self._log(f"\n{'='*60}\n>>> CLASSIFY_SAMPLE: {scheme_id} | Sample: {sample.get('Sample_ID', 'Unknown')}\n{'='*60}")
 
         if scheme_id not in self.schemes:
-            _log(f">>> ERROR: Scheme '{scheme_id}' not found")
+            self._log(f">>> ERROR: Scheme '{scheme_id}' not found")
             return ("SCHEME_NOT_FOUND", 0.0, "#808080", {})
 
         sample_norm = self._normalize_sample(sample)
         if sample_norm is None:
-            _log(">>> ERROR: Invalid sample after normalization")
+            self._log(">>> ERROR: Invalid sample after normalization")
             return ("INVALID_SAMPLE", 0.0, "#808080", {})
 
         cleaned_errors = self._clean_error_fields(sample_norm)
         derived = self._compute_derived_fields(sample_norm)
 
         scheme = self.schemes[scheme_id]
-        _log(f"\n>>> SCHEME: {scheme.get('scheme_name')}")
+        self._log(f"\n>>> SCHEME: {scheme.get('scheme_name')}")
 
         classifications = scheme.get("classifications") or scheme.get("rules") or []
-        _log(f">>> Found {len(classifications)} classifications in scheme")
+        self._log(f">>> Found {len(classifications)} classifications in scheme")
 
         for i, classification in enumerate(classifications):
             name = classification.get("name", "UNNAMED")
             rules = classification.get('rules', [])
             logic = classification.get('logic', 'AND')
 
-            _log(f"\n>>> Testing classification #{i+1}: {name} | Logic: {logic} | Rules: {len(rules)}")
+            self._log(f"\n>>> Testing classification #{i+1}: {name} | Logic: {logic} | Rules: {len(rules)}")
 
             # DEFAULT classification (fallback)
             if logic == 'DEFAULT' and not rules:
-                _log(f"    ✓ DEFAULT FALLBACK: {name}")
+                self._log(f"    ✓ DEFAULT FALLBACK: {name}")
                 confidence = classification.get("confidence_score", 0.0)
                 color = classification.get("color", "#A9A9A9")
                 return (name, confidence, color, derived)
 
-            all_rules_passed = True
-            for j, rule in enumerate(rules):
+            def _get_field_value(rule):
+                """Return (value, found) for the field referenced by rule."""
                 field = rule.get('field', '')
-
                 if field in sample_norm:
-                    val = sample_norm[field]
-                elif field in cleaned_errors:
-                    val = cleaned_errors[field]
-                elif field in derived:
-                    val = derived[field]
-                else:
-                    _log(f"      Rule {j+1}: {field} = [MISSING]")
-                    all_rules_passed = False
-                    continue
+                    return sample_norm[field], True
+                if field in cleaned_errors:
+                    return cleaned_errors[field], True
+                if field in derived:
+                    return derived[field], True
+                return None, False
 
-                _log(f"      Rule {j+1}: {field} = {val}")
+            if logic == 'OR':
+                # Pass if ANY rule matches
+                any_passed = False
+                for j, rule in enumerate(rules):
+                    val, found = _get_field_value(rule)
+                    if not found:
+                        self._log(f"      Rule {j+1}: {rule.get('field','')} = [MISSING]")
+                        continue
+                    self._log(f"      Rule {j+1}: {rule.get('field','')} = {val}")
+                    if self.evaluate_rule_with_value(val, rule):
+                        self._log(f"        ✓ PASSED (OR — stopping early)")
+                        any_passed = True
+                        break
+                    else:
+                        self._log(f"        ✗ FAILED")
+                if any_passed:
+                    self._log(f"    ✓ OR MATCHED! Classification: {name}")
+                    confidence = classification.get("confidence_score", 0.0)
+                    color = classification.get("color", "#A9A9A9")
+                    return (name, confidence, color, derived)
 
-                if self.evaluate_rule_with_value(val, rule):
-                    _log(f"        ✓ PASSED")
-                else:
-                    _log(f"        ✗ FAILED")
-                    all_rules_passed = False
+            else:  # AND (default)
+                # Pass only if ALL rules match
+                all_rules_passed = True
+                for j, rule in enumerate(rules):
+                    val, found = _get_field_value(rule)
+                    if not found:
+                        self._log(f"      Rule {j+1}: {rule.get('field','')} = [MISSING]")
+                        all_rules_passed = False
+                        continue
+                    self._log(f"      Rule {j+1}: {rule.get('field','')} = {val}")
+                    if self.evaluate_rule_with_value(val, rule):
+                        self._log(f"        ✓ PASSED")
+                    else:
+                        self._log(f"        ✗ FAILED")
+                        all_rules_passed = False
+                if all_rules_passed:
+                    self._log(f"    ✓ ALL RULES PASSED! Classification: {name}")
+                    confidence = classification.get("confidence_score", 0.0)
+                    color = classification.get("color", "#A9A9A9")
+                    return (name, confidence, color, derived)
 
-            if all_rules_passed:
-                _log(f"    ✓ ALL RULES PASSED! Classification: {name}")
-                confidence = classification.get("confidence_score", 0.0)
-                color = classification.get("color", "#A9A9A9")
-                return (name, confidence, color, derived)
-
-        _log("\n>>> No matching classification found")
+        self._log("\n>>> No matching classification found")
         return ("UNCLASSIFIED", 0.0, "#A9A9A9", derived)
 
     def evaluate_rule_with_value(self, sample_value: float, rule: Dict) -> bool:
@@ -319,12 +344,7 @@ class ClassificationEngine:
         scheme = self.schemes[scheme_id]
 
         # Convert DataFrame → list of dicts
-        try:
-            import pandas as pd  # type: ignore
-        except ImportError:
-            pd = None
-
-        if pd is not None and isinstance(samples, pd.DataFrame):
+        if _pd is not None and isinstance(samples, _pd.DataFrame):
             samples = samples.to_dict(orient='records')
 
         if not isinstance(samples, list):

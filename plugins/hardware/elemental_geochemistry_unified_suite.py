@@ -14,7 +14,7 @@ pXRF · LIBS · Benchtop XRF · ICP-OES/MS — 25+ INSTRUMENTS · 1 DRIVER · DI
 # ============================================================================
 PLUGIN_INFO = {
     "id": "elemental_geochemistry_unified_suite",
-    "name": "Elemental Geochemistry Unified Suite",
+    "name": "Elemental Geochem Suite",
     "category": "hardware",  # ← CRITICAL! Appears in Hardware menu ONLY
     "icon": "🔬",
     "version": "4.5.1",

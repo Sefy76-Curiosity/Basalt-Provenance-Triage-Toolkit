@@ -16,7 +16,7 @@ Solution Chemistry Unified Suite v3.0 - PRODUCTION READY
 PLUGIN_INFO = {
     "category": "hardware",
     "id": "solution_chemistry_unified_suite",
-    "name": "Solution Chemistry Unified Suite",
+    "name": "Solution Chemistry Suite",
     "icon": "🌊",
     "description": "45+ REAL drivers · NIST/USGS · PDF · API · Debye-Hückel",
     "version": "3.0.0",

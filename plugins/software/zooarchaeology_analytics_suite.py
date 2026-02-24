@@ -1798,11 +1798,6 @@ class ZooarchaeologyAnalyticsSuitePlugin:
 # ============================================================================
 def setup_plugin(main_app):
     """Plugin setup function"""
-    print(f"🔍 setup_plugin called for Zooarchaeology Analytics")
-
     plugin = ZooarchaeologyAnalyticsSuitePlugin(main_app)
-
-    # NEVER add to menu here - let the main app handle it
-    # Just return the plugin instance
 
     return plugin

@@ -86,6 +86,10 @@ class DemoDataGeneratorPlugin:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to generate data: {str(e)}")
 
+    def open_window(self):
+        """Required by the application to show the plugin in the Advanced menu."""
+        self.show()
+
     def _legacy_import(self, demo_data):
         """Fallback for older app versions."""
         if hasattr(self.app, 'samples'):

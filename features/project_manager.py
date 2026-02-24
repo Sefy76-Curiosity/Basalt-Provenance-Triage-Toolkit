@@ -51,8 +51,9 @@ class ProjectManager:
                 json.dump(project_data, f, indent=2)
 
             # Notify auto-save that manual save happened
-            if hasattr(self.app, 'auto_save'):
-                self.app.auto_save.manual_save_triggered()
+            if hasattr(self.app, 'auto_save') and self.app.auto_save is not None:
+                if hasattr(self.app.auto_save, 'manual_save_triggered'):
+                    self.app.auto_save.manual_save_triggered()
 
             # Use ttkbootstrap style messagebox (tkinter messagebox doesn't support theming)
             messagebox.showinfo("✅ Success", f"Project saved to:\n{filepath}")
@@ -195,8 +196,19 @@ class ProjectManager:
                 except:
                     pass
 
-        # Refresh UI
-        self.app.data_hub.notify_observers()
+        # Refresh UI - trigger data change event
+        if hasattr(self.app, 'data_hub'):
+            # The DataHub uses _notify to inform observers
+            if hasattr(self.app.data_hub, '_notify'):
+                # Send a full refresh event
+                self.app.data_hub._notify('samples_cleared')
+                self.app.data_hub._notify('samples_added', 0, len(self.app.data_hub.samples))
+            else:
+                # Manual refresh of panels
+                if hasattr(self.app, 'center') and hasattr(self.app.center, '_refresh'):
+                    self.app.center._refresh()
+                if hasattr(self.app, 'right') and hasattr(self.app.right, '_update_hud'):
+                    self.app.right._update_hud()
 
     def new_project(self):
         """Create a new project (clear everything)"""

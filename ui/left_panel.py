@@ -1,10 +1,18 @@
 """
 Left Panel - 10% width, Data Input
-Manual Entry takes fixed height, Hardware at bottom (dynamically sized height only)
+Manual Entry takes fixed height, Hardware at bottom with scrollbar for 8+ plugins
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ HARDWARE AT BOTTOM (as designed)
+✓ FIXED HEIGHT for 8 buttons (approx 200px for 8 buttons)
+✓ SCROLLBAR on left for 16+ plugins
+✓ MANUAL ENTRY expands to fill remaining space
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+import ttkbootstrap as ttk
+from tkinter import filedialog, messagebox
+
 import re
 import json
 from pathlib import Path
@@ -24,6 +32,7 @@ class LeftPanel:
         # Hardware buttons container
         self.hw_container = None
         self.hw_buttons = []
+        self.visible_button_count = 8  # Show 8 buttons at a time
 
         # Track panel height for dynamic sizing
         self.frame.bind("<Configure>", self._on_frame_resize)
@@ -46,13 +55,10 @@ class LeftPanel:
                         for var in info["variations"]:
                             mappings[var.lower()] = standard
 
-                    print(f"✅ LeftPanel loaded {len(mappings)} column mappings")
                     return mappings
             except Exception as e:
-                print(f"⚠️ Error loading chemical_elements.json: {e}")
                 return {}
         else:
-            print(f"⚠️ chemical_elements.json not found in config folder")
             return {}
 
     @staticmethod
@@ -103,8 +109,8 @@ class LeftPanel:
                                      command=self._import_file_dialog)
         self.import_btn.pack(fill=tk.X, padx=2, pady=2, side=tk.TOP)
 
-        # ============ 2. MANUAL ENTRY (will be dynamically sized) ============
-        self.entry_frame = ttk.LabelFrame(self.frame, text="📝 Manual Entry", padding=3)
+        # ============ 2. MANUAL ENTRY (expands to fill space) ============
+        self.entry_frame = ttk.LabelFrame(self.frame, text="📝 Manual Entry")
         self.entry_frame.pack(fill=tk.BOTH, expand=True, padx=2, pady=2, side=tk.TOP)
 
         # Sample ID
@@ -130,24 +136,77 @@ class LeftPanel:
 
         self.entry_frame.columnconfigure(1, weight=1)
 
-        # ============ 3. HARDWARE PLUGINS (dynamic height only, fixed width) ============
+        # ============ 3. HARDWARE PLUGINS (BOTTOM - Fixed height for 8 buttons) ============
         hw_label = ttk.Label(self.frame, text="🔌 Hardware", font=("TkDefaultFont", 8, "bold"))
         hw_label.pack(anchor=tk.W, padx=2, pady=(5,0), side=tk.BOTTOM)
 
-        # Container with dynamic height but fixed width (fills X)
-        self.hw_container = ttk.Frame(self.frame, relief=tk.SUNKEN, borderwidth=1)
+        # Container with fixed height for 8 buttons (~25px per button)
+        self.hw_container = ttk.Frame(self.frame, relief=tk.SUNKEN, borderwidth=1, height=200)
         self.hw_container.pack(fill=tk.X, padx=2, pady=2, side=tk.BOTTOM, expand=False)
-        # NO pack_propagate(False) - allow height to adjust to content
+        self.hw_container.pack_propagate(False)  # Fixed height
 
-        # Simple frame for buttons - no canvas/scrollbar if we want dynamic height
-        # This will grow with content
-        self.hw_button_frame = ttk.Frame(self.hw_container)
-        self.hw_button_frame.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
+        # Create canvas and scrollbar (on LEFT side)
+        self.hw_canvas = tk.Canvas(self.hw_container, highlightthickness=0, bg='white')
+        self.hw_scrollbar = ttk.Scrollbar(self.hw_container, orient="vertical",
+                                          command=self.hw_canvas.yview)
+
+        # Button frame (actual container for hardware buttons)
+        self.hw_button_frame = ttk.Frame(self.hw_canvas)
+
+        # Configure canvas - SCROLLBAR ON LEFT
+        self.hw_canvas.configure(yscrollcommand=self.hw_scrollbar.set)
+
+        # Create window in canvas
+        self.canvas_window = self.hw_canvas.create_window((0, 0), window=self.hw_button_frame,
+                                                          anchor="nw", width=self.hw_canvas.winfo_width())
+
+        # Pack scrollbar on LEFT, canvas on RIGHT
+        self.hw_scrollbar.pack(side=tk.LEFT, fill=tk.Y)
+        self.hw_canvas.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+
+        # Bind events
+        self.hw_button_frame.bind("<Configure>", self._on_frame_configure)
+        self.hw_canvas.bind("<Configure>", self._on_canvas_configure)
+
+        # ============ MOUSE WHEEL BINDING ============
+        def _on_mousewheel(event):
+            """Handle mouse wheel scrolling"""
+            if hasattr(self, 'hw_canvas') and self.hw_canvas.winfo_exists():
+                if event.delta:  # Windows/macOS
+                    self.hw_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+                else:  # Linux
+                    if event.num == 4:
+                        self.hw_canvas.yview_scroll(-1, "units")
+                    elif event.num == 5:
+                        self.hw_canvas.yview_scroll(1, "units")
+
+        def _on_enter(e):
+            """Bind mouse wheel when entering canvas area"""
+            self.hw_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+            self.hw_canvas.bind_all("<Button-4>", _on_mousewheel)
+            self.hw_canvas.bind_all("<Button-5>", _on_mousewheel)
+
+        def _on_leave(e):
+            """Unbind mouse wheel when leaving canvas area"""
+            self.hw_canvas.unbind_all("<MouseWheel>")
+            self.hw_canvas.unbind_all("<Button-4>")
+            self.hw_canvas.unbind_all("<Button-5>")
+
+        self.hw_canvas.bind("<Enter>", _on_enter)
+        self.hw_canvas.bind("<Leave>", _on_leave)
 
         # Placeholder (will be removed when first plugin is added)
         self._placeholder = ttk.Label(self.hw_button_frame, text="No hardware plugins installed",
                                      font=("TkDefaultFont", 7), foreground="gray")
         self._placeholder.pack(fill=tk.X, pady=5, padx=2)
+
+    def _on_frame_configure(self, event):
+        """Reset the scroll region to encompass the inner frame"""
+        self.hw_canvas.configure(scrollregion=self.hw_canvas.bbox("all"))
+
+    def _on_canvas_configure(self, event):
+        """Resize the inner frame to match canvas width"""
+        self.hw_canvas.itemconfig(self.canvas_window, width=event.width)
 
     def _on_frame_resize(self, event):
         """Handle frame resize to adjust Manual Entry height"""
@@ -162,18 +221,16 @@ class LeftPanel:
         try:
             total_height = event.height
 
-            # Fixed heights: import button (~30px), hardware label (~20px), padding (~20px)
-            fixed_height = 30 + 20 + 20
-
-            # Get current hardware container height (no forced update needed)
-            hw_height = self.hw_container.winfo_height()
+            # Fixed heights: import button (~30px), hardware label (~20px),
+            # hardware container (200px for 8 buttons), padding (~20px)
+            fixed_height = 30 + 20 + 200 + 20
 
             # Manual Entry gets the rest, with a minimum of 100px
-            manual_height = max(100, total_height - fixed_height - hw_height)
+            manual_height = max(120, total_height - fixed_height)
 
-            # Only change if the height actually differs (prevents unnecessary configure events)
+            # Only change if the height actually differs
             current_height = self.entry_frame.winfo_height()
-            if abs(current_height - manual_height) > 2:  # small threshold to avoid micro-changes
+            if abs(current_height - manual_height) > 2:
                 self.entry_frame.configure(height=manual_height)
         finally:
             self._resizing = False
@@ -255,8 +312,6 @@ class LeftPanel:
         except Exception as e:
             self.app.center.show_error('import', str(e))
             messagebox.showerror("Error", f"Failed to import {path}: {e}")
-            import traceback
-            traceback.print_exc()
 
     def _parse_excel_ods(self, path):
         """Parse Excel or LibreOffice ODS file, return list of row dictionaries."""
@@ -349,7 +404,6 @@ class LeftPanel:
                 metadata['Start_Time'] = line.split('-')[-1].strip()
             elif line.startswith('SERIAL_NUMBER'):
                 metadata['Serial_Number'] = line.split('-')[-1].strip()
-            # Add more metadata fields if needed
 
         if data_start is None or data_end is None:
             raise ValueError("Could not find <<DATA>> section in spectrum file")
@@ -360,7 +414,6 @@ class LeftPanel:
                 try:
                     data_counts.append(int(line))
                 except ValueError:
-                    # Skip any non‑integer lines (should not happen in valid files)
                     continue
 
         sample = {
@@ -455,7 +508,6 @@ class LeftPanel:
                     self.app.center.show_progress('import', i+1, total_rows,
                                                 f"Processing row {i+1}")
 
-                # THIS IS THE CORRECT LINE - calls _normalize_row
                 clean_row = self._normalize_row(raw_row, rows)
                 if clean_row:
                     rows.append(clean_row)
@@ -484,35 +536,33 @@ class LeftPanel:
         self.sample_id_entry.focus()
 
     def add_hardware_button(self, name, icon, command):
-        """Add hardware plugin button - with dynamic height adjustment (width fixed)"""
+        """Add hardware plugin button - with scrollable area"""
         # Check if this button already exists
         button_text = f"{icon} {name}"
         for btn in self.hw_buttons:
             if hasattr(btn, 'cget') and btn.cget('text') == button_text:
-                print(f"⏭️ Button '{button_text}' already exists, skipping...")
                 return
 
+        # Remove placeholder if it exists
         if hasattr(self, '_placeholder') and self._placeholder.winfo_exists():
             self._placeholder.destroy()
             delattr(self, '_placeholder')
 
-        # Use tk.Button for better style control
+        # Create button in scrollable frame
         btn = tk.Button(self.hw_button_frame,
-                    text=button_text,
-                    command=command,
-                    anchor='w',
-                    justify='left',
-                    relief=tk.RAISED,
-                    bd=1,
-                    padx=4)
-        btn.pack(fill=tk.X, pady=1, padx=2)  # fill=X keeps width fixed to container
+                       text=button_text,
+                       command=command,
+                       anchor='w',
+                       justify='left',
+                       relief=tk.RAISED,
+                       bd=1,
+                       padx=4)
+        btn.pack(fill=tk.X, pady=1, padx=2)
         self.hw_buttons.append(btn)
 
-        # Force the container to update its height and trigger a resize event
-        self.hw_container.update_idletasks()
-
-        # Trigger frame resize to recalculate manual entry height
-        self.frame.event_generate("<Configure>")
+        # Update scroll region
+        self.hw_button_frame.update_idletasks()
+        self.hw_canvas.configure(scrollregion=self.hw_canvas.bbox("all"))
 
     def remove_hardware_button(self, name, icon):
         """Remove a hardware plugin button by name and icon."""
@@ -530,8 +580,9 @@ class LeftPanel:
                                           foreground="gray")
             self._placeholder.pack(pady=4)
 
-        self.hw_container.update_idletasks()
-        self.frame.event_generate("<Configure>")
+        # Update scroll region
+        self.hw_button_frame.update_idletasks()
+        self.hw_canvas.configure(scrollregion=self.hw_canvas.bbox("all"))
 
     def clear_form(self):
         """Clear the manual entry form"""

@@ -46,7 +46,7 @@ RTK GNSS:
 PLUGIN_INFO = {
     "category": "hardware",
     "id": "zooarchaeology_unified_suite",
-    "name": "Zooarchaeology Unified Suite",
+    "name": "Zooarchaeology Suite",
     "icon": "🦴",
     "description": "Digital calipers · 3D scanners · pXRF · Microscopes · Balances · GNSS — 40+ REAL drivers",
     "version": "1.0.0",

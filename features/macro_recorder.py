@@ -56,9 +56,8 @@ class MacroRecorder:
                         self.saved_macros[name] = [
                             MacroAction.from_dict(a) for a in actions
                         ]
-                print(f"✅ Loaded {len(self.saved_macros)} macros")
             except Exception as e:
-                print(f"⚠️ Error loading macros: {e}")
+                pass
 
     def _save_macros(self):
         self.config_dir.mkdir(parents=True, exist_ok=True)
@@ -68,19 +67,16 @@ class MacroRecorder:
                 data[name] = [a.to_dict() for a in actions]
             with open(self.macros_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
-            print(f"✅ Saved {len(self.saved_macros)} macros")
         except Exception as e:
-            print(f"⚠️ Error saving macros: {e}")
+            pass
 
     def start_recording(self):
         self.is_recording = True
         self.current_macro = []
-        print("🔴 Recording macro...")
 
     def stop_recording(self) -> List[MacroAction]:
         self.is_recording = False
         macro = self.current_macro.copy()
-        print(f"⏸️ Recording stopped. {len(macro)} actions recorded.")
         return macro
 
     def record_action(self, action_type: str, **kwargs):
@@ -88,7 +84,6 @@ class MacroRecorder:
             return
         action = MacroAction(action_type, **kwargs)
         self.current_macro.append(action)
-        print(f"  📝 Recorded: {action_type} - {kwargs}")
 
     def save_macro(self, name: str, macro: List[MacroAction] = None):
         if macro is None:
@@ -115,16 +110,12 @@ class MacroRecorder:
         self._execute_macro(self.saved_macros[name])
 
     def _execute_macro(self, macro: List[MacroAction]):
-        print(f"▶️ Replaying macro with {len(macro)} actions...")
         for i, action in enumerate(macro):
             try:
                 self._execute_action(action)
-                print(f"  ✓ Action {i+1}/{len(macro)}: {action.action_type}")
             except Exception as e:
-                print(f"  ✗ Action {i+1}/{len(macro)} failed: {e}")
                 if not messagebox.askyesno("Error", f"Action {i+1} failed: {e}\n\nContinue?"):
                     break
-        print("✅ Macro replay complete")
         messagebox.showinfo("Complete", "Macro replay finished")
 
     def _execute_action(self, action: MacroAction):
@@ -180,7 +171,7 @@ class MacroRecorder:
                 self.app.left._add_row()
 
         else:
-            print(f"⚠️ Unknown action type: {action_type}")
+            pass  # Unknown action type - silently skip
 
 
 class MacroManagerDialog:

@@ -44,6 +44,7 @@ class RightPanel:
 
         # Cache for "Run All" results
         self.all_results = None
+        self.all_derived_fields = None
         self.all_mode = False
         self.all_schemes_list = []  # Store list of scheme names for reference
 
@@ -318,7 +319,6 @@ class RightPanel:
                 self.protocol_combo.set("No protocols found")
 
         except Exception as e:
-            print(f"⚠️ Error refreshing protocols: {e}")
             self.protocol_combo['values'] = ["Error loading protocols"]
             self.protocol_combo.set("Error loading protocols")
 
@@ -389,8 +389,6 @@ class RightPanel:
         # Configure default tags
         self.hud_tree.tag_configure('UNCLASSIFIED', background='#3b3b3b', foreground='white')
 
-        print(f"✅ Configured {len(configured_tags)} HUD colors")
-
     # ============ DOUBLE CLICK ============
 
     def _open_sample_detail(self, sample_idx, samples=None):
@@ -445,7 +443,15 @@ class RightPanel:
         if self.all_mode and self.all_results is not None:
             # Import here to avoid circular imports
             from ui.all_schemes_detail_dialog import AllSchemesDetailDialog
-            AllSchemesDetailDialog(self.app.root, self.app, samples, self.all_results, target_idx, self.all_schemes_list)
+            AllSchemesDetailDialog(
+                self.app.root,
+                self.app,
+                samples,
+                self.all_results,
+                target_idx,
+                self.all_schemes_list,
+                all_derived=self.all_derived_fields   # <-- NEW: pass derived fields
+            )
             return
 
         # Otherwise show single-scheme explanation (this should only happen when not in all-mode)
@@ -496,7 +502,6 @@ class RightPanel:
                 self.scheme_combo['values'] = ["No schemes"]
                 self.scheme_combo.set("No schemes")
         except Exception as e:
-            print(f"⚠️ Error refreshing schemes: {e}")
             self.scheme_combo['values'] = ["No schemes"]
             self.scheme_combo.set("No schemes")
 
@@ -756,9 +761,6 @@ class RightPanel:
 
         except Exception as e:
             self.app.center.show_error('classification', str(e)[:50])
-            print(f"❌ Classification error: {e}")
-            import traceback
-            traceback.print_exc()
             messagebox.showerror("Classification Error", f"Failed to classify: {e}", parent=self.app.root)
 
     def _run_all_classifications(self):
@@ -795,6 +797,8 @@ class RightPanel:
 
         # Store results as list of lists for each sample
         all_results = [[] for _ in range(len(samples))]
+        # NEW: store derived fields per sample per scheme
+        all_derived = [{} for _ in range(len(samples))]
 
         processed = 0
         for s_idx, scheme in enumerate(schemes):
@@ -806,7 +810,9 @@ class RightPanel:
             for samp_idx, res in enumerate(results):
                 classification = res.get('classification', 'UNCLASSIFIED')
                 confidence = res.get('confidence', 0.0)
+                derived = res.get('derived_fields', {})   # <-- derived fields
                 all_results[samp_idx].append((scheme_name, classification, confidence))
+                all_derived[samp_idx][scheme_name] = derived   # store by scheme name
 
             processed += len(samples)
             self.app.center.show_progress('classification', processed, total_samples * total_schemes,
@@ -815,8 +821,10 @@ class RightPanel:
         # Store in global index structure
         total_data_rows = self.app.data_hub.row_count()
         self.all_results = [None] * total_data_rows
+        self.all_derived_fields = [None] * total_data_rows   # NEW
         for batch_idx, global_idx in enumerate(indices):
             self.all_results[global_idx] = all_results[batch_idx]
+            self.all_derived_fields[global_idx] = all_derived[batch_idx]   # NEW
 
         self.all_mode = True
         self._update_hud()

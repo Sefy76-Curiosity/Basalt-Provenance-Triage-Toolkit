@@ -92,7 +92,6 @@ class SettingsManager:
                                     loaded[category][key] = val
                     return loaded
             except Exception as e:
-                print(f"⚠️ Error loading settings: {e}")
                 return default_settings
         else:
             return default_settings
@@ -103,9 +102,8 @@ class SettingsManager:
         try:
             with open(self.settings_file, 'w', encoding='utf-8') as f:
                 json.dump(self.settings, f, indent=2)
-            print(f"✅ Settings saved")
         except Exception as e:
-            print(f"⚠️ Error saving settings: {e}")
+            pass
 
     def get(self, category, key=None):
         """Get a setting value"""
@@ -136,19 +134,19 @@ class SettingsManager:
                 if hasattr(self.app, 'root'):
                     try:
                         self.app.root.style.theme_use(value)
-                    except Exception as e:
-                        print(f"⚠️ Could not apply theme: {e}")
+                    except Exception:
+                        pass
 
             # Auto-save settings
             elif category == "auto_save" and key == "enabled" and hasattr(self.app, 'auto_save'):
-                if value:
-                    # Restart auto-save if disabled
-                    if not self.app.auto_save.is_running:
-                        self.app.auto_save._start_auto_save()
-                else:
-                    # Stop auto-save
-                    if self.app.auto_save.is_running:
-                        self.app.auto_save.stop()
+                if self.app.auto_save is not None:
+                    if value:
+                        if not self.app.auto_save.is_running:
+                            self.app.auto_save._start_auto_save()
+                    else:
+                        if self.app.auto_save.is_running:
+                            self.app.auto_save.stop()
+                # If auto_save is None, _reapply_settings() will create/destroy it after the dialog closes
 
             elif category == "auto_save" and key == "interval" and hasattr(self.app, 'auto_save'):
                 self.app.auto_save.auto_save_interval = value
@@ -171,7 +169,7 @@ class SettingsManager:
                     self.app.tooltip_manager.clear_all()
 
         except Exception as e:
-            print(f"⚠️ Error applying setting {category}.{key}: {e}")
+            pass
 
     def _update_menu_states(self):
         """Update menu item states based on settings"""
@@ -224,6 +222,15 @@ class SettingsDialog:
 
     def _build_ui(self):
         """Build the settings UI with tabs"""
+        # Pre-create all "enabled" BooleanVars so the Features tab and each dedicated tab
+        # share the exact same variable — changing either checkbox updates both.
+        self.autosave_enabled = tk.BooleanVar(value=self.settings.get('auto_save', 'enabled'))
+        self.macro_enabled = tk.BooleanVar(value=self.settings.get('macro_recorder', 'enabled'))
+        self.project_enabled = tk.BooleanVar(value=self.settings.get('project_manager', 'enabled'))
+        self.script_enabled = tk.BooleanVar(value=self.settings.get('script_exporter', 'enabled'))
+        self.recent_files_enabled = tk.BooleanVar(value=self.settings.get('recent_files', 'enabled'))
+        self.tooltips_enabled = tk.BooleanVar(value=self.settings.get('tooltips', 'enabled'))
+
         # Remove bootstyle from main Frame - it doesn't support it
         main = ttk.Frame(self.window, padding=10)
         main.pack(fill=BOTH, expand=True)
@@ -348,20 +355,19 @@ class SettingsDialog:
 
         self.feature_vars = {}
         features = [
-            ("auto_save", "💾 Auto-Save", "Automatically save work every few minutes"),
-            ("macro_recorder", "🎬 Macro Recorder", "Record and replay user workflows"),
-            ("project_manager", "📁 Project Manager", "Save and load entire projects"),
-            ("script_exporter", "🐍 Script Exporter", "Export workflows as Python/R scripts"),
-            ("recent_files", "📜 Recent Files", "Track recently opened files"),
-            ("tooltips", "💬 Tooltips", "Show helpful tooltips on hover")
+            ("auto_save",       "💾 Auto-Save",        "Automatically save work every few minutes", self.autosave_enabled),
+            ("macro_recorder",  "🎬 Macro Recorder",   "Record and replay user workflows",          self.macro_enabled),
+            ("project_manager", "📁 Project Manager",  "Save and load entire projects",             self.project_enabled),
+            ("script_exporter", "🐍 Script Exporter",  "Export workflows as Python/R scripts",      self.script_enabled),
+            ("recent_files",    "📜 Recent Files",      "Track recently opened files",               self.recent_files_enabled),
+            ("tooltips",        "💬 Tooltips",          "Show helpful tooltips on hover",            self.tooltips_enabled),
         ]
 
-        for feature_id, label, desc in features:
+        for feature_id, label, desc, var in features:
             # Remove bootstyle from Frame
             frame = ttk.Frame(inner)
             frame.pack(fill=X, pady=5)
 
-            var = tk.BooleanVar(value=self.settings.get(feature_id, 'enabled'))
             self.feature_vars[feature_id] = var
 
             # Checkbutton supports bootstyle
@@ -391,7 +397,7 @@ class SettingsDialog:
         inner.pack(fill=BOTH, expand=True)
 
         # Main enable - Checkbutton supports bootstyle
-        self.autosave_enabled = tk.BooleanVar(value=self.settings.get('auto_save', 'enabled'))
+        # (self.autosave_enabled is shared with the Features tab)
         ttk.Checkbutton(inner, text="Enable Auto-Save",
                        variable=self.autosave_enabled,
                        bootstyle="primary").pack(anchor=W, pady=5)
@@ -446,7 +452,7 @@ class SettingsDialog:
         inner.pack(fill=BOTH, expand=True)
 
         # Main enable
-        self.macro_enabled = tk.BooleanVar(value=self.settings.get('macro_recorder', 'enabled'))
+        # (self.macro_enabled is shared with the Features tab)
         ttk.Checkbutton(inner, text="Enable Macro Recorder",
                        variable=self.macro_enabled,
                        bootstyle="primary").pack(anchor=W, pady=5)
@@ -486,7 +492,7 @@ class SettingsDialog:
         inner.pack(fill=BOTH, expand=True)
 
         # Main enable
-        self.project_enabled = tk.BooleanVar(value=self.settings.get('project_manager', 'enabled'))
+        # (self.project_enabled is shared with the Features tab)
         ttk.Checkbutton(inner, text="Enable Project Manager",
                        variable=self.project_enabled,
                        bootstyle="primary").pack(anchor=W, pady=5)
@@ -526,7 +532,7 @@ class SettingsDialog:
         inner.pack(fill=BOTH, expand=True)
 
         # Main enable
-        self.script_enabled = tk.BooleanVar(value=self.settings.get('script_exporter', 'enabled'))
+        # (self.script_enabled is shared with the Features tab)
         ttk.Checkbutton(inner, text="Enable Script Exporter",
                        variable=self.script_enabled,
                        bootstyle="primary").pack(anchor=W, pady=5)
@@ -726,25 +732,21 @@ class SettingsDialog:
             with open(config, 'w', encoding='utf-8') as f:
                 json.dump(disabled, f, indent=2)
         except Exception as e:
-            print(f"⚠️ Could not save scheme settings: {e}")
+            pass
 
     def _preview_theme(self, event=None):
         """Preview selected theme"""
         try:
             self.window.style.theme_use(self.theme_var.get())
-        except Exception as e:
-            print(f"⚠️ Theme preview error: {e}")
+        except Exception:
+            pass
 
     def _save_settings(self):
         """Save all settings"""
         # Theme settings
         self.settings.set('theme', 'name', self.theme_var.get())
 
-        # Feature toggles
-        for feature_id, var in self.feature_vars.items():
-            self.settings.set(feature_id, 'enabled', var.get())
-
-        # Auto-save settings
+        # Auto-save settings (autosave_enabled is shared with feature_vars['auto_save'])
         self.settings.set('auto_save', 'enabled', self.autosave_enabled.get())
         self.settings.set('auto_save', 'interval', self.autosave_interval.get())
         self.settings.set('auto_save', 'notify_on_save', self.autosave_notify.get())
@@ -764,6 +766,10 @@ class SettingsDialog:
         self.settings.set('script_exporter', 'default_language', self.script_lang.get())
         self.settings.set('script_exporter', 'include_comments', self.script_comments.get())
 
+        # Features with no dedicated tab (only controlled from the Features tab)
+        self.settings.set('recent_files', 'enabled', self.recent_files_enabled.get())
+        self.settings.set('tooltips', 'enabled', self.tooltips_enabled.get())
+
         # UI settings
         self.settings.set('ui', 'show_unsaved_indicator', self.ui_unsaved.get())
         self.settings.set('ui', 'auto_size_columns', self.ui_autosize.get())
@@ -775,12 +781,6 @@ class SettingsDialog:
 
         # Force save
         self.settings._save_settings()
-
-        # --- ADD THIS DEBUG ---
-        print(f"✅ Saved theme: {self.theme_var.get()}")
-        # Verify file was written
-        with open(self.settings.settings_file, 'r') as f:
-            print("File contents:", f.read())
 
         # Refresh right panel dropdown to reflect scheme changes
         app = self.settings.app

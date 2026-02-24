@@ -293,22 +293,18 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/ternary_plotter.py?ref_type=heads"
   },
   {
-    "id": "lithic_morphometrics",
-    "name": "Lithic Morphometrics",
-    "version": "1.0.2",
-    "description": "Extract artifact outlines, quantify edge damage, Fourier shape analysis",
-    "author": "Sefy Levy",
+    "id": "museum_import",
+    "name": "Museum Database Pro",
+    "version": "2.0.0",
+    "description": "Import artifacts from 15+ museums - Europeana default, pagination support",
+    "author": "Unknown",
     "category": "software",
-    "icon": "\ud83e\udea8",
+    "icon": "\ud83c\udfdb\ufe0f",
     "requires": [
-      "cv2",
-      "skimage",
-      "numpy",
-      "scipy",
-      "matplotlib",
-      "PIL"
+      "requests",
+      "bs4"
     ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/lithic_morphometrics.py?ref_type=heads"
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/museum_import.py?ref_type=heads"
   },
   {
     "id": "advanced_export",
@@ -404,7 +400,7 @@
   {
     "id": "dataprep_pro",
     "name": "DataPrep Pro",
-    "version": "1.1.0",
+    "version": "1.3.1",
     "description": "Outlier detection, missing imputation, CLR/ILR transforms, robust normalization",
     "author": "Sefy Levy",
     "category": "software",
@@ -604,6 +600,24 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/literature_comparison.py?ref_type=heads"
   },
   {
+    "id": "lithic_morphometrics",
+    "name": "Lithic Morphometrics",
+    "version": "1.0.2",
+    "description": "Extract artifact outlines, quantify edge damage, Fourier shape analysis",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\ud83e\udea8",
+    "requires": [
+      "cv2",
+      "skimage",
+      "numpy",
+      "scipy",
+      "matplotlib",
+      "PIL"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/lithic_morphometrics.py?ref_type=heads"
+  },
+  {
     "id": "magma_modeling",
     "name": "Magma Modeling",
     "version": "2.0",
@@ -617,20 +631,6 @@
       "scipy"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/magma_modeling.py?ref_type=heads"
-  },
-  {
-    "id": "museum_import",
-    "name": "Museum Database Pro",
-    "version": "2.0.0",
-    "description": "Import artifacts from 15+ museums - Europeana default, pagination support",
-    "author": "Unknown",
-    "category": "software",
-    "icon": "\ud83c\udfdb\ufe0f",
-    "requires": [
-      "requests",
-      "bs4"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/museum_import.py?ref_type=heads"
   },
   {
     "id": "pca_lda_explorer",
@@ -775,24 +775,9 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/spectral_toolbox.py?ref_type=heads"
   },
   {
-    "id": "structural_geology",
-    "name": "Structural Geology Suite",
-    "version": "1.0.0",
-    "description": "Stereonets \u00b7 Schmidt nets \u00b7 Wulff nets \u00b7 Rose diagrams \u00b7 Structural analysis",
-    "author": "Sefy Levy & DeepSeek",
-    "category": "software",
-    "icon": "\ud83e\udded",
-    "requires": [
-      "numpy",
-      "matplotlib",
-      "scipy"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/structural_geology.py?ref_type=heads"
-  },
-  {
     "id": "structural_suite",
     "name": "Structural Suite",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Stereonets \u00b7 Rose Diagrams \u00b7 Contouring \u2014 Complete structural toolkit",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
@@ -808,9 +793,9 @@
   {
     "id": "thermobarometry_suite",
     "name": "Thermobarometry Suite",
-    "version": "1.0.0",
-    "description": "Pyroxene \u00b7 Feldspar \u00b7 Amphibole \u00b7 Olivine \u00b7 Garnet \u2014 Complete P-T toolkit",
-    "author": "Sefy Levy & DeepSeek",
+    "version": "2.0.0",
+    "description": "Publication-grade P-T toolkit: Pyroxene \u00b7 Feldspar \u00b7 Amphibole \u00b7 Olivine \u00b7 Garnet",
+    "author": "Sefy Levy",
     "category": "software",
     "icon": "\ud83c\udf21\ufe0f",
     "requires": [
@@ -871,6 +856,22 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/zooarchaeology_analytics_suite.py?ref_type=heads"
   },
   {
+    "id": "archaeology_archaeometry_unified_suite",
+    "name": "Archaeology & Archaeometry",
+    "version": "1.0.0",
+    "description": "XRD \u00b7 SEM-EDS \u00b7 Micro-XRF \u00b7 Micro-CT \u00b7 OSL \u00b7 GPR \u00b7 Gradiometer \u00b7 Total Station \u00b7 Colorimetry \u2014 40+ instruments",
+    "author": "Sefy Levy",
+    "category": "hardware",
+    "icon": "\ud83c\udffa",
+    "requires": [
+      "numpy",
+      "pandas",
+      "matplotlib",
+      "pyserial"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/archaeology_archaeometry_unified_suite.py?ref_type=heads"
+  },
+  {
     "id": "barcode_scanner_unified_suite",
     "name": "Barcode/QR Scanner Unified Suite",
     "version": "2.4.0",
@@ -890,6 +891,56 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/barcode_scanner_unified_suite.py?ref_type=heads"
   },
   {
+    "id": "chromatography_analytical_unified_suite",
+    "name": "Chromatography & Analytical Chemistry",
+    "version": "1.0.0",
+    "description": "GC \u00b7 HPLC \u00b7 IC \u00b7 MS \u00b7 NMR \u00b7 Plate Readers \u00b7 Flow Cytometry \u00b7 Titrators \u00b7 CE",
+    "author": "Analytical Chemistry Team",
+    "category": "hardware",
+    "icon": "\ud83e\uddea",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib",
+      "pyserial"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/chromatography_analytical_unified_suite.py?ref_type=heads"
+  },
+  {
+    "id": "clinical_molecular_diagnostics_suite",
+    "name": "Clinical & Molecular Diagnostics",
+    "version": "1.0.0",
+    "description": "PCR \u00b7 qPCR \u00b7 dPCR \u00b7 Plate Readers \u00b7 Flow Cytometry \u00b7 ELISA \u00b7 Clinical Chemistry",
+    "author": "Clinical Diagnostics Team",
+    "category": "hardware",
+    "icon": "\ud83e\uddec",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib",
+      "pyserial"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/clinical_molecular_diagnostics_suite.py?ref_type=heads"
+  },
+  {
+    "id": "electrochemistry_unified_suite",
+    "name": "Electrochemistry Unified Suite",
+    "version": "1.0.0",
+    "description": "COMPACT \u00b7 CV \u00b7 EIS \u00b7 CCCV \u00b7 Multi-step \u00b7 Safety \u00b7 Multi-channel \u00b7 8 manufacturers",
+    "author": "Electrochemistry Unified Team",
+    "category": "hardware",
+    "icon": "\u26a1",
+    "requires": [
+      "numpy",
+      "pandas",
+      "pyvisa",
+      "pyserial"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/electrochemistry_unified_suite.py?ref_type=heads"
+  },
+  {
     "id": "elemental_geochemistry_unified_suite",
     "name": "Elemental Geochemistry Unified Suite",
     "version": "4.5.1",
@@ -903,17 +954,70 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/elemental_geochemistry_unified_suite.py?ref_type=heads"
   },
   {
-    "id": "mineralogy_unified_suite",
-    "name": "Mineralogy Unified Suite",
-    "version": "2.2.0",
-    "description": "5,185 STABLE RRUFF minerals \u00b7 3-tier download \u00b7 Smart button",
-    "author": "Mineralogy Unified Team",
+    "id": "geophysics_unified_suite",
+    "name": "Geophysics Unified Suite",
+    "version": "1.0.0",
+    "description": "Seismometers \u00b7 ERT \u00b7 EM \u00b7 MT \u00b7 Magnetometers \u00b7 Gravimeters \u00b7 GPR \u00b7 GNSS \u00b7 70+ devices",
+    "author": "Geophysics Team",
     "category": "hardware",
-    "icon": "\ud83d\udc8e",
+    "icon": "\ud83c\udf0d",
     "requires": [
-      "numpy"
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib",
+      "pyserial"
     ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/mineralogy_unified_suite.py?ref_type=heads"
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/geophysics_unified_suite.py?ref_type=heads"
+  },
+  {
+    "id": "materials_characterization_unified_suite",
+    "name": "Materials Characterization Suite",
+    "version": "1.0.0",
+    "description": "AFM \u00b7 Nanoindentation \u00b7 Mechanical \u00b7 BET \u00b7 DLS \u00b7 Rheology \u00b7 Thermal \u00b7 Hardness \u00b7 Profilometry \u00b7 50+ devices",
+    "author": "Materials Science Team",
+    "category": "hardware",
+    "icon": "\ud83d\udd2c",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/materials_characterization_unified_suite.py?ref_type=heads"
+  },
+  {
+    "id": "meteorology_environmental_unified_suite",
+    "name": "Meteorology & Environment",
+    "version": "1.0.2",
+    "description": "Weather stations \u00b7 Pyranometers \u00b7 Sonic \u00b7 Gas \u00b7 600x400",
+    "author": "Environmental Monitoring Team",
+    "category": "hardware",
+    "icon": "\ud83c\udf26\ufe0f",
+    "requires": [
+      "numpy",
+      "pandas",
+      "pyserial",
+      "requests"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/meteorology_environmental_unified_suite.py?ref_type=heads"
+  },
+  {
+    "id": "molecular_biology_unified_suite",
+    "name": "Molecular Biology & Lab Automation",
+    "version": "1.0.0",
+    "description": "Opentrons \u00b7 Hamilton \u00b7 Tecan \u00b7 Masterflex \u00b7 ASI \u00b7 Andor \u00b7 Nikon \u00b7 30+ devices",
+    "author": "Lab Automation Team",
+    "category": "hardware",
+    "icon": "\ud83e\uddec",
+    "requires": [
+      "numpy",
+      "pandas",
+      "pyserial",
+      "pyvisa",
+      "opencv-python"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/molecular_biology_unified_suite.py?ref_type=heads"
   },
   {
     "id": "physical_properties_unified_suite",
@@ -930,6 +1034,21 @@
       "pyserial"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/physical_properties_unified_suite.py?ref_type=heads"
+  },
+  {
+    "id": "physics_test_and_measurement_suite",
+    "name": "Physics Test & Measurement Suite",
+    "version": "1.2.0",
+    "description": "Oscilloscopes \u00b7 DMMs \u00b7 Power Supplies \u00b7 Function Generators \u00b7 LCR \u2014 Keysight \u00b7 Tektronix \u00b7 Rigol \u00b7 Keithley \u00b7 SCPI/VISA",
+    "author": "Physics Unified Team",
+    "category": "hardware",
+    "icon": "\ud83d\udcdf",
+    "requires": [
+      "numpy",
+      "pandas",
+      "pyvisa"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/physics_test_and_measurement_suite.py?ref_type=heads"
   },
   {
     "id": "solution_chemistry_unified_suite",
@@ -949,7 +1068,7 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/solution_chemistry_unified_suite.py?ref_type=heads"
   },
   {
-    "id": "spectroscopy_unified",
+    "id": "spectroscopy_unified_suite",
     "name": "Spectroscopy Unified Suite",
     "version": "4.0.0",
     "description": "FTIR \u00b7 RAMAN \u00b7 UV-VIS-NIR \u2014 Thermo \u00b7 Bruker \u00b7 PerkinElmer \u00b7 B&W Tek \u00b7 Ocean \u00b7 Agilent \u00b7 Avantes \u00b7 50+ MODELS",
@@ -959,7 +1078,23 @@
     "requires": [
       "numpy"
     ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/spectroscopy_unified.py?ref_type=heads"
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/spectroscopy_unified_suite.py?ref_type=heads"
+  },
+  {
+    "id": "thermal_analysis_calorimetry_unified_suite",
+    "name": "Thermal Analysis & Calorimetry",
+    "version": "1.0.1",
+    "description": "DSC \u00b7 TGA \u00b7 STA \u00b7 LFA \u00b7 Hot Disk \u00b7 DMA \u00b7 RC1 \u00b7 30+ instruments",
+    "author": "Thermal Analysis Team",
+    "category": "hardware",
+    "icon": "\ud83d\udd25",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/thermal_analysis_calorimetry_unified_suite.py?ref_type=heads"
   },
   {
     "id": "zooarchaeology_unified_suite",

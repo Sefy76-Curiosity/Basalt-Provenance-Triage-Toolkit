@@ -67,10 +67,8 @@ def check_and_install_dependencies():
     for package in REQUIRED_PACKAGES:
         try:
             __import__(package['import_name'])
-            print(f"✅ Found {package['import_name']}")
         except ImportError:
             missing_packages.append(package)
-            print(f"❌ Missing {package['import_name']}")
 
     if not missing_packages:
         return True
@@ -260,7 +258,6 @@ class EngineManager:
                 'path': engine_file, 'name': engine_name,
                 'loaded': False, 'instance': None, 'data_folder': data_folder
             }
-            print(f"✅ Found engine: {engine_name}")
 
     def load_engine(self, engine_name):
         if engine_name not in self.available_engines:
@@ -277,10 +274,9 @@ class EngineManager:
                 inst = cls(str(info['data_folder']))
                 info['loaded'] = True
                 info['instance'] = inst
-                print(f"✅ Loaded engine: {engine_name}")
                 return inst
         except Exception as e:
-            print(f"❌ Failed to load engine {engine_name}: {e}")
+            pass
         return None
 
     def get_available_engines(self):
@@ -324,6 +320,7 @@ class ScientificToolkit:
         self.root.title("Scientific Toolkit")
         self.root.geometry("1400x850")
         self.settings = SettingsManager(self)
+        self._is_closing = False
 
         # Apply theme: ui.theme takes priority; fall back to theme.name
         saved_theme = self.settings.get('ui', 'theme') or self.settings.get('theme', 'name')
@@ -375,7 +372,6 @@ class ScientificToolkit:
 
         self.data_hub.register_observer(self.center)
         self.data_hub.register_observer(self.right)
-        self._update_status("Ready")
 
         if self.settings.get('tooltips', 'enabled'):
             self.root.after(500, self._add_tooltips_to_panels)
@@ -402,9 +398,7 @@ class ScientificToolkit:
                     for info in self.chemical_elements.values():
                         for var in info["variations"]:
                             self.element_reverse_map[var] = info["standard"]
-                    print(f"✅ Loaded {len(self.chemical_elements)} chemical elements")
             except Exception as e:
-                print(f"⚠️ Error loading chemical elements: {e}")
                 self.chemical_elements = {}
                 self.element_reverse_map = {}
         else:
@@ -416,37 +410,79 @@ class ScientificToolkit:
             self.unsaved_indicator.configure(text="")
 
     def _on_closing(self):
-        if hasattr(self, 'settings'):
-            self.settings.update_last_session(
-                window_geometry=self.root.geometry(),
-                last_project=self.project_manager.current_project_file
-            )
-        if self.data_hub.has_unsaved_changes():
+        """Handle application closing"""
+        self._is_closing = True  # Set flag first
+
+        if hasattr(self, 'data_hub') and self.data_hub.has_unsaved_changes():
             response = messagebox.askyesnocancel(
                 "Unsaved Changes",
                 "You have unsaved changes.\n\nYes: Save now\nNo: Exit without saving\nCancel: Stay"
             )
             if response is None:
+                self._is_closing = False  # Reset flag if staying
                 return
             elif response:
                 if not self.project_manager.save_project():
+                    self._is_closing = False  # Reset flag if save cancelled
                     return
+
+        # Stop auto-save if it exists
         if hasattr(self, 'auto_save') and self.auto_save:
             self.auto_save.stop()
+
+        # Destroy the window
         self.root.destroy()
 
     def _open_settings(self):
-        SettingsDialog(self.root, self.settings)
+        dialog = SettingsDialog(self.root, self.settings)
+        self.root.wait_window(dialog.window)
         self._reapply_settings()
 
     def _reapply_settings(self):
+        # Recent files — always exists, just sync the max count
         if hasattr(self, 'recent_files'):
             self.recent_files.max_recent = self.settings.get('recent_files', 'max_files')
-        if hasattr(self, 'tooltip_manager'):
-            if self.settings.get('tooltips', 'enabled'):
-                self.root.after(500, self._add_tooltips_to_panels)
+
+        # Auto-save — create or destroy the manager object
+        if self.settings.get('auto_save', 'enabled'):
+            if not self.auto_save:
+                self.auto_save = AutoSaveManager(
+                    self, auto_save_interval=self.settings.get('auto_save', 'interval')
+                )
             else:
-                self.tooltip_manager.clear_all()
+                self.auto_save.auto_save_interval = self.settings.get('auto_save', 'interval')
+        else:
+            if self.auto_save:
+                self.auto_save.stop()
+                self.auto_save = None
+
+        # Macro recorder — create or destroy the recorder object
+        if self.settings.get('macro_recorder', 'enabled'):
+            if not self.macro_recorder:
+                self.macro_recorder = MacroRecorder(self)
+        else:
+            self.macro_recorder = None
+
+        # Script exporter — create or destroy, then rewire the menu command
+        if self.settings.get('script_exporter', 'enabled'):
+            if not self.script_exporter:
+                self.script_exporter = ScriptExporter(self)
+        else:
+            self.script_exporter = None
+        try:
+            cmd = (self.script_exporter.export_current_workflow if self.script_exporter
+                   else lambda: messagebox.showinfo("Feature Disabled", "Script Exporter is disabled in Settings"))
+            self.file_menu.entryconfig("🐍 Export to Python/R Script", command=cmd)
+        except Exception:
+            pass
+
+        # Tooltips
+        if self.settings.get('tooltips', 'enabled'):
+            self.root.after(500, self._add_tooltips_to_panels)
+        else:
+            self.tooltip_manager.clear_all()
+
+        # Sync all menu states
         self._update_macro_menu_state()
 
     def _update_macro_menu_state(self):
@@ -507,46 +543,6 @@ class ScientificToolkit:
                 pass
         return {}
 
-    # NOTE: normalize_columns is superseded by LeftPanel._normalize_row() for file imports
-    # and validate_plugin_data() for plugin data. It is kept here only for potential
-    # external callers and may be removed in a future cleanup pass.
-    def normalize_columns(self, row_dict):
-        normalized = {}
-        notes_parts = []
-        seen = set()
-        if 'Sample_ID' in row_dict:
-            normalized['Sample_ID'] = str(row_dict['Sample_ID']).strip()
-        else:
-            found = False
-            for key, value in row_dict.items():
-                if self.element_reverse_map.get(key) == 'Sample_ID':
-                    normalized['Sample_ID'] = str(value).strip()
-                    found = True
-                    break
-            if not found:
-                normalized['Sample_ID'] = f"SAMPLE_{len(self.samples)+1:04d}"
-        for key, value in row_dict.items():
-            if key == 'Sample_ID' or value is None or str(value).strip() == '':
-                continue
-            clean_key = str(key).strip()
-            clean_val = str(value).strip()
-            if clean_key in self.element_reverse_map:
-                std = self.element_reverse_map[clean_key]
-                if std not in seen:
-                    try:
-                        normalized[std] = float(clean_val.replace(',', ''))
-                    except ValueError:
-                        normalized[std] = clean_val
-                    seen.add(std)
-            else:
-                notes_parts.append(f"{clean_key}: {clean_val}")
-        if 'Notes' in row_dict and row_dict['Notes']:
-            existing = str(row_dict['Notes']).strip()
-            if existing and existing.lower() != 'nan':
-                notes_parts.insert(0, existing)
-        normalized['Notes'] = ' | '.join(notes_parts) if notes_parts else ''
-        return normalized
-
     def validate_plugin_data(self, data_rows):
         if not data_rows:
             return []
@@ -604,8 +600,8 @@ class ScientificToolkit:
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Export CSV... (Ctrl+E)", command=self._export_csv, accelerator="Ctrl+E")
         self.file_menu.add_command(label="🐍 Export to Python/R Script",
-            command=self.script_exporter.export_current_workflow if self.script_exporter
-            else lambda: messagebox.showinfo("Feature Disabled", "Script Exporter is disabled"))
+            command=lambda: self.script_exporter.export_current_workflow() if self.script_exporter
+            else messagebox.showinfo("Feature Disabled", "Script Exporter is disabled in Settings"))
         self.file_menu.add_separator()
         self.recent_menu = tk.Menu(self.file_menu, tearoff=0)
         self.file_menu.add_cascade(label="📜 Recent Files", menu=self.recent_menu)
@@ -684,10 +680,6 @@ class ScientificToolkit:
             self.center.set_status("Plugin Manager not found", "error")
             messagebox.showerror("Error", f"Plugin Manager not found: {e}")
 
-    def _update_status(self, message):
-        print(f"Status: {message}")
-        self.root.update_idletasks()
-
     def _create_panels(self):
         self.main = ttk.Frame(self.root)
         self.main.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -696,7 +688,7 @@ class ScientificToolkit:
         self.main_pane.pack(fill=tk.BOTH, expand=True)
 
         self.left = LeftPanel(self.main_pane, self)
-        self.main_pane.add(self.left.frame, weight=1)
+        self.main_pane.add(self.left.frame, weight=2)
 
         self.center = CenterPanel(self.main_pane, self)
         self.main_pane.add(self.center.frame, weight=8)
@@ -791,12 +783,20 @@ class ScientificToolkit:
         self._check_unsaved_changes()
 
     def _check_unsaved_changes(self):
+        """Check for unsaved changes and update indicator"""
+        # Don't schedule next check if we're closing
+        if self._is_closing:
+            return
+
         if hasattr(self, 'data_hub') and hasattr(self, 'unsaved_indicator'):
             if self.data_hub.has_unsaved_changes():
                 self.unsaved_indicator.configure(text="●", bootstyle="danger")
             else:
                 self.unsaved_indicator.configure(text="○", bootstyle="secondary")
-        self.root.after(2000, self._check_unsaved_changes)
+
+        # Only schedule next check if we're not closing
+        if not self._is_closing:
+            self.root.after(2000, self._check_unsaved_changes)
 
     def _show_status_details(self):
         if not hasattr(self.center, 'last_operation'):
@@ -909,7 +909,7 @@ class ScientificToolkit:
                                     command=inst.open_window
                                 )
                 except Exception as e:
-                    print(f"❌ Failed to load {py_file.name}: {e}")
+                    pass
 
         software_dirs = [Path("plugins/software"), Path("plugins/add-ons")]
         software_loaded = False
@@ -957,7 +957,7 @@ class ScientificToolkit:
                                                                plugin_icon=info.get('icon', '🤖'),
                                                                plugin_instance=inst)
                 except Exception as e:
-                    print(f"❌ Failed to load {py_file.name}: {e}")
+                    pass
 
         if self.plot_plugin_types:
             self.center.update_plot_types(self.plot_plugin_types)

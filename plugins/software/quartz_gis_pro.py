@@ -3657,6 +3657,5 @@ class QuartzGISPlugin:
 
 def setup_plugin(main_app):
     """Plugin setup function"""
-    print(f"🌍 Quartz GIS v1.4.0 loading...")
     plugin = QuartzGISPlugin(main_app)
     return plugin

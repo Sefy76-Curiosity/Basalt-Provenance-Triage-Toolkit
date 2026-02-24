@@ -1581,6 +1581,5 @@ class PublicationLayoutsPlugin:
 # ============================================================================
 def setup_plugin(main_app):
     """Plugin setup function"""
-    print("📐 Publication Layouts Pro v2.0 loading...")
     plugin = PublicationLayoutsPlugin(main_app)
     return plugin

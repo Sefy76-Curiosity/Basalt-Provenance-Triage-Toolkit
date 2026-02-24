@@ -367,7 +367,8 @@ class PluginManager(tk.Toplevel):
         """Test a single source and return results with timing and data."""
         import time
         start_time = time.time()
-        url = source["index_url"] + "&nocache=" + str(random.random())
+        sep = "&" if "?" in source["index_url"] else "?"
+        url = source["index_url"] + sep + "nocache=" + str(random.random())
 
         try:
             with urllib.request.urlopen(url, timeout=10) as response:
@@ -503,8 +504,29 @@ class PluginManager(tk.Toplevel):
         text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
         scroll.pack(side=tk.RIGHT, fill=tk.Y, pady=5)
 
+        import queue as _queue
+
         def run():
-            text.insert(tk.END, f"$ pip install {' '.join(packages)}\n\n")
+            output_queue = _queue.Queue()
+            done_event = [False]
+
+            def poll():
+                try:
+                    while True:
+                        line = output_queue.get_nowait()
+                        text.insert(tk.END, line)
+                        text.see(tk.END)
+                except _queue.Empty:
+                    pass
+                if not done_event[0]:
+                    win.after(50, poll)
+
+            win.after(50, poll)
+
+            def _append(s):
+                output_queue.put(s)
+
+            _append(f"$ pip install {' '.join(packages)}\n\n")
             proc = subprocess.Popen(
                 [sys.executable, "-m", "pip", "install"] + packages,
                 stdout=subprocess.PIPE,
@@ -513,22 +535,17 @@ class PluginManager(tk.Toplevel):
                 bufsize=1
             )
             for line in proc.stdout:
-                text.insert(tk.END, line)
-                text.see(tk.END)
-                win.update()
+                _append(line)
             proc.wait()
+            done_event[0] = True
 
             if proc.returncode == 0:
-                text.insert(tk.END, "\n✅ SUCCESS! Dependencies installed.\n")
-                text.insert(tk.END, "Closing window in 2 seconds...\n")
-                win.update()
-                # Auto-close after 2 seconds
+                _append("\n✅ SUCCESS! Dependencies installed.\n")
+                _append("Closing window in 2 seconds...\n")
                 win.after(2000, win.destroy)
-                # Refresh the view
                 self.after(0, lambda: self._refresh_category(self.category_var.get()))
             else:
-                text.insert(tk.END, f"\n❌ FAILED (code {proc.returncode})\n")
-                # Keep window open on failure so user can see the error
+                _append(f"\n❌ FAILED (code {proc.returncode})\n")
 
         threading.Thread(target=run, daemon=True).start()
 
@@ -888,7 +905,9 @@ class PluginManager(tk.Toplevel):
             try:
                 with open(index_path, 'r') as f:
                     existing = json.load(f)
-                if len(existing) == len(current_plugins):
+                existing_ids = {p['id'] for p in existing}
+                current_ids = {p['id'] for p in current_plugins}
+                if existing_ids == current_ids:
                     needs_update = False
             except:
                 pass
@@ -936,7 +955,7 @@ class PluginManager(tk.Toplevel):
 
         def download():
             try:
-                status.config(text="Connecting...")
+                progress.after(0, lambda: status.config(text="Connecting..."))
                 with urllib.request.urlopen(download_url, timeout=15) as response:
                     with tempfile.NamedTemporaryFile(mode='wb', delete=False, dir=target_folder, suffix='.tmp') as tmp:
                         sha256 = hashlib.sha256()
@@ -952,10 +971,9 @@ class PluginManager(tk.Toplevel):
                             downloaded += len(chunk)
                             if total_size:
                                 percent = int(100 * downloaded / total_size)
-                                status.config(text=f"Downloaded {percent}%")
+                                progress.after(0, lambda p=percent: status.config(text=f"Downloaded {p}%"))
                             else:
-                                status.config(text=f"Downloaded {downloaded} bytes")
-                            progress.update()
+                                progress.after(0, lambda d=downloaded: status.config(text=f"Downloaded {d} bytes"))
                         tmp_path = tmp.name
 
                 if expected_sha256:

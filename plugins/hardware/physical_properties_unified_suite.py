@@ -10,7 +10,7 @@ Physical Properties Unified Suite v3.1 - THE SEDIMENT COVENANT [PRODUCTION]
 PLUGIN_INFO = {
     "category": "hardware",
     "id": "physical_properties_unified_suite",
-    "name": "Physical Properties Unified Suite",
+    "name": "Physical Properties Suite",
     "icon": "🧲",
     "description": "MagSus · Granulometer · Caliper — PRODUCTION READY · Thread-safe · Real SPC",
     "version": "3.1.0",

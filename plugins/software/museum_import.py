@@ -784,7 +784,7 @@ class MuseumImportDialog(tk.Toplevel):
 
         ttk.Label(top, text="Museum:").grid(row=0, column=0, sticky='w')
         self.museum_combo = ttk.Combobox(top, values=[m[0] for m in MUSEUMS],
-                                          state='readonly', width=70)
+                                        state='readonly', width=70)
         self.museum_combo.grid(row=0, column=1, padx=5, sticky='ew')
         self.museum_combo.bind('<<ComboboxSelected>>', self._on_museum_select)
         top.columnconfigure(1, weight=1)
@@ -835,11 +835,23 @@ class MuseumImportDialog(tk.Toplevel):
         self.tree.column('date', width=100)
         self.tree.column('culture', width=150)
 
-        # Configure tag colors
-        self.tree.tag_configure('green', background='#e6ffe6')
-        self.tree.tag_configure('blue', background='#e6f3ff')
-        self.tree.tag_configure('yellow', background='#fff9e6')
-        self.tree.tag_configure('info', background='#e0e0e0', foreground='#666666')
+        # FIX: Use theme-aware colors instead of hardcoded ones
+        style = ttk.Style()
+
+        # Get theme colors - these adapt to light/dark themes
+        bg_color = style.lookup('TLabel', 'background') or '#ffffff'
+        fg_color = style.lookup('TLabel', 'foreground') or '#000000'
+        select_bg = style.lookup('Treeview', 'background', ['selected']) or '#347083'
+
+        # Create subtle variants based on theme
+        self.tree.tag_configure('green', background=bg_color)  # Just use normal background
+        self.tree.tag_configure('blue', background=bg_color)   # All normal rows look the same
+        self.tree.tag_configure('yellow', background=bg_color)
+
+        # Info tag slightly dimmed but readable
+        info_bg = style.lookup('TLabel', 'background', ['disabled']) or '#e0e0e0'
+        info_fg = style.lookup('TLabel', 'foreground', ['disabled']) or '#666666'
+        self.tree.tag_configure('info', background=info_bg, foreground=info_fg)
 
         vsb = ttk.Scrollbar(res_frame, orient='vertical', command=self.tree.yview)
         hsb = ttk.Scrollbar(res_frame, orient='horizontal', command=self.tree.xview)
@@ -864,11 +876,11 @@ class MuseumImportDialog(tk.Toplevel):
         self.results_label.pack(side=tk.LEFT, padx=20)
 
         self.prev_btn = ttk.Button(pagination_frame, text="◀ Previous",
-                                   command=self._prev_page, state='disabled')
+                                command=self._prev_page, state='disabled')
         self.prev_btn.pack(side=tk.LEFT, padx=2)
 
         self.next_btn = ttk.Button(pagination_frame, text="Next 20 ▶",
-                                   command=self._next_page, state='disabled')
+                                command=self._next_page, state='disabled')
         self.next_btn.pack(side=tk.LEFT, padx=2)
 
         # Bottom buttons
@@ -884,7 +896,7 @@ class MuseumImportDialog(tk.Toplevel):
         self.sel_label.pack(side=tk.LEFT, padx=20)
 
         ttk.Button(bottom, text="📥 Import Selected", command=self._import_selected,
-                  style="Accent.TButton").pack(side=tk.RIGHT, padx=2)
+                style="Accent.TButton").pack(side=tk.RIGHT, padx=2)
         ttk.Button(bottom, text="Close", command=self.destroy).pack(side=tk.RIGHT, padx=2)
 
     def _on_museum_select(self, event=None):
