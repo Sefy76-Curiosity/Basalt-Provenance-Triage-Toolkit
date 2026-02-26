@@ -12,14 +12,340 @@ APP_INFO = {
     "min_plugins_version": "2.0",
 }
 
+# ============ DEPENDENCY CHECKER (SINGLE VERSION) ============
+import subprocess
+import sys
+import importlib.util
+import tkinter as tk
+from tkinter import messagebox, scrolledtext, ttk
+import threading
+import os
+from pathlib import Path
+import ast
+
+def scan_plugin_imports(plugin_dir):
+    """Scan a plugin directory for imports and return detected dependencies"""
+    plugin_deps = {}
+
+    if not plugin_dir.exists():
+        return plugin_deps
+
+    # Common mappings from import name to pip package name
+    IMPORT_TO_PIP = {
+        'ttkbootstrap': 'ttkbootstrap',
+        'pandas': 'pandas',
+        'odf': 'odfpy',
+        'openpyxl': 'openpyxl',
+        'xlrd': 'xlrd',
+        'numpy': 'numpy',
+        'packaging': 'packaging',
+        'pyvisa': 'PyVISA',
+        'PIL': 'pillow',
+        'matplotlib': 'matplotlib',
+        'sklearn': 'scikit-learn',
+        'scipy': 'scipy',
+        'yaml': 'pyyaml',
+        'bs4': 'beautifulsoup4',
+        'requests': 'requests',
+        'serial': 'pyserial',
+        'flask': 'flask',
+        'dash': 'dash',
+        'plotly': 'plotly',
+        'seaborn': 'seaborn',
+        'statsmodels': 'statsmodels',
+        'sympy': 'sympy',
+        'xlwings': 'xlwings',
+        'reportlab': 'reportlab',
+        'pdfkit': 'pdfkit',
+        'markdown': 'markdown',
+        'jinja2': 'jinja2',
+    }
+
+    # Scan each Python file in the plugin directory
+    for py_file in plugin_dir.glob("*.py"):
+        if py_file.stem in ["__init__", "plugin_manager"]:
+            continue
+
+        try:
+            with open(py_file, 'r', encoding='utf-8') as f:
+                tree = ast.parse(f.read())
+
+            plugin_imports = set()
+
+            for node in ast.walk(tree):
+                # Handle: import x, y
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        base_import = alias.name.split('.')[0]
+                        plugin_imports.add(base_import)
+
+                # Handle: from x import y
+                elif isinstance(node, ast.ImportFrom) and node.module:
+                    base_import = node.module.split('.')[0]
+                    plugin_imports.add(base_import)
+
+            # Check which imports are missing
+            missing_for_plugin = []
+            for imp in plugin_imports:
+                # Skip standard library
+                if imp in sys.builtin_module_names:
+                    continue
+
+                # Check if it's a third-party package
+                spec = importlib.util.find_spec(imp)
+                if spec is None and imp in IMPORT_TO_PIP:
+                    missing_for_plugin.append({
+                        'import_name': imp,
+                        'pip_name': IMPORT_TO_PIP[imp],
+                        'reason': f'Required by plugin: {py_file.stem}'
+                    })
+
+            if missing_for_plugin:
+                plugin_deps[py_file.stem] = missing_for_plugin
+
+        except Exception as e:
+            print(f"Error scanning {py_file}: {e}")
+
+    return plugin_deps
+
+def check_main_app_dependencies():
+    """Check for main app required packages"""
+    MAIN_APP_PACKAGES = [
+        {'import_name': 'ttkbootstrap', 'pip_name': 'ttkbootstrap',
+         'reason': 'Required for modern themed UI'},
+        {'import_name': 'pandas', 'pip_name': 'pandas',
+         'reason': 'Required for Excel and LibreOffice ODS file import'},
+        {'import_name': 'odf', 'pip_name': 'odfpy',
+         'reason': 'Required for LibreOffice ODS file import'},
+        {'import_name': 'openpyxl', 'pip_name': 'openpyxl',
+         'reason': 'Required for modern Excel files (.xlsx)'},
+        {'import_name': 'xlrd', 'pip_name': 'xlrd',
+         'reason': 'Required for older Excel files (.xls)'},
+        {'import_name': 'numpy', 'pip_name': 'numpy',
+         'reason': 'Required for numerical operations'},
+        {'import_name': 'packaging', 'pip_name': 'packaging',
+         'reason': 'Required for version comparison'},
+        {'import_name': 'pyvisa', 'pip_name': 'PyVISA',
+         'reason': 'Required for hardware communication'},
+    ]
+
+    missing = []
+    for package in MAIN_APP_PACKAGES:
+        spec = importlib.util.find_spec(package['import_name'])
+        if spec is None:
+            missing.append(package)
+
+    return missing
+
+def install_packages(missing_packages, title="Installing Dependencies", auto_continue=True):
+    """Install missing packages with progress dialog"""
+    if not missing_packages:
+        return True
+
+    install_root = tk.Tk()
+    install_root.title(title)
+    install_root.geometry("600x400")
+
+    # Center window
+    ws = install_root.winfo_screenwidth()
+    hs = install_root.winfo_screenheight()
+    x = (ws//2) - (600//2)
+    y = (hs//2) - (400//2)
+    install_root.geometry(f"+{x}+{y}")
+    install_root.resizable(False, False)
+
+    # Header
+    tk.Label(install_root, text=f"📦 {title}",
+             font=("Segoe UI", 14, "bold")).pack(pady=20)
+
+    status_var = tk.StringVar(value="Preparing installation...")
+    tk.Label(install_root, textvariable=status_var,
+             font=("Segoe UI", 10)).pack(pady=10)
+
+    # Progress bar
+    progress = ttk.Progressbar(install_root, mode='indeterminate', length=500)
+    progress.pack(pady=10)
+    progress.start(10)
+
+    # Output text area
+    text_frame = tk.Frame(install_root)
+    text_frame.pack(pady=10, padx=20, fill=tk.BOTH, expand=True)
+
+    output_text = scrolledtext.ScrolledText(text_frame, height=12, width=70, font=("Courier", 9))
+    output_text.pack(fill=tk.BOTH, expand=True)
+
+    # Status message
+    status_message = tk.Label(install_root, text="", font=("Segoe UI", 9), fg="green")
+    status_message.pack(pady=5)
+
+    installation_complete = False
+    all_success = False
+
+    def auto_continue_msg():
+        if auto_continue:
+            status_message.config(text="✓ Installation complete! Continuing...")
+            install_root.after(1500, install_root.destroy)
+
+    def run_installation():
+        nonlocal installation_complete, all_success
+        packages_to_install = list({p['pip_name']: p for p in missing_packages}.values())
+        all_success = True
+
+        install_root.after(0, lambda: output_text.insert(tk.END,
+            f"Starting installation of {len(packages_to_install)} packages...\n\n"))
+
+        for i, package in enumerate(packages_to_install):
+            def update_status(pkg, idx):
+                status_var.set(f"Installing {pkg['pip_name']} ({idx+1}/{len(packages_to_install)})...")
+                output_text.insert(tk.END, f"\n[{idx+1}/{len(packages_to_install)}] Installing {pkg['pip_name']}...\n")
+                output_text.see(tk.END)
+
+            install_root.after(0, lambda p=package, idx=i: update_status(p, idx))
+
+            try:
+                result = subprocess.run(
+                    [sys.executable, "-m", "pip", "install", package['pip_name'], "--quiet"],
+                    capture_output=True, text=True, timeout=120
+                )
+
+                if result.returncode == 0:
+                    install_root.after(0, lambda p=package: output_text.insert(tk.END,
+                        f"  ✅ Successfully installed {p['pip_name']}\n"))
+                else:
+                    error_msg = result.stderr[:200] + "..." if len(result.stderr) > 200 else result.stderr
+                    install_root.after(0, lambda p=package, e=error_msg: output_text.insert(tk.END,
+                        f"  ❌ Failed to install {p['pip_name']}\n     Error: {e}\n"))
+                    all_success = False
+            except Exception as e:
+                install_root.after(0, lambda p=package, err=str(e): output_text.insert(tk.END,
+                    f"  ❌ Error installing {p['pip_name']}: {err}\n"))
+                all_success = False
+
+            install_root.after(0, lambda: output_text.see(tk.END))
+
+        install_root.after(0, progress.stop)
+
+        if all_success:
+            install_root.after(0, lambda: status_var.set("✅ All packages installed successfully!"))
+            install_root.after(0, lambda: output_text.insert(tk.END,
+                "\n\n" + "="*50 + "\n✅ ALL PACKAGES INSTALLED SUCCESSFULLY!\n" + "="*50 + "\n"))
+            install_root.after(0, auto_continue_msg)
+        else:
+            install_root.after(0, lambda: status_var.set("⚠️ Some packages failed to install"))
+            install_root.after(0, lambda: output_text.insert(tk.END,
+                "\n\n" + "="*50 + "\n⚠️ SOME PACKAGES FAILED TO INSTALL\n" + "="*50 + "\n"))
+            if auto_continue:
+                install_root.after(3000, install_root.destroy)
+
+        installation_complete = True
+
+    threading.Thread(target=run_installation, daemon=True).start()
+
+    def on_closing():
+        install_root.destroy()
+
+    install_root.protocol("WM_DELETE_WINDOW", on_closing)
+    install_root.mainloop()
+
+    return all_success
+
+def check_and_install_all_dependencies():
+    """Main dependency checker - handles main app and plugins"""
+    # Step 1: Check main app dependencies
+    print("Checking main application dependencies...")
+    main_missing = check_main_app_dependencies()
+
+    if main_missing:
+        print(f"Found {len(main_missing)} missing main app packages")
+        if not install_packages(main_missing, "Installing Main App Dependencies"):
+            response = messagebox.askyesno(
+                "Installation Issues",
+                "Some main app packages failed to install.\n\nContinue anyway?"
+            )
+            if not response:
+                return False
+    else:
+        print("All main app dependencies satisfied")
+
+    # Step 2: Scan plugins for additional dependencies
+    print("Scanning plugins for additional dependencies...")
+
+    plugins_base = Path(__file__).parent / "plugins"
+    all_plugin_deps = {}
+
+    # Scan each plugin directory
+    for plugin_type in ['hardware', 'software', 'add-ons']:
+        plugin_dir = plugins_base / plugin_type
+        if plugin_dir.exists():
+            deps = scan_plugin_imports(plugin_dir)
+            if deps:
+                all_plugin_deps[plugin_type] = deps
+
+    # Step 3: If plugins need dependencies, ask user
+    if all_plugin_deps:
+        # Build summary message
+        summary = "The following plugins require additional packages:\n\n"
+        total_plugins = 0
+        all_needed_packages = []
+
+        for plugin_type, plugins in all_plugin_deps.items():
+            summary += f"\n📁 {plugin_type.upper()}:\n"
+            for plugin_name, deps in plugins.items():
+                total_plugins += 1
+                packages = [d['pip_name'] for d in deps]
+                summary += f"  • {plugin_name} needs: {', '.join(packages)}\n"
+                all_needed_packages.extend(deps)
+
+        # Remove duplicates
+        unique_needed = list({p['pip_name']: p for p in all_needed_packages}.values())
+
+        summary += f"\nTotal: {total_plugins} plugins need {len(unique_needed)} additional packages"
+
+        # Ask user
+        response = messagebox.askyesno(
+            "Plugin Dependencies Found",
+            summary + "\n\nWould you like to install these packages now?\n\n"
+            "Yes: Install now\n"
+            "No: Continue without installing (plugins may not work properly)"
+        )
+
+        if response:
+            install_packages(unique_needed, "Installing Plugin Dependencies")
+
+    # Step 4: Final verification and cleanup
+    importlib.invalidate_caches()
+
+    # One final check for critical packages
+    critical_missing = []
+    for critical in ['ttkbootstrap', 'numpy']:
+        if importlib.util.find_spec(critical) is None:
+            critical_missing.append(critical)
+
+    if critical_missing:
+        messagebox.showerror(
+            "Critical Packages Missing",
+            f"Critical packages are still missing: {', '.join(critical_missing)}\n\n"
+            "The application cannot run without these.\n"
+            "Please install them manually: pip install " + " ".join(critical_missing)
+        )
+        return False
+
+    return True
+
+# Run dependency check before any third-party imports
+if not check_and_install_all_dependencies():
+    sys.exit(1)
+
+# Clear any import caches to ensure fresh imports after installation
+importlib.invalidate_caches()
+
+# Now safe to import third-party packages
 import engines
 import engines.classification_engine
-import tkinter as tk
-from tkinter import messagebox, filedialog
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-import importlib.util
 import sys, traceback
+
 
 def excepthook(exc_type, exc_value, exc_traceback):
     with open('error.log', 'a') as f:
@@ -46,138 +372,6 @@ from features.project_manager import ProjectManager
 from features.script_exporter import ScriptExporter
 from features.auto_save import AutoSaveManager
 from features.settings_manager import SettingsManager, SettingsDialog
-
-# ============ DEPENDENCY CHECKER ============
-def check_and_install_dependencies():
-    """Check for required packages and offer to install missing ones"""
-    from tkinter import scrolledtext
-    import subprocess
-    import threading
-
-    REQUIRED_PACKAGES = [
-        {'import_name': 'pandas', 'pip_name': 'pandas', 'reason': 'Required for Excel and LibreOffice ODS file import'},
-        {'import_name': 'odf', 'pip_name': 'odfpy', 'reason': 'Required for LibreOffice ODS file import'},
-        {'import_name': 'openpyxl', 'pip_name': 'openpyxl', 'reason': 'Required for modern Excel files (.xlsx)'},
-        {'import_name': 'xlrd', 'pip_name': 'xlrd', 'reason': 'Required for older Excel files (.xls)'},
-        {'import_name': 'numpy', 'pip_name': 'numpy', 'reason': 'Required for numerical operations'},
-        {'import_name': 'packaging', 'pip_name': 'packaging', 'reason': 'Required for version comparison'},
-    ]
-
-    missing_packages = []
-    for package in REQUIRED_PACKAGES:
-        try:
-            __import__(package['import_name'])
-        except ImportError:
-            missing_packages.append(package)
-
-    if not missing_packages:
-        return True
-
-    root = tk.Tk()
-    root.withdraw()
-
-    package_list = "\n".join([f"  • {p['pip_name']} - {p['reason']}" for p in missing_packages])
-    message = (f"The following required packages are missing:\n\n{package_list}\n\n"
-               "Would you like to install them now?\n\n"
-               "This will run: pip install " + " ".join([p['pip_name'] for p in missing_packages]))
-
-    response = messagebox.askyesno("Missing Dependencies", message, parent=root)
-
-    if response:
-        root.destroy()
-        install_root = tk.Tk()
-        install_root.title("Installing Dependencies")
-        install_root.geometry("600x400")
-
-        ws = install_root.winfo_screenwidth()
-        hs = install_root.winfo_screenheight()
-        x = (ws//2) - (600//2)
-        y = (hs//2) - (400//2)
-        install_root.geometry(f"+{x}+{y}")
-        install_root.resizable(False, False)
-
-        tk.Label(install_root, text="📦 Installing Packages",
-                font=("Segoe UI", 14, "bold")).pack(pady=20)
-
-        status_var = tk.StringVar(value="Preparing installation...")
-        tk.Label(install_root, textvariable=status_var,
-                font=("Segoe UI", 10)).pack(pady=10)
-
-        progress = ttk.Progressbar(install_root, mode='indeterminate', length=500)
-        progress.pack(pady=10)
-        progress.start(10)
-
-        text_frame = ttk.Frame(install_root)
-        text_frame.pack(pady=10, padx=20, fill=tk.BOTH, expand=True)
-
-        output_text = scrolledtext.ScrolledText(text_frame, height=12, width=70, font=("Courier", 9))
-        output_text.pack(fill=tk.BOTH, expand=True)
-
-        installation_complete = False
-
-        def safe_close():
-            if installation_complete:
-                install_root.destroy()
-            else:
-                messagebox.showinfo("Please Wait", "Installation is still in progress.")
-
-        close_btn = ttk.Button(install_root, text="Close", state=tk.DISABLED, command=safe_close)
-        close_btn.pack(pady=10)
-
-        def run_installation():
-            nonlocal installation_complete
-            packages_to_install = [p['pip_name'] for p in missing_packages]
-            all_success = True
-
-            for i, package in enumerate(packages_to_install):
-                install_root.after(0, lambda p=package, idx=i: status_var.set(f"Installing {p} ({idx+1}/{len(packages_to_install)})..."))
-                install_root.after(0, lambda p=package: output_text.insert(tk.END, f"\nInstalling {package}...\n"))
-                install_root.after(0, lambda: output_text.see(tk.END))
-
-                try:
-                    result = subprocess.run(
-                        [sys.executable, "-m", "pip", "install", package],
-                        capture_output=True, text=True, timeout=120
-                    )
-                    if result.returncode == 0:
-                        install_root.after(0, lambda p=package: output_text.insert(tk.END, f"✅ Successfully installed {p}\n"))
-                    else:
-                        install_root.after(0, lambda p=package, e=result.stderr: output_text.insert(tk.END, f"❌ Failed to install {p}\nError: {e}\n"))
-                        all_success = False
-                except Exception as e:
-                    install_root.after(0, lambda p=package, err=str(e): output_text.insert(tk.END, f"❌ Error installing {p}: {err}\n"))
-                    all_success = False
-
-                install_root.after(0, lambda: output_text.see(tk.END))
-
-            install_root.after(0, progress.stop)
-            if all_success:
-                install_root.after(0, lambda: status_var.set("✅ All packages installed successfully!"))
-                install_root.after(0, lambda: output_text.insert(tk.END, "\n\n✅ Installation complete!\n"))
-                install_root.after(2000, install_root.destroy)
-            else:
-                install_root.after(0, lambda: status_var.set("⚠️ Some packages failed to install"))
-                install_root.after(0, lambda: output_text.insert(tk.END, "\n\n⚠️ Some packages failed.\n"))
-
-            installation_complete = True
-            install_root.after(0, lambda: close_btn.config(state=tk.NORMAL, text="Continue to Application"))
-
-        threading.Thread(target=run_installation, daemon=True).start()
-        install_root.mainloop()
-
-        try:
-            for package in missing_packages:
-                __import__(package['import_name'])
-            return True
-        except ImportError:
-            return False
-    else:
-        root.destroy()
-        response = messagebox.askyesno(
-            "Continue Without Dependencies?",
-            "Some features will not be available.\n\nDo you want to continue anyway?"
-        )
-        return response
 
 # ============ MESSAGEBOX PARENT PATCH ============
 _messagebox_root = None
@@ -601,7 +795,7 @@ class ScientificToolkit:
         self.file_menu.add_command(label="Export CSV... (Ctrl+E)", command=self._export_csv, accelerator="Ctrl+E")
         self.file_menu.add_command(label="🐍 Export to Python/R Script",
             command=lambda: self.script_exporter.export_current_workflow() if self.script_exporter
-            else messagebox.showinfo("Feature Disabled", "Script Exporter is disabled in Settings"))
+            else lambda: messagebox.showinfo("Feature Disabled", "Script Exporter is disabled in Settings"))
         self.file_menu.add_separator()
         self.recent_menu = tk.Menu(self.file_menu, tearoff=0)
         self.file_menu.add_cascade(label="📜 Recent Files", menu=self.recent_menu)
@@ -1321,9 +1515,7 @@ Right-Click     Context Menu (Edit, Copy, Delete)
 
 # ============ MAIN ============
 def main():
-    if not check_and_install_dependencies():
-        return
-
+    # Run the unified dependency checker (already ran at import)
     root = ttk.Window(themename="darkly")
     root.withdraw()
     set_messagebox_parent(root)

@@ -293,6 +293,22 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/ternary_plotter.py?ref_type=heads"
   },
   {
+    "id": "electrochemistry_analysis_suite",
+    "name": "Electrochemistry Suite",
+    "version": "1.0.0",
+    "description": "CV \u00b7 EIS \u00b7 Tafel \u00b7 Battery \u00b7 Chrono \u00b7 RDE \u2014 Industry standard methods",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\u26a1",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/electrochemistry_analysis_suite.py?ref_type=heads"
+  },
+  {
     "id": "museum_import",
     "name": "Museum Database Pro",
     "version": "2.0.0",
@@ -351,21 +367,6 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/advanced_normative_calculations.py?ref_type=heads"
   },
   {
-    "id": "advanced_petrogenetic_models",
-    "name": "Advanced Petrogenetic Models",
-    "version": "1.0.0",
-    "description": "AFC \u00b7 Zone Refining \u00b7 In-Situ Crystallization \u2014 Complete magma evolution models",
-    "author": "Sefy Levy & DeepSeek",
-    "category": "software",
-    "icon": "\u2697\ufe0f",
-    "requires": [
-      "numpy",
-      "scipy",
-      "matplotlib"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/advanced_petrogenetic_models.py?ref_type=heads"
-  },
-  {
     "id": "ague_hg_mobility",
     "name": "Ague Hg Mobility",
     "version": "1.3",
@@ -380,6 +381,71 @@
       "scipy"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/ague_hg_mobility.py?ref_type=heads"
+  },
+  {
+    "id": "archaeometry_analysis_suite_ultimate",
+    "name": "Archaeometry Analysis Suite",
+    "version": "2.0.0",
+    "description": "XRD Rietveld \u00b7 EDS ZAF/\u03a6\u03c1\u03b6 \u00b7 CT Otsu/Watershed \u00b7 OSL CAM/FMM \u00b7 GPR Hilbert \u00b7 TS LS \u00b7 Munsell Lab\u2194HVC",
+    "author": "Sefy Levy & Claude",
+    "category": "software",
+    "icon": "\ud83c\udffa",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib",
+      "pillow"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/archaeology_archaeometry_software_suite.py?ref_type=heads"
+  },
+  {
+    "id": "barcode_scanner_suite",
+    "name": "Barcode Scanner Suite",
+    "version": "1.0.0",
+    "description": "Batch Processing \u00b7 Duplicate Detection \u00b7 Sample Tracking \u00b7 Label Printing \u00b7 Inventory \u00b7 Audit \u00b7 Reconciliation \u2014 GS1/ISO/FDA compliant",
+    "author": "Sefy Levy & Claude",
+    "category": "software",
+    "icon": "\ud83d\udcf7",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/barcode_scanner_suite.py?ref_type=heads"
+  },
+  {
+    "id": "chromatography_analysis_suite",
+    "name": "Chromatography Suite",
+    "version": "1.0.0",
+    "description": "Peak integration \u00b7 Kovats indices \u00b7 AMDIS \u00b7 NMR FID \u00b7 Standard curves \u00b7 Resolution \u00b7 Peak purity \u2014 USP/ICH compliant",
+    "author": "Sefy Levy & Claude",
+    "category": "software",
+    "icon": "\ud83e\uddea",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/chromatography_analysis_suite.py?ref_type=heads"
+  },
+  {
+    "id": "clinical_diagnostics_suite",
+    "name": "Clinical Diagnostics Suite",
+    "version": "1.0.0",
+    "description": "qPCR \u00b7 \u0394\u0394Ct \u00b7 ELISA \u00b7 Flow Cytometry \u00b7 ddPCR \u00b7 HRM \u00b7 Reference Ranges \u2014 CLSI/ICH compliant",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83e\uddea",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/clinical_diagnostics_analysis_suite.py?ref_type=heads"
   },
   {
     "id": "compositional_stats_pro",
@@ -458,6 +524,311 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/demo_data_generator.py?ref_type=heads"
   },
   {
+    "id": "pca_lda_explorer",
+    "name": "PCA+LDA Explorer Pro",
+    "version": "2.1",
+    "description": "Complete statistical suite - PCA, LDA, PLS-DA, RF, SVM, t-SNE, Clustering, Correlation, Regression, Statistical Tests",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\ud83d\udcca",
+    "requires": [
+      "scikit-learn",
+      "matplotlib",
+      "numpy",
+      "pandas",
+      "scipy",
+      "seaborn"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/pca_lda_explorer.py?ref_type=heads"
+  },
+  {
+    "id": "petrogenetic_modeling_suite",
+    "name": "Petrogenetic Modeling Suite",
+    "version": "2.0.0",
+    "description": "Complete magma evolution: AFC \u00b7 Fractional \u00b7 Zone Refining \u00b7 Mixing \u00b7 Partial Melting \u00b7 Phase Diagrams \u00b7 MELTS",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83c\udf0b",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib",
+      "pandas",
+      "petthermotools",
+      "juliapkg"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/petrogenetic_modeling_suite.py?ref_type=heads"
+  },
+  {
+    "id": "photo_manager",
+    "name": "Photo Manager",
+    "version": "1.0",
+    "description": "Link sample photos, organize field photography, and open photo folders directly",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\ud83d\udcf7",
+    "requires": [],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/photo_manager.py?ref_type=heads"
+  },
+  {
+    "id": "physical_properties_suite",
+    "name": "Physical Properties Suite",
+    "version": "1.0.0",
+    "description": "Grain Size \u00b7 FORC \u00b7 AMS \u00b7 Settling \u00b7 PSD \u00b7 Shape \u00b7 End-Members \u2014 Sedimentology & Rock Magnetism",
+    "author": "Sefy Levy & Claude",
+    "category": "software",
+    "icon": "\ud83e\uddf2",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/physical_properties_suite.py?ref_type=heads"
+  },
+  {
+    "id": "physics_test_measurement_suite",
+    "name": "Physics TM Suite",
+    "version": "1.0.0",
+    "description": "FFT \u00b7 Pulse \u00b7 I-V \u00b7 LCR \u00b7 Allan \u00b7 Eye \u00b7 Statistics \u2014 IEEE/IEC compliant",
+    "author": "Sefy Levy & Claude",
+    "category": "software",
+    "icon": "\ud83d\udcdf",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/physics_test_measurement_suite.py?ref_type=heads"
+  },
+  {
+    "id": "publication_layouts",
+    "name": "Publication Layouts Pro",
+    "version": "2.0.0",
+    "description": "Professional multi-panel figure designer with main app integration",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83d\udcd0",
+    "requires": [
+      "matplotlib",
+      "numpy",
+      "pillow",
+      "seaborn"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/publication_layouts.py?ref_type=heads"
+  },
+  {
+    "id": "quartz_gis_pro",
+    "name": "Quartz GIS",
+    "version": "1.4.0",
+    "description": "Ultimate GIS for archaeologists - Measure, viewshed, attribute table, QGIS export!",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83c\udf0d",
+    "requires": [
+      "geopandas",
+      "shapely",
+      "pyproj",
+      "matplotlib",
+      "contextily",
+      "osmnx",
+      "descartes",
+      "mapclassify",
+      "rasterio",
+      "rioxarray",
+      "scipy"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/quartz_gis_pro.py?ref_type=heads"
+  },
+  {
+    "id": "report_generator",
+    "name": "Report Generator",
+    "version": "1.0",
+    "description": "Auto-generate excavation season reports, IAA submissions, and provenance summaries",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\ud83d\udcc4",
+    "requires": [
+      "python-docx"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/report_generator.py?ref_type=heads"
+  },
+  {
+    "id": "scripting_console",
+    "name": "Python Console",
+    "version": "1.0.0",
+    "description": "Interactive Python console, script editor, batch processing",
+    "author": "Scientific Toolkit",
+    "category": "software",
+    "icon": "\ud83d\udc0d",
+    "requires": [
+      "tkinter"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/scripting_console.py?ref_type=heads"
+  },
+  {
+    "id": "solution_chemistry_analysis_suite",
+    "name": "Solution Chemistry Suite",
+    "version": "1.0.0",
+    "description": "Speciation \u00b7 Titration \u00b7 Piper/Stiff \u00b7 WQI \u00b7 Saturation \u00b7 Mixing \u00b7 Reagent Water \u2014 USGS/ISO/ASTM compliant",
+    "author": "Sefy Levy & Claude",
+    "category": "software",
+    "icon": "\ud83d\udca7",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/solution_chemistry_suite.py?ref_type=heads"
+  },
+  {
+    "id": "spatial_kriging",
+    "name": "Spatial Kriging & Density",
+    "version": "3.2",
+    "description": "Industry-standard spatial interpolation with variogram analysis + KDE contouring",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83d\uddfa\ufe0f",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/spatial_kriging.py?ref_type=heads"
+  },
+  {
+    "id": "spectral_toolbox",
+    "name": "Spectral Processing Toolbox",
+    "version": "2.0",
+    "description": "MATLAB-like spectral analysis: peak detection, baseline correction, smoothing, derivatives, peak fitting",
+    "author": "Sefy Levy / AI Enhanced",
+    "category": "software",
+    "icon": "\ud83d\udcc9",
+    "requires": [
+      "numpy",
+      "scipy",
+      "pybaselines",
+      "lmfit",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/spectral_toolbox.py?ref_type=heads"
+  },
+  {
+    "id": "spectroscopy_analysis_suite",
+    "name": "Spectroscopy Analysis Suite",
+    "version": "1.0.0",
+    "description": "Library Search \u00b7 Calibration \u00b7 Baseline \u00b7 Peaks \u00b7 MCR \u00b7 Preprocessing \u00b7 Intensity \u2014 ASTM/NIST compliant",
+    "author": "Sefy Levy & Claude",
+    "category": "software",
+    "icon": "\ud83d\udd2c",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/spectroscopy_analysis_suite.py?ref_type=heads"
+  },
+  {
+    "id": "structural_suite",
+    "name": "Structural Suite",
+    "version": "1.1.0",
+    "description": "Stereonets \u00b7 Rose Diagrams \u00b7 Contouring \u2014 Complete structural toolkit",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83e\udded",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib",
+      "pandas"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/structural_suite.py?ref_type=heads"
+  },
+  {
+    "id": "thermal_analysis_suite",
+    "name": "Thermal Analysis Suite",
+    "version": "1.0.0",
+    "description": "DSC \u00b7 Tg \u00b7 Kinetics \u00b7 TGA \u00b7 DMA \u00b7 LFA \u00b7 Calorimetry \u2014 ASTM/ISO compliant",
+    "author": "Sefy Levy & Claude",
+    "category": "software",
+    "icon": "\ud83d\udd25",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/thermal_analysis_suite.py?ref_type=heads"
+  },
+  {
+    "id": "thermobarometry_suite",
+    "name": "Thermobarometry Suite",
+    "version": "2.0.0",
+    "description": "Publication-grade P-T toolkit: Pyroxene \u00b7 Feldspar \u00b7 Amphibole \u00b7 Olivine \u00b7 Garnet",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\ud83c\udf21\ufe0f",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib",
+      "pandas"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/thermobarometry_suite.py?ref_type=heads"
+  },
+  {
+    "id": "uncertainty_propagation",
+    "name": "Uncertainty Propagation",
+    "version": "1.0.2",
+    "description": "Monte Carlo classification, confidence ellipses, error propagation - NOW with Fast Mode & Safe Fallback!",
+    "author": "Sefy Levy",
+    "category": "software",
+    "icon": "\ud83c\udfb2",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/uncertainty_propagation.py?ref_type=heads"
+  },
+  {
+    "id": "virtual_microscopy_pro",
+    "name": "Virtual Microscopy Pro",
+    "version": "4.0.0",
+    "description": "Petrographic analysis + 3D archaeological mesh analysis",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "icon": "\ud83d\udd2c",
+    "requires": [
+      "numpy",
+      "matplotlib",
+      "pillow",
+      "scipy",
+      "pandas",
+      "trimesh"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/virtual_microscopy_pro.py?ref_type=heads"
+  },
+  {
+    "id": "zooarchaeology_analysis_suite",
+    "name": "Zooarchaeology Suite",
+    "version": "1.1.0",
+    "description": "NISP/MNI \u00b7 Age-at-Death \u00b7 Taphonomy \u00b7 3D Morphometrics \u00b7 Species ID \u00b7 Mortality \u00b7 Log-Ratio \u00b7 FTIR \u2014 Complete Archaeofauna Analysis",
+    "author": "Sefy Levy & Claude",
+    "category": "software",
+    "icon": "\ud83e\uddb4",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/zooarchaeology_analysis_suite.py?ref_type=heads"
+  },
+  {
     "id": "geochemical_explorer",
     "name": "Geochemical Explorer",
     "version": "1.0.0",
@@ -504,6 +875,22 @@
       "scikit-learn"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/geochronology_suite.py?ref_type=heads"
+  },
+  {
+    "id": "geophysics_analysis_suite",
+    "name": "Geophysics Analysis Suite",
+    "version": "1.0.0",
+    "description": "Seismic \u00b7 ERT \u00b7 Gravity \u00b7 Magnetics \u00b7 MT \u00b7 GPR \u00b7 Attributes \u2014 Industry standard methods",
+    "author": "Sefy Levy & Claude",
+    "category": "software",
+    "icon": "\ud83c\udf0d",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/geophysics_analysis_suite.py?ref_type=heads"
   },
   {
     "id": "gis_3d_viewer_pro",
@@ -618,242 +1005,52 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/lithic_morphometrics.py?ref_type=heads"
   },
   {
-    "id": "magma_modeling",
-    "name": "Magma Modeling",
-    "version": "2.0",
-    "description": "Complete magma evolution modeling with working implementations + Rhyolite-MELTS integration",
-    "author": "Sefy Levy & DeepSeek",
-    "category": "software",
-    "icon": "\ud83c\udf0b",
-    "requires": [
-      "numpy",
-      "matplotlib",
-      "scipy"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/magma_modeling.py?ref_type=heads"
-  },
-  {
-    "id": "pca_lda_explorer",
-    "name": "PCA+LDA Explorer Pro",
-    "version": "2.1",
-    "description": "Complete statistical suite - PCA, LDA, PLS-DA, RF, SVM, t-SNE, Clustering, Correlation, Regression, Statistical Tests",
-    "author": "Sefy Levy",
-    "category": "software",
-    "icon": "\ud83d\udcca",
-    "requires": [
-      "scikit-learn",
-      "matplotlib",
-      "numpy",
-      "pandas",
-      "scipy",
-      "seaborn"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/pca_lda_explorer.py?ref_type=heads"
-  },
-  {
-    "id": "petrogenetic_suite",
-    "name": "Petrogenetic Suite",
+    "id": "materials_science_analysis_suite",
+    "name": "Materials Science Suite",
     "version": "1.0.0",
-    "description": "AFC \u00b7 Fractional \u00b7 Zone Refining \u00b7 Mixing \u2014 Complete magma evolution models",
+    "description": "Tensile \u00b7 Nanoindentation \u00b7 BET \u00b7 DLS \u00b7 Rheology \u00b7 DMA \u00b7 Fatigue \u2014 Industry standard methods",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
-    "icon": "\ud83c\udf0b",
-    "requires": [
-      "numpy",
-      "scipy",
-      "matplotlib",
-      "pandas"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/petrogenetic_suite.py?ref_type=heads"
-  },
-  {
-    "id": "photo_manager",
-    "name": "Photo Manager",
-    "version": "1.0",
-    "description": "Link sample photos, organize field photography, and open photo folders directly",
-    "author": "Sefy Levy",
-    "category": "software",
-    "icon": "\ud83d\udcf7",
-    "requires": [],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/photo_manager.py?ref_type=heads"
-  },
-  {
-    "id": "publication_layouts",
-    "name": "Publication Layouts Pro",
-    "version": "2.0.0",
-    "description": "Professional multi-panel figure designer with main app integration",
-    "author": "Sefy Levy & DeepSeek",
-    "category": "software",
-    "icon": "\ud83d\udcd0",
-    "requires": [
-      "matplotlib",
-      "numpy",
-      "pillow",
-      "seaborn"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/publication_layouts.py?ref_type=heads"
-  },
-  {
-    "id": "quartz_gis_pro",
-    "name": "Quartz GIS",
-    "version": "1.4.0",
-    "description": "Ultimate GIS for archaeologists - Measure, viewshed, attribute table, QGIS export!",
-    "author": "Sefy Levy & DeepSeek",
-    "category": "software",
-    "icon": "\ud83c\udf0d",
-    "requires": [
-      "geopandas",
-      "shapely",
-      "pyproj",
-      "matplotlib",
-      "contextily",
-      "osmnx",
-      "descartes",
-      "mapclassify",
-      "rasterio",
-      "rioxarray",
-      "scipy"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/quartz_gis_pro.py?ref_type=heads"
-  },
-  {
-    "id": "report_generator",
-    "name": "Report Generator",
-    "version": "1.0",
-    "description": "Auto-generate excavation season reports, IAA submissions, and provenance summaries",
-    "author": "Sefy Levy",
-    "category": "software",
-    "icon": "\ud83d\udcc4",
-    "requires": [
-      "python-docx"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/report_generator.py?ref_type=heads"
-  },
-  {
-    "id": "scripting_console",
-    "name": "Python Console",
-    "version": "1.0.0",
-    "description": "Interactive Python console, script editor, batch processing",
-    "author": "Scientific Toolkit",
-    "category": "software",
-    "icon": "\ud83d\udc0d",
-    "requires": [
-      "tkinter"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/scripting_console.py?ref_type=heads"
-  },
-  {
-    "id": "spatial_kriging",
-    "name": "Spatial Kriging & Density",
-    "version": "3.2",
-    "description": "Industry-standard spatial interpolation with variogram analysis + KDE contouring",
-    "author": "Sefy Levy & DeepSeek",
-    "category": "software",
-    "icon": "\ud83d\uddfa\ufe0f",
-    "requires": [
-      "numpy",
-      "scipy",
-      "matplotlib"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/spatial_kriging.py?ref_type=heads"
-  },
-  {
-    "id": "spectral_toolbox",
-    "name": "Spectral Processing Toolbox",
-    "version": "2.0",
-    "description": "MATLAB-like spectral analysis: peak detection, baseline correction, smoothing, derivatives, peak fitting",
-    "author": "Sefy Levy / AI Enhanced",
-    "category": "software",
-    "icon": "\ud83d\udcc9",
-    "requires": [
-      "numpy",
-      "scipy",
-      "pybaselines",
-      "lmfit",
-      "matplotlib"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/spectral_toolbox.py?ref_type=heads"
-  },
-  {
-    "id": "structural_suite",
-    "name": "Structural Suite",
-    "version": "1.1.0",
-    "description": "Stereonets \u00b7 Rose Diagrams \u00b7 Contouring \u2014 Complete structural toolkit",
-    "author": "Sefy Levy & DeepSeek",
-    "category": "software",
-    "icon": "\ud83e\udded",
-    "requires": [
-      "numpy",
-      "scipy",
-      "matplotlib",
-      "pandas"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/structural_suite.py?ref_type=heads"
-  },
-  {
-    "id": "thermobarometry_suite",
-    "name": "Thermobarometry Suite",
-    "version": "2.0.0",
-    "description": "Publication-grade P-T toolkit: Pyroxene \u00b7 Feldspar \u00b7 Amphibole \u00b7 Olivine \u00b7 Garnet",
-    "author": "Sefy Levy",
-    "category": "software",
-    "icon": "\ud83c\udf21\ufe0f",
-    "requires": [
-      "numpy",
-      "scipy",
-      "matplotlib",
-      "pandas"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/thermobarometry_suite.py?ref_type=heads"
-  },
-  {
-    "id": "uncertainty_propagation",
-    "name": "Uncertainty Propagation",
-    "version": "1.0.2",
-    "description": "Monte Carlo classification, confidence ellipses, error propagation - NOW with Fast Mode & Safe Fallback!",
-    "author": "Sefy Levy",
-    "category": "software",
-    "icon": "\ud83c\udfb2",
-    "requires": [
-      "numpy",
-      "scipy",
-      "matplotlib"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/uncertainty_propagation.py?ref_type=heads"
-  },
-  {
-    "id": "virtual_microscopy_pro",
-    "name": "Virtual Microscopy Pro",
-    "version": "4.0.0",
-    "description": "Petrographic analysis + 3D archaeological mesh analysis",
-    "author": "Sefy Levy & DeepSeek",
-    "category": "software",
-    "icon": "\ud83d\udd2c",
-    "requires": [
-      "numpy",
-      "matplotlib",
-      "pillow",
-      "scipy",
-      "pandas",
-      "trimesh"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/virtual_microscopy_pro.py?ref_type=heads"
-  },
-  {
-    "id": "zooarchaeology_analytics_suite",
-    "name": "Zooarchaeology Analytics Suite",
-    "version": "1.0.0",
-    "description": "NISP \u00b7 MNI \u00b7 Taphonomy \u00b7 Butchery \u00b7 Aging \u00b7 FTIR \u00b7 Behrensmeyer \u00b7 von den Driesch",
-    "author": "Zooarch Team",
-    "category": "software",
-    "icon": "\ud83d\udcca",
+    "icon": "\u2699\ufe0f",
     "requires": [
       "numpy",
       "pandas",
       "scipy",
       "matplotlib"
     ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/zooarchaeology_analytics_suite.py?ref_type=heads"
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/materials_science_analysis_suite.py?ref_type=heads"
+  },
+  {
+    "id": "meteorology_analysis_suite",
+    "name": "Meteorology Suite",
+    "version": "1.0.0",
+    "description": "Gap filling \u00b7 AQI \u00b7 Wind Rose \u00b7 Solar \u00b7 Kriging \u00b7 Normals \u00b7 ET \u2014 WMO/EPA/FAO compliant",
+    "author": "Sefy Levy & Claude",
+    "category": "software",
+    "icon": "\ud83c\udf26\ufe0f",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/meteorology_analysis_suite.py?ref_type=heads"
+  },
+  {
+    "id": "molecular_biology_suite",
+    "name": "Molecular Biology Suite",
+    "version": "1.0.0",
+    "description": "Cell Counting \u00b7 Colony Counter \u00b7 Fluorescence \u00b7 Liquid Handling \u00b7 Time-lapse \u00b7 Plate Layout \u00b7 Assay QC",
+    "author": "Sefy Levy & Claude",
+    "category": "software",
+    "icon": "\ud83e\uddec",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/molecular_biology_suite.py?ref_type=heads"
   },
   {
     "id": "archaeology_archaeometry_unified_suite",
@@ -873,7 +1070,7 @@
   },
   {
     "id": "barcode_scanner_unified_suite",
-    "name": "Barcode/QR Scanner Unified Suite",
+    "name": "QR/Barcode Scanner Suite",
     "version": "2.4.0",
     "description": "USB HID \u00b7 Serial \u00b7 Bluetooth SPP/LE \u00b7 Webcam \u00b7 Unified UI",
     "author": "Sefy Levy",
@@ -892,7 +1089,7 @@
   },
   {
     "id": "chromatography_analytical_unified_suite",
-    "name": "Chromatography & Analytical Chemistry",
+    "name": "Chromatography & Analytical",
     "version": "1.0.0",
     "description": "GC \u00b7 HPLC \u00b7 IC \u00b7 MS \u00b7 NMR \u00b7 Plate Readers \u00b7 Flow Cytometry \u00b7 Titrators \u00b7 CE",
     "author": "Analytical Chemistry Team",
@@ -909,7 +1106,7 @@
   },
   {
     "id": "clinical_molecular_diagnostics_suite",
-    "name": "Clinical & Molecular Diagnostics",
+    "name": "Clinical & Molecular Diags",
     "version": "1.0.0",
     "description": "PCR \u00b7 qPCR \u00b7 dPCR \u00b7 Plate Readers \u00b7 Flow Cytometry \u00b7 ELISA \u00b7 Clinical Chemistry",
     "author": "Clinical Diagnostics Team",
@@ -926,7 +1123,7 @@
   },
   {
     "id": "electrochemistry_unified_suite",
-    "name": "Electrochemistry Unified Suite",
+    "name": "Electrochemistry Suite",
     "version": "1.0.0",
     "description": "COMPACT \u00b7 CV \u00b7 EIS \u00b7 CCCV \u00b7 Multi-step \u00b7 Safety \u00b7 Multi-channel \u00b7 8 manufacturers",
     "author": "Electrochemistry Unified Team",
@@ -942,7 +1139,7 @@
   },
   {
     "id": "elemental_geochemistry_unified_suite",
-    "name": "Elemental Geochemistry Unified Suite",
+    "name": "Elemental Geochem Suite",
     "version": "4.5.1",
     "description": "pXRF \u00b7 LIBS \u00b7 Benchtop XRF \u00b7 ICP \u2014 SciAps \u00b7 Olympus \u00b7 Bruker \u00b7 Thermo \u00b7 1 DRIVER",
     "author": "Sefy Levy",
@@ -955,7 +1152,7 @@
   },
   {
     "id": "geophysics_unified_suite",
-    "name": "Geophysics Unified Suite",
+    "name": "Geophysics Suite",
     "version": "1.0.0",
     "description": "Seismometers \u00b7 ERT \u00b7 EM \u00b7 MT \u00b7 Magnetometers \u00b7 Gravimeters \u00b7 GPR \u00b7 GNSS \u00b7 70+ devices",
     "author": "Geophysics Team",
@@ -972,7 +1169,7 @@
   },
   {
     "id": "materials_characterization_unified_suite",
-    "name": "Materials Characterization Suite",
+    "name": "Materials Sci Suite",
     "version": "1.0.0",
     "description": "AFM \u00b7 Nanoindentation \u00b7 Mechanical \u00b7 BET \u00b7 DLS \u00b7 Rheology \u00b7 Thermal \u00b7 Hardness \u00b7 Profilometry \u00b7 50+ devices",
     "author": "Materials Science Team",
@@ -1004,7 +1201,7 @@
   },
   {
     "id": "molecular_biology_unified_suite",
-    "name": "Molecular Biology & Lab Automation",
+    "name": "Molecular Biology & Lab",
     "version": "1.0.0",
     "description": "Opentrons \u00b7 Hamilton \u00b7 Tecan \u00b7 Masterflex \u00b7 ASI \u00b7 Andor \u00b7 Nikon \u00b7 30+ devices",
     "author": "Lab Automation Team",
@@ -1021,7 +1218,7 @@
   },
   {
     "id": "physical_properties_unified_suite",
-    "name": "Physical Properties Unified Suite",
+    "name": "Physical Properties Suite",
     "version": "3.1.0",
     "description": "MagSus \u00b7 Granulometer \u00b7 Caliper \u2014 PRODUCTION READY \u00b7 Thread-safe \u00b7 Real SPC",
     "author": "Sefy Levy",
@@ -1037,7 +1234,7 @@
   },
   {
     "id": "physics_test_and_measurement_suite",
-    "name": "Physics Test & Measurement Suite",
+    "name": "Physics T&M Suite",
     "version": "1.2.0",
     "description": "Oscilloscopes \u00b7 DMMs \u00b7 Power Supplies \u00b7 Function Generators \u00b7 LCR \u2014 Keysight \u00b7 Tektronix \u00b7 Rigol \u00b7 Keithley \u00b7 SCPI/VISA",
     "author": "Physics Unified Team",
@@ -1052,7 +1249,7 @@
   },
   {
     "id": "solution_chemistry_unified_suite",
-    "name": "Solution Chemistry Unified Suite",
+    "name": "Solution Chemistry Suite",
     "version": "3.0.0",
     "description": "45+ REAL drivers \u00b7 NIST/USGS \u00b7 PDF \u00b7 API \u00b7 Debye-H\u00fcckel",
     "author": "Sefy Levy",
@@ -1069,20 +1266,24 @@
   },
   {
     "id": "spectroscopy_unified_suite",
-    "name": "Spectroscopy Unified Suite",
-    "version": "4.0.0",
-    "description": "FTIR \u00b7 RAMAN \u00b7 UV-VIS-NIR \u2014 Thermo \u00b7 Bruker \u00b7 PerkinElmer \u00b7 B&W Tek \u00b7 Ocean \u00b7 Agilent \u00b7 Avantes \u00b7 50+ MODELS",
-    "author": "Sefy Levy",
+    "name": "Spectroscopy Suite",
+    "version": "5.0.0",
+    "description": "FTIR \u00b7 RAMAN \u00b7 UV-VIS-NIR \u00b7 52+ instruments \u00b7 Real drivers",
+    "author": "Spectroscopy Team",
     "category": "hardware",
     "icon": "\ud83e\uddea",
     "requires": [
-      "numpy"
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib",
+      "pyserial"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/spectroscopy_unified_suite.py?ref_type=heads"
   },
   {
     "id": "thermal_analysis_calorimetry_unified_suite",
-    "name": "Thermal Analysis & Calorimetry",
+    "name": "Thermal Analysis Suite",
     "version": "1.0.1",
     "description": "DSC \u00b7 TGA \u00b7 STA \u00b7 LFA \u00b7 Hot Disk \u00b7 DMA \u00b7 RC1 \u00b7 30+ instruments",
     "author": "Thermal Analysis Team",
@@ -1098,7 +1299,7 @@
   },
   {
     "id": "zooarchaeology_unified_suite",
-    "name": "Zooarchaeology Unified Suite",
+    "name": "Zooarchaeology Suite",
     "version": "1.0.0",
     "description": "Digital calipers \u00b7 3D scanners \u00b7 pXRF \u00b7 Microscopes \u00b7 Balances \u00b7 GNSS \u2014 40+ REAL drivers",
     "author": "Zooarchaeology Unified Team",
