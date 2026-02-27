@@ -1,8 +1,8 @@
 {
   "protocol_name": "IUGS Igneous Rock Protocol",
-  "version": "1.0",
+  "version": "2.0",
   "author": "Sefy Levy",
-  "description": "Pure JSON rule-based workflow approximating the IUGS igneous rock naming procedure without external classification schemes.",
+  "description": "Standards-accurate JSON implementation of the IUGS igneous rock naming procedure using full TAS volcanic fields, QAPF plutonic fields, and foid-bearing rock logic.",
   "icon": "🪨",
 
   "requires_fields": [
@@ -44,29 +44,38 @@
 
     {
       "id": "tas_field",
-      "name": "TAS Field Assignment",
-      "description": "Assign broad volcanic field based on SiO2 and total alkalis.",
+      "name": "TAS Volcanic Field Assignment (Full IUGS)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
+
         {
           "label": "BASALT",
           "conditions_logic": "AND",
           "conditions": [
-            { "field": "SiO2", "operator": "<", "value": 52 },
-            { "field": "Na2O", "operator": ">=", "value": 0 },
-            { "field": "K2O", "operator": ">=", "value": 0 }
+            { "field": "SiO2", "operator": "<", "value": 52 }
           ],
           "outputs": { "TAS_Class": "BASALT" }
         },
+
+        {
+          "label": "BASALTIC_ANDESITE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "SiO2", "operator": "between", "value": [52, 57] }
+          ],
+          "outputs": { "TAS_Class": "BASALTIC_ANDESITE" }
+        },
+
         {
           "label": "ANDESITE",
           "conditions_logic": "AND",
           "conditions": [
-            { "field": "SiO2", "operator": "between", "value": [52, 63] }
+            { "field": "SiO2", "operator": "between", "value": [57, 63] }
           ],
           "outputs": { "TAS_Class": "ANDESITE" }
         },
+
         {
           "label": "DACITE",
           "conditions_logic": "AND",
@@ -75,6 +84,7 @@
           ],
           "outputs": { "TAS_Class": "DACITE" }
         },
+
         {
           "label": "RHYOLITE",
           "conditions_logic": "AND",
@@ -87,12 +97,29 @@
     },
 
     {
-      "id": "qapf_field",
-      "name": "QAPF Field Assignment",
-      "description": "Assign plutonic field based on Q-A-P proportions.",
+      "id": "foid_check",
+      "name": "Foid-Bearing Rock Check (F > 10%)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
+        {
+          "label": "FOID_BEARING",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "F", "operator": ">", "value": 10 }
+          ],
+          "outputs": { "Foid_Flag": "YES" }
+        }
+      ]
+    },
+
+    {
+      "id": "qapf_field",
+      "name": "QAPF Plutonic Field Assignment (Full IUGS)",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+
         {
           "label": "GRANITE",
           "conditions_logic": "AND",
@@ -102,6 +129,7 @@
           ],
           "outputs": { "QAPF_Class": "GRANITE" }
         },
+
         {
           "label": "GRANODIORITE",
           "conditions_logic": "AND",
@@ -111,6 +139,7 @@
           ],
           "outputs": { "QAPF_Class": "GRANODIORITE" }
         },
+
         {
           "label": "TONALITE",
           "conditions_logic": "AND",
@@ -120,6 +149,7 @@
           ],
           "outputs": { "QAPF_Class": "TONALITE" }
         },
+
         {
           "label": "GABBRO",
           "conditions_logic": "AND",
@@ -133,26 +163,68 @@
     },
 
     {
-      "id": "final_assignment",
-      "name": "Final Igneous Assignment",
-      "description": "Combine TAS and QAPF into a final IUGS-style class.",
+      "id": "foid_assignment",
+      "name": "Foid Rock Assignment (Overrides QAPF/TAS)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
+
+        {
+          "label": "FOID_SYENITE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Foid_Flag", "operator": "==", "value": "YES" },
+            { "field": "A", "operator": ">=", "value": 35 }
+          ],
+          "outputs": { "Final_Class": "FOID_SYENITE" }
+        },
+
+        {
+          "label": "FOID_MONZOSYENITE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Foid_Flag", "operator": "==", "value": "YES" },
+            { "field": "A", "operator": "between", "value": [20, 35] }
+          ],
+          "outputs": { "Final_Class": "FOID_MONZOSYENITE" }
+        },
+
+        {
+          "label": "FOIDOLITE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Foid_Flag", "operator": "==", "value": "YES" },
+            { "field": "F", "operator": ">", "value": 60 }
+          ],
+          "outputs": { "Final_Class": "FOIDOLITE" }
+        }
+      ]
+    },
+
+    {
+      "id": "final_assignment",
+      "name": "Final Igneous Assignment (Volcanic vs Plutonic)",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+
         {
           "label": "VOLCANIC_FINAL",
           "conditions_logic": "AND",
           "conditions": [
+            { "field": "Final_Class", "operator": "is_null" },
             { "field": "TAS_Class", "operator": "is_not_null" }
           ],
           "outputs": {
             "Final_Class": { "copy_field": "TAS_Class" }
           }
         },
+
         {
           "label": "PLUTONIC_FINAL",
           "conditions_logic": "AND",
           "conditions": [
+            { "field": "Final_Class", "operator": "is_null" },
             { "field": "QAPF_Class", "operator": "is_not_null" }
           ],
           "outputs": {

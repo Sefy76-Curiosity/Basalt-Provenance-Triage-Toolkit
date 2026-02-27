@@ -1,8 +1,8 @@
 {
   "protocol_name": "EPA Sediment Quality Assessment Protocol",
-  "version": "1.0",
+  "version": "2.0",
   "author": "Sefy Levy",
-  "description": "Pure JSON implementation of EPA sediment quality guidelines using TEL/PEL and ERL/ERM thresholds.",
+  "description": "Standards-accurate JSON implementation of EPA/NOAA sediment quality guidelines using TEL/PEL and ERL/ERM thresholds with integrated severity classification.",
   "icon": "🧪",
 
   "requires_fields": [
@@ -49,13 +49,13 @@
 
     {
       "id": "erl_erm_exceedance",
-      "name": "ERL/ERM Exceedance Assessment",
+      "name": "ERL/ERM Exceedance Assessment (NOAA)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
 
         {
-          "label": "LOW_RISK",
+          "label": "LOW_RISK_ERL",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "As", "operator": "<", "value": 8.2 },
@@ -71,7 +71,7 @@
         },
 
         {
-          "label": "HIGH_RISK",
+          "label": "HIGH_RISK_ERM",
           "conditions_logic": "OR",
           "conditions": [
             { "field": "As", "operator": ">", "value": 70 },
@@ -87,7 +87,7 @@
         },
 
         {
-          "label": "MODERATE_RISK",
+          "label": "MODERATE_RISK_INTERMEDIATE",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "ERM_Class", "operator": "is_null" }
@@ -99,7 +99,7 @@
 
     {
       "id": "tel_pel_exceedance",
-      "name": "TEL/PEL Exceedance Assessment",
+      "name": "TEL/PEL Exceedance Assessment (CCME)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
@@ -139,34 +139,39 @@
     },
 
     {
-      "id": "severity_grouping",
-      "name": "Contamination Severity Grouping",
+      "id": "severity_integration",
+      "name": "Integrated Contamination Severity (TEL/PEL + ERL/ERM)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
+
         {
-          "label": "LOW_SEVERITY",
-          "conditions_logic": "AND",
+          "label": "HIGH_SEVERITY_PEL_OR_ERM",
+          "conditions_logic": "OR",
           "conditions": [
-            { "field": "ERM_Class", "operator": "==", "value": "LOW" }
+            { "field": "PEL_Exceedance", "operator": "==", "value": "YES" },
+            { "field": "ERM_Class", "operator": "==", "value": "HIGH" }
           ],
-          "outputs": { "Contamination_Severity": "LOW" }
+          "outputs": { "Contamination_Severity": "HIGH" }
         },
+
         {
-          "label": "MODERATE_SEVERITY",
-          "conditions_logic": "AND",
+          "label": "MODERATE_SEVERITY_TEL_OR_ERM",
+          "conditions_logic": "OR",
           "conditions": [
+            { "field": "TEL_Exceedance", "operator": "==", "value": "YES" },
             { "field": "ERM_Class", "operator": "==", "value": "MODERATE" }
           ],
           "outputs": { "Contamination_Severity": "MODERATE" }
         },
+
         {
-          "label": "HIGH_SEVERITY",
+          "label": "LOW_SEVERITY_BASELINE",
           "conditions_logic": "AND",
           "conditions": [
-            { "field": "ERM_Class", "operator": "==", "value": "HIGH" }
+            { "field": "Contamination_Severity", "operator": "is_null" }
           ],
-          "outputs": { "Contamination_Severity": "HIGH" }
+          "outputs": { "Contamination_Severity": "LOW" }
         }
       ]
     },

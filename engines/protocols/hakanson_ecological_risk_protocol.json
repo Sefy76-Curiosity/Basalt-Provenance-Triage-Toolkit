@@ -1,20 +1,17 @@
 {
   "protocol_name": "Hakanson Ecological Risk Protocol",
-  "version": "1.0",
+  "version": "2.0",
   "author": "Sefy Levy",
-  "description": "Pure JSON implementation of the Hakanson ecological risk index using CF, Er, and RI thresholds.",
+  "description": "Pure JSON classification of the Hakanson ecological risk index using CF, Er, and RI thresholds for multiple metals.",
   "icon": "⚠️",
 
   "requires_fields": [
     "Sample_ID",
-    "As_CF",
-    "Cd_CF",
-    "Cr_CF",
-    "Cu_CF",
-    "Hg_CF",
-    "Ni_CF",
-    "Pb_CF",
-    "Zn_CF"
+
+    "As_CF", "Cd_CF", "Cr_CF", "Cu_CF", "Hg_CF", "Ni_CF", "Pb_CF", "Zn_CF",
+    "As_Er", "Cd_Er", "Cr_Er", "Cu_Er", "Hg_Er", "Ni_Er", "Pb_Er", "Zn_Er",
+
+    "RI"
   ],
 
   "stages": [
@@ -26,7 +23,7 @@
       "rules_logic": "OR",
       "rules": [
         {
-          "label": "MISSING_CF_VALUES",
+          "label": "MISSING_CF_ER_RI_VALUES",
           "conditions_logic": "OR",
           "conditions": [
             { "field": "As_CF", "operator": "is_null" },
@@ -36,12 +33,23 @@
             { "field": "Hg_CF", "operator": "is_null" },
             { "field": "Ni_CF", "operator": "is_null" },
             { "field": "Pb_CF", "operator": "is_null" },
-            { "field": "Zn_CF", "operator": "is_null" }
+            { "field": "Zn_CF", "operator": "is_null" },
+
+            { "field": "As_Er", "operator": "is_null" },
+            { "field": "Cd_Er", "operator": "is_null" },
+            { "field": "Cr_Er", "operator": "is_null" },
+            { "field": "Cu_Er", "operator": "is_null" },
+            { "field": "Hg_Er", "operator": "is_null" },
+            { "field": "Ni_Er", "operator": "is_null" },
+            { "field": "Pb_Er", "operator": "is_null" },
+            { "field": "Zn_Er", "operator": "is_null" },
+
+            { "field": "RI", "operator": "is_null" }
           ],
           "outputs": {
             "QC_Class": "INSUFFICIENT_DATA",
             "Flag_For_Review": "YES",
-            "Review_Reason": "Missing CF values for metals"
+            "Review_Reason": "Missing CF, Er, or RI values for metals"
           }
         }
       ]
@@ -49,12 +57,14 @@
 
     {
       "id": "cf_classification",
-      "name": "Contamination Factor Classification",
+      "name": "Contamination Factor Classification (CF)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
+
+        /* As CF */
         {
-          "label": "LOW_CF",
+          "label": "As_CF_LOW",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "As_CF", "operator": "<", "value": 1 }
@@ -62,7 +72,7 @@
           "outputs": { "As_CF_Class": "LOW" }
         },
         {
-          "label": "MODERATE_CF",
+          "label": "As_CF_MODERATE",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "As_CF", "operator": "between", "value": [1, 3] }
@@ -70,7 +80,7 @@
           "outputs": { "As_CF_Class": "MODERATE" }
         },
         {
-          "label": "CONSIDERABLE_CF",
+          "label": "As_CF_CONSIDERABLE",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "As_CF", "operator": "between", "value": [3, 6] }
@@ -78,61 +88,595 @@
           "outputs": { "As_CF_Class": "CONSIDERABLE" }
         },
         {
-          "label": "VERY_HIGH_CF",
+          "label": "As_CF_VERY_HIGH",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "As_CF", "operator": ">=", "value": 6 }
           ],
           "outputs": { "As_CF_Class": "VERY_HIGH" }
+        },
+
+        /* Cd CF */
+        {
+          "label": "Cd_CF_LOW",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cd_CF", "operator": "<", "value": 1 }
+          ],
+          "outputs": { "Cd_CF_Class": "LOW" }
+        },
+        {
+          "label": "Cd_CF_MODERATE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cd_CF", "operator": "between", "value": [1, 3] }
+          ],
+          "outputs": { "Cd_CF_Class": "MODERATE" }
+        },
+        {
+          "label": "Cd_CF_CONSIDERABLE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cd_CF", "operator": "between", "value": [3, 6] }
+          ],
+          "outputs": { "Cd_CF_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "Cd_CF_VERY_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cd_CF", "operator": ">=", "value": 6 }
+          ],
+          "outputs": { "Cd_CF_Class": "VERY_HIGH" }
+        },
+
+        /* Cr CF */
+        {
+          "label": "Cr_CF_LOW",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cr_CF", "operator": "<", "value": 1 }
+          ],
+          "outputs": { "Cr_CF_Class": "LOW" }
+        },
+        {
+          "label": "Cr_CF_MODERATE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cr_CF", "operator": "between", "value": [1, 3] }
+          ],
+          "outputs": { "Cr_CF_Class": "MODERATE" }
+        },
+        {
+          "label": "Cr_CF_CONSIDERABLE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cr_CF", "operator": "between", "value": [3, 6] }
+          ],
+          "outputs": { "Cr_CF_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "Cr_CF_VERY_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cr_CF", "operator": ">=", "value": 6 }
+          ],
+          "outputs": { "Cr_CF_Class": "VERY_HIGH" }
+        },
+
+        /* Cu CF */
+        {
+          "label": "Cu_CF_LOW",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cu_CF", "operator": "<", "value": 1 }
+          ],
+          "outputs": { "Cu_CF_Class": "LOW" }
+        },
+        {
+          "label": "Cu_CF_MODERATE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cu_CF", "operator": "between", "value": [1, 3] }
+          ],
+          "outputs": { "Cu_CF_Class": "MODERATE" }
+        },
+        {
+          "label": "Cu_CF_CONSIDERABLE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cu_CF", "operator": "between", "value": [3, 6] }
+          ],
+          "outputs": { "Cu_CF_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "Cu_CF_VERY_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cu_CF", "operator": ">=", "value": 6 }
+          ],
+          "outputs": { "Cu_CF_Class": "VERY_HIGH" }
+        },
+
+        /* Hg CF */
+        {
+          "label": "Hg_CF_LOW",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Hg_CF", "operator": "<", "value": 1 }
+          ],
+          "outputs": { "Hg_CF_Class": "LOW" }
+        },
+        {
+          "label": "Hg_CF_MODERATE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Hg_CF", "operator": "between", "value": [1, 3] }
+          ],
+          "outputs": { "Hg_CF_Class": "MODERATE" }
+        },
+        {
+          "label": "Hg_CF_CONSIDERABLE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Hg_CF", "operator": "between", "value": [3, 6] }
+          ],
+          "outputs": { "Hg_CF_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "Hg_CF_VERY_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Hg_CF", "operator": ">=", "value": 6 }
+          ],
+          "outputs": { "Hg_CF_Class": "VERY_HIGH" }
+        },
+
+        /* Ni CF */
+        {
+          "label": "Ni_CF_LOW",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Ni_CF", "operator": "<", "value": 1 }
+          ],
+          "outputs": { "Ni_CF_Class": "LOW" }
+        },
+        {
+          "label": "Ni_CF_MODERATE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Ni_CF", "operator": "between", "value": [1, 3] }
+          ],
+          "outputs": { "Ni_CF_Class": "MODERATE" }
+        },
+        {
+          "label": "Ni_CF_CONSIDERABLE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Ni_CF", "operator": "between", "value": [3, 6] }
+          ],
+          "outputs": { "Ni_CF_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "Ni_CF_VERY_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Ni_CF", "operator": ">=", "value": 6 }
+          ],
+          "outputs": { "Ni_CF_Class": "VERY_HIGH" }
+        },
+
+        /* Pb CF */
+        {
+          "label": "Pb_CF_LOW",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Pb_CF", "operator": "<", "value": 1 }
+          ],
+          "outputs": { "Pb_CF_Class": "LOW" }
+        },
+        {
+          "label": "Pb_CF_MODERATE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Pb_CF", "operator": "between", "value": [1, 3] }
+          ],
+          "outputs": { "Pb_CF_Class": "MODERATE" }
+        },
+        {
+          "label": "Pb_CF_CONSIDERABLE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Pb_CF", "operator": "between", "value": [3, 6] }
+          ],
+          "outputs": { "Pb_CF_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "Pb_CF_VERY_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Pb_CF", "operator": ">=", "value": 6 }
+          ],
+          "outputs": { "Pb_CF_Class": "VERY_HIGH" }
+        },
+
+        /* Zn CF */
+        {
+          "label": "Zn_CF_LOW",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Zn_CF", "operator": "<", "value": 1 }
+          ],
+          "outputs": { "Zn_CF_Class": "LOW" }
+        },
+        {
+          "label": "Zn_CF_MODERATE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Zn_CF", "operator": "between", "value": [1, 3] }
+          ],
+          "outputs": { "Zn_CF_Class": "MODERATE" }
+        },
+        {
+          "label": "Zn_CF_CONSIDERABLE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Zn_CF", "operator": "between", "value": [3, 6] }
+          ],
+          "outputs": { "Zn_CF_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "Zn_CF_VERY_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Zn_CF", "operator": ">=", "value": 6 }
+          ],
+          "outputs": { "Zn_CF_Class": "VERY_HIGH" }
         }
       ]
     },
 
     {
       "id": "er_classification",
-      "name": "Ecological Risk (Er) Classification",
+      "name": "Potential Ecological Risk Classification (Er)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
+
+        /* As Er */
         {
-          "label": "LOW_RISK",
+          "label": "As_Er_LOW",
           "conditions_logic": "AND",
           "conditions": [
-            { "field": "As_CF", "operator": "<", "value": 40 }
+            { "field": "As_Er", "operator": "<", "value": 40 }
           ],
           "outputs": { "As_Er_Class": "LOW" }
         },
         {
-          "label": "MODERATE_RISK",
+          "label": "As_Er_MODERATE",
           "conditions_logic": "AND",
           "conditions": [
-            { "field": "As_CF", "operator": "between", "value": [40, 80] }
+            { "field": "As_Er", "operator": "between", "value": [40, 80] }
           ],
           "outputs": { "As_Er_Class": "MODERATE" }
         },
         {
-          "label": "CONSIDERABLE_RISK",
+          "label": "As_Er_CONSIDERABLE",
           "conditions_logic": "AND",
           "conditions": [
-            { "field": "As_CF", "operator": "between", "value": [80, 160] }
+            { "field": "As_Er", "operator": "between", "value": [80, 160] }
           ],
           "outputs": { "As_Er_Class": "CONSIDERABLE" }
         },
         {
-          "label": "HIGH_RISK",
+          "label": "As_Er_HIGH",
           "conditions_logic": "AND",
           "conditions": [
-            { "field": "As_CF", "operator": "between", "value": [160, 320] }
+            { "field": "As_Er", "operator": "between", "value": [160, 320] }
           ],
           "outputs": { "As_Er_Class": "HIGH" }
         },
         {
-          "label": "VERY_HIGH_RISK",
+          "label": "As_Er_VERY_HIGH",
           "conditions_logic": "AND",
           "conditions": [
-            { "field": "As_CF", "operator": ">=", "value": 320 }
+            { "field": "As_Er", "operator": ">=", "value": 320 }
           ],
           "outputs": { "As_Er_Class": "VERY_HIGH" }
+        },
+
+        /* Cd Er */
+        {
+          "label": "Cd_Er_LOW",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cd_Er", "operator": "<", "value": 40 }
+          ],
+          "outputs": { "Cd_Er_Class": "LOW" }
+        },
+        {
+          "label": "Cd_Er_MODERATE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cd_Er", "operator": "between", "value": [40, 80] }
+          ],
+          "outputs": { "Cd_Er_Class": "MODERATE" }
+        },
+        {
+          "label": "Cd_Er_CONSIDERABLE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cd_Er", "operator": "between", "value": [80, 160] }
+          ],
+          "outputs": { "Cd_Er_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "Cd_Er_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cd_Er", "operator": "between", "value": [160, 320] }
+          ],
+          "outputs": { "Cd_Er_Class": "HIGH" }
+        },
+        {
+          "label": "Cd_Er_VERY_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cd_Er", "operator": ">=", "value": 320 }
+          ],
+          "outputs": { "Cd_Er_Class": "VERY_HIGH" }
+        },
+
+        /* Cr Er */
+        {
+          "label": "Cr_Er_LOW",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cr_Er", "operator": "<", "value": 40 }
+          ],
+          "outputs": { "Cr_Er_Class": "LOW" }
+        },
+        {
+          "label": "Cr_Er_MODERATE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cr_Er", "operator": "between", "value": [40, 80] }
+          ],
+          "outputs": { "Cr_Er_Class": "MODERATE" }
+        },
+        {
+          "label": "Cr_Er_CONSIDERABLE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cr_Er", "operator": "between", "value": [80, 160] }
+          ],
+          "outputs": { "Cr_Er_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "Cr_Er_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cr_Er", "operator": "between", "value": [160, 320] }
+          ],
+          "outputs": { "Cr_Er_Class": "HIGH" }
+        },
+        {
+          "label": "Cr_Er_VERY_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cr_Er", "operator": ">=", "value": 320 }
+          ],
+          "outputs": { "Cr_Er_Class": "VERY_HIGH" }
+        },
+
+        /* Cu Er */
+        {
+          "label": "Cu_Er_LOW",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cu_Er", "operator": "<", "value": 40 }
+          ],
+          "outputs": { "Cu_Er_Class": "LOW" }
+        },
+        {
+          "label": "Cu_Er_MODERATE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cu_Er", "operator": "between", "value": [40, 80] }
+          ],
+          "outputs": { "Cu_Er_Class": "MODERATE" }
+        },
+        {
+          "label": "Cu_Er_CONSIDERABLE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cu_Er", "operator": "between", "value": [80, 160] }
+          ],
+          "outputs": { "Cu_Er_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "Cu_Er_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cu_Er", "operator": "between", "value": [160, 320] }
+          ],
+          "outputs": { "Cu_Er_Class": "HIGH" }
+        },
+        {
+          "label": "Cu_Er_VERY_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Cu_Er", "operator": ">=", "value": 320 }
+          ],
+          "outputs": { "Cu_Er_Class": "VERY_HIGH" }
+        },
+
+        /* Hg Er */
+        {
+          "label": "Hg_Er_LOW",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Hg_Er", "operator": "<", "value": 40 }
+          ],
+          "outputs": { "Hg_Er_Class": "LOW" }
+        },
+        {
+          "label": "Hg_Er_MODERATE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Hg_Er", "operator": "between", "value": [40, 80] }
+          ],
+          "outputs": { "Hg_Er_Class": "MODERATE" }
+        },
+        {
+          "label": "Hg_Er_CONSIDERABLE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Hg_Er", "operator": "between", "value": [80, 160] }
+          ],
+          "outputs": { "Hg_Er_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "Hg_Er_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Hg_Er", "operator": "between", "value": [160, 320] }
+          ],
+          "outputs": { "Hg_Er_Class": "HIGH" }
+        },
+        {
+          "label": "Hg_Er_VERY_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Hg_Er", "operator": ">=", "value": 320 }
+          ],
+          "outputs": { "Hg_Er_Class": "VERY_HIGH" }
+        },
+
+        /* Ni Er */
+        {
+          "label": "Ni_Er_LOW",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Ni_Er", "operator": "<", "value": 40 }
+          ],
+          "outputs": { "Ni_Er_Class": "LOW" }
+        },
+        {
+          "label": "Ni_Er_MODERATE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Ni_Er", "operator": "between", "value": [40, 80] }
+          ],
+          "outputs": { "Ni_Er_Class": "MODERATE" }
+        },
+        {
+          "label": "Ni_Er_CONSIDERABLE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Ni_Er", "operator": "between", "value": [80, 160] }
+          ],
+          "outputs": { "Ni_Er_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "Ni_Er_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Ni_Er", "operator": "between", "value": [160, 320] }
+          ],
+          "outputs": { "Ni_Er_Class": "HIGH" }
+        },
+        {
+          "label": "Ni_Er_VERY_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Ni_Er", "operator": ">=", "value": 320 }
+          ],
+          "outputs": { "Ni_Er_Class": "VERY_HIGH" }
+        },
+
+        /* Pb Er */
+        {
+          "label": "Pb_Er_LOW",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Pb_Er", "operator": "<", "value": 40 }
+          ],
+          "outputs": { "Pb_Er_Class": "LOW" }
+        },
+        {
+          "label": "Pb_Er_MODERATE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Pb_Er", "operator": "between", "value": [40, 80] }
+          ],
+          "outputs": { "Pb_Er_Class": "MODERATE" }
+        },
+        {
+          "label": "Pb_Er_CONSIDERABLE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Pb_Er", "operator": "between", "value": [80, 160] }
+          ],
+          "outputs": { "Pb_Er_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "Pb_Er_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Pb_Er", "operator": "between", "value": [160, 320] }
+          ],
+          "outputs": { "Pb_Er_Class": "HIGH" }
+        },
+        {
+          "label": "Pb_Er_VERY_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Pb_Er", "operator": ">=", "value": 320 }
+          ],
+          "outputs": { "Pb_Er_Class": "VERY_HIGH" }
+        },
+
+        /* Zn Er */
+        {
+          "label": "Zn_Er_LOW",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Zn_Er", "operator": "<", "value": 40 }
+          ],
+          "outputs": { "Zn_Er_Class": "LOW" }
+        },
+        {
+          "label": "Zn_Er_MODERATE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Zn_Er", "operator": "between", "value": [40, 80] }
+          ],
+          "outputs": { "Zn_Er_Class": "MODERATE" }
+        },
+        {
+          "label": "Zn_Er_CONSIDERABLE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Zn_Er", "operator": "between", "value": [80, 160] }
+          ],
+          "outputs": { "Zn_Er_Class": "CONSIDERABLE" }
+        },
+        {
+          "label": "Zn_Er_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Zn_Er", "operator": "between", "value": [160, 320] }
+          ],
+          "outputs": { "Zn_Er_Class": "HIGH" }
+        },
+        {
+          "label": "Zn_Er_VERY_HIGH",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Zn_Er", "operator": ">=", "value": 320 }
+          ],
+          "outputs": { "Zn_Er_Class": "VERY_HIGH" }
         }
       ]
     },
@@ -144,7 +688,7 @@
       "rules_logic": "OR",
       "rules": [
         {
-          "label": "LOW_RI",
+          "label": "RI_LOW",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "RI", "operator": "<", "value": 150 }
@@ -152,7 +696,7 @@
           "outputs": { "RI_Class": "LOW" }
         },
         {
-          "label": "MODERATE_RI",
+          "label": "RI_MODERATE",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "RI", "operator": "between", "value": [150, 300] }
@@ -160,7 +704,7 @@
           "outputs": { "RI_Class": "MODERATE" }
         },
         {
-          "label": "CONSIDERABLE_RI",
+          "label": "RI_CONSIDERABLE",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "RI", "operator": "between", "value": [300, 600] }
@@ -168,7 +712,7 @@
           "outputs": { "RI_Class": "CONSIDERABLE" }
         },
         {
-          "label": "VERY_HIGH_RI",
+          "label": "RI_VERY_HIGH",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "RI", "operator": ">=", "value": 600 }
@@ -185,7 +729,7 @@
       "rules_logic": "OR",
       "rules": [
         {
-          "label": "UNCLASSIFIED",
+          "label": "UNCLASSIFIED_RI",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "RI_Class", "operator": "is_null" }

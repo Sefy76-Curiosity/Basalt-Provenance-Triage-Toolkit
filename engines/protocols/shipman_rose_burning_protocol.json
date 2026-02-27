@@ -1,8 +1,8 @@
 {
   "protocol_name": "Shipman & Rose Burning Protocol",
-  "version": "1.0",
+  "version": "2.0",
   "author": "Sefy Levy",
-  "description": "Pure JSON implementation of the Shipman & Rose standardized bone burning stages.",
+  "description": "Standards-accurate JSON implementation of the Shipman & Rose (1983) bone burning stages, including full Stage 0–5 classification and corrected severity grouping.",
   "icon": "🔥",
 
   "requires_fields": [
@@ -35,63 +35,76 @@
 
     {
       "id": "burning_stage",
-      "name": "Assign Burning Stage",
-      "description": "Classify bone burning intensity following Shipman & Rose.",
+      "name": "Assign Burning Stage (Shipman & Rose 1983)",
       "type": "rule_stage",
       "rules_logic": "OR",
 
       "rules": [
+
         {
           "label": "STAGE_0_UNBURNED",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "Burning", "operator": "==", "value": 0 }
           ],
-          "outputs": { "Burning_Class": "Unburned (Stage 0)" }
+          "outputs": { "Burning_Class": "Stage 0 — Unburned" }
         },
+
         {
           "label": "STAGE_1_BROWN",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "Burning", "operator": "==", "value": 1 }
           ],
-          "outputs": { "Burning_Class": "Brown/Lightly Charred (Stage 1)" }
+          "outputs": { "Burning_Class": "Stage 1 — Brown / Lightly Charred" }
         },
+
         {
           "label": "STAGE_2_BLACK",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "Burning", "operator": "==", "value": 2 }
           ],
-          "outputs": { "Burning_Class": "Black/Charred (Stage 2)" }
+          "outputs": { "Burning_Class": "Stage 2 — Black / Charred" }
         },
+
         {
           "label": "STAGE_3_GREY",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "Burning", "operator": "==", "value": 3 }
           ],
-          "outputs": { "Burning_Class": "Grey/Calcined (Stage 3)" }
+          "outputs": { "Burning_Class": "Stage 3 — Grey / Calcined" }
         },
+
         {
           "label": "STAGE_4_WHITE",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "Burning", "operator": "==", "value": 4 }
           ],
-          "outputs": { "Burning_Class": "White/Calcined (Stage 4)" }
+          "outputs": { "Burning_Class": "Stage 4 — White / Calcined" }
+        },
+
+        {
+          "label": "STAGE_5_BLUE_WHITE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Burning", "operator": "==", "value": 5 }
+          ],
+          "outputs": { "Burning_Class": "Stage 5 — Blue‑White / Fully Calcined" }
         }
       ]
     },
 
     {
       "id": "severity_grouping",
-      "name": "Burning Severity Grouping",
-      "description": "Collapse detailed stages into low/medium/high severity categories.",
+      "name": "Burning Severity Grouping (Corrected)",
       "type": "rule_stage",
       "rules_logic": "OR",
 
       "rules": [
+
         {
           "label": "LOW_SEVERITY",
           "conditions_logic": "AND",
@@ -100,19 +113,21 @@
           ],
           "outputs": { "Burning_Severity": "LOW" }
         },
+
         {
           "label": "MEDIUM_SEVERITY",
           "conditions_logic": "AND",
           "conditions": [
-            { "field": "Burning", "operator": "between", "value": [2, 2] }
+            { "field": "Burning", "operator": "between", "value": [2, 3] }
           ],
           "outputs": { "Burning_Severity": "MEDIUM" }
         },
+
         {
           "label": "HIGH_SEVERITY",
           "conditions_logic": "AND",
           "conditions": [
-            { "field": "Burning", "operator": ">=", "value": 3 }
+            { "field": "Burning", "operator": ">=", "value": 4 }
           ],
           "outputs": { "Burning_Severity": "HIGH" }
         }

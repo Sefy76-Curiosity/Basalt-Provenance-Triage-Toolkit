@@ -1,8 +1,8 @@
 {
   "protocol_name": "USDA Soil Morphology Protocol",
-  "version": "1.0",
+  "version": "2.0",
   "author": "Sefy Levy",
-  "description": "Pure JSON implementation of core USDA soil morphology workflows: horizons, texture, structure, consistence, color grouping, moisture regime, and drainage class.",
+  "description": "Standards-accurate JSON implementation of USDA soil morphology: horizons, texture, structure, consistence, Munsell color grouping, moisture regime, drainage class, and integrated soil-type interpretation.",
   "icon": "🌱",
 
   "requires_fields": [
@@ -45,7 +45,7 @@
 
     {
       "id": "horizon_grouping",
-      "name": "Horizon Grouping",
+      "name": "Horizon Grouping (USDA)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
@@ -78,31 +78,36 @@
 
     {
       "id": "texture_classification",
-      "name": "Texture Classification",
+      "name": "USDA Texture Classification (Expanded)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
-        {
-          "label": "SANDY",
-          "conditions_logic": "AND",
+
+        { "label": "SANDY",
+          "conditions_logic": "OR",
           "conditions": [
-            { "field": "Texture", "operator": "==", "value": "sand" }
+            { "field": "Texture", "operator": "==", "value": "sand" },
+            { "field": "Texture", "operator": "==", "value": "loamy sand" }
           ],
           "outputs": { "Texture_Class": "SANDY" }
         },
-        {
-          "label": "LOAMY",
-          "conditions_logic": "AND",
+
+        { "label": "LOAMY",
+          "conditions_logic": "OR",
           "conditions": [
-            { "field": "Texture", "operator": "==", "value": "loam" }
+            { "field": "Texture", "operator": "==", "value": "loam" },
+            { "field": "Texture", "operator": "==", "value": "sandy loam" },
+            { "field": "Texture", "operator": "==", "value": "silty loam" }
           ],
           "outputs": { "Texture_Class": "LOAMY" }
         },
-        {
-          "label": "CLAYEY",
-          "conditions_logic": "AND",
+
+        { "label": "CLAYEY",
+          "conditions_logic": "OR",
           "conditions": [
-            { "field": "Texture", "operator": "==", "value": "clay" }
+            { "field": "Texture", "operator": "==", "value": "clay" },
+            { "field": "Texture", "operator": "==", "value": "silty clay" },
+            { "field": "Texture", "operator": "==", "value": "clay loam" }
           ],
           "outputs": { "Texture_Class": "CLAYEY" }
         }
@@ -111,7 +116,7 @@
 
     {
       "id": "structure_grouping",
-      "name": "Structure Grouping",
+      "name": "Soil Structure Grouping",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
@@ -144,10 +149,11 @@
 
     {
       "id": "color_grouping",
-      "name": "Munsell Color Grouping",
+      "name": "Munsell Color Grouping (Hue–Value–Chroma)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
+
         {
           "label": "DARK",
           "conditions_logic": "AND",
@@ -156,6 +162,7 @@
           ],
           "outputs": { "Color_Group": "DARK" }
         },
+
         {
           "label": "MEDIUM",
           "conditions_logic": "AND",
@@ -164,6 +171,7 @@
           ],
           "outputs": { "Color_Group": "MEDIUM" }
         },
+
         {
           "label": "LIGHT",
           "conditions_logic": "AND",
@@ -177,7 +185,7 @@
 
     {
       "id": "moisture_regime",
-      "name": "Moisture Regime Inference",
+      "name": "Moisture Regime Inference (USDA)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
@@ -242,6 +250,46 @@
     },
 
     {
+      "id": "integrated_soil_type",
+      "name": "Integrated Soil-Type Interpretation",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+      "rules": [
+
+        {
+          "label": "DARK_SURFACE_LOAM",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Horizon_Class", "operator": "==", "value": "SURFACE_ORGANIC" },
+            { "field": "Texture_Class", "operator": "==", "value": "LOAMY" },
+            { "field": "Color_Group", "operator": "==", "value": "DARK" }
+          ],
+          "outputs": { "Soil_Type": "DARK_SURFACE_LOAM" }
+        },
+
+        {
+          "label": "CLAYEY_SUBSURFACE_ACCUMULATION",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Horizon_Class", "operator": "==", "value": "SUBSURFACE_ACCUMULATION" },
+            { "field": "Texture_Class", "operator": "==", "value": "CLAYEY" }
+          ],
+          "outputs": { "Soil_Type": "CLAY_ACCUMULATION_PROFILE" }
+        },
+
+        {
+          "label": "SANDY_PARENT_MATERIAL",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Horizon_Class", "operator": "==", "value": "PARENT_MATERIAL" },
+            { "field": "Texture_Class", "operator": "==", "value": "SANDY" }
+          ],
+          "outputs": { "Soil_Type": "SANDY_PARENT_MATERIAL" }
+        }
+      ]
+    },
+
+    {
       "id": "review_stage",
       "name": "Review Flags",
       "type": "rule_stage",
@@ -251,7 +299,7 @@
           "label": "UNCLASSIFIED",
           "conditions_logic": "AND",
           "conditions": [
-            { "field": "Horizon_Class", "operator": "is_null" }
+            { "field": "Soil_Type", "operator": "is_null" }
           ],
           "outputs": {
             "Flag_For_Review": "YES",
@@ -263,7 +311,7 @@
   ],
 
   "final_outputs": {
-    "primary_classification_field": "Horizon_Class",
+    "primary_classification_field": "Soil_Type",
     "qc_field": "QC_Class",
     "flag_field": "Flag_For_Review"
   }

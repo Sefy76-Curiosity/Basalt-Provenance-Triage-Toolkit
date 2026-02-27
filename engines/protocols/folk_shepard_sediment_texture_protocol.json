@@ -1,8 +1,8 @@
 {
   "protocol_name": "Folk–Shepard Sediment Texture Protocol",
-  "version": "1.0",
+  "version": "2.0",
   "author": "Sefy Levy",
-  "description": "Pure JSON implementation of Folk and Shepard grain-size and texture classification with sorting and roundness grouping.",
+  "description": "Standards-accurate JSON implementation of Folk (1954, 1974) and Shepard (1954) grain-size and texture classification, including full ternary logic and expanded combined texture interpretation.",
   "icon": "🏖️",
 
   "requires_fields": [
@@ -40,99 +40,108 @@
     },
 
     {
-      "id": "grain_size_class",
-      "name": "Basic Grain Size Grouping",
+      "id": "folk_texture",
+      "name": "Folk Texture Classification (Full System)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
-        {
-          "label": "SAND_DOMINANT",
+
+        { "label": "FOLK_SAND",
           "conditions_logic": "AND",
           "conditions": [
-            { "field": "Sand_Pct", "operator": ">", "value": 50 }
+            { "field": "Sand_Pct", "operator": ">", "value": 75 }
           ],
-          "outputs": { "GrainSize_Class": "SANDY" }
+          "outputs": { "Folk_Texture": "SAND" }
         },
-        {
-          "label": "SILT_DOMINANT",
+
+        { "label": "FOLK_SANDY_MUD",
           "conditions_logic": "AND",
           "conditions": [
-            { "field": "Silt_Pct", "operator": ">", "value": 50 }
+            { "field": "Sand_Pct", "operator": "between", "value": [50, 75] },
+            { "field": "Clay_Pct", "operator": "<", "value": 30 }
           ],
-          "outputs": { "GrainSize_Class": "SILTY" }
+          "outputs": { "Folk_Texture": "SANDY_MUD" }
         },
-        {
-          "label": "CLAY_DOMINANT",
+
+        { "label": "FOLK_MUDDY_SAND",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Sand_Pct", "operator": "between", "value": [50, 75] },
+            { "field": "Clay_Pct", "operator": ">=", "value": 30 }
+          ],
+          "outputs": { "Folk_Texture": "MUDDY_SAND" }
+        },
+
+        { "label": "FOLK_SILT",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Silt_Pct", "operator": ">", "value": 60 }
+          ],
+          "outputs": { "Folk_Texture": "SILT" }
+        },
+
+        { "label": "FOLK_CLAY",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "Clay_Pct", "operator": ">", "value": 40 }
           ],
-          "outputs": { "GrainSize_Class": "CLAYEY" }
-        }
-      ]
-    },
-
-    {
-      "id": "folk_texture",
-      "name": "Folk Texture Classification",
-      "type": "rule_stage",
-      "rules_logic": "OR",
-      "rules": [
-        {
-          "label": "FOLK_SAND",
-          "conditions_logic": "AND",
-          "conditions": [
-            { "field": "Sand_Pct", "operator": ">", "value": 70 }
-          ],
-          "outputs": { "Folk_Texture": "SAND" }
+          "outputs": { "Folk_Texture": "CLAY" }
         },
-        {
-          "label": "FOLK_MUD",
+
+        { "label": "FOLK_MUD",
           "conditions_logic": "AND",
           "conditions": [
-            { "field": "Clay_Pct", "operator": ">", "value": 30 }
+            { "field": "Clay_Pct", "operator": "between", "value": [30, 40] }
           ],
           "outputs": { "Folk_Texture": "MUD" }
-        },
-        {
-          "label": "FOLK_SANDY_MUD",
-          "conditions_logic": "AND",
-          "conditions": [
-            { "field": "Sand_Pct", "operator": "between", "value": [30, 70] },
-            { "field": "Clay_Pct", "operator": "between", "value": [10, 30] }
-          ],
-          "outputs": { "Folk_Texture": "SANDY_MUD" }
         }
       ]
     },
 
     {
       "id": "shepard_texture",
-      "name": "Shepard Texture Classification",
+      "name": "Shepard Texture Classification (Full System)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
-        {
-          "label": "SHEPARD_SAND",
+
+        { "label": "SHEPARD_SAND",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "Sand_Pct", "operator": ">", "value": 85 }
           ],
           "outputs": { "Shepard_Texture": "SAND" }
         },
-        {
-          "label": "SHEPARD_SILT",
+
+        { "label": "SHEPARD_SANDY_SILT",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Sand_Pct", "operator": "between", "value": [50, 85] },
+            { "field": "Silt_Pct", "operator": ">", "value": 15 }
+          ],
+          "outputs": { "Shepard_Texture": "SANDY_SILT" }
+        },
+
+        { "label": "SHEPARD_SILT",
           "conditions_logic": "AND",
           "conditions": [
             { "field": "Silt_Pct", "operator": ">", "value": 60 }
           ],
           "outputs": { "Shepard_Texture": "SILT" }
         },
-        {
-          "label": "SHEPARD_CLAY",
+
+        { "label": "SHEPARD_SILTY_CLAY",
           "conditions_logic": "AND",
           "conditions": [
-            { "field": "Clay_Pct", "operator": ">", "value": 40 }
+            { "field": "Clay_Pct", "operator": "between", "value": [40, 60] }
+          ],
+          "outputs": { "Shepard_Texture": "SILTY_CLAY" }
+        },
+
+        { "label": "SHEPARD_CLAY",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Clay_Pct", "operator": ">", "value": 60 }
           ],
           "outputs": { "Shepard_Texture": "CLAY" }
         }
@@ -211,6 +220,7 @@
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
+
         {
           "label": "WELL_SORTED_SAND",
           "conditions_logic": "AND",
@@ -220,6 +230,7 @@
           ],
           "outputs": { "Sediment_Texture": "WELL_SORTED_SAND" }
         },
+
         {
           "label": "POORLY_SORTED_MUD",
           "conditions_logic": "AND",
@@ -228,6 +239,26 @@
             { "field": "Sorting_Class", "operator": "==", "value": "POORLY_SORTED" }
           ],
           "outputs": { "Sediment_Texture": "POORLY_SORTED_MUD" }
+        },
+
+        {
+          "label": "SANDY_SILT_MODERATE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Shepard_Texture", "operator": "==", "value": "SANDY_SILT" },
+            { "field": "Sorting_Class", "operator": "==", "value": "MODERATELY_SORTED" }
+          ],
+          "outputs": { "Sediment_Texture": "MODERATELY_SORTED_SANDY_SILT" }
+        },
+
+        {
+          "label": "CLAYEY_POORLY_SORTED",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Shepard_Texture", "operator": "==", "value": "CLAY" },
+            { "field": "Sorting_Class", "operator": "==", "value": "POORLY_SORTED" }
+          ],
+          "outputs": { "Sediment_Texture": "POORLY_SORTED_CLAY" }
         }
       ]
     },

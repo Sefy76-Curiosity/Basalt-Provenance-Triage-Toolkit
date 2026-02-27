@@ -1,8 +1,8 @@
 {
   "protocol_name": "Zooarchaeology Fragmentation & Breakage Protocol",
-  "version": "1.0",
+  "version": "2.0",
   "author": "Sefy Levy",
-  "description": "Pure JSON implementation of fragmentation index, completeness, breakage patterns, shaft circumference, and fracture freshness.",
+  "description": "Standards-accurate JSON implementation of fragmentation index, completeness, breakage patterns, shaft circumference, fracture freshness, and expanded taphonomic interpretation.",
   "icon": "🦴",
 
   "requires_fields": [
@@ -199,10 +199,11 @@
 
     {
       "id": "combined_interpretation",
-      "name": "Combined Taphonomic Interpretation",
+      "name": "Combined Taphonomic Interpretation (Expanded)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
+
         {
           "label": "INTENSIVE_PROCESSING",
           "conditions_logic": "AND",
@@ -212,6 +213,7 @@
           ],
           "outputs": { "Taphonomic_Interpretation": "INTENSIVE_PROCESSING" }
         },
+
         {
           "label": "LIGHT_PROCESSING",
           "conditions_logic": "AND",
@@ -220,6 +222,46 @@
             { "field": "Fracture_Freshness", "operator": "==", "value": "DRY" }
           ],
           "outputs": { "Taphonomic_Interpretation": "LIGHT_PROCESSING" }
+        },
+
+        {
+          "label": "MARROW_EXTRACTION",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Breakage_Class", "operator": "==", "value": "SPIRAL" },
+            { "field": "Shaft_Class", "operator": "==", "value": "MORE_THAN_3_4" }
+          ],
+          "outputs": { "Taphonomic_Interpretation": "MARROW_EXTRACTION" }
+        },
+
+        {
+          "label": "POST_DEPOSITIONAL_BREAKAGE",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Breakage_Class", "operator": "==", "value": "TRANSVERSE" },
+            { "field": "Fracture_Freshness", "operator": "==", "value": "DRY" }
+          ],
+          "outputs": { "Taphonomic_Interpretation": "POST_DEPOSITIONAL_BREAKAGE" }
+        },
+
+        {
+          "label": "CARNIVORE_SCAVENGING",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Shaft_Class", "operator": "==", "value": "LESS_THAN_HALF" },
+            { "field": "Fragmentation_Class", "operator": "==", "value": "HIGH" }
+          ],
+          "outputs": { "Taphonomic_Interpretation": "CARNIVORE_SCAVENGING" }
+        },
+
+        {
+          "label": "WEATHERING_BREAKDOWN",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Completeness_Class", "operator": "==", "value": "FRAGMENT" },
+            { "field": "Fracture_Freshness", "operator": "==", "value": "DRY" }
+          ],
+          "outputs": { "Taphonomic_Interpretation": "WEATHERING_BREAKDOWN" }
         }
       ]
     },

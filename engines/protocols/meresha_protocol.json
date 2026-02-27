@@ -1,8 +1,8 @@
 {
   "protocol_name": "Maresha Zooarchaeology Protocol",
-  "version": "1.0",
+  "version": "2.0",
   "author": "Sefy Levy",
-  "description": "A multi-stage archaeological protocol inspired by the Maresha recording system for faunal remains.",
+  "description": "Standards-accurate JSON implementation of a Maresha-style zooarchaeological recording system, including element classification, taphonomy, fragmentation, age estimation, and integrated final interpretation.",
   "icon": "🦴",
 
   "requires_fields": [
@@ -25,7 +25,6 @@
     {
       "id": "missing_data",
       "name": "Missing Data Screening",
-      "description": "Detect missing or invalid essential zooarchaeological fields.",
       "type": "rule_stage",
       "rules_logic": "OR",
 
@@ -60,7 +59,6 @@
     {
       "id": "element_identification",
       "name": "Element Identification",
-      "description": "Classify skeletal element into anatomical categories.",
       "type": "rule_stage",
       "rules_logic": "OR",
 
@@ -73,9 +71,7 @@
             { "field": "Element", "operator": "==", "value": "rib" },
             { "field": "Element", "operator": "==", "value": "sternum" }
           ],
-          "outputs": {
-            "Element_Class": "AXIAL"
-          }
+          "outputs": { "Element_Class": "AXIAL" }
         },
         {
           "label": "APPENDICULAR",
@@ -86,9 +82,7 @@
             { "field": "Element", "operator": "==", "value": "humerus" },
             { "field": "Element", "operator": "==", "value": "radius" }
           ],
-          "outputs": {
-            "Element_Class": "APPENDICULAR"
-          }
+          "outputs": { "Element_Class": "APPENDICULAR" }
         },
         {
           "label": "CRANIAL",
@@ -98,9 +92,7 @@
             { "field": "Element", "operator": "==", "value": "maxilla" },
             { "field": "Element", "operator": "==", "value": "cranium" }
           ],
-          "outputs": {
-            "Element_Class": "CRANIAL"
-          }
+          "outputs": { "Element_Class": "CRANIAL" }
         }
       ]
     },
@@ -108,7 +100,6 @@
     {
       "id": "taphonomy",
       "name": "Taphonomic Assessment",
-      "description": "Evaluate burning, cut marks, gnawing, and weathering.",
       "type": "rule_stage",
       "rules_logic": "OR",
 
@@ -119,9 +110,7 @@
           "conditions": [
             { "field": "Burning", "operator": ">=", "value": 2 }
           ],
-          "outputs": {
-            "Taphonomy_Class": "BURNED"
-          }
+          "outputs": { "Taphonomy_Class": "BURNED" }
         },
         {
           "label": "CUT_MARKS",
@@ -129,9 +118,7 @@
           "conditions": [
             { "field": "CutMarks", "operator": "==", "value": 1 }
           ],
-          "outputs": {
-            "Taphonomy_Class": "BUTCHERY"
-          }
+          "outputs": { "Taphonomy_Class": "BUTCHERY" }
         },
         {
           "label": "GNAWED",
@@ -139,9 +126,7 @@
           "conditions": [
             { "field": "Gnawing", "operator": "==", "value": 1 }
           ],
-          "outputs": {
-            "Taphonomy_Class": "CARNIVORE_MODIFIED"
-          }
+          "outputs": { "Taphonomy_Class": "CARNIVORE_MODIFIED" }
         },
         {
           "label": "WEATHERED",
@@ -149,9 +134,7 @@
           "conditions": [
             { "field": "Weathering", "operator": ">=", "value": 3 }
           ],
-          "outputs": {
-            "Taphonomy_Class": "WEATHERED"
-          }
+          "outputs": { "Taphonomy_Class": "WEATHERED" }
         }
       ]
     },
@@ -159,7 +142,6 @@
     {
       "id": "fragmentation",
       "name": "Fragmentation Assessment",
-      "description": "Classify bone fragmentation severity.",
       "type": "rule_stage",
       "rules_logic": "OR",
 
@@ -170,9 +152,7 @@
           "conditions": [
             { "field": "Fragmentation", "operator": ">=", "value": 3 }
           ],
-          "outputs": {
-            "Fragmentation_Class": "HIGH"
-          }
+          "outputs": { "Fragmentation_Class": "HIGH" }
         },
         {
           "label": "LOW_FRAGMENTATION",
@@ -180,17 +160,14 @@
           "conditions": [
             { "field": "Fragmentation", "operator": "<", "value": 3 }
           ],
-          "outputs": {
-            "Fragmentation_Class": "LOW"
-          }
+          "outputs": { "Fragmentation_Class": "LOW" }
         }
       ]
     },
 
     {
       "id": "age_sex",
-      "name": "Age & Sex Estimation",
-      "description": "Evaluate fusion and epiphyseal development.",
+      "name": "Age & Fusion Assessment",
       "type": "rule_stage",
       "rules_logic": "OR",
 
@@ -201,9 +178,7 @@
           "conditions": [
             { "field": "Fusion", "operator": "==", "value": "unfused" }
           ],
-          "outputs": {
-            "Age_Class": "JUVENILE"
-          }
+          "outputs": { "Age_Class": "JUVENILE" }
         },
         {
           "label": "ADULT",
@@ -211,25 +186,82 @@
           "conditions": [
             { "field": "Fusion", "operator": "==", "value": "fused" }
           ],
-          "outputs": {
-            "Age_Class": "ADULT"
-          }
+          "outputs": { "Age_Class": "ADULT" }
         }
       ]
     },
 
     {
       "id": "final_classification",
-      "name": "Final Classification",
-      "description": "Combine element, taphonomy, and fragmentation into a final Maresha-style class.",
-      "type": "python_stage",
-      "python_callable": "protocol_functions.maresha_final_class"
+      "name": "Integrated Maresha-Style Interpretation",
+      "type": "rule_stage",
+      "rules_logic": "OR",
+
+      "rules": [
+
+        {
+          "label": "BURNED_FRAGMENT",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Taphonomy_Class", "operator": "==", "value": "BURNED" },
+            { "field": "Fragmentation_Class", "operator": "==", "value": "HIGH" }
+          ],
+          "outputs": { "Final_Class": "BURNED_FRAGMENT" }
+        },
+
+        {
+          "label": "BUTCHERY_APPENDICULAR",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Taphonomy_Class", "operator": "==", "value": "BUTCHERY" },
+            { "field": "Element_Class", "operator": "==", "value": "APPENDICULAR" }
+          ],
+          "outputs": { "Final_Class": "APPENDICULAR_BUTCHERY" }
+        },
+
+        {
+          "label": "CARNIVORE_AXIAL",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Taphonomy_Class", "operator": "==", "value": "CARNIVORE_MODIFIED" },
+            { "field": "Element_Class", "operator": "==", "value": "AXIAL" }
+          ],
+          "outputs": { "Final_Class": "AXIAL_CARNIVORE_MODIFIED" }
+        },
+
+        {
+          "label": "WEATHERED_CRANIAL",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Taphonomy_Class", "operator": "==", "value": "WEATHERED" },
+            { "field": "Element_Class", "operator": "==", "value": "CRANIAL" }
+          ],
+          "outputs": { "Final_Class": "CRANIAL_WEATHERED" }
+        },
+
+        {
+          "label": "JUVENILE_ELEMENT",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Age_Class", "operator": "==", "value": "JUVENILE" }
+          ],
+          "outputs": { "Final_Class": "JUVENILE_SPECIMEN" }
+        },
+
+        {
+          "label": "ADULT_ELEMENT",
+          "conditions_logic": "AND",
+          "conditions": [
+            { "field": "Age_Class", "operator": "==", "value": "ADULT" }
+          ],
+          "outputs": { "Final_Class": "ADULT_SPECIMEN" }
+        }
+      ]
     },
 
     {
       "id": "review_stage",
       "name": "Review Flags",
-      "description": "Flag samples requiring manual review.",
       "type": "rule_stage",
       "rules_logic": "OR",
 
