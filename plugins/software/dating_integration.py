@@ -6,6 +6,7 @@ All methods included - no missing attributes
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Geochronology & Dating",
     "id": "dating_integration",
     "name": "Chronological Dating (Enhanced)",
     "description": "Bayesian age-depth with MCMC, parallel processing, user-supplied curves",

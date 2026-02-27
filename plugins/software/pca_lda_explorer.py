@@ -9,6 +9,7 @@ Version: 2.1 (February 16, 2026)
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Geology & Geochemistry",
     "id": "pca_lda_explorer",
     "name": "PCA+LDA Explorer Pro",
     "description": "Complete statistical suite - PCA, LDA, PLS-DA, RF, SVM, t-SNE, Clustering, Correlation, Regression, Statistical Tests",

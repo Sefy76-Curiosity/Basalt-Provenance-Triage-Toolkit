@@ -3667,33 +3667,17 @@ class ArchaeologyArchaeometryPlugin:
 # STANDARD PLUGIN REGISTRATION
 # ============================================================================
 def setup_plugin(main_app):
-    """Register plugin — left panel first, hardware menu fallback"""
-    global _ARCHAEOLOGY_REGISTERED
-    if _ARCHAEOLOGY_REGISTERED:
-        print("⏭️  Archaeology plugin already registered, skipping…")
-        return None
+    """Register plugin - NO DUPLICATES"""
 
     plugin = ArchaeologyArchaeometryPlugin(main_app)
 
+    # Add to left panel
     if hasattr(main_app, 'left') and main_app.left is not None:
         main_app.left.add_hardware_button(
             name=PLUGIN_INFO.get("name", "Archaeology & Archaeometry"),
             icon=PLUGIN_INFO.get("icon", "🏺"),
-            command=plugin.show_interface,
+            command=plugin.show_interface
         )
-        print(f"✅ Added to left panel: {PLUGIN_INFO.get('name')}")
-        _ARCHAEOLOGY_REGISTERED = True
-        return plugin
-
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'hardware_menu'):
-            main_app.hardware_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="🔧 Hardware", menu=main_app.hardware_menu)
-        main_app.hardware_menu.add_command(
-            label=PLUGIN_INFO.get("name", "Archaeology & Archaeometry"),
-            command=plugin.show_interface,
-        )
-        print(f"✅ Added to Hardware menu: {PLUGIN_INFO.get('name')}")
-        _ARCHAEOLOGY_REGISTERED = True
+        print(f"✅ Added: {PLUGIN_INFO.get('name')}")
 
     return plugin

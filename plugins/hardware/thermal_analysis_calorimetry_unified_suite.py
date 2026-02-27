@@ -33,7 +33,6 @@ PLUGIN_INFO = {
 # PREVENT DOUBLE REGISTRATION
 # ============================================================================
 import tkinter as tk
-_THERMAL_REGISTERED = False
 from tkinter import ttk, messagebox, filedialog
 import numpy as np
 import pandas as pd
@@ -3177,36 +3176,22 @@ class ThermalAnalysisSuitePlugin:
 
 
 # ============================================================================
-# STANDARD PLUGIN REGISTRATION
+# SIMPLE PLUGIN REGISTRATION - NO DUPLICATES
 # ============================================================================
-def setup_plugin(main_app):
-    global _THERMAL_REGISTERED
-    if _THERMAL_REGISTERED:
-        print("⏭️ Thermal Analysis plugin already registered")
-        return None
 
+def setup_plugin(main_app):
+    """Register plugin - simple, no duplicates"""
+
+    # Create plugin instance
     plugin = ThermalAnalysisSuitePlugin(main_app)
 
+    # Add to left panel if available
     if hasattr(main_app, 'left') and main_app.left is not None:
         main_app.left.add_hardware_button(
-            name="Thermal Analysis & Calorimetry",
-            icon="🔥",
+            name=PLUGIN_INFO.get("name", "Thermal Analysis Suite"),
+            icon=PLUGIN_INFO.get("icon", "🔥"),
             command=plugin.show_interface
         )
-        print("✅ Added to left panel: Thermal Analysis")
-        _THERMAL_REGISTERED = True
-        return plugin
-
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'hardware_menu'):
-            main_app.hardware_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="🔧 Hardware", menu=main_app.hardware_menu)
-
-        main_app.hardware_menu.add_command(
-            label="Thermal Analysis & Calorimetry",
-            command=plugin.show_interface
-        )
-        print("✅ Added to Hardware menu: Thermal Analysis")
-        _THERMAL_REGISTERED = True
+        print(f"✅ Added: {PLUGIN_INFO.get('name')}")
 
     return plugin

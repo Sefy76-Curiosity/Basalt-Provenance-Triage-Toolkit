@@ -9,6 +9,7 @@ PLUGIN_INFO = {
     'id': 'museum_import',
     'name': 'Museum Database Pro',
     'category': 'software',
+    'field': 'Archaeology & Archaeometry',
     'icon': '🏛️',
     "version": "2.0.0",
     'requires': ['requests', 'bs4'],

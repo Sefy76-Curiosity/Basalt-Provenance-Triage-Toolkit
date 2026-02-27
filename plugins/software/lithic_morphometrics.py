@@ -10,6 +10,7 @@ Version: 1.0 - Complete functional implementation
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Archaeology & Archaeometry",
     "id": "lithic_morphometrics",
     "name": "Lithic Morphometrics",
     "icon": "🪨",

@@ -12,6 +12,7 @@ NOW WITH 3D ARCHAEOLOGICAL ANALYSIS:
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Petrology & Mineralogy",
     "id": "virtual_microscopy_pro",
     "name": "Virtual Microscopy Pro",
     "description": "Petrographic analysis + 3D archaeological mesh analysis",

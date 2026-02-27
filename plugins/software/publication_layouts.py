@@ -16,6 +16,7 @@ NOW WITH:
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "General",
     "id": "publication_layouts",
     "name": "Publication Layouts Pro",
     "description": "Professional multi-panel figure designer with main app integration",

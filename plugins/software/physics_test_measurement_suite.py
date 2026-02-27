@@ -22,6 +22,7 @@ PLUGIN_INFO = {
     "id": "physics_test_measurement_suite",
     "name": "Physics TM Suite",
     "category": "software",
+    "field": "Physics & Test/Measurement",
     "icon": "📟",
     "version": "1.0.0",
     "author": "Sefy Levy & Claude",

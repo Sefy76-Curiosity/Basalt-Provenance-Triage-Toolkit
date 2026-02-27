@@ -1,7 +1,8 @@
 🚀 Quick Start Guide
 
 Get Scientific Toolkit running in 5 minutes.
-*70 classification engines · 50 protocols · 37 software plugins · 23 add-ons · 7 hardware suites*
+*70 classification engines · 10 protocols · 48 software plugins · 22 add-ons · 16 hardware suites*
+
 ⚠️ Before You Start
 
 This software is provided "AS IS" - you are responsible for validating results.
@@ -15,6 +16,7 @@ This software is provided "AS IS" - you are responsible for validating results.
     Read citations for methods you use
 
 Found a problem? → https://gitlab.com/sefy76/scientific-toolkit/-/issues
+
 ✅ Prerequisites
 Requirement	Minimum	Recommended
 Python	3.8	3.10+
@@ -22,6 +24,7 @@ pip	Any version	Latest
 Disk Space	50 MB	500 MB (with all plugins)
 RAM	2 GB	4 GB
 OS	Windows 10, macOS 10.14, Linux	Latest versions
+
 📦 Installation (3 minutes)
 Step 1: Download
 bash
@@ -37,9 +40,10 @@ Step 2: Install Dependencies
 Choose your installation type:
 Installation	Command	What You Get
 Minimal	pip install numpy pandas matplotlib	Core features, 70 engines, basic plotting
-Standard	pip install -r requirements.txt	All 37 software plugins + 23 add-ons
-Hardware	Add pyserial hidapi bleak	All 7 hardware suites
+Standard	pip install -r requirements.txt	All 48 software plugins + 22 add-ons
+Hardware	Add pyserial hidapi bleak	All 16 hardware suites
 Full	All of the above	Everything
+
 Step 3: Launch
 bash
 
@@ -47,6 +51,7 @@ python Scientific-Toolkit.py
 
 Windows users: Double-click Scientific-Toolkit.py
 First launch: May take 30-60 seconds to initialize plugins
+
 🎯 First Use (2 minutes)
 1. Load Sample Data
 text
@@ -56,6 +61,7 @@ Navigate to /samples/master_test_list.csv
 Click Open
 
 ✅ You should see data loaded in the main table (center panel)
+
 2. Run Your First Classification
 text
 
@@ -63,6 +69,7 @@ Classify → Geochemistry → TAS Volcanic Classification
 
 ✅ Results dialog shows rock types for your samples
 ✅ Click "Add to Dataset" to save classifications
+
 3. Create Your First Plot
 text
 
@@ -73,6 +80,7 @@ text
 5. Click "Plot"
 
 ✅ Congratulations! You've created a TAS diagram
+
 4. Try a Protocol
 text
 
@@ -81,6 +89,7 @@ Select a sample with weathering data
 Run protocol
 
 ✅ Returns weathering stage (0-5) with description
+
 🧭 Understanding the Interface
 Main Window Layout
 text
@@ -111,6 +120,7 @@ Ctrl+S	Save project
 Delete	Remove selected samples
 Right-click	Context menu with quick actions
 F1	Keyboard shortcuts help
+
 📋 Common First Tasks
 Task 1: Import Your Own Data
 
@@ -149,19 +159,37 @@ Click "Read"
 
 ✅ Value appears in the field
 
-All 7 hardware suites work the same way:
+All 16 hardware suites work the same way:
+
+    Archaeology & Archaeometry
 
     Barcode/QR Scanner
 
+    Chromatography & Analytical
+
+    Clinical & Molecular Diagnostics
+
+    Electrochemistry
+
     Elemental Geochemistry
 
-    Mineralogy (RRUFF)
+    Geophysics
+
+    Materials Characterization
+
+    Meteorology & Environmental
+
+    Molecular Biology
 
     Physical Properties
+
+    Physics Test & Measurement
 
     Solution Chemistry
 
     Spectroscopy
+
+    Thermal Analysis & Calorimetry
 
     Zooarchaeology
 
@@ -178,6 +206,7 @@ Example: Soil Texture
     Click "Add to Dataset"
 
 Available classifications: 70 across all fields
+
 Task 4: Run a Protocol
 
 Example: Zooarchaeology Fragmentation
@@ -188,6 +217,7 @@ Select sample with bone measurements
 Run protocol
 
 ✅ Returns fragmentation index, breakage pattern, freshness
+
 Task 5: Statistical Analysis
 
 Example: PCA
@@ -222,6 +252,7 @@ text
 8. Export → PDF
 
 Time: 5 minutes | Outputs: Rock type, magma series, normative minerals
+
 🦴 Zooarchaeology Workflow
 text
 
@@ -235,6 +266,7 @@ text
 8. Export results to CSV
 
 Time: 10 minutes | Outputs: Species, age, taphonomy, diet
+
 ⛏️ Field Geology Workflow
 text
 
@@ -248,6 +280,7 @@ text
 8. Export → Google Earth KML
 
 Time: Real-time | Outputs: Geochemical maps with coordinates
+
 🌱 Soil Science Workflow
 text
 
@@ -260,6 +293,7 @@ text
 7. Export → Google Earth KML
 
 Time: 5 minutes | Outputs: Soil classification, salinity hazard, 3D maps
+
 ⏳ Geochronology Workflow
 text
 
@@ -271,6 +305,7 @@ text
 6. Export ages to main table
 
 Time: 10 minutes | Outputs: U-Pb ages, concordia diagrams
+
 🧪 Isotope Geochemistry Workflow
 text
 
@@ -283,6 +318,7 @@ text
 7. Export mixing proportions
 
 Time: 5 minutes | Outputs: Mixing proportions, provenance
+
 🔌 Enabling Optional Features
 Enable AI Assistants
 text
@@ -393,9 +429,10 @@ Learn More
 Document	What It Covers
 User Guide	Complete reference for all features
 CITATIONS.md	200+ academic citations for all methods
-Plugin Guide	Deep dive into all 67 plugins
-Protocol Guide	Using the 50 scientific protocols
-Hardware Guide	Setting up all 7 hardware suites
+Plugin Guide	Deep dive into all 86 plugins
+Protocol Guide	Using the 10 scientific protocols
+Hardware Guide	Setting up all 16 hardware suites
+
 Get Help
 
     FAQ - Common questions answered
@@ -428,6 +465,7 @@ Contribute
 ✅ Join community: Share questions and discoveries
 ✅ Report bugs: Every report makes the software better
 ✅ Cite properly: Use CITATIONS.md for references
+
 📋 Quick Reference Card
 File Operations
 Action	Menu Path	Shortcut
@@ -436,6 +474,7 @@ Save Project	File → Save Project	Ctrl+S
 Open Project	File → Open Project	Ctrl+O
 Export CSV	File → Export → CSV	Ctrl+E
 Export Script	File → Export to Python Script	(menu)
+
 Classification (70 engines)
 Field	Menu Path
 Geochemistry	Classify → Geochemistry
@@ -446,13 +485,15 @@ Soil Science	Classify → Soil Science
 Environmental	Classify → Environmental
 Meteoritics	Classify → Meteoritics
 Isotope	Classify → Isotope Geochemistry
-Protocols (50 workflows)
+
+Protocols (10 workflows)
 Field	Menu Path
 Taphonomy	Protocols → Behrensmeyer Weathering
 Sediment	Protocols → Folk–Shepard Texture
 Environmental	Protocols → Hakanson Ecological Risk
 Igneous	Protocols → IUGS Igneous
 Zooarch	Protocols → Maresha Zooarchaeology
+
 Visualization
 Plot Type	Menu Path
 Scatter	Visualize → Scatter Plot
@@ -460,15 +501,26 @@ Ternary	Visualize → Ternary Diagram
 Spider	Visualize → REE Spider
 3D Map	Advanced → 3D GIS Viewer
 Statistical	Advanced → PCA+LDA Explorer
-Hardware (7 suites)
+
+Hardware (16 suites)
 Device Category	Menu Path
+Archaeology	Hardware → Archaeology & Archaeometry
 Barcode/QR	Hardware → Barcode Scanner
-XRF	Hardware → Elemental Geochemistry
-Mineralogy	Hardware → Mineralogy
+Chromatography	Hardware → Chromatography & Analytical
+Clinical/Molecular	Hardware → Clinical & Molecular Diagnostics
+Electrochemistry	Hardware → Electrochemistry
+XRF/ICP-MS	Hardware → Elemental Geochemistry
+Geophysics	Hardware → Geophysics
+Materials	Hardware → Materials Characterization
+Meteorology	Hardware → Meteorology & Environmental
+Molecular Bio	Hardware → Molecular Biology
 Calipers/Balances	Hardware → Physical Properties
+Physics Instruments	Hardware → Physics Test & Measurement
 pH/EC Meters	Hardware → Solution Chemistry
 Spectrometers	Hardware → Spectroscopy
+DSC/TGA/TMA	Hardware → Thermal Analysis & Calorimetry
 Zooarchaeology	Hardware → Zooarchaeology
+
 🎉 You're Ready!
 
 You now know enough to:
@@ -477,7 +529,7 @@ You now know enough to:
 
     ✅ Run 70 classification engines
 
-    ✅ Execute 50 scientific protocols
+    ✅ Execute 10 scientific protocols
 
     ✅ Create publication-quality plots
 
@@ -486,6 +538,7 @@ You now know enough to:
     ✅ Record macros for automation
 
 Explore at your own pace. Scientific Toolkit grows with your needs.
+
 🧪 Help Improve This Software
 
 Your testing and feedback is essential!
@@ -505,6 +558,7 @@ Found an issue? → Report on GitLab
 Everything working great? → Star the repository and tell colleagues!
 
 Every bug report and piece of feedback makes this better for the entire scientific community.
+
 📞 Quick Contacts
 
     Email: sefy76@gmail.com
@@ -516,15 +570,17 @@ Every bug report and piece of feedback makes this better for the entire scientif
 Questions? See FAQ or open an issue on GitLab.
 
 Want to go deeper? Continue to User Guide.
+
 <p align="center"> <a href="README.md">← Back to Main</a> • <a href="INSTALLATION.md">Installation Details</a> • <a href="USER_GUIDE.md">Full User Guide →</a> </p>
+
 📊 Quick Stats Summary
 Category	Count
 Classification Engines	70
-Scientific Protocols	50
-Software Plugins	37
-Add-on Plugins	23
-Hardware Suites	7
-Total Plugins	67
+Scientific Protocols	10
+Software Plugins	48
+Add-on Plugins	22
+Hardware Suites	16
+Total Plugins	86
 Built-in Citations	200+
 Sample Files	15+
 Lines of Code	~77,000

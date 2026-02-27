@@ -22,6 +22,7 @@ PLUGIN_INFO = {
     "id": "thermal_analysis_suite",
     "name": "Thermal Analysis Suite",
     "category": "software",
+    "field": "Thermal Analysis & Calorimetry",
     "icon": "🔥",
     "version": "1.0.0",
     "author": "Sefy Levy & Claude",

@@ -20,6 +20,7 @@ TAB 7: Peak Purity Analysis    - Spectral comparison, absorbance ratios (ISO 138
 
 PLUGIN_INFO = {
     "id": "chromatography_analysis_suite",
+    "field": "Chromatography & Analytical Chemistry",
     "name": "Chromatography Suite",
     "category": "software",
     "icon": "🧪",

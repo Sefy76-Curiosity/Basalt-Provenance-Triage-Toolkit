@@ -7,7 +7,8 @@ License: CC BY-NC-SA 4.0
 """
 
 PLUGIN_INFO = {
-      "category": "software",
+    "category": "software",
+    "field": "Archaeology & Archaeometry",
     "id": "photo_manager",
     "name": "Photo Manager",
     "description": "Link sample photos, organize field photography, and open photo folders directly",

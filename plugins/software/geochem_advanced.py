@@ -5,6 +5,7 @@ Fetches real data from online geochemical databases
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Geology & Geochemistry",
     "id": "geochem_advanced",
     "name": "Advanced GeoExplorer",
     "description": "Fetch geochemical data from online databases with dynamic import",

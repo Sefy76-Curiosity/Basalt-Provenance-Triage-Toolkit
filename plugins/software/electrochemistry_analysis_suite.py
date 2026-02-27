@@ -22,6 +22,7 @@ PLUGIN_INFO = {
     "id": "electrochemistry_analysis_suite",
     "name": "Electrochemistry Suite",
     "category": "software",
+    "field": "Electrochemistry",
     "icon": "⚡",
     "version": "1.0.0",
     "author": "Sefy Levy & DeepSeek",

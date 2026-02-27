@@ -22,6 +22,7 @@ PLUGIN_INFO = {
     "id": "physical_properties_suite",
     "name": "Physical Properties Suite",
     "category": "software",
+    "field": "Geology & Geochemistry",
     "icon": "🧲",
     "version": "1.0.0",
     "author": "Sefy Levy & Claude",

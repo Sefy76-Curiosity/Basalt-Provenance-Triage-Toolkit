@@ -10,8 +10,8 @@ TAB 3: ANALYSIS (NISP/MNI + Statistics + Export)
 
 PLUGIN_INFO = {
     "category": "hardware",
-    "id": "zooarchaeology_unified_suite_v1.4",
-    "name": "Zooarchaeology Suite (34 Real Devices)",
+    "id": "zooarchaeology_unified_suite",
+    "name": "Zooarchaeology Suite",
     "icon": "🦴",
     "description": "Real Python drivers for calipers, balances, GNSS, microscopes, FTIR file import",
     "version": "1.4.0",
@@ -2224,6 +2224,10 @@ class ZooarchaeologyUnifiedSuitePlugin:
 
         self._check_dependencies()
 
+    def show_interface(self):
+        """Standard plugin entry point"""
+        self.open_window()
+
     def _check_dependencies(self):
         self.deps = DEPS
         missing = [k for k in ('numpy', 'pandas', 'pyserial') if not self.deps[k]]
@@ -3853,33 +3857,22 @@ class ZooarchaeologyUnifiedSuitePlugin:
 
 
 # ============================================================================
-# PLUGIN REGISTRATION
+# SIMPLE PLUGIN REGISTRATION - NO DUPLICATES
 # ============================================================================
 
 def setup_plugin(main_app):
-    """Register plugin with main application"""
+    """Register plugin - simple, no duplicates"""
+
+    # Create plugin instance
     plugin = ZooarchaeologyUnifiedSuitePlugin(main_app)
 
     # Add to left panel if available
     if hasattr(main_app, 'left') and main_app.left is not None:
         main_app.left.add_hardware_button(
-            name=PLUGIN_INFO.get("name"),
-            icon=PLUGIN_INFO.get("icon"),
-            command=plugin.open_window
+            name=PLUGIN_INFO.get("name", "Zooarchaeology Suite (34 Real Devices)"),
+            icon=PLUGIN_INFO.get("icon", "🦴"),
+            command=plugin.show_interface
         )
-        print(f"✅ Zooarchaeology Suite v1.4 added - 34 REAL devices (3-Tab Design)")
-        return plugin
-
-    # Add to hardware menu as fallback
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'hardware_menu'):
-            main_app.hardware_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="🔧 Hardware", menu=main_app.hardware_menu)
-
-        main_app.hardware_menu.add_command(
-            label=PLUGIN_INFO.get("name"),
-            command=plugin.open_window
-        )
-        print(f"✅ Zooarchaeology Suite v1.4 added - 34 REAL devices")
+        print(f"✅ Added: {PLUGIN_INFO.get('name')}")
 
     return plugin

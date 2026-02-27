@@ -17,6 +17,7 @@ NEW FEATURES:
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "GIS & Spatial Science",
     "id": "quartz_gis_pro",
     "name": "Quartz GIS",
     "description": "Ultimate GIS for archaeologists - Measure, viewshed, attribute table, QGIS export!",

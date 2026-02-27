@@ -13,6 +13,7 @@ SCIENTIFIC FEATURES:
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Geology & Geochemistry",
     "id": "google_earth_pro",
     "name": "Google Earth Pro",
     "description": "Advanced 3D visualization - geochemical extrusion, time animation, photo integration, Quartz sync",

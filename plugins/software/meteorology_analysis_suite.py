@@ -20,6 +20,7 @@ TAB 7: Evapotranspiration        - Penman-Monteith, Priestley-Taylor, Hargreaves
 
 PLUGIN_INFO = {
     "id": "meteorology_analysis_suite",
+    "field": "Meteorology & Environmental Science",
     "name": "Meteorology Suite",
     "category": "software",
     "icon": "🌦️",

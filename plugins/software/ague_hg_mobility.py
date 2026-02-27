@@ -6,6 +6,7 @@ FIXED: Dynamic table compatibility with Basalt Triage Toolkit v10.2+
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Archaeology & Archaeometry",
     "id": "ague_hg_mobility",
     "name": "Ague Hg Mobility",
     "description": "FULL BCR/GBT 25282-2010 sequential extraction, FULL mobility indices, RAC, MF, PRODUCTION GRADE",

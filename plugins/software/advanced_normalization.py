@@ -5,6 +5,7 @@ Industry-standard corrections for pXRF/ICP with full functionality
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Geology & Geochemistry",
     "id": "advanced_normalization",
     "name": "Advanced Normalization",
     "description": "Lucas-Tooth & Compton normalization for pXRF/ICP with comparison tables",

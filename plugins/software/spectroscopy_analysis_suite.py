@@ -22,6 +22,7 @@ PLUGIN_INFO = {
     "id": "spectroscopy_analysis_suite",
     "name": "Spectroscopy Analysis Suite",
     "category": "software",
+    "field": "Spectroscopy",
     "icon": "🔬",
     "version": "1.0.0",
     "author": "Sefy Levy & Claude",

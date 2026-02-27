@@ -6,6 +6,7 @@ New in v5: Vol% (density-based), Ternary diagrams, Pie charts, bug fixes, compac
 
 PLUGIN_INFO = {
     "category": "software", "menu": "Advanced",
+    "field": "Petrology & Mineralogy",
     "id": "advanced_normative_calculations",
     "name": "Professional Normative Calculator",
     "description": "All industry-standard normative methods: CIPW, Hutchison, Niggli, Mesonorm, Catanorm, Rittmann",

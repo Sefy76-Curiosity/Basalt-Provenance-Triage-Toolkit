@@ -22,6 +22,7 @@ PLUGIN_INFO = {
     "id": "geophysics_analysis_suite",
     "name": "Geophysics Analysis Suite",
     "category": "software",
+    "field": "Geophysics",
     "icon": "🌍",
     "version": "1.0.0",
     "author": "Sefy Levy & Claude",

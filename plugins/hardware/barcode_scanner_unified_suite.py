@@ -2961,37 +2961,22 @@ class BarcodeScannerUnifiedSuitePlugin:
 
 
 # ============================================================================
-# STANDARD PLUGIN REGISTRATION
+# SIMPLE PLUGIN REGISTRATION - NO DUPLICATES
 # ============================================================================
 
 def setup_plugin(main_app):
-    global _SCANNER_REGISTERED
-    if _SCANNER_REGISTERED:
-        print(f"⏭️ Barcode Scanner plugin already registered, skipping...")
-        return None
+    """Register plugin - simple, no duplicates"""
 
+    # Create plugin instance
     plugin = BarcodeScannerUnifiedSuitePlugin(main_app)
 
+    # Add to left panel if available
     if hasattr(main_app, 'left') and main_app.left is not None:
         main_app.left.add_hardware_button(
-            name=PLUGIN_INFO.get("name", "Barcode/QR Scanner"),
+            name=PLUGIN_INFO.get("name", "QR/Barcode Scanner Suite"),
             icon=PLUGIN_INFO.get("icon", "📷"),
             command=plugin.show_interface
         )
-        print(f"✅ Added to left panel: {PLUGIN_INFO.get('name')}")
-        _SCANNER_REGISTERED = True
-        return plugin
-
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'hardware_menu'):
-            main_app.hardware_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="🔧 Hardware", menu=main_app.hardware_menu)
-
-        main_app.hardware_menu.add_command(
-            label=PLUGIN_INFO.get("name", "Barcode/QR Scanner"),
-            command=plugin.show_interface
-        )
-        print(f"✅ Added to Hardware menu: {PLUGIN_INFO.get('name')}")
-        _SCANNER_REGISTERED = True
+        print(f"✅ Added: {PLUGIN_INFO.get('name')}")
 
     return plugin

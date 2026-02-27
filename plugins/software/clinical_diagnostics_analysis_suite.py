@@ -22,6 +22,7 @@ PLUGIN_INFO = {
     "id": "clinical_diagnostics_suite",
     "name": "Clinical Diagnostics Suite",
     "category": "software",
+    "field": "Molecular Biology & Clinical Diagnostics",
     "icon": "🧪",
     "version": "1.0.0",
     "author": "Sefy Levy & DeepSeek",

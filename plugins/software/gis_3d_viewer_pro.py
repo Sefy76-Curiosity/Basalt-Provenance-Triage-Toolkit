@@ -5,6 +5,7 @@ v5.0 - COMPACT & FIXED
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "GIS & Spatial Science",
     "id": "gis_3d_viewer_pro",
     "name": "3D GIS Viewer PRO",
     "description": "Professional GIS: 2D maps, 3D terrain, Web maps, SRTM, Export",

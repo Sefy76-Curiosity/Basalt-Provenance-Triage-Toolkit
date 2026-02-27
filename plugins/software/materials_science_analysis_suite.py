@@ -20,6 +20,7 @@ TAB 7: Fatigue Analysis       - S-N curves, Basquin equation, Coffin-Manson (Bas
 
 PLUGIN_INFO = {
     "id": "materials_science_analysis_suite",
+    "field": "Materials Science",
     "name": "Materials Science Suite",
     "category": "software",
     "icon": "⚙️",

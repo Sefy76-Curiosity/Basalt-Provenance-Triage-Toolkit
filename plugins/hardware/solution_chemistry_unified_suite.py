@@ -31,7 +31,6 @@ PLUGIN_INFO = {
 # ============================================================================
 
 import tkinter as tk
-_SOLUTION_REGISTERED = False
 from tkinter import ttk, messagebox, filedialog
 import numpy as np
 import pandas as pd
@@ -2895,41 +2894,22 @@ class SolutionChemistryUnifiedSuitePlugin:
         self.status_var.set("🧹 Cleared")
 
 # ============================================================================
-# STANDARD PLUGIN REGISTRATION - LEFT PANEL FIRST, MENU SECOND
+# SIMPLE PLUGIN REGISTRATION - NO DUPLICATES
 # ============================================================================
+
 def setup_plugin(main_app):
-    """Register plugin - tries left panel first, falls back to hardware menu"""
-    global _SOLUTION_REGISTERED
+    """Register plugin - simple, no duplicates"""
 
-    # PREVENT DOUBLE REGISTRATION
-    if _SOLUTION_REGISTERED:
-        print(f"⏭️ Solution Chemistry plugin already registered, skipping...")
-        return None
-
+    # Create plugin instance
     plugin = SolutionChemistryUnifiedSuitePlugin(main_app)
 
-    # ===== TRY LEFT PANEL FIRST (hardware buttons) =====
+    # Add to left panel if available
     if hasattr(main_app, 'left') and main_app.left is not None:
         main_app.left.add_hardware_button(
-            name=PLUGIN_INFO.get("name", "Plugin Name"),
-            icon=PLUGIN_INFO.get("icon", "🔌"),
+            name=PLUGIN_INFO.get("name", "Solution Chemistry Suite"),
+            icon=PLUGIN_INFO.get("icon", "🌊"),
             command=plugin.show_interface
         )
-        print(f"✅ Added to left panel: {PLUGIN_INFO.get('name')}")
-        _SOLUTION_REGISTERED = True
-        return plugin
-
-    # ===== FALLBACK TO HARDWARE MENU =====
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'hardware_menu'):
-            main_app.hardware_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="🔧 Hardware", menu=main_app.hardware_menu)
-
-        main_app.hardware_menu.add_command(
-            label=PLUGIN_INFO.get("name", "Plugin Name"),
-            command=plugin.show_interface
-        )
-        print(f"✅ Added to Hardware menu: {PLUGIN_INFO.get('name')}")
-        _SOLUTION_REGISTERED = True
+        print(f"✅ Added: {PLUGIN_INFO.get('name')}")
 
     return plugin

@@ -10,6 +10,7 @@ Version: 1.0.2 - User-requested improvements!
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Geology & Geochemistry",
     "id": "uncertainty_propagation",
     "name": "Uncertainty Propagation",
     "icon": "🎲",

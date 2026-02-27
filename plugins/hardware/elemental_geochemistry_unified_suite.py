@@ -30,7 +30,6 @@ PLUGIN_INFO = {
 # PREVENT DOUBLE REGISTRATION
 # ============================================================================
 import tkinter as tk
-_ELEMENTAL_REGISTERED = False
 from tkinter import ttk, messagebox, filedialog
 import numpy as np
 from datetime import datetime
@@ -3324,37 +3323,22 @@ class ElementalGeochemistrySuitePlugin:
 
 
 # ============================================================================
-# STANDARD PLUGIN REGISTRATION - WITH DEBUG
+# SIMPLE PLUGIN REGISTRATION - NO DUPLICATES
 # ============================================================================
-def setup_plugin(main_app):
-    """Register plugin - tries left panel first, falls back to hardware menu"""
-    print(f"\n>>> setup_plugin called for {PLUGIN_INFO.get('name')}")
 
+def setup_plugin(main_app):
+    """Register plugin - simple, no duplicates"""
+
+    # Create plugin instance
     plugin = ElementalGeochemistrySuitePlugin(main_app)
 
-    # ===== TRY LEFT PANEL FIRST =====
+    # Add to left panel if available
     if hasattr(main_app, 'left') and main_app.left is not None:
-        print(f">>> Left panel FOUND, adding button...")
         main_app.left.add_hardware_button(
-            name=PLUGIN_INFO.get("name", "Elemental Geochemistry"),
+            name=PLUGIN_INFO.get("name", "Elemental Geochem Suite"),
             icon=PLUGIN_INFO.get("icon", "🔬"),
             command=plugin.show_interface
         )
-        print(f"✅ Added to left panel: {PLUGIN_INFO.get('name')}")
-        print(f">>> Returning plugin, should stop here")
-        return plugin
-
-    # ===== FALLBACK TO HARDWARE MENU =====
-    print(f">>> Left panel NOT found, falling back to hardware menu")
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'hardware_menu'):
-            main_app.hardware_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="🔧 Hardware", menu=main_app.hardware_menu)
-
-        main_app.hardware_menu.add_command(
-            label=PLUGIN_INFO.get("name", "Elemental Geochemistry"),
-            command=plugin.show_interface
-        )
-        print(f"✅ Added to Hardware menu: {PLUGIN_INFO.get('name')}")
+        print(f"✅ Added: {PLUGIN_INFO.get('name')}")
 
     return plugin

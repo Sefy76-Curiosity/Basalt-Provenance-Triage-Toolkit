@@ -7,15 +7,12 @@
 
   "requires_fields": [
     "Sample_ID",
-
     "As_CF", "Cd_CF", "Cr_CF", "Cu_CF", "Hg_CF", "Ni_CF", "Pb_CF", "Zn_CF",
     "As_Er", "Cd_Er", "Cr_Er", "Cu_Er", "Hg_Er", "Ni_Er", "Pb_Er", "Zn_Er",
-
     "RI"
   ],
 
   "stages": [
-
     {
       "id": "missing_data",
       "name": "Missing Data Screening",
@@ -34,7 +31,6 @@
             { "field": "Ni_CF", "operator": "is_null" },
             { "field": "Pb_CF", "operator": "is_null" },
             { "field": "Zn_CF", "operator": "is_null" },
-
             { "field": "As_Er", "operator": "is_null" },
             { "field": "Cd_Er", "operator": "is_null" },
             { "field": "Cr_Er", "operator": "is_null" },
@@ -43,7 +39,6 @@
             { "field": "Ni_Er", "operator": "is_null" },
             { "field": "Pb_Er", "operator": "is_null" },
             { "field": "Zn_Er", "operator": "is_null" },
-
             { "field": "RI", "operator": "is_null" }
           ],
           "outputs": {
@@ -54,15 +49,12 @@
         }
       ]
     },
-
     {
       "id": "cf_classification",
       "name": "Contamination Factor Classification (CF)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
-
-        /* As CF */
         {
           "label": "As_CF_LOW",
           "conditions_logic": "AND",
@@ -95,8 +87,6 @@
           ],
           "outputs": { "As_CF_Class": "VERY_HIGH" }
         },
-
-        /* Cd CF */
         {
           "label": "Cd_CF_LOW",
           "conditions_logic": "AND",
@@ -129,8 +119,6 @@
           ],
           "outputs": { "Cd_CF_Class": "VERY_HIGH" }
         },
-
-        /* Cr CF */
         {
           "label": "Cr_CF_LOW",
           "conditions_logic": "AND",
@@ -163,8 +151,6 @@
           ],
           "outputs": { "Cr_CF_Class": "VERY_HIGH" }
         },
-
-        /* Cu CF */
         {
           "label": "Cu_CF_LOW",
           "conditions_logic": "AND",
@@ -197,8 +183,6 @@
           ],
           "outputs": { "Cu_CF_Class": "VERY_HIGH" }
         },
-
-        /* Hg CF */
         {
           "label": "Hg_CF_LOW",
           "conditions_logic": "AND",
@@ -231,8 +215,6 @@
           ],
           "outputs": { "Hg_CF_Class": "VERY_HIGH" }
         },
-
-        /* Ni CF */
         {
           "label": "Ni_CF_LOW",
           "conditions_logic": "AND",
@@ -265,8 +247,6 @@
           ],
           "outputs": { "Ni_CF_Class": "VERY_HIGH" }
         },
-
-        /* Pb CF */
         {
           "label": "Pb_CF_LOW",
           "conditions_logic": "AND",
@@ -299,8 +279,6 @@
           ],
           "outputs": { "Pb_CF_Class": "VERY_HIGH" }
         },
-
-        /* Zn CF */
         {
           "label": "Zn_CF_LOW",
           "conditions_logic": "AND",
@@ -335,15 +313,12 @@
         }
       ]
     },
-
     {
       "id": "er_classification",
       "name": "Potential Ecological Risk Classification (Er)",
       "type": "rule_stage",
       "rules_logic": "OR",
       "rules": [
-
-        /* As Er */
         {
           "label": "As_Er_LOW",
           "conditions_logic": "AND",
@@ -384,8 +359,6 @@
           ],
           "outputs": { "As_Er_Class": "VERY_HIGH" }
         },
-
-        /* Cd Er */
         {
           "label": "Cd_Er_LOW",
           "conditions_logic": "AND",
@@ -426,8 +399,6 @@
           ],
           "outputs": { "Cd_Er_Class": "VERY_HIGH" }
         },
-
-        /* Cr Er */
         {
           "label": "Cr_Er_LOW",
           "conditions_logic": "AND",
@@ -468,8 +439,6 @@
           ],
           "outputs": { "Cr_Er_Class": "VERY_HIGH" }
         },
-
-        /* Cu Er */
         {
           "label": "Cu_Er_LOW",
           "conditions_logic": "AND",
@@ -510,8 +479,6 @@
           ],
           "outputs": { "Cu_Er_Class": "VERY_HIGH" }
         },
-
-        /* Hg Er */
         {
           "label": "Hg_Er_LOW",
           "conditions_logic": "AND",
@@ -552,8 +519,6 @@
           ],
           "outputs": { "Hg_Er_Class": "VERY_HIGH" }
         },
-
-        /* Ni Er */
         {
           "label": "Ni_Er_LOW",
           "conditions_logic": "AND",
@@ -594,8 +559,6 @@
           ],
           "outputs": { "Ni_Er_Class": "VERY_HIGH" }
         },
-
-        /* Pb Er */
         {
           "label": "Pb_Er_LOW",
           "conditions_logic": "AND",
@@ -636,8 +599,6 @@
           ],
           "outputs": { "Pb_Er_Class": "VERY_HIGH" }
         },
-
-        /* Zn Er */
         {
           "label": "Zn_Er_LOW",
           "conditions_logic": "AND",
@@ -680,7 +641,6 @@
         }
       ]
     },
-
     {
       "id": "ri_grouping",
       "name": "Total Ecological Risk (RI) Grouping",
@@ -721,7 +681,6 @@
         }
       ]
     },
-
     {
       "id": "review_stage",
       "name": "Review Flags",

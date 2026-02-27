@@ -5,6 +5,7 @@ Professional geostatistical interpolation with optimized performance + KDE conto
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "GIS & Spatial Science",
     "id": "spatial_kriging",
     "name": "Spatial Kriging & Density",
     "description": "Industry-standard spatial interpolation with variogram analysis + KDE contouring",

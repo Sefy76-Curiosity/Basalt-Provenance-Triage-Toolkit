@@ -6,7 +6,8 @@ Author: Sefy Levy
 License: CC BY-NC-SA 4.0
 """
 PLUGIN_INFO = {
-      "category": "software",
+    "category": "software",
+    "field": "General",
     "id": "advanced_export",
     "name": "Publication Export",
     "description": "High-resolution PDF/EPS/SVG export for publications",

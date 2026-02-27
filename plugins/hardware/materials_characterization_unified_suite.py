@@ -41,7 +41,6 @@ PLUGIN_INFO = {
 # PREVENT DOUBLE REGISTRATION
 # ============================================================================
 import tkinter as tk
-_MATERIALS_REGISTERED = False
 from tkinter import ttk, messagebox, filedialog
 import numpy as np
 import pandas as pd
@@ -2991,36 +2990,22 @@ class MaterialsCharacterizationSuitePlugin:
 
 
 # ============================================================================
-# PLUGIN REGISTRATION
+# SIMPLE PLUGIN REGISTRATION - NO DUPLICATES
 # ============================================================================
-def setup_plugin(main_app):
-    global _MATERIALS_REGISTERED
-    if _MATERIALS_REGISTERED:
-        print("⏭️ Materials Characterization Suite plugin already registered, skipping...")
-        return None
 
+def setup_plugin(main_app):
+    """Register plugin - simple, no duplicates"""
+
+    # Create plugin instance
     plugin = MaterialsCharacterizationSuitePlugin(main_app)
 
+    # Add to left panel if available
     if hasattr(main_app, 'left') and main_app.left is not None:
         main_app.left.add_hardware_button(
-            name="Materials Characterization Suite",
-            icon="🔬",
+            name=PLUGIN_INFO.get("name", "Materials Sci Suite"),
+            icon=PLUGIN_INFO.get("icon", "🔬"),
             command=plugin.show_interface
         )
-        print("✅ Added to left panel: Materials Characterization Suite")
-        _MATERIALS_REGISTERED = True
-        return plugin
-
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'hardware_menu'):
-            main_app.hardware_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="🔧 Hardware", menu=main_app.hardware_menu)
-
-        main_app.hardware_menu.add_command(
-            label="Materials Characterization Suite",
-            command=plugin.show_interface
-        )
-        print("✅ Added to Hardware menu: Materials Characterization Suite")
-        _MATERIALS_REGISTERED = True
+        print(f"✅ Added: {PLUGIN_INFO.get('name')}")
 
     return plugin

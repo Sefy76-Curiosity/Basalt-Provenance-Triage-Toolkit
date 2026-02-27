@@ -6,6 +6,7 @@
     "description": "Text-based plots (no graphics libraries needed)",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83d\udcdf",
     "requires": [],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/ascii_plotter.py?ref_type=heads"
@@ -17,6 +18,7 @@
     "description": "Process multiple CSV files in a directory at once",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83d\udcc1",
     "requires": [],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/batch_processor.py?ref_type=heads"
@@ -28,6 +30,7 @@
     "description": "ChatGPT AI assistant (requires OpenAI API key)",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83e\udd16",
     "requires": [
       "openai"
@@ -41,6 +44,7 @@
     "description": "Claude AI assistant by Anthropic (requires API key)",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83e\udd16",
     "requires": [
       "anthropic"
@@ -54,6 +58,7 @@
     "description": "Copilot AI assistant (requires API key)",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83c\udd72",
     "requires": [
       "requests"
@@ -67,6 +72,7 @@
     "description": "AI chat assistant powered by DeepSeek",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83e\udde0",
     "requires": [
       "requests"
@@ -80,6 +86,7 @@
     "description": "Manage files safely across all platforms",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83d\udcc1",
     "requires": [],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/file_console.py?ref_type=heads"
@@ -91,6 +98,7 @@
     "description": "Google Gemini AI assistant (requires API key)",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83d\udd2e",
     "requires": [
       "google-genai"
@@ -104,6 +112,7 @@
     "description": "Map archaeological sites with basemaps",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83d\uddfa\ufe0f",
     "requires": [
       "geopandas",
@@ -120,6 +129,7 @@
     "description": "GeoPlot Pro: Specialized Geochemical Graphics - IUGS diagrams, mineral classification, AFC modeling, thermobarometry plots, and machine learning visualization",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83e\udea8",
     "requires": [
       "matplotlib",
@@ -140,6 +150,7 @@
     "description": "Spatial analysis and mapping for archaeological/geological data",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83d\uddfa\ufe0f",
     "requires": [
       "geopandas",
@@ -155,6 +166,7 @@
     "description": "xAI Grok AI assistant (requires API key from console.x.ai)",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83d\ude80",
     "requires": [
       "requests"
@@ -168,6 +180,7 @@
     "description": "High-performance scientific computing with Julia (requires Julia installed: https://julialang.org/downloads/)",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\u26a1",
     "requires": [
       "Julia"
@@ -181,6 +194,7 @@
     "description": "High-quality scientific plots with matplotlib",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83d\udcca",
     "requires": [
       "matplotlib"
@@ -194,6 +208,7 @@
     "description": "Visualize missing data patterns and data quality",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83d\udd0d",
     "requires": [
       "missingno",
@@ -210,6 +225,7 @@
     "description": "Free AI assistant running locally on your computer",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83e\udd99",
     "requires": [
       "requests"
@@ -223,6 +239,7 @@
     "description": "Basic plots with PIL/Pillow",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83d\udcc8",
     "requires": [
       "pillow"
@@ -236,6 +253,7 @@
     "description": "Interactive Python console for data analysis",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83d\udc0d",
     "requires": [],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/python_console.py?ref_type=heads"
@@ -247,6 +265,7 @@
     "description": "Run R code for statistical analysis (requires R installed: https://cran.r-project.org/)",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83d\udcca",
     "requires": [
       "R"
@@ -260,6 +279,7 @@
     "description": "Beautiful statistical plots with seaborn",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83d\udcc8",
     "requires": [
       "seaborn",
@@ -274,6 +294,7 @@
     "description": "Query your samples using SQL (SQLite built-in)",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83d\uddc4\ufe0f",
     "requires": [],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/sql_console.py?ref_type=heads"
@@ -285,6 +306,7 @@
     "description": "Ternary diagrams for geochemical classification",
     "author": "Unknown",
     "category": "add-ons",
+    "field": "General",
     "icon": "\ud83d\udd3a",
     "requires": [
       "matplotlib",
@@ -299,6 +321,7 @@
     "description": "CV \u00b7 EIS \u00b7 Tafel \u00b7 Battery \u00b7 Chrono \u00b7 RDE \u2014 Industry standard methods",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "Electrochemistry",
     "icon": "\u26a1",
     "requires": [
       "numpy",
@@ -315,6 +338,7 @@
     "description": "Import artifacts from 15+ museums - Europeana default, pagination support",
     "author": "Unknown",
     "category": "software",
+    "field": "Archaeology & Archaeometry",
     "icon": "\ud83c\udfdb\ufe0f",
     "requires": [
       "requests",
@@ -329,6 +353,7 @@
     "description": "High-resolution PDF/EPS/SVG export for publications",
     "author": "Sefy Levy",
     "category": "software",
+    "field": "Petrology & Mineralogy",
     "icon": "\ud83d\udcbe",
     "requires": [
       "matplotlib"
@@ -342,6 +367,7 @@
     "description": "Lucas-Tooth & Compton normalization for pXRF/ICP with comparison tables",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "Geology & Geochemistry",
     "icon": "\u2696\ufe0f",
     "requires": [
       "numpy",
@@ -357,6 +383,7 @@
     "description": "All industry-standard normative methods: CIPW, Hutchison, Niggli, Mesonorm, Catanorm, Rittmann",
     "author": "Sefy Levy",
     "category": "software",
+    "field": "Petrology & Mineralogy",
     "icon": "\u2696\ufe0f",
     "requires": [
       "pandas",
@@ -373,6 +400,7 @@
     "description": "FULL BCR/GBT 25282-2010 sequential extraction, FULL mobility indices, RAC, MF, PRODUCTION GRADE",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "Archaeology & Archaeometry",
     "icon": "\u263f",
     "requires": [
       "numpy",
@@ -389,6 +417,7 @@
     "description": "XRD Rietveld \u00b7 EDS ZAF/\u03a6\u03c1\u03b6 \u00b7 CT Otsu/Watershed \u00b7 OSL CAM/FMM \u00b7 GPR Hilbert \u00b7 TS LS \u00b7 Munsell Lab\u2194HVC",
     "author": "Sefy Levy & Claude",
     "category": "software",
+    "field": "General",
     "icon": "\ud83c\udffa",
     "requires": [
       "numpy",
@@ -406,6 +435,7 @@
     "description": "Batch Processing \u00b7 Duplicate Detection \u00b7 Sample Tracking \u00b7 Label Printing \u00b7 Inventory \u00b7 Audit \u00b7 Reconciliation \u2014 GS1/ISO/FDA compliant",
     "author": "Sefy Levy & Claude",
     "category": "software",
+    "field": "Molecular Biology & Clinical Diagnostics",
     "icon": "\ud83d\udcf7",
     "requires": [
       "numpy",
@@ -422,6 +452,7 @@
     "description": "Peak integration \u00b7 Kovats indices \u00b7 AMDIS \u00b7 NMR FID \u00b7 Standard curves \u00b7 Resolution \u00b7 Peak purity \u2014 USP/ICH compliant",
     "author": "Sefy Levy & Claude",
     "category": "software",
+    "field": "Chromatography & Analytical Chemistry",
     "icon": "\ud83e\uddea",
     "requires": [
       "numpy",
@@ -438,6 +469,7 @@
     "description": "qPCR \u00b7 \u0394\u0394Ct \u00b7 ELISA \u00b7 Flow Cytometry \u00b7 ddPCR \u00b7 HRM \u00b7 Reference Ranges \u2014 CLSI/ICH compliant",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "Molecular Biology & Clinical Diagnostics",
     "icon": "\ud83e\uddea",
     "requires": [
       "numpy",
@@ -454,6 +486,7 @@
     "description": "ULTIMATE: Pyrolite \u2022 Drillhole \u2022 Norms \u2022 Bootstrap \u2022 Tooltips \u2022 10+ Diagrams",
     "author": "Community Enhanced",
     "category": "software",
+    "field": "Geology & Geochemistry",
     "icon": "\ud83d\udcca",
     "requires": [
       "numpy",
@@ -470,6 +503,7 @@
     "description": "Outlier detection, missing imputation, CLR/ILR transforms, robust normalization",
     "author": "Sefy Levy",
     "category": "software",
+    "field": "Geology & Geochemistry",
     "icon": "\ud83e\uddf9",
     "requires": [
       "numpy",
@@ -486,6 +520,7 @@
     "description": "IoGAS-style validation + advanced filtering in one tool",
     "author": "Merged from Sefy Levy",
     "category": "software",
+    "field": "GIS & Spatial Science",
     "icon": "\u2713",
     "requires": [
       "numpy",
@@ -500,6 +535,7 @@
     "description": "Bayesian age-depth with MCMC, parallel processing, user-supplied curves",
     "author": "Enhanced from Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "Geochronology & Dating",
     "icon": "\ud83d\udd2c",
     "requires": [
       "numpy",
@@ -519,6 +555,7 @@
     "description": "Robust Geochemical Data Generator for Tel Hazor",
     "author": "Sefy Levy",
     "category": "software",
+    "field": "Archaeology & Archaeometry",
     "icon": "\ud83e\uddea",
     "requires": [],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/demo_data_generator.py?ref_type=heads"
@@ -530,6 +567,7 @@
     "description": "Complete statistical suite - PCA, LDA, PLS-DA, RF, SVM, t-SNE, Clustering, Correlation, Regression, Statistical Tests",
     "author": "Sefy Levy",
     "category": "software",
+    "field": "Geology & Geochemistry",
     "icon": "\ud83d\udcca",
     "requires": [
       "scikit-learn",
@@ -548,6 +586,7 @@
     "description": "Complete magma evolution: AFC \u00b7 Fractional \u00b7 Zone Refining \u00b7 Mixing \u00b7 Partial Melting \u00b7 Phase Diagrams \u00b7 MELTS",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "Petrology & Mineralogy",
     "icon": "\ud83c\udf0b",
     "requires": [
       "numpy",
@@ -566,6 +605,7 @@
     "description": "Link sample photos, organize field photography, and open photo folders directly",
     "author": "Sefy Levy",
     "category": "software",
+    "field": "Archaeology & Archaeometry",
     "icon": "\ud83d\udcf7",
     "requires": [],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/photo_manager.py?ref_type=heads"
@@ -577,6 +617,7 @@
     "description": "Grain Size \u00b7 FORC \u00b7 AMS \u00b7 Settling \u00b7 PSD \u00b7 Shape \u00b7 End-Members \u2014 Sedimentology & Rock Magnetism",
     "author": "Sefy Levy & Claude",
     "category": "software",
+    "field": "Geology & Geochemistry",
     "icon": "\ud83e\uddf2",
     "requires": [
       "numpy",
@@ -593,6 +634,7 @@
     "description": "FFT \u00b7 Pulse \u00b7 I-V \u00b7 LCR \u00b7 Allan \u00b7 Eye \u00b7 Statistics \u2014 IEEE/IEC compliant",
     "author": "Sefy Levy & Claude",
     "category": "software",
+    "field": "Physics & Test/Measurement",
     "icon": "\ud83d\udcdf",
     "requires": [
       "numpy",
@@ -609,6 +651,7 @@
     "description": "Professional multi-panel figure designer with main app integration",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "General",
     "icon": "\ud83d\udcd0",
     "requires": [
       "matplotlib",
@@ -625,6 +668,7 @@
     "description": "Ultimate GIS for archaeologists - Measure, viewshed, attribute table, QGIS export!",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "GIS & Spatial Science",
     "icon": "\ud83c\udf0d",
     "requires": [
       "geopandas",
@@ -648,6 +692,7 @@
     "description": "Auto-generate excavation season reports, IAA submissions, and provenance summaries",
     "author": "Sefy Levy",
     "category": "software",
+    "field": "Archaeology & Archaeometry",
     "icon": "\ud83d\udcc4",
     "requires": [
       "python-docx"
@@ -661,6 +706,7 @@
     "description": "Interactive Python console, script editor, batch processing",
     "author": "Scientific Toolkit",
     "category": "software",
+    "field": "General",
     "icon": "\ud83d\udc0d",
     "requires": [
       "tkinter"
@@ -674,6 +720,7 @@
     "description": "Speciation \u00b7 Titration \u00b7 Piper/Stiff \u00b7 WQI \u00b7 Saturation \u00b7 Mixing \u00b7 Reagent Water \u2014 USGS/ISO/ASTM compliant",
     "author": "Sefy Levy & Claude",
     "category": "software",
+    "field": "Solution Chemistry & Water Quality",
     "icon": "\ud83d\udca7",
     "requires": [
       "numpy",
@@ -690,6 +737,7 @@
     "description": "Industry-standard spatial interpolation with variogram analysis + KDE contouring",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "GIS & Spatial Science",
     "icon": "\ud83d\uddfa\ufe0f",
     "requires": [
       "numpy",
@@ -705,6 +753,7 @@
     "description": "MATLAB-like spectral analysis: peak detection, baseline correction, smoothing, derivatives, peak fitting",
     "author": "Sefy Levy / AI Enhanced",
     "category": "software",
+    "field": "Spectroscopy",
     "icon": "\ud83d\udcc9",
     "requires": [
       "numpy",
@@ -722,6 +771,7 @@
     "description": "Library Search \u00b7 Calibration \u00b7 Baseline \u00b7 Peaks \u00b7 MCR \u00b7 Preprocessing \u00b7 Intensity \u2014 ASTM/NIST compliant",
     "author": "Sefy Levy & Claude",
     "category": "software",
+    "field": "Spectroscopy",
     "icon": "\ud83d\udd2c",
     "requires": [
       "numpy",
@@ -738,6 +788,7 @@
     "description": "Stereonets \u00b7 Rose Diagrams \u00b7 Contouring \u2014 Complete structural toolkit",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "Structural Geology",
     "icon": "\ud83e\udded",
     "requires": [
       "numpy",
@@ -754,6 +805,7 @@
     "description": "DSC \u00b7 Tg \u00b7 Kinetics \u00b7 TGA \u00b7 DMA \u00b7 LFA \u00b7 Calorimetry \u2014 ASTM/ISO compliant",
     "author": "Sefy Levy & Claude",
     "category": "software",
+    "field": "Thermal Analysis & Calorimetry",
     "icon": "\ud83d\udd25",
     "requires": [
       "numpy",
@@ -770,6 +822,7 @@
     "description": "Publication-grade P-T toolkit: Pyroxene \u00b7 Feldspar \u00b7 Amphibole \u00b7 Olivine \u00b7 Garnet",
     "author": "Sefy Levy",
     "category": "software",
+    "field": "Petrology & Mineralogy",
     "icon": "\ud83c\udf21\ufe0f",
     "requires": [
       "numpy",
@@ -786,6 +839,7 @@
     "description": "Monte Carlo classification, confidence ellipses, error propagation - NOW with Fast Mode & Safe Fallback!",
     "author": "Sefy Levy",
     "category": "software",
+    "field": "Geology & Geochemistry",
     "icon": "\ud83c\udfb2",
     "requires": [
       "numpy",
@@ -801,6 +855,7 @@
     "description": "Petrographic analysis + 3D archaeological mesh analysis",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "Petrology & Mineralogy",
     "icon": "\ud83d\udd2c",
     "requires": [
       "numpy",
@@ -819,6 +874,7 @@
     "description": "NISP/MNI \u00b7 Age-at-Death \u00b7 Taphonomy \u00b7 3D Morphometrics \u00b7 Species ID \u00b7 Mortality \u00b7 Log-Ratio \u00b7 FTIR \u2014 Complete Archaeofauna Analysis",
     "author": "Sefy Levy & Claude",
     "category": "software",
+    "field": "Zooarchaeology",
     "icon": "\ud83e\uddb4",
     "requires": [
       "numpy",
@@ -835,6 +891,7 @@
     "description": "PCA \u00b7 LDA \u00b7 Clustering \u00b7 Statistical Tests \u2014 Complete multivariate toolkit",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "Geology & Geochemistry",
     "icon": "\ud83d\udcca",
     "requires": [
       "numpy",
@@ -852,6 +909,7 @@
     "description": "Fetch geochemical data from online databases with dynamic import",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "Geology & Geochemistry",
     "icon": "\ud83c\udf10",
     "requires": [
       "pandas",
@@ -866,6 +924,7 @@
     "description": "U-Pb \u00b7 Ar-Ar \u00b7 Detrital \u00b7 Isochrons \u2014 Complete geochronology toolkit",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "Geochronology & Dating",
     "icon": "\u23f3",
     "requires": [
       "numpy",
@@ -883,6 +942,7 @@
     "description": "Seismic \u00b7 ERT \u00b7 Gravity \u00b7 Magnetics \u00b7 MT \u00b7 GPR \u00b7 Attributes \u2014 Industry standard methods",
     "author": "Sefy Levy & Claude",
     "category": "software",
+    "field": "Geophysics",
     "icon": "\ud83c\udf0d",
     "requires": [
       "numpy",
@@ -899,6 +959,7 @@
     "description": "Professional GIS: 2D maps, 3D terrain, Web maps, SRTM, Export",
     "author": "Professional GIS Team",
     "category": "software",
+    "field": "GIS & Spatial Science",
     "icon": "\ud83d\uddfa\ufe0f",
     "requires": [
       "matplotlib",
@@ -915,6 +976,7 @@
     "description": "Advanced 3D visualization - geochemical extrusion, time animation, photo integration, Quartz sync",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "GIS & Spatial Science",
     "icon": "\ud83c\udf0f",
     "requires": [
       "simplekml",
@@ -931,6 +993,7 @@
     "description": "Interactive contouring and density estimation for scatter plots",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "Geology & Geochemistry",
     "icon": "\ud83d\uddfa\ufe0f",
     "requires": [
       "numpy",
@@ -946,6 +1009,7 @@
     "description": "Binary/ternary mixing, end-member estimation, Monte Carlo, Bayesian inversion, REE inversion",
     "author": "Sefy Levy",
     "category": "software",
+    "field": "Geochronology & Dating",
     "icon": "\ud83e\uddea",
     "requires": [
       "numpy",
@@ -963,6 +1027,7 @@
     "description": "Signal processing, U-Pb dating, elemental analysis, and data reduction",
     "author": "Sefy Levy",
     "category": "software",
+    "field": "Geology & Geochemistry",
     "icon": "\u269b\ufe0f",
     "requires": [
       "numpy",
@@ -980,6 +1045,7 @@
     "description": "Find published basalt samples similar to yours - 9 references, 45+ samples, color-coded matches",
     "author": "Sefy Levy",
     "category": "software",
+    "field": "Archaeology & Archaeometry",
     "icon": "\ud83d\udcda",
     "requires": [
       "numpy"
@@ -993,6 +1059,7 @@
     "description": "Extract artifact outlines, quantify edge damage, Fourier shape analysis",
     "author": "Sefy Levy",
     "category": "software",
+    "field": "Archaeology & Archaeometry",
     "icon": "\ud83e\udea8",
     "requires": [
       "cv2",
@@ -1011,6 +1078,7 @@
     "description": "Tensile \u00b7 Nanoindentation \u00b7 BET \u00b7 DLS \u00b7 Rheology \u00b7 DMA \u00b7 Fatigue \u2014 Industry standard methods",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
+    "field": "Materials Science",
     "icon": "\u2699\ufe0f",
     "requires": [
       "numpy",
@@ -1027,6 +1095,7 @@
     "description": "Gap filling \u00b7 AQI \u00b7 Wind Rose \u00b7 Solar \u00b7 Kriging \u00b7 Normals \u00b7 ET \u2014 WMO/EPA/FAO compliant",
     "author": "Sefy Levy & Claude",
     "category": "software",
+    "field": "Meteorology & Environmental Science",
     "icon": "\ud83c\udf26\ufe0f",
     "requires": [
       "numpy",
@@ -1043,6 +1112,7 @@
     "description": "Cell Counting \u00b7 Colony Counter \u00b7 Fluorescence \u00b7 Liquid Handling \u00b7 Time-lapse \u00b7 Plate Layout \u00b7 Assay QC",
     "author": "Sefy Levy & Claude",
     "category": "software",
+    "field": "Molecular Biology & Clinical Diagnostics",
     "icon": "\ud83e\uddec",
     "requires": [
       "numpy",
@@ -1059,6 +1129,7 @@
     "description": "XRD \u00b7 SEM-EDS \u00b7 Micro-XRF \u00b7 Micro-CT \u00b7 OSL \u00b7 GPR \u00b7 Gradiometer \u00b7 Total Station \u00b7 Colorimetry \u2014 40+ instruments",
     "author": "Sefy Levy",
     "category": "hardware",
+    "field": "General",
     "icon": "\ud83c\udffa",
     "requires": [
       "numpy",
@@ -1075,6 +1146,7 @@
     "description": "USB HID \u00b7 Serial \u00b7 Bluetooth SPP/LE \u00b7 Webcam \u00b7 Unified UI",
     "author": "Sefy Levy",
     "category": "hardware",
+    "field": "General",
     "icon": "\ud83d\udcf7",
     "requires": [
       "numpy",
@@ -1094,6 +1166,7 @@
     "description": "GC \u00b7 HPLC \u00b7 IC \u00b7 MS \u00b7 NMR \u00b7 Plate Readers \u00b7 Flow Cytometry \u00b7 Titrators \u00b7 CE",
     "author": "Analytical Chemistry Team",
     "category": "hardware",
+    "field": "General",
     "icon": "\ud83e\uddea",
     "requires": [
       "numpy",
@@ -1111,6 +1184,7 @@
     "description": "PCR \u00b7 qPCR \u00b7 dPCR \u00b7 Plate Readers \u00b7 Flow Cytometry \u00b7 ELISA \u00b7 Clinical Chemistry",
     "author": "Clinical Diagnostics Team",
     "category": "hardware",
+    "field": "General",
     "icon": "\ud83e\uddec",
     "requires": [
       "numpy",
@@ -1128,6 +1202,7 @@
     "description": "COMPACT \u00b7 CV \u00b7 EIS \u00b7 CCCV \u00b7 Multi-step \u00b7 Safety \u00b7 Multi-channel \u00b7 8 manufacturers",
     "author": "Electrochemistry Unified Team",
     "category": "hardware",
+    "field": "General",
     "icon": "\u26a1",
     "requires": [
       "numpy",
@@ -1144,6 +1219,7 @@
     "description": "pXRF \u00b7 LIBS \u00b7 Benchtop XRF \u00b7 ICP \u2014 SciAps \u00b7 Olympus \u00b7 Bruker \u00b7 Thermo \u00b7 1 DRIVER",
     "author": "Sefy Levy",
     "category": "hardware",
+    "field": "General",
     "icon": "\ud83d\udd2c",
     "requires": [
       "numpy"
@@ -1157,6 +1233,7 @@
     "description": "Seismometers \u00b7 ERT \u00b7 EM \u00b7 MT \u00b7 Magnetometers \u00b7 Gravimeters \u00b7 GPR \u00b7 GNSS \u00b7 70+ devices",
     "author": "Geophysics Team",
     "category": "hardware",
+    "field": "General",
     "icon": "\ud83c\udf0d",
     "requires": [
       "numpy",
@@ -1174,6 +1251,7 @@
     "description": "AFM \u00b7 Nanoindentation \u00b7 Mechanical \u00b7 BET \u00b7 DLS \u00b7 Rheology \u00b7 Thermal \u00b7 Hardness \u00b7 Profilometry \u00b7 50+ devices",
     "author": "Materials Science Team",
     "category": "hardware",
+    "field": "General",
     "icon": "\ud83d\udd2c",
     "requires": [
       "numpy",
@@ -1190,6 +1268,7 @@
     "description": "Weather stations \u00b7 Pyranometers \u00b7 Sonic \u00b7 Gas \u00b7 600x400",
     "author": "Environmental Monitoring Team",
     "category": "hardware",
+    "field": "General",
     "icon": "\ud83c\udf26\ufe0f",
     "requires": [
       "numpy",
@@ -1206,6 +1285,7 @@
     "description": "Opentrons \u00b7 Hamilton \u00b7 Tecan \u00b7 Masterflex \u00b7 ASI \u00b7 Andor \u00b7 Nikon \u00b7 30+ devices",
     "author": "Lab Automation Team",
     "category": "hardware",
+    "field": "General",
     "icon": "\ud83e\uddec",
     "requires": [
       "numpy",
@@ -1223,6 +1303,7 @@
     "description": "MagSus \u00b7 Granulometer \u00b7 Caliper \u2014 PRODUCTION READY \u00b7 Thread-safe \u00b7 Real SPC",
     "author": "Sefy Levy",
     "category": "hardware",
+    "field": "General",
     "icon": "\ud83e\uddf2",
     "requires": [
       "numpy",
@@ -1239,6 +1320,7 @@
     "description": "Oscilloscopes \u00b7 DMMs \u00b7 Power Supplies \u00b7 Function Generators \u00b7 LCR \u2014 Keysight \u00b7 Tektronix \u00b7 Rigol \u00b7 Keithley \u00b7 SCPI/VISA",
     "author": "Physics Unified Team",
     "category": "hardware",
+    "field": "General",
     "icon": "\ud83d\udcdf",
     "requires": [
       "numpy",
@@ -1254,6 +1336,7 @@
     "description": "45+ REAL drivers \u00b7 NIST/USGS \u00b7 PDF \u00b7 API \u00b7 Debye-H\u00fcckel",
     "author": "Sefy Levy",
     "category": "hardware",
+    "field": "General",
     "icon": "\ud83c\udf0a",
     "requires": [
       "numpy",
@@ -1271,6 +1354,7 @@
     "description": "FTIR \u00b7 RAMAN \u00b7 UV-VIS-NIR \u00b7 52+ instruments \u00b7 Real drivers",
     "author": "Spectroscopy Team",
     "category": "hardware",
+    "field": "General",
     "icon": "\ud83e\uddea",
     "requires": [
       "numpy",
@@ -1288,6 +1372,7 @@
     "description": "DSC \u00b7 TGA \u00b7 STA \u00b7 LFA \u00b7 Hot Disk \u00b7 DMA \u00b7 RC1 \u00b7 30+ instruments",
     "author": "Thermal Analysis Team",
     "category": "hardware",
+    "field": "General",
     "icon": "\ud83d\udd25",
     "requires": [
       "numpy",
@@ -1300,10 +1385,11 @@
   {
     "id": "zooarchaeology_unified_suite",
     "name": "Zooarchaeology Suite",
-    "version": "1.0.0",
-    "description": "Digital calipers \u00b7 3D scanners \u00b7 pXRF \u00b7 Microscopes \u00b7 Balances \u00b7 GNSS \u2014 40+ REAL drivers",
+    "version": "1.4.0",
+    "description": "Real Python drivers for calipers, balances, GNSS, microscopes, FTIR file import",
     "author": "Zooarchaeology Unified Team",
     "category": "hardware",
+    "field": "General",
     "icon": "\ud83e\uddb4",
     "requires": [
       "numpy",

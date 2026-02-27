@@ -8,6 +8,7 @@ Author: Sefy Levy & DeepSeek
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Structural Geology",
     "id": "structural_suite",
     "name": "Structural Suite",
     "description": "Stereonets · Rose Diagrams · Contouring — Complete structural toolkit",

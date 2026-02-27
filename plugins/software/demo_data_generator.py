@@ -11,7 +11,8 @@ from tkinter import ttk, messagebox
 PLUGIN_INFO = {
     'id': 'demo_data_generator',
     'name': 'Demo Data Generator',
-    'category': 'software',          # still software, but we bypass the menu
+    'category': 'software',
+    'field': 'Archaeology & Archaeometry',
     'icon': '🧪',
     'requires': [],
     'version': '2.0',

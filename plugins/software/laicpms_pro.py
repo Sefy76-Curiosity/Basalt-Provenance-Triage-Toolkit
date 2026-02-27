@@ -9,6 +9,7 @@ Based on: Norris Scientific Knowledge Base (https://norsci.com/?p=kb-laicpms)
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Geology & Geochemistry",
     "id": "laicpms_pro",
     "name": "LA-ICP-MS Pro",
     "description": "Signal processing, U-Pb dating, elemental analysis, and data reduction",

@@ -23,7 +23,6 @@ PLUGIN_INFO = {
 # PREVENT DOUBLE REGISTRATION
 # ============================================================================
 import tkinter as tk
-_PHYSICS_REGISTERED = False
 from tkinter import ttk, messagebox, filedialog
 import numpy as np
 import pandas as pd
@@ -1306,36 +1305,22 @@ class PhysicsTestMeasurementSuitePlugin:
             self.window = None
 
 # ============================================================================
-# STANDARD PLUGIN REGISTRATION
+# SIMPLE PLUGIN REGISTRATION - NO DUPLICATES
 # ============================================================================
-def setup_plugin(main_app):
-    global _PHYSICS_REGISTERED
-    if _PHYSICS_REGISTERED:
-        print("⏭️ Physics Test & Measurement plugin already registered, skipping...")
-        return None
 
+def setup_plugin(main_app):
+    """Register plugin - simple, no duplicates"""
+
+    # Create plugin instance
     plugin = PhysicsTestMeasurementSuitePlugin(main_app)
 
+    # Add to left panel if available
     if hasattr(main_app, 'left') and main_app.left is not None:
         main_app.left.add_hardware_button(
-            name=PLUGIN_INFO.get("name", "Physics T&M"),
+            name=PLUGIN_INFO.get("name", "Physics T&M Suite"),
             icon=PLUGIN_INFO.get("icon", "📟"),
             command=plugin.show_interface
         )
-        print(f"✅ Added to left panel: {PLUGIN_INFO.get('name')}")
-        _PHYSICS_REGISTERED = True
-        return plugin
-
-    if hasattr(main_app, 'menu_bar'):
-        if not hasattr(main_app, 'hardware_menu'):
-            main_app.hardware_menu = tk.Menu(main_app.menu_bar, tearoff=0)
-            main_app.menu_bar.add_cascade(label="🔧 Hardware", menu=main_app.hardware_menu)
-
-        main_app.hardware_menu.add_command(
-            label=PLUGIN_INFO.get("name", "Physics T&M"),
-            command=plugin.show_interface
-        )
-        print(f"✅ Added to Hardware menu: {PLUGIN_INFO.get('name')}")
-        _PHYSICS_REGISTERED = True
+        print(f"✅ Added: {PLUGIN_INFO.get('name')}")
 
     return plugin

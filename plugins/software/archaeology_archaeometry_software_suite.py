@@ -13,6 +13,7 @@ PLUGIN_INFO = {
     "id": "archaeometry_analysis_suite_ultimate",
     "name": "Archaeometry Analysis Suite",
     "category": "software",
+    "field": "Archaeology & Archaeometry",
     "icon": "🏺",
     "version": "2.0.0",
     "author": "Sefy Levy & Claude",

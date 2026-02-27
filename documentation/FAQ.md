@@ -1,7 +1,8 @@
 ❓ Frequently Asked Questions
 
 Honest answers to common questions about Scientific Toolkit.
-Updated February 2026 to reflect current version (70 engines, 50 protocols, 67 plugins, 7 hardware suites)
+Updated February 2026 to reflect current version (70 engines, 10 protocols, 86 plugins, 16 hardware suites)
+
 ⚠️ DISCLAIMER: Read This First
 
 This software is provided "AS IS" without any warranty.
@@ -24,27 +25,32 @@ This is scientific software in active development. You MUST:
 We rely on users to test and report issues. Your bug reports help everyone.
 
 → Report issues on GitLab
+
 📊 Quick Stats Reference
 Category	Count
 Classification Engines	70
-Scientific Protocols	50
-Software Plugins	37
-Add-on Plugins	23
-Hardware Suites	7
-Total Plugins	67
+Scientific Protocols	10
+Software Plugins	48
+Add-on Plugins	22
+Hardware Suites	16
+Total Plugins	86
 Built-in Citations	200+
 Lines of Code	~77,000
 Active Development	2024-2026
+
 General Questions
 What is Scientific Toolkit?
 
-A free, open-source desktop application (Python/Tkinter) for scientific data analysis across multiple domains: geochemistry, archaeology, soil science, meteoritics, and more. It combines data management, 70 classification engines, 50 scientific protocols, 67 plugins, and 7 hardware integration suites in one tool.
+A free, open-source desktop application (Python/Tkinter) for scientific data analysis across multiple domains: geochemistry, archaeology, soil science, meteoritics, and more. It combines data management, 70 classification engines, 10 scientific protocols, 86 plugins, and 16 hardware integration suites in one tool.
+
 Who made this?
 
 Created by Sefy Levy, based on the Basalt Provenance Triage Toolkit v10.2. Implements published scientific methods from 200+ researchers worldwide (see CITATIONS.md).
+
 Is it really free?
 
 Yes, completely free under CC BY-NC-SA 4.0 license. Free for research, education, museums, and commercial use forever.
+
 Can I use this for commercial work?
 
 Yes! You can use Scientific Toolkit for commercial purposes - a mining company can use it for exploration, a consulting firm can use it for client work, a museum can use it for paid exhibitions, etc.
@@ -65,17 +71,19 @@ Charging $500 for the toolkit download	❌ NOT ALLOWED
 Bundling it into commercial software you sell	❌ NOT ALLOWED
 
 If you want to use the code in a commercial product: Contact sefy76@gmail.com to discuss licensing.
+
 🎯 Capabilities
 What can Scientific Toolkit do?
 Category	Capabilities
 Classification	70 engines (TAS, AFM, REE, soil texture, bone diagenesis, meteorite shock, etc.)
-Protocols	50 multi-stage workflows (Behrensmeyer, EPA, IUGS, Maresha, etc.)
-Software Analysis	37 plugins (PCA/LDA, geochronology, isotope mixing, normative calculations)
-Hardware	7 suites (barcode, elemental, mineralogy, physical, solution, spectroscopy, zooarch)
-Plotting	23 add-ons (matplotlib, seaborn, ternary, GIS, ASCII, missingno)
+Protocols	10 multi-stage workflows (Behrensmeyer, EPA, IUGS, Maresha, etc.)
+Software Analysis	48 plugins (PCA/LDA, geochronology, isotope mixing, normative calculations, 14 discipline suites)
+Hardware	16 suites (archaeology, barcode, chromatography, clinical, electrochemistry, elemental, geophysics, materials, meteorology, molecular bio, physical, physics, solution chemistry, spectroscopy, thermal, zooarchaeology)
+Plotting	22 add-ons (matplotlib, seaborn, ternary, GIS, ASCII, missingno + 6 consoles + 7 AI)
 AI Assistants	7 options (Claude, ChatGPT, Gemini, DeepSeek, Grok, Copilot, Ollama)
 
 See QUICK_START.md for examples.
+
 What can't it do?
 
     ❌ Handle massive datasets (performance degrades >10,000 samples)
@@ -93,6 +101,7 @@ SPSS	$1,500+/year	Advanced statistics	Expensive, no geochemistry
 Scientific Toolkit	Free	Cross-disciplinary, hardware, GUI	Less polished UI, smaller community
 
 Best use: Budget-constrained researchers, students, teaching labs, cross-disciplinary projects, museums, field work with portable instruments.
+
 💻 Installation & Technical
 What are the system requirements?
 Component	Minimum	Recommended
@@ -103,6 +112,7 @@ Disk Space	50 MB	500 MB (with all plugins)
 Display	1280×800	1920×1080
 
 See INSTALLATION.md for details.
+
 Do I need to know Python?
 
 No. This is a GUI application - you interact through menus and buttons, not code. However, knowing Python helps if you want to:
@@ -114,6 +124,7 @@ No. This is a GUI application - you interact through menus and buttons, not code
 Can I run this on a tablet or phone?
 
 No. Desktop only (Windows/Mac/Linux). Not optimized for touch interfaces.
+
 Does it work offline?
 
 Yes! All functionality works offline except:
@@ -130,17 +141,19 @@ git pull origin main
 pip install --upgrade -r requirements.txt
 
 Your data, projects, and settings are preserved.
+
 What about the Plugin Manager?
 
 The Plugin Manager (Advanced → Plugin Manager) handles:
 
-    Discovering available plugins (67 total)
+    Discovering available plugins (86 total)
     Checking dependencies
     One-click installation
     Enabling/disabling plugins
     Uninstalling plugins
 
 No manual pip commands needed for most plugins!
+
 📁 Data & Files
 What file formats are supported?
 
@@ -166,6 +179,7 @@ Export:
 Can I import my existing data?
 
 Probably! If it's in CSV or Excel format with column headers, yes. The toolkit is flexible about column naming and will auto-map using chemical_elements.json.
+
 Will this modify my original files?
 
 No. Your original files are never changed. All work happens on imported copies in the application. The only files created are:
@@ -175,6 +189,7 @@ No. Your original files are never changed. All work happens on imported copies i
     Log files in config/
 
 Can I save my work and come back later?
+
 Yes. Save projects as .stproj files (JSON format). They store:
 
     All sample data
@@ -204,7 +219,7 @@ How many classification engines are there?
 70 classification engines across 2 engines:
 Engine Type	Count	Description
 Classification Engine	70	Rule-based JSON schemes
-Protocol Engine	50	Multi-stage workflows
+Protocol Engine	10	Multi-stage workflows
 
 These cover:
 
@@ -224,6 +239,7 @@ These cover:
     Analytical QA/QC (4+)
 
 Are the methods peer-reviewed?
+
 Yes! We implement published methods from scientific literature. See CITATIONS.md for all 200+ references.
 Key examples:
 
@@ -235,6 +251,7 @@ Key examples:
     U-Pb concordia: Wetherill (1956), Tera & Wasserburg (1972)
 
 Can I cite Scientific Toolkit in papers?
+
 Yes, please do! Cite both this software AND the original methods:
 
     "Samples were classified using the TAS diagram (Le Bas et al., 1986) as implemented in Scientific Toolkit v2.0 (Levy, 2026)."
@@ -247,6 +264,7 @@ GitLab: https://gitlab.com/sefy76/scientific-toolkit
 DOI: 10.5281/zenodo.18727756
 
 See CITATIONS.md for complete format.
+
 How accurate are the classifications?
 
 They implement published formulas, but YOU must validate the results.
@@ -281,13 +299,15 @@ Best practices:
     When in doubt, consult with experts in the field
 
 Found incorrect results or bugs? → Report them! This helps everyone.
+
 What's the difference between Classification Engine and Protocol Engine?
 Feature	Classification Engine	Protocol Engine
 Purpose	Single-step classification	Multi-stage workflows
 Rules	AND/OR logic on fields	Sequential stages with conditions
 Output	Single classification	Multiple derived fields
 Example	TAS diagram → "Basalt"	Behrensmeyer → weathering stage + flags
-Count	70 schemes	50 protocols
+Count	70 schemes	10 protocols
+
 Can I add my own classification schemes?
 
 Yes! Classification engines are JSON files in engines/classification/:
@@ -298,6 +318,7 @@ Yes! Classification engines are JSON files in engines/classification/:
     Your scheme appears in the dropdown!
 
 See engines/classification/README.md for details.
+
 Can I add my own protocols?
 
 Yes! Protocols are JSON files in engines/protocols/:
@@ -310,17 +331,27 @@ Yes! Protocols are JSON files in engines/protocols/:
 🔌 Hardware Integration
 Which instruments are supported?
 
-7 hardware suites supporting dozens of device models:
+16 hardware suites supporting dozens of device models:
 Suite	Devices Supported
+Archaeology & Archaeometry	UAV/GNSS systems, portable XRF, ground-penetrating radar
 Barcode/QR Scanner	Zebra, Honeywell, Datalogic, Socket, Inateck, Eyoyo (50+ models)
+Chromatography & Analytical	GC, HPLC, IC (Agilent, Thermo, Waters, Shimadzu)
+Clinical & Molecular Diagnostics	PCR, plate readers, sequencers, clinical analyzers
+Electrochemistry	Potentiostats, galvanostats, impedance analyzers (Gamry, BioLogic, Metrohm)
 Elemental Geochemistry	SciAps X-550/X-505, Olympus Vanta/Delta, Bruker S1/Tracer, Thermo Niton, ICP-MS
-Mineralogy	Any with RRUFF spectra – 5,185 minerals
+Geophysics	Magnetometers, gravimeters, seismographs, GPR, resistivity meters
+Materials Characterization	SEM/EDX, XRD, nanoindentation, hardness testers, dilatometers
+Meteorology & Environmental	Weather stations, loggers, air quality monitors (Davis, Vaisala, Campbell)
+Molecular Biology	Spectrophotometers, gel imagers, qPCR systems, fluorometers
 Physical Properties	AGICO Kappabridge, Bartington MS2/MS3, ZH Instruments, Terraplus KT, Mitutoyo calipers, Sylvac Bluetooth, Mahr MarCal, iGaging
+Physics Test & Measurement	Oscilloscopes, multimeters, power supplies (Keysight, Tektronix, Rigol)
 Solution Chemistry	Mettler Toledo, Thermo Orion, Hanna, Horiba LAQUA, YSI ProDSS, Hach, WTW (45+ models)
 Spectroscopy	Thermo Nicolet, PerkinElmer, Bruker ALPHA, Agilent handheld, B&W Tek Raman, Ocean Optics, Avantes (50+ models)
+Thermal Analysis & Calorimetry	DSC, TGA, TMA, DMA instruments (Netzsch, TA Instruments, Mettler Toledo)
 Zooarchaeology	Mitutoyo calipers, Sylvac Bluetooth, Ohaus balances, Sartorius balances, Mettler Toledo balances, Emlid Reach GNSS, Dino-Lite microscopes
 
 See hardware plugin documentation for complete lists.
+
 What if my instrument isn't supported?
 
 Option 1: File Monitor
@@ -335,6 +366,7 @@ Many hardware plugins include generic parsers that can handle:
 
 Option 3: Create a plugin
 If you're comfortable with Python, you can create a new hardware plugin following the pattern in existing ones.
+
 Do I need special drivers?
 
 Usually not. Most devices work via:
@@ -345,6 +377,7 @@ Usually not. Most devices work via:
     File monitoring (universal) - no drivers
 
 Some Windows devices may need manufacturer's USB serial driver (FTDI, Prolific, etc.).
+
 Linux users: Permission issues?
 bash
 
@@ -403,6 +436,7 @@ Adjust:
     Color schemes (including color-blind safe)
 
 Are plots publication-quality?
+
 Yes. Export as:
 
     PDF (vector, 300+ DPI) - best for journals
@@ -411,6 +445,7 @@ Yes. Export as:
     EPS (LaTeX compatible)
 
 Journal-specific templates help match publication requirements.
+
 📊 Statistical Analysis
 What statistical methods are included?
 
@@ -437,6 +472,7 @@ R	Everything (with packages)	Steep learning curve
 Scientific Toolkit	Common geo/archaeo stats	Advanced econometrics, psychometrics
 
 For advanced statistics, use R/SPSS. For common geochemistry/archaeology stats, Scientific Toolkit may be sufficient.
+
 🤖 AI Features
 How do the AI assistants work?
 
@@ -451,6 +487,7 @@ Copilot AI	Microsoft	API key
 Ollama AI	Local	Ollama installation (free, no key)
 
 You can ask questions about your data and get interpretation suggestions.
+
 Do I need to pay for AI features?
 
 Depends:
@@ -460,6 +497,7 @@ Depends:
     AI features are optional - core toolkit works fine without them
 
 Is my data sent to AI companies?
+
 Only if you use AI assistant plugins AND explicitly ask them questions. Your data stays local otherwise.
 When using AI:
 
@@ -487,6 +525,7 @@ Common causes:
     Column names don't match expected format
 
 Solution: Check the classification engine requirements in engines/classification/[scheme].json → requires_fields
+
 Protocol fails
 
 Common causes:
@@ -496,6 +535,7 @@ Common causes:
     Stage conditions not met
 
 Solution: Check protocol requirements in engines/protocols/[protocol].json → requires_fields
+
 Application is slow
 
     Large dataset? Try filtering/paging (bottom right)
@@ -552,6 +592,7 @@ Translation	Add UI translations
 Example workflows	Share with community
 
 See CONTRIBUTING.md for guidelines.
+
 I found a bug. What should I do?
 
     Search existing issues first (maybe already reported)
@@ -568,6 +609,7 @@ Include:
     Screenshots if relevant
 
 Can I modify the code for my needs?
+
 Yes! CC BY-NC-SA 4.0 license allows modifications. If you improve it, please:
 
     Share improvements back (contribute)
@@ -582,6 +624,7 @@ Is there developer documentation?
     Plugin system - See plugins/plugin_manager.py for registration
 
 More comprehensive developer guide planned for v2.1.
+
 👥 Support & Community
 Where do I get help?
 
@@ -603,6 +646,7 @@ Paid support:
     Training/workshops: Contact for availability
 
 Is there a user community?
+
 Growing! Connect via:
 
     GitLab Issues - Report bugs, request features
@@ -610,9 +654,11 @@ Growing! Connect via:
     Email list - Announcements only (contact to join)
 
 No Discord/Slack yet, but planned if community grows.
+
 Do you offer training or workshops?
 
 Not currently. Video tutorials are planned for future releases (target: mid-2026).
+
 Can I hire you for custom development?
 
 Yes! Contact sefy76@gmail.com to discuss:
@@ -636,6 +682,7 @@ MATLAB	~$2,150
 Specialized petrology tools	~$1,000-3,000
 Total commercial stack	$5,000-10,000/year
 Scientific Toolkit	$0
+
 Will this always be free?
 
 Yes. The software will always be free to use for anyone - researchers, students, companies, museums, consultants, anyone.
@@ -653,6 +700,7 @@ What's restricted:
     Cannot use the code in commercial products you sell
 
 Bottom line: Free to use forever. Just don't try to sell it or profit from the code itself.
+
 What's the long-term plan?
 
 Continue developing based on community needs:
@@ -663,6 +711,7 @@ Timeline	Plans
 2027	Community plugin repository, possible web interface
 
 Depends on community adoption and contribution.
+
 Can I donate to support development?
 
 Not set up for donations currently. Best support:
@@ -675,6 +724,7 @@ Not set up for donations currently. Best support:
     Answer questions in Issues
 
 Why Tkinter instead of modern framework?
+
 Tkinter is:
 
     ✅ Built into Python (no extra dependencies)
@@ -686,18 +736,19 @@ Tkinter is:
 Yes, it looks dated. But it works reliably on any system with Python, which is more important for scientific software than visual flair.
 
 Future versions may offer a web interface option alongside the desktop app.
+
 📝 Still have questions?
 
     Email: sefy76@gmail.com
     GitLab Issues: https://gitlab.com/sefy76/scientific-toolkit/-/issues
-    Documentation: See /docs/ folder for more guides
+    Documentation: See /documentation/ folder for more guides
 
 📋 Quick Reference
 Topic	Go To
 Getting started	QUICK_START.md
 Installation	INSTALLATION.md
 Citations	CITATIONS.md
-Troubleshooting	TROUBLESHOOTING.md
-Plugin Guide	PLUGIN_GUIDE.md
-Hardware Guide	HARDWARE_GUIDE.md
-<p align="center"> <i>This FAQ is updated based on real user questions. Last updated: February 21, 2026</i> </p><p align="center"> <a href="README.md">← Back to Main</a> • <a href="QUICK_START.md">Quick Start</a> • <a href="INSTALLATION.md">Installation</a> • <a href="CITATIONS.md">Citations</a> </p>
+Structure guide	STRUCTURE_GUIDE.md
+Enhanced features	ENHANCED_FEATURES_README.md
+
+<p align="center"> <i>This FAQ is updated based on real user questions. Last updated: February 2026</i> </p><p align="center"> <a href="README.md">← Back to Main</a> • <a href="QUICK_START.md">Quick Start</a> • <a href="INSTALLATION.md">Installation</a> • <a href="CITATIONS.md">Citations</a> </p>

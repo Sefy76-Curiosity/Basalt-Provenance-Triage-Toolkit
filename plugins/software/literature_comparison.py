@@ -9,6 +9,7 @@ Version: 2.2 - Added Mor 1993 full dataset, Copy All, color-coded similarity
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Archaeology & Archaeometry",
     "id": "literature_comparison",
     "name": "Literature Comparison",
     "description": "Find published basalt samples similar to yours - 9 references, 45+ samples, color-coded matches",

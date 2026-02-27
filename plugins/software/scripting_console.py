@@ -15,6 +15,7 @@ FEATURES:
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "General",
     "id": "scripting_console",
     "name": "Python Console",
     "description": "Interactive Python console, script editor, batch processing",

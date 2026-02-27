@@ -63,6 +63,7 @@ REFERENCES
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Petrology & Mineralogy",
     "id": "thermobarometry_suite",
     "name": "Thermobarometry Suite",
     "description": "Publication-grade P-T toolkit: Pyroxene · Feldspar · Amphibole · Olivine · Garnet",

@@ -22,6 +22,7 @@ PLUGIN_INFO = {
     "id": "solution_chemistry_analysis_suite",
     "name": "Solution Chemistry Suite",
     "category": "software",
+    "field": "Solution Chemistry & Water Quality",
     "icon": "💧",
     "version": "1.0.0",
     "author": "Sefy Levy & Claude",

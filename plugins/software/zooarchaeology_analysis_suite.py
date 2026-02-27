@@ -24,6 +24,7 @@ PLUGIN_INFO = {
     "id": "zooarchaeology_analysis_suite",
     "name": "Zooarchaeology Suite",
     "category": "software",
+    "field": "Zooarchaeology",
     "icon": "🦴",
     "version": "1.1.0",
     "author": "Sefy Levy & Claude",

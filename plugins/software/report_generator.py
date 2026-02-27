@@ -7,7 +7,8 @@ License: CC BY-NC-SA 4.0
 """
 
 PLUGIN_INFO = {
-      "category": "software",
+    "category": "software",
+    "field": "Archaeology & Archaeometry",
     "id": "report_generator",
     "name": "Report Generator",
     "description": "Auto-generate excavation season reports, IAA submissions, and provenance summaries",

@@ -12,6 +12,7 @@ WITH FULL MAIN APP INTEGRATION
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Geology & Geochemistry",
     "id": "geochemical_explorer",
     "name": "Geochemical Explorer",
     "description": "PCA · LDA · Clustering · Statistical Tests — Complete multivariate toolkit",

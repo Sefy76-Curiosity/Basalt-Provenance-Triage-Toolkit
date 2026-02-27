@@ -20,6 +20,7 @@ TAB 7: Reconciliation           - Expected vs scanned, discrepancy reporting, ba
 
 PLUGIN_INFO = {
     "id": "barcode_scanner_suite",
+    "field": "Molecular Biology & Clinical Diagnostics",
     "name": "Barcode Scanner Suite",
     "category": "software",
     "icon": "📷",

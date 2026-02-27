@@ -20,6 +20,7 @@ TAB 7: Assay Variability      - Z-factor, signal-to-noise, CV%, HTS quality metr
 
 PLUGIN_INFO = {
     "id": "molecular_biology_suite",
+    "field": "Molecular Biology & Clinical Diagnostics",
     "name": "Molecular Biology Suite",
     "category": "software",
     "icon": "🧬",

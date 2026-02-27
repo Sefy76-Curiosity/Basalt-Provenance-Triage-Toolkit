@@ -9,6 +9,7 @@ License: CC BY-NC-SA 4.0
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Petrology & Mineralogy",
     "id": "petrogenetic_modeling_suite",
     "name": "Petrogenetic Modeling Suite",
     "description": "Complete magma evolution: AFC · Fractional · Zone Refining · Mixing · Partial Melting · Phase Diagrams · MELTS",

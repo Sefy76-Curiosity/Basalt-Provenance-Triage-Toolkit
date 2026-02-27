@@ -10,6 +10,7 @@ DATA VALIDATION & FILTERING PLUGIN v1.0
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "GIS & Spatial Science",
     "id": "data_validation_filter",
     "name": "Data Quality & Filter",
     "description": "IoGAS-style validation + advanced filtering in one tool",

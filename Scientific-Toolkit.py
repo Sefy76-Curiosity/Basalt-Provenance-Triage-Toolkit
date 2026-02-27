@@ -690,42 +690,193 @@ class ScientificToolkit:
         except:
             pass
 
+    # ── FIELD ORDER AND ICONS ─────────────────────────────────────────
+    # Canonical list — determines submenu order under Advanced.
+    # Only fields that have at least one enabled plugin appear in the menu.
+    _FIELD_ORDER = [
+        "Geology & Geochemistry",
+        "Geochronology & Dating",
+        "Petrology & Mineralogy",
+        "Structural Geology",
+        "Geophysics",
+        "GIS & Spatial Science",
+        "Archaeology & Archaeometry",
+        "Zooarchaeology",
+        "Spectroscopy",
+        "Chromatography & Analytical Chemistry",
+        "Electrochemistry",
+        "Materials Science",
+        "Thermal Analysis",
+        "Solution Chemistry",
+        "Molecular Biology & Clinical Diagnostics",
+        "Meteorology & Environmental Science",
+        "Physics & Test/Measurement",
+        "General",
+    ]
+
+    _FIELD_ICONS = {
+        "Geology & Geochemistry":                   "🪨",
+        "Geochronology & Dating":                   "⏳",
+        "Petrology & Mineralogy":                   "🔥",
+        "Structural Geology":                       "📐",
+        "Geophysics":                               "🌍",
+        "GIS & Spatial Science":                    "🗺️",
+        "Archaeology & Archaeometry":               "🏺",
+        "Zooarchaeology":                           "🦴",
+        "Spectroscopy":                             "🔬",
+        "Chromatography & Analytical Chemistry":    "⚗️",
+        "Electrochemistry":                         "⚡",
+        "Materials Science":                        "🧱",
+        "Thermal Analysis":                         "🌡️",
+        "Solution Chemistry":                       "💧",
+        "Molecular Biology & Clinical Diagnostics": "🧬",
+        "Meteorology & Environmental Science":      "🌤️",
+        "Physics & Test/Measurement":               "📡",
+        "General":                                  "📦",
+    }
+
     def _get_plugin_category(self, plugin_info):
+        """
+        Resolve the scientific field for a plugin, used as the Advanced submenu name.
+
+        Priority:
+          1. PLUGIN_INFO['field']      — new plugins declare their field explicitly
+          2. PLUGIN_INFO['menu_category'] — legacy key, kept for backward compat
+          3. Keyword matching on name/description/id — catches all old plugins
+          4. 'General'                 — final fallback
+        """
+        # 1. Explicit field (new-style plugins)
+        if plugin_info.get('field'):
+            return plugin_info['field']
+
+        # 2. Legacy menu_category key (backward compat)
+        if plugin_info.get('menu_category'):
+            return plugin_info['menu_category']
+
+        # 3. Keyword matching — covers all existing plugins without 'field'
         search_text = " ".join([
             plugin_info.get('name', '').lower(),
             plugin_info.get('description', '').lower(),
             plugin_info.get('id', '').lower()
         ])
         categories = [
-            ('🧪 Geochemistry', ['geochem','normalization','normative','element','trace','major','oxide','icp','xrf','pxrf']),
-            ('📊 Statistical Analysis', ['statistical','compositional','validation','uncertainty','pca','cluster','anova','multivariate']),
-            ('🤖 Machine Learning', ['machine learning','ml','literature comparison','classifier','random forest','svm','neural']),
-            ('📈 Visualization', ['visualization','plot','diagram','spider','ternary','contour','kriging','discrimination','scatter','chart']),
-            ('⏳ Dating & Geochronology', ['dating','isotope','mixing','geochronology','radiometric','u-pb','concordia']),
-            ('🪨 Petrology & Mineralogy', ['petrology','lithic','magma','mineral','thin section','microscopy','rock','crystal']),
-            ('🔧 Utilities', ['utility','filter','photo','report','toolbox','manager','gis','museum','database','batch']),
+            ("Geology & Geochemistry", [
+                'geochem', 'normalization', 'normative', 'element', 'trace',
+                'major', 'oxide', 'icp', 'xrf', 'pxrf', 'hg mobility', 'ague',
+                'compositional', 'geochemical explorer',
+            ]),
+            ("Geochronology & Dating", [
+                'dating', 'geochronology', 'radiometric', 'u-pb', 'concordia',
+                'laicpms', 'la-icp', 'isotope mixing', 'geochronology',
+            ]),
+            ("Petrology & Mineralogy", [
+                'petrology', 'petrogenetic', 'magma', 'mineral', 'thin section',
+                'microscopy', 'thermobarom', 'cipw', 'niggli', 'rock',
+            ]),
+            ("Structural Geology", [
+                'structural', 'stereonet', 'rose diagram',
+            ]),
+            ("Geophysics", [
+                'geophysics', 'seismic', 'gravity', 'magnetics', 'ert',
+                'electromagnetic',
+            ]),
+            ("GIS & Spatial Science", [
+                'gis', 'spatial', 'kriging', 'google earth', 'quartz gis',
+                '3d viewer', 'contouring',
+            ]),
+            ("Archaeology & Archaeometry", [
+                'archaeo', 'lithic', 'museum', 'excavation', 'report generator',
+                'morphometrics',
+            ]),
+            ("Zooarchaeology", [
+                'zooarch', 'nisp', 'mni', 'taphon', 'faunal', 'bone',
+            ]),
+            ("Spectroscopy", [
+                'spectroscopy', 'spectral', 'ftir', 'raman', 'uv-vis',
+            ]),
+            ("Chromatography & Analytical Chemistry", [
+                'chromatography', 'hplc', 'gc-ms', 'kovats', 'peak integration', 'nmr',
+            ]),
+            ("Electrochemistry", [
+                'electrochemistry', 'cyclic voltamm', 'eis', 'tafel', 'battery', 'rde',
+            ]),
+            ("Materials Science", [
+                'materials', 'nanoindent', 'bet surface', 'dls', 'rheology', 'tensile',
+            ]),
+            ("Thermal Analysis", [
+                'thermal analysis', 'dsc', 'tga', 'dma', 'calorimetry', 'lfa',
+            ]),
+            ("Solution Chemistry", [
+                'solution chemistry', 'speciation', 'piper', 'stiff', 'wqi', 'water quality',
+            ]),
+            ("Molecular Biology & Clinical Diagnostics", [
+                'molecular biology', 'qpcr', 'elisa', 'flow cytometry', 'pcr', 'clinical',
+            ]),
+            ("Meteorology & Environmental Science", [
+                'meteorology', 'weather', 'aqi', 'wind rose', 'solar radiation',
+                'evapotranspiration',
+            ]),
+            ("Physics & Test/Measurement", [
+                'physics', 'oscilloscope', 'dmm', 'function generator', 'lcr',
+                'test measurement',
+            ]),
         ]
         for name, keywords in categories:
             if any(k in search_text for k in keywords):
                 return name
-        return '📁 Other'
+
+        # 4. Final fallback
+        return 'General'
 
     def _rebuild_advanced_menu(self):
+        """
+        Rebuild the Advanced menu grouping enabled software plugins by scientific field.
+        Only creates submenus for fields that actually have plugins.
+        Source badge: ☁️ for store-downloaded, 🖥 for local.
+        """
         self.advanced_menu.delete(0, tk.END)
+
         if not self._loaded_plugin_info:
             self.advanced_menu.add_command(label="No plugins loaded", state=tk.DISABLED)
             return
-        by_cat = defaultdict(list)
+
+        # Load downloaded set for source badge
+        downloaded: set = set()
+        dl_file = Path("config/downloaded_plugins.json")
+        if dl_file.exists():
+            try:
+                with open(dl_file) as f:
+                    downloaded = set(json.load(f))
+            except Exception:
+                pass
+
+        # Group plugins by field
+        by_field = defaultdict(list)
         for pid, info in self._loaded_plugin_info.items():
-            by_cat[self._get_plugin_category(info)].append(info)
-        for cat in sorted(by_cat.keys(), key=lambda x: x.split(' ', 1)[-1]):
-            sub = tk.Menu(self.advanced_menu, tearoff=0)
-            for info in sorted(by_cat[cat], key=lambda x: x['name'].lower()):
-                label = f"{info['icon']} {info['name']}" if info.get('icon') else info['name']
+            field = info.get('field', 'General')
+            by_field[field].append(info)
+
+        # Build submenus in canonical order; any unknown fields go at the end
+        ordered = [f for f in self._FIELD_ORDER if f in by_field]
+        extras  = sorted(f for f in by_field if f not in self._FIELD_ORDER)
+
+        for field in ordered + extras:
+            plugins = sorted(by_field[field], key=lambda x: x['name'].lower())
+            icon    = self._FIELD_ICONS.get(field, "📦")
+            sub     = tk.Menu(self.advanced_menu, tearoff=0)
+
+            for info in plugins:
+                pid          = info['id']
+                badge        = "☁️" if pid in downloaded else "🖥"
+                plugin_icon  = info.get('icon', '🔧')
+                label        = f"{badge} {plugin_icon} {info['name']}"
                 sub.add_command(label=label, command=info['command'])
-            self.advanced_menu.add_cascade(label=cat, menu=sub)
+
+            self.advanced_menu.add_cascade(label=f"{icon}  {field}", menu=sub)
+
         self.advanced_menu.add_separator()
-        self.advanced_menu.add_command(label="🔄 Refresh Categories", command=self._rebuild_advanced_menu)
+        self.advanced_menu.add_command(
+            label="🔄 Refresh", command=self._rebuild_advanced_menu)
 
     def _load_enabled_plugins(self):
         f = Path("config/enabled_plugins.json")
@@ -1182,18 +1333,25 @@ class ScientificToolkit:
             self.menu_bar.add_cascade(label="Help", menu=self.help_menu)
 
     def _add_to_advanced_menu(self, info, inst):
+        """
+        Register a plugin for the Advanced menu.
+        Resolves its scientific field via _get_plugin_category which reads:
+          PLUGIN_INFO['field'] first, then 'menu_category', then keyword matching.
+        Old plugins without any of those keys still land in the right submenu.
+        """
         plugin_id = info.get('id', '')
         if plugin_id in self._added_plugins:
             return
         open_method = getattr(inst, 'open_window', None) or getattr(inst, 'show_interface', None)
         if open_method:
+            field = self._get_plugin_category(info)
             self._loaded_plugin_info[plugin_id] = {
-                'name': info.get('name', 'Unknown'),
-                'icon': info.get('icon', '🔧'),
-                'command': open_method,
-                'id': plugin_id,
+                'name':        info.get('name', 'Unknown'),
+                'icon':        info.get('icon', '🔧'),
+                'command':     open_method,
+                'id':          plugin_id,
                 'description': info.get('description', ''),
-                'category': info.get('menu_category', '')
+                'field':       field,
             }
             self._added_plugins.add(plugin_id)
 

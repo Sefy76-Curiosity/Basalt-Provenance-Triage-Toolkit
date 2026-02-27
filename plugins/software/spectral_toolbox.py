@@ -6,6 +6,7 @@ Replaces: spectral_tools.py + spectral_processing.py
 PLUGIN_INFO = {
     "id": "spectral_toolbox",
     "category": "software",
+    "field": "Spectroscopy",
     "name": "Spectral Processing Toolbox",
     "description": "MATLAB-like spectral analysis: peak detection, baseline correction, smoothing, derivatives, peak fitting",
     "icon": "📉",

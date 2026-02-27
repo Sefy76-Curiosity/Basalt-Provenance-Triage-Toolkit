@@ -14,6 +14,7 @@ PROFESSIONAL COMPOSITIONAL DATA ANALYSIS v3.4 - ULTIMATE POLISHED
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Geology & Geochemistry",
     "id": "compositional_stats_pro",
     "name": "Compositional Data Analysis PRO",
     "description": "ULTIMATE: Pyrolite • Drillhole • Norms • Bootstrap • Tooltips • 10+ Diagrams",

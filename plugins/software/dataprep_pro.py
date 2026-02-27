@@ -16,6 +16,7 @@ Changes from v1.2:
 
 PLUGIN_INFO = {
     "category": "software",
+    "field": "Geology & Geochemistry",
     "id": "dataprep_pro",
     "name": "DataPrep Pro",
     "icon": "🧹",
