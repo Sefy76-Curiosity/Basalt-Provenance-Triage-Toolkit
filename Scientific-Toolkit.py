@@ -856,11 +856,13 @@ class ScientificToolkit:
             field = info.get('field', 'General')
             by_field[field].append(info)
 
-        # Build submenus in canonical order; any unknown fields go at the end
-        ordered = [f for f in self._FIELD_ORDER if f in by_field]
-        extras  = sorted(f for f in by_field if f not in self._FIELD_ORDER)
+        # ===== MODIFIED SECTION =====
+        # Sort fields alphabetically instead of using custom order
+        sorted_fields = sorted(by_field.keys())
+        # ============================
 
-        for field in ordered + extras:
+        # Build submenus in alphabetical order
+        for field in sorted_fields:
             plugins = sorted(by_field[field], key=lambda x: x['name'].lower())
             icon    = self._FIELD_ICONS.get(field, "📦")
             sub     = tk.Menu(self.advanced_menu, tearoff=0)
@@ -1583,45 +1585,143 @@ Right-Click     Context Menu (Edit, Copy, Delete)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         ttk.Label(frm, text="Scientific Toolkit v2.0",
-                  font=("Segoe UI", 16, "bold"), bootstyle="light").pack(pady=(0, 3))
+                font=("Segoe UI", 16, "bold"), bootstyle="light").pack(pady=(0, 3))
         ttk.Label(frm, text="(Based on Basalt Provenance Triage Toolkit v10.2)",
-                  font=("Segoe UI", 9, "italic"), bootstyle="secondary").pack()
+                font=("Segoe UI", 9, "italic"), bootstyle="secondary").pack()
         ttk.Label(frm, text="© 2026 Sefy Levy  •  All Rights Reserved",
-                  bootstyle="secondary").pack(pady=2)
+                bootstyle="secondary").pack(pady=2)
         email = ttk.Label(frm, text="sefy76@gmail.com", bootstyle="info", cursor="hand2")
         email.pack()
         email.bind("<Button-1>", lambda e: webbrowser.open("mailto:sefy76@gmail.com"))
         ttk.Label(frm, text="DOI: https://doi.org/10.5281/zenodo.18727756",
-                  bootstyle="info", cursor="hand2").pack()
+                bootstyle="info", cursor="hand2").pack()
         ttk.Label(frm, text="CC BY-NC-SA 4.0 — Non-commercial research & education use",
-                  font=("Segoe UI", 9, "italic"), bootstyle="secondary").pack(pady=(6, 4))
+                font=("Segoe UI", 9, "italic"), bootstyle="secondary").pack(pady=(6, 4))
         ttk.Label(frm, text="A unified platform for scientific data analysis with plugin architecture",
-                  wraplength=580, justify="center", bootstyle="light").pack(pady=(0, 8))
+                wraplength=580, justify="center", bootstyle="light").pack(pady=(0, 8))
 
-        ded = ttk.LabelFrame(frm, text="Dedication", padding=16, bootstyle="secondary")
-        ded.pack(pady=8, padx=20, fill=tk.X)
-        ttk.Label(ded, text="Dedicated to my beloved", font=("Segoe UI", 10, "bold")).pack(pady=(0, 2))
-        ttk.Label(ded, text="Camila Portes Salles",
-                  font=("Segoe UI", 12, "italic"), bootstyle="danger").pack()
-        ttk.Label(ded, text="Special thanks to my sister",
-                  font=("Segoe UI", 9, "bold")).pack(pady=(8, 2))
-        ttk.Label(ded, text="Or Levy", font=("Segoe UI", 10, "italic")).pack()
-        ttk.Label(ded, text="In loving memory of my mother").pack(pady=(8, 2))
-        ttk.Label(ded, text="Chaya Levy", font=("Segoe UI", 10, "italic")).pack()
+        # ===== FIXED SECTION =====
+        # Create a regular Frame with padding instead of LabelFrame
+        ded_frame = ttk.Frame(frm)
+        ded_frame.pack(pady=8, padx=20, fill=tk.X)
+
+        # Create a separate label for the "Dedication" title
+        ttk.Label(ded_frame, text="Dedication", font=("Segoe UI", 10, "bold"),
+                bootstyle="secondary").pack(anchor="w", pady=(0, 5))
+
+        # Create the content frame with padding
+        ded_content = ttk.Frame(ded_frame, padding=16)
+        ded_content.pack(fill=tk.X)
+
+        ttk.Label(ded_content, text="Dedicated to my beloved",
+                font=("Segoe UI", 10, "bold")).pack(pady=(0, 2))
+        ttk.Label(ded_content, text="Camila Portes Salles",
+                font=("Segoe UI", 12, "italic"), bootstyle="danger").pack()
+        ttk.Label(ded_content, text="Special thanks to my sister",
+                font=("Segoe UI", 9, "bold")).pack(pady=(8, 2))
+        ttk.Label(ded_content, text="Or Levy", font=("Segoe UI", 10, "italic")).pack()
+        ttk.Label(ded_content, text="In loving memory of my mother").pack(pady=(8, 2))
+        ttk.Label(ded_content, text="Chaya Levy", font=("Segoe UI", 10, "italic")).pack()
+        # ========================
 
         ttk.Label(frm, text="Development: Sefy Levy (2026)", bootstyle="secondary").pack(pady=(12, 2))
         ttk.Label(frm, text="Implementation with generous help from:").pack()
         ttk.Label(frm, text="Gemini • Copilot • ChatGPT • Claude • DeepSeek • Mistral • Grok",
-                  font=("Segoe UI", 9, "italic"), bootstyle="secondary").pack()
+                font=("Segoe UI", 9, "italic"), bootstyle="secondary").pack()
         ttk.Label(frm, text="If used in research — please cite:",
-                  font=("Segoe UI", 9, "bold")).pack(pady=(12, 2))
+                font=("Segoe UI", 9, "bold")).pack(pady=(12, 2))
         ttk.Label(frm,
-                  text="Levy, S. (2026). Scientific Toolkit v2.0.\n"
-                       "Based on Basalt Provenance Triage Toolkit v10.2.\n"
-                       "https://doi.org/10.5281/zenodo.18727756",
-                  justify="center", bootstyle="secondary").pack()
+                text="Sefy Levy (2026). Scientific Toolkit v2.0.\n"
+                    "Based on Basalt Provenance Triage Toolkit v10.2.\n"
+                    "https://doi.org/10.5281/zenodo.18727756",
+                justify="center", bootstyle="secondary").pack()
         ttk.Button(frm, text="Close", command=win.destroy,
-                   bootstyle="secondary-outline", width=12).pack(pady=(16, 0))
+                bootstyle="secondary-outline", width=12).pack(pady=(16, 0))
+
+    def show_about(self):
+        win = ttk.Toplevel(self.root)
+        win.title("About Scientific Toolkit")
+        win.transient(self.root)
+
+        # Main container with padding
+        main_container = ttk.Frame(win, padding=25)
+        main_container.pack(fill=tk.BOTH, expand=True)
+
+        # REMOVED canvas and scrollbar - using simple frame instead
+        frm = ttk.Frame(main_container)
+        frm.pack(fill=tk.BOTH, expand=True)
+
+        # Header section
+        header_frame = ttk.Frame(frm)
+        header_frame.pack(fill=tk.X, pady=(0, 10))
+
+        ttk.Label(header_frame, text="Scientific Toolkit v2.0",
+                font=("Segoe UI", 16, "bold")).pack()
+        ttk.Label(header_frame, text="(Based on Basalt Provenance Triage Toolkit v10.2)",
+                font=("Segoe UI", 9, "italic")).pack()
+        ttk.Label(header_frame, text="© 2026 Sefy Levy  •  All Rights Reserved").pack(pady=2)
+
+        email = ttk.Label(header_frame, text="sefy76@gmail.com", cursor="hand2")
+        email.pack()
+        email.bind("<Button-1>", lambda e: webbrowser.open("mailto:sefy76@gmail.com"))
+
+        ttk.Label(header_frame, text="DOI: https://doi.org/10.5281/zenodo.18727755",
+                cursor="hand2").pack()
+        ttk.Label(header_frame, text="CC BY-NC-SA 4.0 — Non-commercial research & education use",
+                font=("Segoe UI", 9, "italic")).pack(pady=(6, 4))
+        ttk.Label(header_frame, text="A unified platform for scientific data analysis with plugin architecture",
+                wraplength=500, justify="center").pack(pady=(0, 8))
+
+        # Dedication section with box
+        ded = ttk.LabelFrame(frm, text="Dedication")
+        ded.pack(pady=8, fill=tk.X)
+
+        # Inner frame for padding
+        ded_content = ttk.Frame(ded, padding=16)
+        ded_content.pack(fill=tk.X)
+
+        ttk.Label(ded_content, text="Dedicated to my beloved",
+                font=("Segoe UI", 10, "bold")).pack(pady=(0, 2))
+        ttk.Label(ded_content, text="Camila Portes Salles",
+                font=("Segoe UI", 12, "italic")).pack()
+        ttk.Label(ded_content, text="Special thanks to my sister",
+                font=("Segoe UI", 9, "bold")).pack(pady=(8, 2))
+        ttk.Label(ded_content, text="Or Levy", font=("Segoe UI", 10, "italic")).pack()
+        ttk.Label(ded_content, text="In loving memory of my mother").pack(pady=(8, 2))
+        ttk.Label(ded_content, text="Chaya Levy", font=("Segoe UI", 10, "italic")).pack()
+
+        # Footer section
+        footer_frame = ttk.Frame(frm)
+        footer_frame.pack(fill=tk.X, pady=(12, 0))
+
+        ttk.Label(footer_frame, text="Development: Sefy Levy (2026)").pack()
+        ttk.Label(footer_frame, text="Implementation with generous help from:").pack()
+        ttk.Label(footer_frame, text="Gemini • Copilot • ChatGPT • Claude • DeepSeek • Mistral • Grok",
+                font=("Segoe UI", 9, "italic")).pack()
+        ttk.Label(footer_frame, text="If used in research — please cite:",
+                font=("Segoe UI", 9, "bold")).pack(pady=(12, 2))
+
+        citation_frame = ttk.Frame(footer_frame)
+        citation_frame.pack(fill=tk.X)
+        ttk.Label(citation_frame,
+                text="Levy, S. (2026). Scientific Toolkit v2.0.\n"
+                    "Based on Basalt Provenance Triage Toolkit v10.2.\n"
+                    "https://doi.org/10.5281/zenodo.18727756",
+                justify="center", wraplength=500).pack()
+
+        # Button frame at bottom
+        button_frame = ttk.Frame(frm)
+        button_frame.pack(fill=tk.X, pady=(16, 5))
+        ttk.Button(button_frame, text="Close", command=win.destroy, width=12).pack()
+
+        # Set window size - fixed dimensions that fit all content
+        win.update_idletasks()
+        width = 600  # Fixed comfortable width
+        height = 650  # Fixed height that should fit all content
+        win.geometry(f"{width}x{height}+{(win.winfo_screenwidth()-width)//2}+{(win.winfo_screenheight()-height)//2}")
+
+        # Make window non-resizable to prevent scrollbar issues
+        win.resizable(False, False)
 
     def show_support(self):
         win = ttk.Toplevel(self.root)
@@ -1631,26 +1731,32 @@ Right-Click     Context Menu (Edit, Copy, Delete)
         frm.pack(fill=tk.BOTH, expand=True)
 
         ttk.Label(frm, text="Support the Project",
-                  font=("Segoe UI", 16, "bold"), bootstyle="light").pack(pady=(0, 6))
+                font=("Segoe UI", 16, "bold")).pack(pady=(0, 6))
         ttk.Label(frm, text="Scientific Toolkit v2.0").pack()
         ttk.Label(frm, text="Based on Basalt Provenance Triage Toolkit v10.2",
-                  font=("Segoe UI", 9, "italic"), bootstyle="secondary").pack(pady=2)
+                font=("Segoe UI", 9, "italic")).pack(pady=2)
         ttk.Label(frm, text="Created by Sefy Levy • 2026").pack(pady=4)
 
-        email_link = ttk.Label(frm, text="sefy76@gmail.com", bootstyle="info", cursor="hand2")
+        email_link = ttk.Label(frm, text="sefy76@gmail.com", cursor="hand2")
         email_link.pack(pady=2)
         email_link.bind("<Button-1>", lambda e: webbrowser.open("mailto:sefy76@gmail.com"))
 
         ttk.Label(frm, text="This tool is 100% free and open-source (CC BY-NC-SA 4.0)\nfor research and educational use.",
-                  justify="center", wraplength=400, bootstyle="secondary").pack(pady=(12, 16))
-        ttk.Separator(frm, bootstyle="secondary").pack(fill=tk.X, pady=10)
+                justify="center", wraplength=400).pack(pady=(12, 16))
+        ttk.Separator(frm).pack(fill=tk.X, pady=10)
         ttk.Label(frm,
-                  text="If this tool has saved you time, helped with your research,\n"
-                       "any support is deeply appreciated.",
-                  justify="center", wraplength=400).pack(pady=(0, 16))
+                text="If this tool has saved you time, helped with your research,\n"
+                    "any support is deeply appreciated.",
+                justify="center", wraplength=400).pack(pady=(0, 16))
 
-        donate_frame = ttk.LabelFrame(frm, text="Ways to Support", padding=14, bootstyle="secondary")
-        donate_frame.pack(fill=tk.X, pady=8, padx=10)
+        # ===== FIXED DONATION SECTION =====
+        # Create Labelframe without bootstyle
+        donate_container = ttk.LabelFrame(frm, text="Ways to Support")
+        donate_container.pack(fill=tk.X, pady=8, padx=10)
+
+        # Inner frame for padding
+        donate_frame = ttk.Frame(donate_container, padding=14)
+        donate_frame.pack(fill=tk.X)
 
         for label, url in [
             ("☕ Ko-fi – Buy me a coffee", "https://ko-fi.com/sefy76"),
@@ -1658,14 +1764,13 @@ Right-Click     Context Menu (Edit, Copy, Delete)
             ("🔁 Liberapay – Recurring (0% fee)", "https://liberapay.com/sefy76"),
         ]:
             ttk.Button(donate_frame, text=label,
-                       command=lambda u=url: webbrowser.open(u),
-                       bootstyle="info-outline").pack(fill=tk.X, pady=4, padx=8)
+                    command=lambda u=url: webbrowser.open(u)).pack(fill=tk.X, pady=4, padx=8)
+        # ==================================
 
-        ttk.Separator(frm, bootstyle="secondary").pack(fill=tk.X, pady=14)
+        ttk.Separator(frm).pack(fill=tk.X, pady=14)
         ttk.Label(frm, text="Thank you for believing in open scientific tools.",
-                  font=("Segoe UI", 9, "italic"), bootstyle="secondary").pack(pady=(0, 8))
-        ttk.Button(frm, text="Close", command=win.destroy,
-                   bootstyle="secondary-outline").pack(pady=6)
+                font=("Segoe UI", 9, "italic")).pack(pady=(0, 8))
+        ttk.Button(frm, text="Close", command=win.destroy).pack(pady=6)
 
         win.update_idletasks()
         w, h = frm.winfo_reqwidth() + 50, frm.winfo_reqheight() + 50
