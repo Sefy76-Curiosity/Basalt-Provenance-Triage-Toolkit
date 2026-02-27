@@ -6,7 +6,7 @@ Manual Entry takes fixed height, Hardware at bottom with scrollbar for 8+ plugin
 ✓ FIXED HEIGHT for 8 buttons (approx 200px for 8 buttons)
 ✓ SCROLLBAR on left for 16+ plugins
 ✓ MANUAL ENTRY expands to fill remaining space
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIXED: Added file encoding detection for CSV imports
 """
 
 import tkinter as tk
@@ -15,6 +15,7 @@ from tkinter import filedialog, messagebox
 
 import re
 import json
+import chardet
 from pathlib import Path
 
 class LeftPanel:
@@ -101,6 +102,30 @@ class LeftPanel:
         result = re.sub(r'\s+', '_', cleaned)
 
         return result
+
+    def _detect_encoding(self, filepath):
+        """Detect file encoding using chardet"""
+        try:
+            with open(filepath, 'rb') as f:
+                raw_data = f.read(10000)  # Read first 10KB for detection
+                result = chardet.detect(raw_data)
+                encoding = result.get('encoding', 'utf-8')
+                confidence = result.get('confidence', 0)
+
+                if confidence > 0.7:
+                    return encoding
+                else:
+                    # Fallback encodings in order of likelihood
+                    for enc in ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']:
+                        try:
+                            with open(filepath, 'r', encoding=enc) as test_f:
+                                test_f.read(1000)
+                            return enc
+                        except:
+                            continue
+                    return 'utf-8'  # Default fallback
+        except:
+            return 'utf-8'  # Default fallback
 
     def _build_ui(self):
         """Build left panel UI with proper spacing"""
@@ -490,27 +515,77 @@ class LeftPanel:
         return clean_row if clean_row else None
 
     def _parse_csv(self, path):
-        """Parse a CSV file and return a list of row dictionaries."""
-        import csv, io
+        """Parse a CSV file with automatic encoding detection"""
+        import csv
+        import io
+
+        # 🔐 Detect file encoding
+        encoding = self._detect_encoding(path)
+
         rows = []
-        with open(path, 'r', encoding='utf-8-sig') as f:
-            non_comment_lines = [line for line in f if not line.strip().startswith('#')]
-            filtered_file = io.StringIO(''.join(non_comment_lines))
-            reader = csv.DictReader(filtered_file)
-            if not reader.fieldnames:
-                return rows
-            data_rows = list(reader)
-            total_rows = len(data_rows)
-            self.app.center.show_progress('import', 0, total_rows, f"Found {total_rows} rows")
+        try:
+            with open(path, 'r', encoding=encoding) as f:
+                # Skip comment lines (lines starting with #)
+                non_comment_lines = []
+                for line in f:
+                    if not line.strip().startswith('#'):
+                        non_comment_lines.append(line)
 
-            for i, raw_row in enumerate(data_rows):
-                if i % 10 == 0 or i == total_rows - 1:
-                    self.app.center.show_progress('import', i+1, total_rows,
-                                                f"Processing row {i+1}")
+                # Create a StringIO object from filtered lines
+                filtered_file = io.StringIO(''.join(non_comment_lines))
 
-                clean_row = self._normalize_row(raw_row, rows)
-                if clean_row:
-                    rows.append(clean_row)
+                # Try different delimiters
+                sample = filtered_file.read(1024)
+                filtered_file.seek(0)
+
+                # Detect delimiter
+                dialect = csv.Sniffer().sniff(sample)
+                delimiter = dialect.delimiter
+
+                # Reopen with detected delimiter
+                filtered_file.seek(0)
+                reader = csv.DictReader(filtered_file, delimiter=delimiter)
+
+                if not reader.fieldnames:
+                    return rows
+
+                data_rows = list(reader)
+                total_rows = len(data_rows)
+                self.app.center.show_progress('import', 0, total_rows, f"Found {total_rows} rows")
+
+                for i, raw_row in enumerate(data_rows):
+                    if i % 10 == 0 or i == total_rows - 1:
+                        self.app.center.show_progress('import', i+1, total_rows,
+                                                    f"Processing row {i+1}")
+
+                    clean_row = self._normalize_row(raw_row, rows)
+                    if clean_row:
+                        rows.append(clean_row)
+
+        except UnicodeDecodeError:
+            # Fallback to binary mode with error handling
+            with open(path, 'rb') as f:
+                raw_data = f.read()
+                # Try to decode with error replacement
+                text = raw_data.decode('utf-8', errors='replace')
+                filtered_file = io.StringIO(text)
+                reader = csv.DictReader(filtered_file)
+                data_rows = list(reader)
+                for raw_row in data_rows:
+                    clean_row = self._normalize_row(raw_row, rows)
+                    if clean_row:
+                        rows.append(clean_row)
+        except csv.Error as e:
+            # Try with default settings if sniffing fails
+            with open(path, 'r', encoding=encoding) as f:
+                non_comment_lines = [line for line in f if not line.strip().startswith('#')]
+                filtered_file = io.StringIO(''.join(non_comment_lines))
+                reader = csv.DictReader(filtered_file)
+                data_rows = list(reader)
+                for raw_row in data_rows:
+                    clean_row = self._normalize_row(raw_row, rows)
+                    if clean_row:
+                        rows.append(clean_row)
 
         return rows
 

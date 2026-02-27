@@ -1,5 +1,6 @@
 """
 Auto-Save Manager - Automatically saves work in progress
+FIXED: Added threading lock to prevent race conditions
 """
 
 import json
@@ -23,6 +24,10 @@ class AutoSaveManager:
         self.auto_save_thread = None
         self.recovery_file = self.auto_save_dir / "recovery.stproj"
 
+        # 🔐 Thread safety locks
+        self._save_lock = threading.Lock()
+        self._data_lock = threading.Lock()
+
         # Create auto-save directory
         self.auto_save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -42,32 +47,55 @@ class AutoSaveManager:
         """Background loop that performs auto-saves"""
         while self.is_running:
             time.sleep(self.auto_save_interval)
-            if self.app.data_hub.has_unsaved_changes():
+
+            # 🔐 Thread-safe check for unsaved changes
+            with self._data_lock:
+                has_changes = self.app.data_hub.has_unsaved_changes()
+
+            if has_changes:
                 self._perform_auto_save()
 
     def _perform_auto_save(self):
-        """Perform an auto-save"""
-        try:
-            # Collect project data
-            project_data = self.app.project_manager._collect_project_data()
+        """Perform an auto-save with thread safety"""
+        # 🔐 Use lock to prevent concurrent saves
+        with self._save_lock:
+            try:
+                # Get project data with thread safety
+                with self._data_lock:
+                    project_data = self.app.project_manager._collect_project_data()
 
-            # Add auto-save metadata
-            project_data['metadata']['auto_save'] = True
-            project_data['metadata']['auto_save_time'] = datetime.now().isoformat()
+                # Add auto-save metadata
+                project_data['metadata']['auto_save'] = True
+                project_data['metadata']['auto_save_time'] = datetime.now().isoformat()
 
-            # Save to recovery file
-            with open(self.recovery_file, 'w', encoding='utf-8') as f:
-                json.dump(project_data, f, indent=2)
+                # Write to temporary file first, then rename (atomic operation)
+                temp_file = self.recovery_file.with_suffix('.tmp')
+                with open(temp_file, 'w', encoding='utf-8') as f:
+                    json.dump(project_data, f, indent=2)
 
-            self.last_auto_save = datetime.now()
-            self.app.data_hub.mark_saved()
+                # Atomic rename (POSIX) - on Windows, replace if exists
+                if temp_file.exists():
+                    if self.recovery_file.exists():
+                        self.recovery_file.unlink()
+                    temp_file.rename(self.recovery_file)
 
-            # Update status bar occasionally
-            if self.app.root:
-                self.app.root.after(0, lambda: self._show_auto_save_status())
+                with self._data_lock:
+                    self.last_auto_save = datetime.now()
+                    self.app.data_hub.mark_saved()
 
-        except Exception as e:
-            pass
+                # Update status bar occasionally
+                if self.app.root:
+                    self.app.root.after(0, lambda: self._show_auto_save_status())
+
+            except Exception as e:
+                # Log error silently - don't crash
+                print(f"Auto-save error: {e}")
+                # Clean up temp file if it exists
+                if 'temp_file' in locals() and temp_file.exists():
+                    try:
+                        temp_file.unlink()
+                    except:
+                        pass
 
     def _show_auto_save_status(self):
         """Show auto-save status in the status bar"""
@@ -109,9 +137,10 @@ class AutoSaveManager:
 
     def manual_save_triggered(self):
         """Called when user manually saves - we can clean up auto-save"""
-        if self.recovery_file.exists():
-            self.recovery_file.unlink()
-        self.app.data_hub.mark_saved()
+        with self._data_lock:
+            if self.recovery_file.exists():
+                self.recovery_file.unlink()
+            self.app.data_hub.mark_saved()
 
     def stop(self):
         """Stop the auto-save thread"""

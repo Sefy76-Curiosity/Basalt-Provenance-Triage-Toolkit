@@ -5,9 +5,12 @@ Derived fields loaded from engines/derived_fields.json
 
 *** READ-ONLY VERSION ***
 Does not modify input samples.
+FIXED: Replaced eval() with safe formula parser
 """
 
 import json
+import re
+import operator
 from pathlib import Path
 from typing import Dict, List, Any, Tuple, Optional
 
@@ -16,6 +19,225 @@ try:
     import pandas as _pd
 except ImportError:
     _pd = None
+
+
+class SafeFormulaEvaluator:
+    """
+    Safely evaluate mathematical formulas without using eval()
+    Supports basic arithmetic operations: +, -, *, /, **, sqrt, log, etc.
+    """
+
+    # Allowed functions mapped to safe implementations
+    FUNCTIONS = {
+        'sqrt': lambda x: x ** 0.5,
+        'log': lambda x: __import__('math').log(x),
+        'log10': lambda x: __import__('math').log10(x),
+        'exp': lambda x: __import__('math').exp(x),
+        'abs': abs,
+        'min': min,
+        'max': max,
+    }
+
+    # Allowed operators
+    OPERATORS = {
+        '+': operator.add,
+        '-': operator.sub,
+        '*': operator.mul,
+        '/': operator.truediv,
+        '**': operator.pow,
+    }
+
+    # Token pattern: numbers, identifiers, operators, parentheses
+    TOKEN_PATTERN = re.compile(
+        r'(\d+\.?\d*|\b[a-zA-Z_][a-zA-Z0-9_]*\b|[+\-*/()]|:=|<=|>=|==|!=)'
+    )
+
+    @classmethod
+    def evaluate(cls, formula: str, variables: Dict[str, float]) -> float:
+        """
+        Safely evaluate a formula with given variables
+        Raises ValueError if formula is unsafe or invalid
+        """
+        # Remove all whitespace
+        formula = formula.replace(' ', '')
+
+        # Tokenize
+        tokens = cls._tokenize(formula)
+
+        # Validate tokens
+        cls._validate_tokens(tokens)
+
+        # Parse and evaluate
+        result = cls._parse_expression(tokens, variables)
+
+        return result
+
+    @classmethod
+    def _tokenize(cls, formula: str) -> List[str]:
+        """Split formula into tokens"""
+        tokens = []
+        current = ''
+
+        i = 0
+        while i < len(formula):
+            c = formula[i]
+
+            if c in '+-*/()':
+                if current:
+                    tokens.append(current)
+                    current = ''
+                # Check for ** (exponentiation) before emitting a lone *
+                if c == '*' and i + 1 < len(formula) and formula[i + 1] == '*':
+                    tokens.append('**')
+                    i += 2
+                    continue
+                else:
+                    tokens.append(c)
+            else:
+                current += c
+            i += 1
+
+        if current:
+            tokens.append(current)
+
+        return tokens
+
+    @classmethod
+    def _validate_tokens(cls, tokens: List[str]):
+        """Check for unsafe tokens"""
+        for token in tokens:
+            # Check for function calls
+            if token in cls.FUNCTIONS:
+                continue
+
+            # Check for numbers
+            try:
+                float(token)
+                continue
+            except ValueError:
+                pass
+
+            # Check for variables (letters, underscores)
+            if token.isidentifier():
+                continue
+
+            # Check for operators
+            if token in cls.OPERATORS or token in '()':
+                continue
+
+            # Anything else is unsafe
+            raise ValueError(f"Unsafe token in formula: '{token}'")
+
+    @classmethod
+    def _parse_expression(cls, tokens: List[str], variables: Dict[str, float]) -> float:
+        """
+        Simple recursive descent parser for expressions
+        Grammar:
+        expr   ::= term { ('+'|'-') term }
+        term   ::= factor { ('*'|'/') factor }
+        factor ::= number | variable | '(' expr ')' | function '(' expr ')'
+        """
+        pos = 0
+
+        def parse_expr():
+            nonlocal pos
+            value = parse_term()
+
+            while pos < len(tokens) and tokens[pos] in ('+', '-'):
+                op = tokens[pos]
+                pos += 1
+                right = parse_term()
+
+                if op == '+':
+                    value = cls.OPERATORS['+'](value, right)
+                else:  # '-'
+                    value = cls.OPERATORS['-'](value, right)
+
+            return value
+
+        def parse_term():
+            nonlocal pos
+            value = parse_power()
+
+            while pos < len(tokens) and tokens[pos] in ('*', '/'):
+                op = tokens[pos]
+                pos += 1
+                right = parse_power()
+
+                if op == '*':
+                    value = cls.OPERATORS['*'](value, right)
+                else:  # '/'
+                    if right == 0:
+                        raise ValueError("Division by zero")
+                    value = cls.OPERATORS['/'](value, right)
+
+            return value
+
+        def parse_power():
+            """Right-associative exponentiation: 2**3**2 == 2**(3**2) == 512"""
+            nonlocal pos
+            base = parse_factor()
+
+            if pos < len(tokens) and tokens[pos] == '**':
+                pos += 1
+                # Right-associative: recurse into parse_power (not parse_factor)
+                exp = parse_power()
+                return cls.OPERATORS['**'](base, exp)
+
+            return base
+
+        def parse_factor():
+            nonlocal pos
+            token = tokens[pos]
+
+            # Function call
+            if token in cls.FUNCTIONS and pos + 2 < len(tokens) and tokens[pos + 1] == '(':
+                func_name = token
+                pos += 2  # Skip function name and '('
+                arg = parse_expr()
+
+                if pos >= len(tokens) or tokens[pos] != ')':
+                    raise ValueError(f"Missing closing parenthesis for function {func_name}")
+                pos += 1  # Skip ')'
+
+                return cls.FUNCTIONS[func_name](arg)
+
+            # Parenthesized expression
+            if token == '(':
+                pos += 1
+                value = parse_expr()
+
+                if pos >= len(tokens) or tokens[pos] != ')':
+                    raise ValueError("Missing closing parenthesis")
+                pos += 1
+                return value
+
+            # Number
+            try:
+                value = float(token)
+                pos += 1
+                return value
+            except ValueError:
+                pass
+
+            # Variable
+            if token.isidentifier():
+                if token not in variables:
+                    raise ValueError(f"Unknown variable: '{token}'")
+                value = variables[token]
+                pos += 1
+                return value
+
+            raise ValueError(f"Unexpected token: '{token}'")
+
+        pos = 0
+        result = parse_expr()
+
+        if pos < len(tokens):
+            raise ValueError(f"Unexpected tokens at end: {tokens[pos:]}")
+
+        return result
+
 
 class ClassificationEngine:
     """
@@ -46,7 +268,7 @@ class ClassificationEngine:
         self.load_all_schemes()
 
     def _load_derived_fields(self) -> Dict[str, Any]:
-        """Load derived field calculations from JSON"""
+        """Load and validate derived field calculations from JSON"""
         if not self.derived_fields_path.exists():
             print(f"⚠️ Derived fields file not found: {self.derived_fields_path}")
             return {"fields": []}
@@ -54,7 +276,29 @@ class ClassificationEngine:
         try:
             with open(self.derived_fields_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            print(f"✅ Loaded {len(data.get('fields', []))} derived field calculators")
+
+            # 🔐 Validate formulas
+            fields = data.get('fields', [])
+            valid_fields = []
+
+            for field in fields:
+                formula = field.get('formula', '')
+                requires = field.get('requires', [])
+
+                # Skip if formula is missing
+                if not formula or not requires:
+                    continue
+
+                # Test the formula with dummy values to ensure it's safe
+                try:
+                    test_vars = {req: 1.0 for req in requires}
+                    SafeFormulaEvaluator.evaluate(formula, test_vars)
+                    valid_fields.append(field)
+                except Exception as e:
+                    print(f"⚠️ Invalid formula in field '{field.get('name')}': {e}")
+
+            data['fields'] = valid_fields
+            print(f"✅ Loaded {len(valid_fields)} validated derived field calculators")
             return data
         except Exception as e:
             print(f"⚠️ Error loading derived fields: {e}")
@@ -130,6 +374,7 @@ class ClassificationEngine:
         """
         Compute all derived fields needed for classification schemes
         Loads formulas from derived_fields.json
+        Uses safe evaluator instead of eval()
         """
         fields = self.derived_fields.get('fields', [])
         derived = {}
@@ -146,13 +391,16 @@ class ClassificationEngine:
             # Check if we have all required fields
             if all(req in sample for req in requires):
                 try:
-                    # Create a safe evaluation context with all required values
+                    # Build evaluation context with required values
                     eval_context = {}
                     for req in requires:
-                        eval_context[req] = float(sample[req])
+                        try:
+                            eval_context[req] = float(sample[req])
+                        except (ValueError, TypeError):
+                            eval_context[req] = 0.0
 
-                    # Safely evaluate the formula
-                    result = eval(formula, {"__builtins__": {}}, eval_context)
+                    # 🔐 SAFELY evaluate the formula (no eval!)
+                    result = SafeFormulaEvaluator.evaluate(formula, eval_context)
                     derived[field_name] = result
                     if self.DEBUG:
                         print(f"    Computed {field_name}: {result:.4f}")

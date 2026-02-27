@@ -1,7 +1,7 @@
 """
 Protocol Engine for Scientific Toolkit v2.0
 Dynamically loads and runs multi-stage protocols from JSON files.
-Fully patched and production-ready.
+FIXED: Removed python_stage to prevent RCE
 """
 
 import json
@@ -9,6 +9,9 @@ import sys
 from pathlib import Path
 from typing import Dict, Any, List, Callable, Optional
 from importlib import import_module
+import hashlib
+import hmac
+import os
 
 # Ensure engines directory is on path for imports
 current_dir = Path(__file__).parent
@@ -23,6 +26,16 @@ except ImportError:
 
 
 class ProtocolEngine:
+    # 🔐 Security: Whitelist of allowed modules and functions
+    ALLOWED_MODULES = {
+        'math': ['sin', 'cos', 'tan', 'sqrt', 'log', 'log10', 'exp', 'radians', 'degrees'],
+        'statistics': ['mean', 'median', 'stdev', 'variance'],
+        'numpy': ['mean', 'median', 'std', 'var', 'min', 'max', 'sum'],
+    }
+
+    # 🔐 Security: Signature file for trusted protocols
+    SIGNATURE_FILE = Path(__file__).parent / "protocols" / "signatures.json"
+
     def __init__(self, protocols_dir: Optional[str] = None, schemes_dir: Optional[str] = None):
         """
         Initialize the protocol engine.
@@ -33,6 +46,9 @@ class ProtocolEngine:
             self.protocols_dir = current_dir / "protocols"
         else:
             self.protocols_dir = Path(protocols_dir)
+
+        # Load trusted signatures
+        self.trusted_signatures = self._load_signatures()
 
         print("🔍 PROTOCOL ENGINE DEBUG:")
         print(f"   Looking in: {self.protocols_dir.absolute()}")
@@ -53,6 +69,36 @@ class ProtocolEngine:
 
         self.load_all_protocols()
 
+    def _load_signatures(self) -> Dict[str, str]:
+        """Load HMAC signatures for trusted protocols"""
+        if self.SIGNATURE_FILE.exists():
+            try:
+                with open(self.SIGNATURE_FILE, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except:
+                return {}
+        return {}
+
+    def _verify_protocol(self, protocol_id: str, content: str) -> bool:
+        """Verify protocol signature if secret key is set"""
+        secret_key = os.environ.get('PROTOCOL_SECRET_KEY')
+        if not secret_key:
+            # No key = trust all local files (default for local use)
+            return True
+
+        if protocol_id not in self.trusted_signatures:
+            print(f"⚠️ Protocol {protocol_id} has no signature")
+            return False
+
+        expected = self.trusted_signatures[protocol_id]
+        actual = hmac.new(
+            secret_key.encode(),
+            content.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        return hmac.compare_digest(actual, expected)
+
     # ---------------------------------------------------------
     # LOAD PROTOCOLS
     # ---------------------------------------------------------
@@ -66,8 +112,23 @@ class ProtocolEngine:
         for json_file in self.protocols_dir.glob("*.json"):
             try:
                 with open(json_file, "r", encoding="utf-8") as f:
-                    proto = json.load(f)
+                    content = f.read()
+                    proto = json.loads(content)
+
                 pid = json_file.stem
+
+                # 🔐 Verify signature if security enabled
+                if not self._verify_protocol(pid, content):
+                    print(f"⚠️ Protocol {pid} failed signature verification - skipping")
+                    continue
+
+                # 🔐 Remove any python_stage entries for security
+                if 'stages' in proto:
+                    proto['stages'] = [
+                        stage for stage in proto['stages']
+                        if stage.get('type') != 'python_stage'
+                    ]
+
                 self.protocols[pid] = proto
                 print(f"✅ Loaded protocol: {proto.get('protocol_name', pid)}")
             except Exception as e:
@@ -98,8 +159,9 @@ class ProtocolEngine:
             elif stype == "classification_stage":
                 self._run_classification_stage(samples, stage)
 
-            elif stype == "python_stage":
-                self._run_python_stage(samples, stage)
+            # 🔐 SECURITY FIX: python_stage removed
+            # elif stype == "python_stage":
+            #     self._run_python_stage(samples, stage)
 
             else:
                 print(f"⚠️ Unknown stage type: {stype}")
@@ -209,23 +271,23 @@ class ProtocolEngine:
                     s[dst] = s[src]
 
     # ---------------------------------------------------------
-    # PYTHON STAGE
+    # PYTHON STAGE - REMOVED FOR SECURITY
     # ---------------------------------------------------------
-    def _run_python_stage(self, samples: List[Dict[str, Any]], stage: Dict[str, Any]) -> None:
-        callable_path = stage.get("python_callable")
-        if not callable_path:
-            return
-
-        print(f"      Running Python stage: {callable_path}")
-
-        try:
-            module_name, func_name = callable_path.rsplit(".", 1)
-            module = import_module(module_name)
-            func: Callable = getattr(module, func_name)
-            func(samples, stage)
-
-        except (ImportError, AttributeError) as e:
-            print(f"⚠️ Error in python_stage {callable_path}: {e}")
-
-        except Exception as e:
-            print(f"⚠️ Unexpected error in python_stage: {e}")
+    # def _run_python_stage(self, samples: List[Dict[str, Any]], stage: Dict[str, Any]) -> None:
+    #     callable_path = stage.get("python_callable")
+    #     if not callable_path:
+    #         return
+    #
+    #     print(f"      Running Python stage: {callable_path}")
+    #
+    #     try:
+    #         module_name, func_name = callable_path.rsplit(".", 1)
+    #         module = import_module(module_name)
+    #         func: Callable = getattr(module, func_name)
+    #         func(samples, stage)
+    #
+    #     except (ImportError, AttributeError) as e:
+    #         print(f"⚠️ Error in python_stage {callable_path}: {e}")
+    #
+    #     except Exception as e:
+    #         print(f"⚠️ Unexpected error in python_stage: {e}")

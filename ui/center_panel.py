@@ -2,6 +2,7 @@
 Center Panel - 80% width, Dynamic Table with Tabs
 Includes status bar between navigation and selection controls
 Fully converted to ttkbootstrap with minimal borders
+FIXED: Added null checks and background processing for large datasets
 """
 
 import tkinter as tk
@@ -11,6 +12,8 @@ from ttkbootstrap.constants import *
 from collections import Counter
 import os
 import json
+import threading
+import time
 from ui.all_schemes_detail_dialog import generate_explanation_text
 
 class CenterPanel:
@@ -33,6 +36,7 @@ class CenterPanel:
         "plugin":     "🔌",
         "complete":   "✅",
     }
+
     def __init__(self, parent, app):
         self.app = app
         self.frame = ttk.Frame(parent, bootstyle="dark")
@@ -50,6 +54,11 @@ class CenterPanel:
 
         # Track if this is the first refresh (for auto-sizing columns)
         self._first_refresh = True
+
+        # 🔧 Background processing
+        self._refresh_in_progress = False
+        self._pending_refresh = False
+        self._background_thread = None
 
         # UI elements
         self.notebook = None
@@ -101,7 +110,7 @@ class CenterPanel:
             bootstyle="light"
         ).pack(side=tk.LEFT)
 
-        self.search_var.trace("w", lambda *a: self._apply_filter())
+        self.search_var.trace("w", lambda *a: self._schedule_filter())
         self.search_entry = ttk.Entry(
             filter_frame,
             textvariable=self.search_var,
@@ -132,7 +141,7 @@ class CenterPanel:
             bootstyle="light"
         )
         self.filter_combo.pack(side=tk.LEFT, padx=5)
-        self.filter_combo.bind('<<ComboboxSelected>>', lambda e: self._apply_filter())
+        self.filter_combo.bind('<<ComboboxSelected>>', lambda e: self._schedule_filter())
 
         ttk.Button(
             filter_frame,
@@ -428,13 +437,103 @@ class CenterPanel:
             self._update_ai_dropdown()
 
     def on_data_changed(self, event, *args):
-        self._refresh()
+        self._schedule_refresh()
+
+    def _schedule_filter(self):
+        """Schedule filter operation with debouncing"""
+        if hasattr(self, '_filter_after_id'):
+            self.frame.after_cancel(self._filter_after_id)
+        self._filter_after_id = self.frame.after(300, self._apply_filter)
+
+    def _schedule_refresh(self):
+        """Schedule refresh with debouncing"""
+        if hasattr(self, '_refresh_after_id'):
+            self.frame.after_cancel(self._refresh_after_id)
+        self._refresh_after_id = self.frame.after(100, self._refresh)
 
     def _refresh(self):
-        """Refresh table - fixed columns first, then chemical data (sorted-sync enabled)"""
-        if not self.tree:
+        """Refresh table with background processing for large datasets"""
+        # 🔧 Prevent concurrent refreshes
+        if self._refresh_in_progress:
+            self._pending_refresh = True
             return
 
+        self._refresh_in_progress = True
+
+        try:
+            # Get total row count
+            total_rows = self.app.data_hub.row_count()
+
+            # For large datasets, do heavy processing in background
+            if total_rows > 1000:
+                self._refresh_background()
+            else:
+                self._refresh_ui()
+        finally:
+            self._refresh_in_progress = False
+
+        # Check if another refresh was requested while we were busy
+        if self._pending_refresh:
+            self._pending_refresh = False
+            self.frame.after(10, self._refresh)
+
+    def _refresh_background(self):
+        """Perform heavy processing in background thread"""
+        self.set_status("Processing data...", "processing")
+
+        # Cancel any existing background thread
+        if self._background_thread and self._background_thread.is_alive():
+            return
+
+        def worker():
+            # Capture current state
+            search = self.search_var.get().lower().strip()
+            filter_class = self.filter_var.get()
+            all_samples = self.app.data_hub.get_all()
+            all_results = getattr(self.app.right, 'classification_results', [])
+
+            # Do heavy processing
+            filtered_data = self._process_filtering(all_samples, all_results, search, filter_class)
+
+            # Schedule UI update on main thread
+            self.frame.after(0, lambda: self._update_ui_with_filtered(filtered_data))
+
+        self._background_thread = threading.Thread(target=worker, daemon=True)
+        self._background_thread.start()
+
+    def _process_filtering(self, all_samples, all_results, search, filter_class):
+        """Process filtering logic (can run in background)"""
+        filtered = []
+
+        for idx, sample in enumerate(all_samples):
+            # Search filter
+            if search:
+                if not any(search in str(v).lower() for v in sample.values() if v is not None):
+                    continue
+
+            # Classification filter
+            if filter_class and filter_class != "All":
+                cls = ''
+                if idx < len(all_results) and all_results[idx]:
+                    cls = all_results[idx].get('classification', '')
+                if not cls:
+                    cls = (sample.get('Auto_Classification') or
+                          sample.get('Classification') or '')
+                if cls != filter_class:
+                    continue
+
+            filtered.append((idx, sample))
+
+        return filtered
+
+    def _update_ui_with_filtered(self, filtered_data):
+        """Update UI with filtered data from background thread"""
+        self.filtered_indices = [idx for idx, _ in filtered_data]
+        self._refresh_ui_with_filtered(filtered_data)
+        self.clear_status()
+
+    def _refresh_ui(self):
+        """Refresh UI directly (for small datasets)"""
         search = self.search_var.get().lower().strip()
         filter_class = self.filter_var.get()
 
@@ -443,7 +542,7 @@ class CenterPanel:
         total_rows = len(all_samples)
 
         # =====================================================
-        # MASTER ORDER (this is the important new part)
+        # MASTER ORDER
         # =====================================================
         if getattr(self, "sorted_indices", None):
             ordered_indices = self.sorted_indices
@@ -453,28 +552,11 @@ class CenterPanel:
         # =====================================================
         # FILTERING (applied on ordered list)
         # =====================================================
-        filtered = []
+        filtered = self._process_filtering(all_samples, all_results, search, filter_class)
+        self._refresh_ui_with_filtered(filtered)
 
-        for idx in ordered_indices:
-            s = all_samples[idx]
-
-            # Search filter — match any field value
-            if search:
-                if not any(search in str(v).lower() for v in s.values()):
-                    continue
-
-            # Classification filter
-            if filter_class and filter_class != "All":
-                cls = ''
-                if idx < len(all_results) and all_results[idx]:
-                    cls = all_results[idx].get('classification', '')
-                if not cls:
-                    cls = (s.get('Auto_Classification') or s.get('Classification') or '')
-                if cls != filter_class:
-                    continue
-
-            filtered.append((idx, s))
-
+    def _refresh_ui_with_filtered(self, filtered):
+        """Common UI update after filtering"""
         total = len(filtered)
 
         # =====================================================
@@ -535,38 +617,26 @@ class CenterPanel:
 
         final_cols.extend(remaining)
 
+        # Update tree columns if needed
         if list(self.tree["columns"]) != final_cols:
-            self.tree["columns"] = final_cols
-            for col in final_cols:
-                if col == "☐":
-                    self.tree.heading(col, text="")
-                    self.tree.column(col, width=30, anchor=tk.CENTER, stretch=False)
-                else:
-                    display_name = self._get_display_name(col)
-                    self.tree.heading(col, text=display_name, anchor=tk.CENTER)
+            self._update_tree_columns(final_cols, priority_order, classification_columns)
 
-                    if col in priority_order[:2]:
-                        self.tree.column(col, width=150, anchor=tk.W, minwidth=100)
-                    elif col in priority_order[2:]:
-                        self.tree.column(col, width=120, anchor=tk.W, minwidth=80)
-                    elif col in classification_columns:
-                        self.tree.column(col, width=130, anchor=tk.W, minwidth=100)
-                    elif col == "Auto_Confidence":
-                        self.tree.column(col, width=70, anchor=tk.CENTER, minwidth=50)
-                    elif col == "Flag_For_Review":
-                        self.tree.column(col, width=50, anchor=tk.CENTER, minwidth=40)
-                    else:
-                        self.tree.column(col, width=100, anchor=tk.CENTER, minwidth=60)
-
+        # Clear existing items
         self.tree.delete(*self.tree.get_children())
 
+        # Insert new items with null checks
         for i, sample in enumerate(samples):
+            # 🔐 Null check for sample
+            if sample is None:
+                continue
+
             actual_idx = page_actual_indices[i]
             checkbox = "☑" if actual_idx in self.selected_rows else "☐"
             values = [checkbox]
 
             for col in final_cols[1:]:
-                val = sample.get(col, "")
+                # 🔐 Null check for value
+                val = sample.get(col)
                 if val is None or val == "":
                     values.append("")
                 elif isinstance(val, (int, float)):
@@ -582,44 +652,17 @@ class CenterPanel:
                     else:
                         values.append(str(val))
 
-            # Tag logic unchanged
-            if hasattr(self.app.right, 'all_mode') and self.app.right.all_mode:
-                all_results = getattr(self.app.right, 'all_results', None)
-                if all_results and actual_idx < len(all_results) and all_results[actual_idx] is not None:
-                    match_count = 0
-                    best_class = None
-                    best_conf = -1.0
-
-                    for r in all_results[actual_idx]:
-                        if r[1] not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', '']:
-                            match_count += 1
-                            if r[2] > best_conf:
-                                best_class = r[1]
-                                best_conf = r[2]
-
-                    if match_count > 1:
-                        tag = 'MULTI_MATCH'
-                    elif match_count == 1:
-                        tag = best_class
-                    else:
-                        tag = 'ALL_NONE'
-                else:
-                    tag = 'ALL_NONE'
-            else:
-                tag = "UNCLASSIFIED"
-                if hasattr(self.app.right, 'classification_results') and actual_idx < len(self.app.right.classification_results):
-                    result = self.app.right.classification_results[actual_idx]
-                    if result and result.get('classification'):
-                        tag = result['classification']
-                if tag == "UNCLASSIFIED":
-                    for class_col in ["Auto_Classification", "TAS_Classification", "Weathering_State"]:
-                        if class_col in sample and sample[class_col] and sample[class_col] != "UNCLASSIFIED":
-                            tag = sample[class_col]
-                            break
+            # Tag logic with null checks
+            tag = self._get_row_tag(actual_idx, sample)
 
             item_id = f"row_{actual_idx}"
-            self.tree.insert("", tk.END, iid=item_id, values=tuple(values), tags=(tag,))
+            try:
+                self.tree.insert("", tk.END, iid=item_id, values=tuple(values), tags=(tag,))
+            except tk.TclError:
+                # Item might already exist, skip
+                pass
 
+        # Configure special tags if not done
         if not hasattr(self, '_multi_match_configured'):
             self.tree.tag_configure('MULTI_MATCH', background='#8B4513', foreground='white')
             self._multi_match_configured = True
@@ -632,8 +675,69 @@ class CenterPanel:
         self.app.update_pagination(self.current_page, pages, total)
         self._notify_selection_changed()
 
+    def _update_tree_columns(self, final_cols, priority_order, classification_columns):
+        """Update tree columns with proper configuration"""
+        self.tree["columns"] = final_cols
+        for col in final_cols:
+            if col == "☐":
+                self.tree.heading(col, text="")
+                self.tree.column(col, width=30, anchor=tk.CENTER, stretch=False)
+            else:
+                display_name = self._get_display_name(col)
+                self.tree.heading(col, text=display_name, anchor=tk.CENTER)
+
+                if col in priority_order[:2]:
+                    self.tree.column(col, width=150, anchor=tk.W, minwidth=100)
+                elif col in priority_order[2:]:
+                    self.tree.column(col, width=120, anchor=tk.W, minwidth=80)
+                elif col in classification_columns:
+                    self.tree.column(col, width=130, anchor=tk.W, minwidth=100)
+                elif col == "Auto_Confidence":
+                    self.tree.column(col, width=70, anchor=tk.CENTER, minwidth=50)
+                elif col == "Flag_For_Review":
+                    self.tree.column(col, width=50, anchor=tk.CENTER, minwidth=40)
+                else:
+                    self.tree.column(col, width=100, anchor=tk.CENTER, minwidth=60)
+
+    def _get_row_tag(self, actual_idx, sample):
+        """Determine tag for a row with null checks"""
+        if hasattr(self.app.right, 'all_mode') and self.app.right.all_mode:
+            all_results = getattr(self.app.right, 'all_results', None)
+            if all_results and actual_idx < len(all_results) and all_results[actual_idx] is not None:
+                match_count = 0
+                best_class = None
+                best_conf = -1.0
+
+                for r in all_results[actual_idx]:
+                    if r and len(r) > 1 and r[1] not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', '']:
+                        match_count += 1
+                        if len(r) > 2 and r[2] > best_conf:
+                            best_class = r[1]
+                            best_conf = r[2]
+
+                if match_count > 1:
+                    return 'MULTI_MATCH'
+                elif match_count == 1 and best_class:
+                    return best_class
+                else:
+                    return 'ALL_NONE'
+            else:
+                return 'ALL_NONE'
+        else:
+            tag = "UNCLASSIFIED"
+            if hasattr(self.app.right, 'classification_results') and actual_idx < len(self.app.right.classification_results):
+                result = self.app.right.classification_results[actual_idx]
+                if result and result.get('classification'):
+                    tag = result['classification']
+            if tag == "UNCLASSIFIED":
+                for class_col in ["Auto_Classification", "TAS_Classification", "Weathering_State"]:
+                    if class_col in sample and sample[class_col] and sample[class_col] != "UNCLASSIFIED":
+                        tag = sample[class_col]
+                        break
+            return tag
+
     def auto_size_columns(self, tree, samples, force=False):
-        """Auto-size columns based on content"""
+        """Auto-size columns based on content with null checks"""
         if not samples or not tree.get_children():
             return
 
@@ -681,15 +785,13 @@ class CenterPanel:
     def _toggle_row(self, item_id):
         """Toggle selection for a row identified by its tree item id (iid)"""
         # Extract original index from the item's iid (which we set in _refresh)
-        if item_id.startswith('row_'):
+        if item_id and item_id.startswith('row_'):
             try:
                 actual_idx = int(item_id.split('_')[1])
             except (ValueError, IndexError):
                 return
         else:
-            # Fallback for any rows that might not have the new iid (shouldn't happen)
-            item_idx = self.tree.index(item_id)
-            actual_idx = self.current_page * self.page_size + item_idx
+            return
 
         if actual_idx in self.selected_rows:
             self.selected_rows.remove(actual_idx)
@@ -730,7 +832,7 @@ class CenterPanel:
                     self.app.right.all_results[idx]):
                     # Check if any scheme matched
                     for r in self.app.right.all_results[idx]:
-                        if r[1] not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', '']:
+                        if r and len(r) > 1 and r[1] not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', '']:
                             multi_count += 1
                             break
             self.sel_label.config(text=f"Selected: {count} ({multi_count} multi-match)")
@@ -751,7 +853,7 @@ class CenterPanel:
 
     def next_page(self):
         total = self.app.data_hub.row_count()
-        pages = (total + self.page_size - 1) // self.page_size
+        pages = (total + self.page_size - 1) // self.page_size if total > 0 else 1
         if self.current_page < pages - 1:
             self.current_page += 1
             self._refresh()
@@ -777,14 +879,16 @@ class CenterPanel:
     def _apply_filter(self):
         self.current_page = 0
         self._refresh()
-        self.app.right._update_hud()          # <-- add this
+        if hasattr(self.app.right, '_update_hud'):
+            self.app.right._update_hud()
 
     def _clear_filter(self):
         self.search_var.set("")
         self.filter_var.set("All")
         self.current_page = 0
         self._refresh()
-        self.app.right._update_hud()          # <-- add this
+        if hasattr(self.app.right, '_update_hud'):
+            self.app.right._update_hud()
 
     def _on_header_click(self, event):
         """Handle click on column header for sorting"""
@@ -797,7 +901,7 @@ class CenterPanel:
                 self._sort_by_column(col_name)
 
     def _sort_by_column(self, column_name):
-        """Sort all data by the given column (table + HUD synced)"""
+        """Sort all data by the given column (table + HUD synced) — runs in background thread"""
 
         # Toggle sort direction if same column clicked
         if self.sort_column == column_name:
@@ -806,22 +910,48 @@ class CenterPanel:
             self.sort_column = column_name
             self.sort_reverse = False
 
-        # Get all samples
+        # Get all samples up front on the main thread (data_hub access)
         all_samples = self.app.data_hub.get_all()
         if not all_samples:
             return
 
-        # Create list of (original_index, sample) pairs
-        indexed_samples = list(enumerate(all_samples))
+        # Snapshot the sort parameters so the worker captures them correctly
+        col_snapshot = column_name
+        rev_snapshot = self.sort_reverse
 
-        # Sort based on column values
-        indexed_samples.sort(
-            key=lambda x: self._get_sort_value(x[1], column_name),
-            reverse=self.sort_reverse
-        )
+        self.set_status("Sorting...", "processing")
 
-        # Store the sorted indices mapping (new position -> original index)
-        self.sorted_indices = [orig_idx for orig_idx, _ in indexed_samples]
+        # Cancel any in-flight sort thread
+        if getattr(self, '_sort_thread', None) and self._sort_thread.is_alive():
+            # Can't cancel a thread, but we flag it as stale so the result is discarded
+            self._sort_generation = getattr(self, '_sort_generation', 0) + 1
+
+        current_gen = getattr(self, '_sort_generation', 0)
+
+        def worker():
+            # Heavy sort — runs off the main thread
+            indexed = list(enumerate(all_samples))
+            indexed.sort(
+                key=lambda x: self._get_sort_value(x[1], col_snapshot),
+                reverse=rev_snapshot
+            )
+            sorted_indices = [orig_idx for orig_idx, _ in indexed]
+
+            # Schedule UI update back on the main thread
+            self.frame.after(0, lambda: self._apply_sort_result(
+                sorted_indices, current_gen
+            ))
+
+        self._sort_thread = threading.Thread(target=worker, daemon=True)
+        self._sort_thread.start()
+
+    def _apply_sort_result(self, sorted_indices, generation):
+        """Called on the main thread once background sort finishes"""
+        # Discard stale results if a newer sort was started
+        if generation != getattr(self, '_sort_generation', 0):
+            return
+
+        self.sorted_indices = sorted_indices
 
         # Update column headers to show sort direction
         self._update_header_indicators()
@@ -829,9 +959,9 @@ class CenterPanel:
         # Refresh the display with sorted data
         self._refresh()
 
-        # ==========================================================
-        # 🔥 NEW PART — Sync RightPanel HUD with this sorted order
-        # ==========================================================
+        self.clear_status()
+
+        # Sync RightPanel HUD with this sorted order
         if hasattr(self.app, "right") and hasattr(self.app.right, "update_hud_with_sort"):
             self.app.right.update_hud_with_sort(
                 self.sorted_indices,
@@ -840,6 +970,10 @@ class CenterPanel:
 
     def _get_sort_value(self, sample, column_name):
         """Extract and normalize value for sorting"""
+        # 🔐 Null check for sample
+        if sample is None:
+            return (1, "")
+
         value = sample.get(column_name, "")
 
         # Handle empty values
@@ -883,6 +1017,7 @@ class CenterPanel:
         # Notify HUD that sorting was cleared
         if hasattr(self.app, "right") and hasattr(self.app.right, "update_hud_with_sort"):
             self.app.right.update_hud_with_sort(None, False)
+
     def _reset_column_widths(self):
         if hasattr(self.tree, '_columns_manually_sized'):
             self.tree._columns_manually_sized = False
@@ -900,23 +1035,21 @@ class CenterPanel:
         if not item:
             return
 
-        # Extract original index from the item's iid (which we set in _refresh)
-        if item.startswith('row_'):
+        # Extract original index from the item's iid
+        if item and item.startswith('row_'):
             try:
                 sample_idx = int(item.split('_')[1])
             except (ValueError, IndexError):
                 return
         else:
-            # Fallback for any rows that might not have the new iid (shouldn't happen)
-            item_idx = self.tree.index(item)
-            sample_idx = self.current_page * self.page_size + item_idx
+            return
 
         samples = self.app.data_hub.get_all()
 
         if sample_idx >= len(samples):
             return
 
-        # IMPORTANT: Check if we're in all-mode - if so, show all-schemes dialog
+        # Check if we're in all-mode - if so, show all-schemes dialog
         if hasattr(self.app.right, 'all_mode') and self.app.right.all_mode and self.app.right.all_results is not None:
             # Import here to avoid circular imports
             from ui.all_schemes_detail_dialog import AllSchemesDetailDialog
@@ -1112,16 +1245,14 @@ class CenterPanel:
             return
         self.tree.selection_set(item)
 
-        # Extract original index from the item's iid (set in _refresh)
+        # Extract original index from the item's iid
         if item.startswith('row_'):
             try:
                 sample_idx = int(item.split('_')[1])
             except (ValueError, IndexError):
                 return
         else:
-            # Fallback (should not happen, but kept for safety)
-            item_idx = self.tree.index(item)
-            sample_idx = self.current_page * self.page_size + item_idx
+            return
 
         sample = self.app.data_hub.get_all()[sample_idx]
         clicked_col = self.tree.identify_column(event.x)
@@ -1177,6 +1308,9 @@ class CenterPanel:
 
     def _copy_cell_value(self, item, column="#2"):
         """Copy the value of the right-clicked cell to the clipboard."""
+        if not item:
+            return
+
         values = self.tree.item(item, "values")
         if not values:
             return
