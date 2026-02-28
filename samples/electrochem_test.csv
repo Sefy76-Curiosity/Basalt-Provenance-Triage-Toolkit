@@ -1,0 +1,21 @@
+SampleID,Technique,WorkingElectrode,ReferenceElectrode,Electrolyte,ScanRate_mVs,Potential_V,Current_A,Epa_V,Epc_V,Ipa_A,Ipc_A,DeltaEp_mV,Area_cm2,Temperature_C,ExperimentDate
+CV001,Cyclic Voltammetry,Glassy Carbon,Ag/AgCl,0.1M KCl,50,-0.20,1.5e-5,0.35,0.15,4.5e-5,-4.2e-5,200,0.071,25,2024-01-15
+CV001,Cyclic Voltammetry,Glassy Carbon,Ag/AgCl,0.1M KCl,50,-0.15,2.2e-5,0.35,0.15,4.5e-5,-4.2e-5,200,0.071,25,2024-01-15
+CV001,Cyclic Voltammetry,Glassy Carbon,Ag/AgCl,0.1M KCl,50,-0.10,3.5e-5,0.35,0.15,4.5e-5,-4.2e-5,200,0.071,25,2024-01-15
+CV001,Cyclic Voltammetry,Glassy Carbon,Ag/AgCl,0.1M KCl,50,-0.05,4.8e-5,0.35,0.15,4.5e-5,-4.2e-5,200,0.071,25,2024-01-15
+CV001,Cyclic Voltammetry,Glassy Carbon,Ag/AgCl,0.1M KCl,50,0.00,5.2e-5,0.35,0.15,4.5e-5,-4.2e-5,200,0.071,25,2024-01-15
+CV002,Cyclic Voltammetry,Platinum,Ag/AgCl,0.5M H2SO4,100,-0.30,2.0e-5,0.45,0.25,6.8e-5,-6.5e-5,200,0.126,25,2024-01-16
+CV002,Cyclic Voltammetry,Platinum,Ag/AgCl,0.5M H2SO4,100,-0.20,3.5e-5,0.45,0.25,6.8e-5,-6.5e-5,200,0.126,25,2024-01-16
+CV002,Cyclic Voltammetry,Platinum,Ag/AgCl,0.5M H2SO4,100,-0.10,5.8e-5,0.45,0.25,6.8e-5,-6.5e-5,200,0.126,25,2024-01-16
+CV002,Cyclic Voltammetry,Platinum,Ag/AgCl,0.5M H2SO4,100,0.00,7.2e-5,0.45,0.25,6.8e-5,-6.5e-5,200,0.126,25,2024-01-16
+CV002,Cyclic Voltammetry,Platinum,Ag/AgCl,0.5M H2SO4,100,0.10,5.5e-5,0.45,0.25,6.8e-5,-6.5e-5,200,0.126,25,2024-01-16
+CV003,DPV,Gold,Ag/AgCl,PBS pH7.4,20,0.10,1.2e-6,0.28,0.22,3.2e-6,-3.0e-6,60,0.032,37,2024-01-17
+CV003,DPV,Gold,Ag/AgCl,PBS pH7.4,20,0.15,2.5e-6,0.28,0.22,3.2e-6,-3.0e-6,60,0.032,37,2024-01-17
+CV003,DPV,Gold,Ag/AgCl,PBS pH7.4,20,0.20,4.8e-6,0.28,0.22,3.2e-6,-3.0e-6,60,0.032,37,2024-01-17
+CV003,DPV,Gold,Ag/AgCl,PBS pH7.4,20,0.25,3.2e-6,0.28,0.22,3.2e-6,-3.0e-6,60,0.032,37,2024-01-17
+CV003,DPV,Gold,Ag/AgCl,PBS pH7.4,20,0.30,1.5e-6,0.28,0.22,3.2e-6,-3.0e-6,60,0.032,37,2024-01-17
+CV004,SWV,Carbon Paste,SCE,0.1M NaClO4,25,0.00,5.0e-7,0.18,0.12,1.5e-6,-1.4e-6,60,0.045,22,2024-01-18
+CV004,SWV,Carbon Paste,SCE,0.1M NaClO4,25,0.05,1.8e-6,0.18,0.12,1.5e-6,-1.4e-6,60,0.045,22,2024-01-18
+CV004,SWV,Carbon Paste,SCE,0.1M NaClO4,25,0.10,3.2e-6,0.18,0.12,1.5e-6,-1.4e-6,60,0.045,22,2024-01-18
+CV004,SWV,Carbon Paste,SCE,0.1M NaClO4,25,0.15,2.1e-6,0.18,0.12,1.5e-6,-1.4e-6,60,0.045,22,2024-01-18
+CV004,SWV,Carbon Paste,SCE,0.1M NaClO4,25,0.20,6.0e-7,0.18,0.12,1.5e-6,-1.4e-6,60,0.045,22,2024-01-18

@@ -1745,7 +1745,7 @@ class BrukerFTIRFileDriver:
 
     def import_file(self, filename: str) -> Optional[Dict]:
         if not DEPS['brukeropus']:
-            return {"error": "brukeropus not installed"}
+            return {"error": "brukeropus not installed (pip install brukeropus)"}
 
         try:
             opus = brukeropus.OpusData(filename)
@@ -1760,7 +1760,11 @@ class BrukerFTIRFileDriver:
                 "timestamp": time.time()
             }
         except Exception as e:
-            return {"error": str(e)}
+            return {
+                "error": f"❌ Invalid Bruker OPUS file: {str(e)}\n\n"
+                        f"This file does not appear to be a valid Bruker OPUS format.\n"
+                        f"Expected extensions: .0, .1, .2, .3, ... (numeric suffixes)"
+            }
 
     def disconnect(self):
         self.connected = False
@@ -1972,24 +1976,55 @@ class JCAMPFTIRFileDriver:
 
 class CSVFTIRFileDriver:
     """Universal CSV file import"""
-    def __init__(self, ui_scheduler=None):
-        self.connected = False
-        self.model = "CSV Import"
-        self.ui = ui_scheduler
-        self.connected = True
 
-    def connect(self, *args) -> Tuple[bool, str]:
-        return True, "✅ File import mode - load CSV/TXT files"
+    STANDARD_FORMAT = """
+    STANDARD FTIR CSV FORMAT:
+    - Two columns only: wavenumber (cm⁻¹), intensity (absorbance/transmittance)
+    - No headers (just numbers)
+    - Comments allowed with # at start of line
+    - Comma or tab separated
+
+    Example:
+    # Sample: Bone_123
+    # Date: 2024-01-15
+    4000.0,0.0123
+    3999.5,0.0124
+    3998.0,0.0125
+    """
 
     def import_file(self, filename: str) -> Optional[Dict]:
         if not DEPS['pandas']:
             return {"error": "pandas not installed"}
 
         try:
-            df = pd.read_csv(filename, header=None, names=['x', 'y'],
-                             comment='#', sep=None, engine='python')
-            wn = list(df['x'].astype(float))
-            ab = list(df['y'].astype(float))
+            # Try to read as standard FTIR format (two columns, no headers)
+            df = pd.read_csv(filename, header=None, comment='#',
+                            sep=None, engine='python', nrows=5)
+
+            # Check if we have exactly 2 columns
+            if df.shape[1] != 2:
+                return {
+                    "error": f"❌ Incorrect File Format for CSV Import\n\n"
+                            f"Found {df.shape[1]} columns, but standard FTIR CSV requires exactly 2 columns.\n"
+                            f"{self.STANDARD_FORMAT}"
+                }
+
+            # Now read the full file
+            df = pd.read_csv(filename, header=None, comment='#',
+                            sep=None, engine='python')
+
+            # Verify data is numeric
+            try:
+                wn = pd.to_numeric(df.iloc[:, 0]).tolist()
+                ab = pd.to_numeric(df.iloc[:, 1]).tolist()
+            except ValueError as e:
+                return {
+                    "error": f"❌ Non-numeric data found in CSV\n\n"
+                            f"Error: {str(e)}\n"
+                            f"Column 1 should contain wavenumbers (numeric)\n"
+                            f"Column 2 should contain intensities (numeric)\n"
+                            f"{self.STANDARD_FORMAT}"
+                }
 
             return {
                 "wavenumbers": wn,
@@ -1998,11 +2033,13 @@ class CSVFTIRFileDriver:
                 "source": "CSV",
                 "timestamp": time.time()
             }
-        except Exception as e:
-            return {"error": str(e)}
 
-    def disconnect(self):
-        self.connected = False
+        except Exception as e:
+            return {
+                "error": f"❌ Failed to parse CSV file\n\n"
+                        f"Error: {str(e)}\n"
+                        f"{self.STANDARD_FORMAT}"
+            }
 
 
 # ============================================================================

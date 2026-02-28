@@ -8,6 +8,7 @@ NOW WITH 3D ARCHAEOLOGICAL ANALYSIS:
 ✓ Profile Extraction - Cross-sections through artifacts
 ✓ Unwrap Cylinder - Flatten curved surfaces (pottery)
 ✓ Feature Detection - Automatic identification
+FIXED: Removed debug print statements, added logging control
 """
 
 PLUGIN_INFO = {
@@ -29,6 +30,11 @@ from datetime import datetime
 from pathlib import Path
 import json
 import traceback
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
 
 # Scientific imports
 try:
@@ -238,6 +244,9 @@ class VirtualMicroscopyProPlugin:
         self.dependencies_met = len(missing) == 0
         self.missing_deps = missing
 
+        if missing:
+            logger.warning(f"Missing dependencies: {missing}")
+
     # ============================================================================
     # SAFE FLOAT CONVERSION
     # ============================================================================
@@ -256,24 +265,11 @@ class VirtualMicroscopyProPlugin:
     def _load_from_main_app(self):
         """Auto-load samples from main app on window open"""
         if not hasattr(self.app, 'samples') or not self.app.samples:
-            print("❌ No samples in main app")
+            logger.warning("No samples in main app")
             return False
 
         self.samples = pd.DataFrame(self.app.samples)
-        print(f"📊 Loaded {len(self.samples)} samples from main app")
-
-        # DEBUG: Print ALL columns available
-        print("\n📋 ALL COLUMNS IN DATA:")
-        for i, col in enumerate(self.samples.columns):
-            print(f"  {i+1}. {col}")
-
-        # DEBUG: Print first sample values for major oxides
-        if len(self.samples) > 0:
-            first = self.samples.iloc[0]
-            print("\n🔍 FIRST SAMPLE VALUES:")
-            for col in self.samples.columns[:20]:  # First 20 columns
-                val = first[col]
-                print(f"  {col}: {val} (type: {type(val).__name__})")
+        logger.info(f"Loaded {len(self.samples)} samples from main app")
 
         # Organize by Sample_ID
         for i, row in self.samples.iterrows():
@@ -284,9 +280,8 @@ class VirtualMicroscopyProPlugin:
         self._detect_geochemical_columns()
 
         # Generate thin section from data
-        print("\n🔨 GENERATING FROM GEOCHEMISTRY...")
         success = self._generate_from_geochemistry()
-        print(f"✅ Generated {len(self.mineral_data)} grains from geochemistry")
+        logger.info(f"Generated {len(self.mineral_data)} grains from geochemistry")
 
         return success
 
@@ -338,17 +333,17 @@ class VirtualMicroscopyProPlugin:
                     for major in self.major_elements.keys():
                         if major in standard or standard in major:
                             self.major_elements[major] = col_str
-                            print(f"✅ Detected {major} column: {col_str}")
+                            logger.debug(f"Detected {major} column: {col_str}")
                             break
         else:
             # Fallback to simple detection if no mapping
-            print("⚠️ No element_reverse_map found, using simple detection")
+            logger.warning("No element_reverse_map found, using simple detection")
             for col in self.samples.columns:
                 col_upper = str(col).upper()
                 for major in self.major_elements.keys():
                     if major.upper().replace('_WT', '') in col_upper:
                         self.major_elements[major] = col
-                        print(f"✅ Detected {major} column: {col}")
+                        logger.debug(f"Detected {major} column: {col}")
                         break
 
     # ============================================================================
@@ -358,22 +353,15 @@ class VirtualMicroscopyProPlugin:
         """
         Calculate CIPW normative minerals from major oxides
         """
-        print("\n📊 CALCULATING CIPW FOR SAMPLE:")
-
         # Check if we have major elements
         oxides = {}
         for oxide, col in self.major_elements.items():
             if col and col in sample:
                 val = self._safe_float(sample[col])
-                standard_name = oxide  # This is the standard name like 'SiO2_wt'
-                print(f"  {standard_name}: column='{col}', raw value='{sample.get(col)}', converted={val}")
                 if val is not None and val > 0:
-                    oxides[standard_name] = val
-
-        print(f"  Collected oxides with values >0: {list(oxides.keys())}")
+                    oxides[oxide] = val
 
         if len(oxides) < 3:
-            print(f"  ❌ Not enough oxides with values: {len(oxides)}")
             return None
 
         # Molecular weights (using standard names)
@@ -389,18 +377,15 @@ class VirtualMicroscopyProPlugin:
         for oxide, value in oxides.items():
             if oxide in mol_wt and value > 0:
                 mol[oxide] = value / mol_wt[oxide]
-                print(f"  {oxide}: {value:.2f} wt% → {mol[oxide]:.4f} mol")
 
         # Initialize norms dictionary
         norms = {}
-        print("\n  Calculating normative minerals:")
 
         # Apatite
         if 'P2O5_wt' in mol and 'CaO_wt' in mol:
             ap = mol['P2O5_wt'] * 3.33
             if ap * 100 > 0.1:
                 norms['apatite'] = min(ap * 100, 5)
-                print(f"    Apatite: {norms['apatite']:.2f}%")
                 if 'CaO_wt' in mol:
                     mol['CaO_wt'] = mol.get('CaO_wt', 0) - ap
 
@@ -409,7 +394,6 @@ class VirtualMicroscopyProPlugin:
             ilm = mol['TiO2_wt'] * 100
             if ilm > 0.1:
                 norms['ilmenite'] = ilm
-                print(f"    Ilmenite: {norms['ilmenite']:.2f}%")
                 mol['TiO2_wt'] = 0
 
         # Orthoclase
@@ -417,7 +401,6 @@ class VirtualMicroscopyProPlugin:
             or_ = mol['K2O_wt']
             if or_ * 100 > 0.1:
                 norms['k-feldspar'] = or_ * 100
-                print(f"    K-feldspar: {norms['k-feldspar']:.2f}%")
                 mol['K2O_wt'] = 0
                 if 'Al2O3_wt' in mol:
                     mol['Al2O3_wt'] = mol.get('Al2O3_wt', 0) - or_
@@ -427,7 +410,6 @@ class VirtualMicroscopyProPlugin:
             ab = mol['Na2O_wt']
             if ab * 100 > 0.1:
                 norms['plagioclase'] = ab * 100
-                print(f"    Plagioclase (albite): {norms['plagioclase']:.2f}%")
                 mol['Na2O_wt'] = 0
                 if 'Al2O3_wt' in mol:
                     mol['Al2O3_wt'] = mol.get('Al2O3_wt', 0) - ab
@@ -437,7 +419,6 @@ class VirtualMicroscopyProPlugin:
             an = min(mol['CaO_wt'], mol['Al2O3_wt'])
             if an * 100 > 0.1:
                 norms['plagioclase'] = norms.get('plagioclase', 0) + an * 100
-                print(f"    Plagioclase (anorthite): +{an*100:.2f}%")
                 mol['CaO_wt'] = mol.get('CaO_wt', 0) - an
                 mol['Al2O3_wt'] = mol.get('Al2O3_wt', 0) - an
 
@@ -453,7 +434,6 @@ class VirtualMicroscopyProPlugin:
             qz = mol['SiO2_wt'] - used_sio2
             if qz * 100 > 0.1:
                 norms['quartz'] = qz * 100
-                print(f"    Quartz: {norms['quartz']:.2f}%")
 
         # Mafics
         mafics = 0
@@ -462,13 +442,10 @@ class VirtualMicroscopyProPlugin:
                 mafics += mol.get(oxide, 0) * 100
         if mafics > 1:
             norms['mafics'] = mafics
-            print(f"    Mafics: {norms['mafics']:.2f}%")
 
         if not norms:
-            print("  ❌ No normative minerals calculated")
             return None
 
-        print(f"  ✅ Calculated {len(norms)} normative minerals")
         return norms
 
     def _classify_qapf(self, q, a, p):
@@ -577,9 +554,7 @@ class VirtualMicroscopyProPlugin:
                 self.qapf_values[sample_id] = {'Q': 0, 'A': 0, 'P': 0}
                 self.rock_classification[sample_id] = 'Unknown'
 
-        print(f"✅ Generated {grains_generated} grains from {len(self.samples)} samples")
-        print(f"📊 QAPF values for {len(self.qapf_values)} samples")
-
+        logger.info(f"Generated {grains_generated} grains from {len(self.samples)} samples")
         return grains_generated > 0
 
     # ============================================================================

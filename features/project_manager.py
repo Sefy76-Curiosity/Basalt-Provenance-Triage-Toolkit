@@ -1,6 +1,7 @@
 """
 Project Manager - Save and load entire project state
 Fully converted to ttkbootstrap with dark theme consistency
+FIXED: Added transactional saves with backup and recovery
 """
 
 import json
@@ -11,6 +12,8 @@ from ttkbootstrap.constants import *
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any
+import shutil
+import tempfile
 
 class ProjectManager:
     """
@@ -19,10 +22,12 @@ class ProjectManager:
     def __init__(self, app):
         self.app = app
         self.current_project_file = None
+        self.backup_dir = Path("backups")
+        self.backup_dir.mkdir(parents=True, exist_ok=True)
 
     def save_project(self, filepath: str = None) -> bool:
         """
-        Save entire project state to file
+        Save entire project state to file with transactional safety
 
         Includes:
         - All data samples
@@ -44,28 +49,71 @@ class ProjectManager:
         if not filepath:
             return False
 
-        try:
-            project_data = self._collect_project_data()
+        # 🔧 Transactional save with backup
+        temp_file = None
+        backup_file = None
 
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(project_data, f, indent=2)
+        try:
+            # Create a temporary file in the same directory
+            temp_dir = Path(filepath).parent
+            with tempfile.NamedTemporaryFile(
+                mode='w',
+                dir=temp_dir,
+                suffix='.tmp',
+                delete=False,
+                encoding='utf-8'
+            ) as tf:
+                temp_file = Path(tf.name)
+
+                # Collect and write project data
+                project_data = self._collect_project_data()
+                json.dump(project_data, tf, indent=2)
+                tf.flush()
+                tf.close()
+
+            # Verify the temporary file is valid
+            with open(temp_file, 'r', encoding='utf-8') as f:
+                test_data = json.load(f)
+
+            # Create backup of existing file if it exists
+            existing = Path(filepath)
+            if existing.exists():
+                backup_file = self.backup_dir / f"{existing.stem}_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.stproj"
+                shutil.copy2(existing, backup_file)
+
+            # Atomic rename (replace) - works on POSIX, on Windows we need to handle carefully
+            if temp_file.exists():
+                if existing.exists():
+                    existing.unlink()
+                temp_file.rename(existing)
 
             # Notify auto-save that manual save happened
             if hasattr(self.app, 'auto_save') and self.app.auto_save is not None:
                 if hasattr(self.app.auto_save, 'manual_save_triggered'):
                     self.app.auto_save.manual_save_triggered()
 
-            # Use ttkbootstrap style messagebox (tkinter messagebox doesn't support theming)
+            self.current_project_file = str(existing)
+
+            # Clean up old backups (keep last 5)
+            self._cleanup_old_backups()
+
             messagebox.showinfo("✅ Success", f"Project saved to:\n{filepath}")
             return True
 
         except Exception as e:
+            # Clean up temporary file
+            if temp_file and temp_file.exists():
+                try:
+                    temp_file.unlink()
+                except:
+                    pass
+
             messagebox.showerror("❌ Save Error", f"Failed to save project:\n{e}")
             return False
 
     def load_project(self, filepath: str = None) -> bool:
         """
-        Load project from file
+        Load project from file with validation
         """
         if filepath is None:
             filepath = filedialog.askopenfilename(
@@ -83,19 +131,50 @@ class ProjectManager:
             messagebox.showerror("❌ Error", f"File not found:\n{filepath}")
             return False
 
+        # 🔧 Validate file before loading
         try:
+            # Check file size (prevent loading huge corrupted files)
+            file_size = Path(filepath).stat().st_size
+            if file_size > 100 * 1024 * 1024:  # 100MB limit
+                messagebox.showerror("❌ Error", "File too large (max 100MB)")
+                return False
+
+            # Validate JSON structure
             with open(filepath, 'r', encoding='utf-8') as f:
                 project_data = json.load(f)
 
+            # Validate required fields
+            if not isinstance(project_data, dict):
+                raise ValueError("Invalid project file format")
+
+            if 'metadata' not in project_data:
+                raise ValueError("Missing metadata in project file")
+
+            if 'data' not in project_data:
+                raise ValueError("Missing data in project file")
+
+            # Restore the data
             self._restore_project_data(project_data)
 
             self.current_project_file = filepath
             messagebox.showinfo("✅ Success", f"Project loaded from:\n{filepath}")
             return True
 
+        except json.JSONDecodeError as e:
+            messagebox.showerror("❌ Load Error", f"Invalid JSON in project file:\n{e}")
+            return False
         except Exception as e:
             messagebox.showerror("❌ Load Error", f"Failed to load project:\n{e}")
             return False
+
+    def _cleanup_old_backups(self):
+        """Keep only the 5 most recent backups"""
+        try:
+            backups = sorted(self.backup_dir.glob("*.stproj"), key=lambda p: p.stat().st_mtime, reverse=True)
+            for old_backup in backups[5:]:
+                old_backup.unlink()
+        except:
+            pass  # Silently fail on cleanup errors
 
     def _collect_project_data(self) -> Dict[str, Any]:
         """Collect all project data"""

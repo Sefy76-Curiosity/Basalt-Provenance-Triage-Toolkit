@@ -3,6 +3,8 @@ Center Panel - 80% width, Dynamic Table with Tabs
 Includes status bar between navigation and selection controls
 Fully converted to ttkbootstrap with minimal borders
 FIXED: Added null checks and background processing for large datasets
+ADDED: Copy/Paste functionality (Ctrl+C, Ctrl+V)
+FIXED: Field panel selection sync — notifies active field panel on every selection change
 """
 
 import tkinter as tk
@@ -175,7 +177,7 @@ class CenterPanel:
             height=20
         )
 
-        self.tree.bind("<Button-1>", self._on_header_click)
+        self.tree.bind("<Button-1>", self._on_tree_click)
 
         # Scrollbars - minimal styling
         vsb = ttk.Scrollbar(
@@ -211,7 +213,282 @@ class CenterPanel:
         self.tree.bind("<Button-4>", self._on_tree_mousewheel)
         self.tree.bind("<Button-5>", self._on_tree_mousewheel)
 
+        # ============ COPY/PASTE KEYBOARD SHORTCUTS ============
+        self._setup_copy_paste()
+
         self._configure_row_colors()
+
+    def _setup_copy_paste(self):
+        """Setup keyboard shortcuts for copy/paste"""
+        self.tree.bind("<Control-c>", self.copy_selection)
+        self.tree.bind("<Control-C>", self.copy_selection)
+        self.tree.bind("<Control-v>", self.paste_from_clipboard)
+        self.tree.bind("<Control-V>", self.paste_from_clipboard)
+
+        # Also bind to the frame for when tree doesn't have focus
+        self.frame.bind("<Control-c>", self.copy_selection)
+        self.frame.bind("<Control-C>", self.copy_selection)
+        self.frame.bind("<Control-v>", self.paste_from_clipboard)
+        self.frame.bind("<Control-V>", self.paste_from_clipboard)
+
+    def copy_selection(self, event=None):
+        """Copy selected rows to clipboard in tab-separated format (excel-friendly)"""
+        if not self.selected_rows:
+            # If no rows selected, copy the current page
+            self._copy_current_page()
+            return
+
+        # Get all samples
+        all_samples = self.app.data_hub.get_all()
+        columns = self.tree["columns"][1:]  # Skip checkbox column
+
+        # Build data rows
+        rows = []
+
+        for idx in sorted(self.selected_rows):
+            if idx < len(all_samples):
+                sample = all_samples[idx]
+                row_data = []
+                for col in columns:
+                    value = sample.get(col, "")
+                    # Format numbers nicely
+                    if isinstance(value, (int, float)):
+                        if abs(value) < 0.01 or abs(value) > 1000:
+                            row_data.append(f"{value:.2e}")
+                        elif value == int(value):
+                            row_data.append(str(int(value)))
+                        else:
+                            row_data.append(f"{value:.2f}")
+                    else:
+                        row_data.append(str(value) if value is not None else "")
+                rows.append("\t".join(row_data))
+
+        # Copy to clipboard
+        if rows:
+            clipboard_text = "\n".join(rows)
+            self.tree.clipboard_clear()
+            self.tree.clipboard_append(clipboard_text)
+            self.set_status(f"📋 Copied {len(rows)} rows to clipboard", "success")
+        else:
+            self.set_status("No data to copy", "warning")
+
+    def _copy_current_page(self):
+        """Copy current page data to clipboard"""
+        all_samples = self.app.data_hub.get_all()
+        columns = self.tree["columns"][1:]
+
+        # Get current page indices
+        start = self.current_page * self.page_size
+        end = min(start + self.page_size, len(all_samples))
+
+        rows = []
+        # Add header
+        rows.append("\t".join(columns))
+
+        for idx in range(start, end):
+            if idx < len(all_samples):
+                sample = all_samples[idx]
+                row_data = []
+                for col in columns:
+                    value = sample.get(col, "")
+                    if isinstance(value, (int, float)):
+                        if abs(value) < 0.01 or abs(value) > 1000:
+                            row_data.append(f"{value:.2e}")
+                        elif value == int(value):
+                            row_data.append(str(int(value)))
+                        else:
+                            row_data.append(f"{value:.2f}")
+                    else:
+                        row_data.append(str(value) if value is not None else "")
+                rows.append("\t".join(row_data))
+
+        if rows:
+            clipboard_text = "\n".join(rows)
+            self.tree.clipboard_clear()
+            self.tree.clipboard_append(clipboard_text)
+            self.set_status(f"📋 Copied page {self.current_page + 1} to clipboard", "success")
+
+    def paste_from_clipboard(self, event=None):
+        """Paste tab-separated data from clipboard into the table"""
+        try:
+            # Get clipboard content
+            clipboard_text = self.tree.clipboard_get()
+            if not clipboard_text.strip():
+                return
+
+            # Parse the data
+            lines = clipboard_text.strip().split('\n')
+            if not lines:
+                return
+
+            # Get columns (excluding checkbox)
+            columns = self.tree["columns"][1:]
+
+            # Check if first line might be headers
+            first_line = lines[0].split('\t')
+            start_line = 0
+
+            # If first line contains non-numeric headers, skip it
+            if len(first_line) == len(columns) and not all(self._is_number(x) for x in first_line):
+                start_line = 1
+
+            # Get selected rows or use current page
+            target_indices = sorted(self.selected_rows) if self.selected_rows else []
+
+            if not target_indices:
+                # If no selection, ask where to paste
+                self._show_paste_dialog(lines, columns, start_line)
+                return
+
+            # Paste to selected rows
+            self._paste_to_rows(lines, columns, target_indices, start_line)
+
+        except tk.TclError:
+            self.set_status("Clipboard is empty", "warning")
+        except Exception as e:
+            self.set_status(f"Paste failed: {str(e)[:50]}", "error")
+
+    def _is_number(self, s):
+        """Check if string can be converted to number"""
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
+
+    def _show_paste_dialog(self, lines, columns, start_line):
+        """Show dialog to choose paste location"""
+        dialog = ttk.Toplevel(self.app.root)
+        dialog.title("Paste Options")
+        dialog.geometry("400x200")
+        dialog.transient(self.app.root)
+        dialog.grab_set()
+
+        frame = ttk.Frame(dialog, padding=20)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        ttk.Label(
+            frame,
+            text="Where would you like to paste the data?",
+            font=("Arial", 11, "bold")
+        ).pack(pady=10)
+
+        data_rows = len(lines) - start_line
+        ttk.Label(
+            frame,
+            text=f"Clipboard contains {data_rows} rows of data"
+        ).pack(pady=5)
+
+        def paste_at_cursor():
+            """Paste at current position (append)"""
+            total_rows = self.app.data_hub.row_count()
+            target_indices = list(range(total_rows, total_rows + data_rows))
+            self._paste_to_rows(lines, columns, target_indices, start_line)
+            dialog.destroy()
+
+        def paste_replace():
+            """Replace current page"""
+            start = self.current_page * self.page_size
+            target_indices = list(range(start, start + data_rows))
+            self._paste_to_rows(lines, columns, target_indices, start_line)
+            dialog.destroy()
+
+        def paste_new():
+            """Create new rows"""
+            self._paste_as_new_rows(lines, columns, start_line)
+            dialog.destroy()
+
+        button_frame = ttk.Frame(frame)
+        button_frame.pack(pady=20)
+
+        ttk.Button(
+            button_frame,
+            text="Append as New Rows",
+            command=paste_new,
+            bootstyle="primary",
+            width=20
+        ).pack(pady=5)
+
+        ttk.Button(
+            button_frame,
+            text="Replace Current Page",
+            command=paste_replace,
+            bootstyle="secondary",
+            width=20
+        ).pack(pady=5)
+
+        ttk.Button(
+            button_frame,
+            text="Cancel",
+            command=dialog.destroy,
+            bootstyle="secondary",
+            width=20
+        ).pack(pady=5)
+
+    def _paste_to_rows(self, lines, columns, target_indices, start_line):
+        """Paste data to specific rows"""
+        updated_count = 0
+
+        for i, line in enumerate(lines[start_line:start_line + len(target_indices)]):
+            if i >= len(target_indices):
+                break
+
+            values = line.split('\t')
+            target_idx = target_indices[i]
+
+            # Update each column
+            updates = {}
+            for j, col in enumerate(columns):
+                if j < len(values) and values[j].strip():
+                    # Try to convert to appropriate type
+                    val = values[j].strip()
+                    if self._is_number(val):
+                        if '.' in val:
+                            updates[col] = float(val)
+                        else:
+                            updates[col] = int(val)
+                    else:
+                        updates[col] = val
+
+            if updates:
+                self.app.data_hub.update_row(target_idx, updates)
+                updated_count += 1
+
+        self._refresh()
+        self.set_status(f"📋 Pasted {updated_count} rows", "success")
+
+    def _paste_as_new_rows(self, lines, columns, start_line):
+        """Create new rows from pasted data"""
+        new_rows = []
+
+        for line in lines[start_line:]:
+            if not line.strip():
+                continue
+
+            values = line.split('\t')
+            new_row = {}
+
+            for j, col in enumerate(columns):
+                if j < len(values) and values[j].strip():
+                    val = values[j].strip()
+                    if self._is_number(val):
+                        if '.' in val:
+                            new_row[col] = float(val)
+                        else:
+                            new_row[col] = int(val)
+                    else:
+                        new_row[col] = val
+
+            if new_row:
+                new_rows.append(new_row)
+
+        if new_rows:
+            # Add to data hub
+            for row in new_rows:
+                self.app.data_hub.add_row(row)
+
+            self._refresh()
+            self.set_status(f"📋 Added {len(new_rows)} new rows", "success")
 
     def _configure_row_colors(self):
         """Configure row colors from color manager"""
@@ -241,7 +518,7 @@ class CenterPanel:
         self.tree.tag_configure('ALL_MATCHED', background='#1a4a2e', foreground='white')
         self.tree.tag_configure('ALL_NONE', background='#3b3b3b', foreground='white')
         self.tree.tag_configure('UNCLASSIFIED', background='#3b3b3b', foreground='white')
-        self.tree.tag_configure('MULTI_MATCH', background='#8B4513', foreground='white')  # Brown/terra cotta to stand out
+        self.tree.tag_configure('MULTI_MATCH', background='#8B4513', foreground='white')
 
     def _build_plots_tab(self):
         """Build the plots tab with immediate plotter UI loading"""
@@ -742,7 +1019,6 @@ class CenterPanel:
             return
 
         columns = tree["columns"]
-        # Pre-compute index map to avoid O(n) .index() call inside double loop
         col_index = {col: i for i, col in enumerate(columns)}
 
         for col in columns:
@@ -769,12 +1045,23 @@ class CenterPanel:
 
             tree.column(col, width=new_width)
 
-    def _on_click(self, event):
+    def _on_tree_click(self, event):
+        """
+        Unified <Button-1> handler for the main treeview.
+          heading region  → column sort
+          cell region     → toggle row selection (any column, not just #1)
+        """
         region = self.tree.identify("region", event.x, event.y)
-        if region == "cell":
+        if region == "heading":
             column = self.tree.identify_column(event.x)
+            if column and column != "#1":
+                col_index = int(column[1:]) - 1
+                cols = self.tree["columns"]
+                if col_index < len(cols):
+                    self._sort_by_column(cols[col_index])
+        elif region == "cell":
             item = self.tree.identify_row(event.y)
-            if column == "#1" and item:
+            if item:
                 self._toggle_row(item)
 
     def _on_column_resize(self, event):
@@ -784,7 +1071,6 @@ class CenterPanel:
 
     def _toggle_row(self, item_id):
         """Toggle selection for a row identified by its tree item id (iid)"""
-        # Extract original index from the item's iid (which we set in _refresh)
         if item_id and item_id.startswith('row_'):
             try:
                 actual_idx = int(item_id.split('_')[1])
@@ -821,6 +1107,7 @@ class CenterPanel:
         self._refresh()
 
     def _notify_selection_changed(self):
+        """Notify all listeners of selection change, including active field panels."""
         count = len(self.selected_rows)
 
         # If in all-schemes mode, show multi-match count
@@ -830,7 +1117,6 @@ class CenterPanel:
                 if (hasattr(self.app.right, 'all_results') and
                     idx < len(self.app.right.all_results) and
                     self.app.right.all_results[idx]):
-                    # Check if any scheme matched
                     for r in self.app.right.all_results[idx]:
                         if r and len(r) > 1 and r[1] not in ['UNCLASSIFIED', 'INVALID_SAMPLE', 'SCHEME_NOT_FOUND', '']:
                             multi_count += 1
@@ -840,6 +1126,34 @@ class CenterPanel:
             self.sel_label.config(text=f"Selected: {count}")
 
         self.app.update_selection(count)
+
+        # ── NEW: push selection to any active field panel ──────────────────
+        self._notify_field_panel_selection(self.selected_rows)
+
+    def _notify_field_panel_selection(self, selected_rows):
+        """
+        Tell the currently active field panel (if any) that the row selection
+        has changed.  Works for panels loaded via _load_field_panel() as well
+        as SpectroscopyPanel / other FieldPanelBase subclasses that live
+        directly in app.right.
+        """
+        # Path 1: a panel was dynamically loaded via _load_field_panel()
+        if hasattr(self.app, 'right'):
+            active = getattr(self.app.right, '_active_field_panel', None)
+            if active is not None and hasattr(active, 'on_selection_changed'):
+                try:
+                    active.on_selection_changed(set(selected_rows))
+                except Exception:
+                    pass
+                return  # don't double-fire
+
+            # Path 2: right panel itself IS a field panel (e.g. SpectroscopyPanel
+            # was set as app.right directly, or it's the panel object stored there)
+            if hasattr(self.app.right, 'on_selection_changed'):
+                try:
+                    self.app.right.on_selection_changed(set(selected_rows))
+                except Exception:
+                    pass
 
     def get_selected_indices(self):
         return list(self.selected_rows)
@@ -895,101 +1209,74 @@ class CenterPanel:
         region = self.tree.identify("region", event.x, event.y)
         if region == "heading":
             column = self.tree.identify_column(event.x)
-            if column and column != "#1":  # Don't sort checkbox column
+            if column and column != "#1":
                 col_index = int(column[1:]) - 1
                 col_name = self.tree["columns"][col_index]
                 self._sort_by_column(col_name)
 
     def _sort_by_column(self, column_name):
-        """Sort all data by the given column (table + HUD synced) — runs in background thread"""
-
-        # Toggle sort direction if same column clicked
+        """Sort all data by the given column — runs in background thread"""
         if self.sort_column == column_name:
             self.sort_reverse = not self.sort_reverse
         else:
             self.sort_column = column_name
             self.sort_reverse = False
 
-        # Get all samples up front on the main thread (data_hub access)
         all_samples = self.app.data_hub.get_all()
         if not all_samples:
             return
 
-        # Snapshot the sort parameters so the worker captures them correctly
         col_snapshot = column_name
         rev_snapshot = self.sort_reverse
 
         self.set_status("Sorting...", "processing")
 
-        # Cancel any in-flight sort thread
         if getattr(self, '_sort_thread', None) and self._sort_thread.is_alive():
-            # Can't cancel a thread, but we flag it as stale so the result is discarded
             self._sort_generation = getattr(self, '_sort_generation', 0) + 1
 
         current_gen = getattr(self, '_sort_generation', 0)
 
         def worker():
-            # Heavy sort — runs off the main thread
             indexed = list(enumerate(all_samples))
             indexed.sort(
                 key=lambda x: self._get_sort_value(x[1], col_snapshot),
                 reverse=rev_snapshot
             )
             sorted_indices = [orig_idx for orig_idx, _ in indexed]
-
-            # Schedule UI update back on the main thread
-            self.frame.after(0, lambda: self._apply_sort_result(
-                sorted_indices, current_gen
-            ))
+            self.frame.after(0, lambda: self._apply_sort_result(sorted_indices, current_gen))
 
         self._sort_thread = threading.Thread(target=worker, daemon=True)
         self._sort_thread.start()
 
     def _apply_sort_result(self, sorted_indices, generation):
         """Called on the main thread once background sort finishes"""
-        # Discard stale results if a newer sort was started
         if generation != getattr(self, '_sort_generation', 0):
             return
 
         self.sorted_indices = sorted_indices
-
-        # Update column headers to show sort direction
         self._update_header_indicators()
-
-        # Refresh the display with sorted data
         self._refresh()
-
         self.clear_status()
 
-        # Sync RightPanel HUD with this sorted order
         if hasattr(self.app, "right") and hasattr(self.app.right, "update_hud_with_sort"):
-            self.app.right.update_hud_with_sort(
-                self.sorted_indices,
-                is_sorted=True
-            )
+            self.app.right.update_hud_with_sort(self.sorted_indices, is_sorted=True)
 
     def _get_sort_value(self, sample, column_name):
         """Extract and normalize value for sorting"""
-        # 🔐 Null check for sample
         if sample is None:
             return (1, "")
 
         value = sample.get(column_name, "")
 
-        # Handle empty values
         if value == "" or value is None:
-            return (1, "")  # Empty values go to bottom
+            return (1, "")
 
-        # Try to convert to number for numeric sorting
         try:
-            # Check if it's already a number
             if isinstance(value, (int, float)):
                 return (0, value)
-            # Try to convert string to float
             num_val = float(value)
             return (0, num_val)
         except (ValueError, TypeError):
-            # Fall back to string comparison (case-insensitive)
             return (2, str(value).lower())
 
     def _update_header_indicators(self):
@@ -1014,7 +1301,6 @@ class CenterPanel:
         self._update_header_indicators()
         self._refresh()
 
-        # Notify HUD that sorting was cleared
         if hasattr(self.app, "right") and hasattr(self.app.right, "update_hud_with_sort"):
             self.app.right.update_hud_with_sort(None, False)
 
@@ -1035,7 +1321,6 @@ class CenterPanel:
         if not item:
             return
 
-        # Extract original index from the item's iid
         if item and item.startswith('row_'):
             try:
                 sample_idx = int(item.split('_')[1])
@@ -1049,9 +1334,7 @@ class CenterPanel:
         if sample_idx >= len(samples):
             return
 
-        # Check if we're in all-mode - if so, show all-schemes dialog
         if hasattr(self.app.right, 'all_mode') and self.app.right.all_mode and self.app.right.all_results is not None:
-            # Import here to avoid circular imports
             from ui.all_schemes_detail_dialog import AllSchemesDetailDialog
             AllSchemesDetailDialog(
                 self.app.root,
@@ -1063,14 +1346,12 @@ class CenterPanel:
                 all_derived=self.app.right.all_derived_fields
             )
         else:
-            # Delegate to right_panel for single scheme
             self.app.right._open_sample_detail(sample_idx, samples)
 
-        return "break"  # Important: prevents event propagation
+        return "break"
 
     def _show_classification_explanation(self, sample, classification=None, confidence=None, color=None, derived=None, flag=False):
         """Show detailed explanation for single scheme classification"""
-        # Get the current scheme name from right panel
         scheme_name = "Unknown Scheme"
         if hasattr(self.app.right, 'scheme_var'):
             scheme_name = self.app.right.scheme_var.get()
@@ -1088,7 +1369,6 @@ class CenterPanel:
         main = ttk.Frame(win, padding=10)
         main.pack(fill=tk.BOTH, expand=True)
 
-        # Header
         header_frame = ttk.Frame(main)
         header_frame.pack(fill=tk.X, pady=(0, 10))
 
@@ -1109,7 +1389,6 @@ class CenterPanel:
         if color is None:
             color = '#A9A9A9'
 
-        # Classification and confidence
         class_frame = ttk.Frame(main)
         class_frame.pack(fill=tk.X, pady=5)
 
@@ -1120,8 +1399,6 @@ class CenterPanel:
             bootstyle="light"
         ).pack(side=tk.LEFT)
 
-        # Use a tk.Label for the classification so we can set custom foreground/background
-        # Get the theme's background color for consistency
         style = ttk.Style()
         bg = style.colors.get('dark') if hasattr(style, 'colors') else "#2b2b2b"
         fg = self.app.color_manager.get_foreground(classification)
@@ -1144,15 +1421,12 @@ class CenterPanel:
 
         ttk.Separator(main, orient=tk.HORIZONTAL, bootstyle="secondary").pack(fill=tk.X, pady=10)
 
-        # Create notebook for tabs
         notebook = ttk.Notebook(main, bootstyle="dark")
         notebook.pack(fill=tk.BOTH, expand=True)
 
-        # Tab 1: Explanation
         explanation_frame = ttk.Frame(notebook, padding=10)
         notebook.add(explanation_frame, text="📝 Explanation")
 
-        # Re‑fetch style for Text widgets (already have style variable)
         bg = style.colors.get('dark') if hasattr(style, 'colors') else "#2b2b2b"
         fg = style.colors.get('light') if hasattr(style, 'colors') else "#dddddd"
 
@@ -1177,12 +1451,10 @@ class CenterPanel:
         text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Generate intelligent explanation
         explanation = self._generate_single_scheme_explanation(scheme_name, classification, sample)
         text_widget.insert(tk.END, explanation)
         text_widget.config(state=tk.DISABLED)
 
-        # Tab 2: Raw Data
         raw_frame = ttk.Frame(notebook, padding=10)
         notebook.add(raw_frame, text="📋 All Fields")
 
@@ -1214,11 +1486,9 @@ class CenterPanel:
         raw_scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
         raw_scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
 
-        # Show all sample data
         raw_text.insert(tk.END, json.dumps(sample, indent=2))
         raw_text.config(state=tk.DISABLED)
 
-        # Close button
         ttk.Button(
             main,
             text="Close",
@@ -1232,7 +1502,7 @@ class CenterPanel:
         return generate_explanation_text(self.app, scheme_name, classification_name, sample)
 
     def _classify_selected_sample(self, sample_idx):
-        """Classify a single sample using the current scheme (called from right-click menu)."""
+        """Classify a single sample using the current scheme."""
         self.selected_rows = {sample_idx}
         self._refresh()
         self.app.right.run_target.set("selected")
@@ -1245,7 +1515,6 @@ class CenterPanel:
             return
         self.tree.selection_set(item)
 
-        # Extract original index from the item's iid
         if item.startswith('row_'):
             try:
                 sample_idx = int(item.split('_')[1])
@@ -1315,7 +1584,7 @@ class CenterPanel:
         if not values:
             return
         try:
-            col_idx = int(column[1:]) - 1  # "#3" → 2
+            col_idx = int(column[1:]) - 1
             if 0 <= col_idx < len(values):
                 self.tree.clipboard_clear()
                 self.tree.clipboard_append(str(values[col_idx]))

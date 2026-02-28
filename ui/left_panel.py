@@ -378,6 +378,137 @@ class LeftPanel:
 
         return rows
 
+    def _parse_pptx(self, path):
+        """Parse PowerPoint file and extract tables as data rows"""
+        # Check if python-pptx is installed
+        try:
+            from pptx import Presentation
+            from pptx.enum.shapes import MSO_SHAPE_TYPE
+        except ImportError:
+            self.app.center.show_error('import', "python-pptx not installed")
+            # Show installation dialog
+            self._show_pptx_install_dialog()
+            return []
+
+        rows = []
+        try:
+            prs = Presentation(path)
+            total_tables = 0
+            total_rows = 0
+
+            # First pass: count tables for progress reporting
+            for slide in prs.slides:
+                for shape in slide.shapes:
+                    if shape.has_table:
+                        total_tables += 1
+                        total_rows += len(shape.table.rows) - 1  # -1 for header
+
+            if total_tables == 0:
+                self.app.center.show_warning('import', "No tables found in PowerPoint")
+                messagebox.showwarning("No Tables", f"No tables found in {Path(path).name}")
+                return []
+
+            self.app.center.show_progress('import', 0, total_rows,
+                                        f"Found {total_tables} tables in {Path(path).name}")
+
+            processed_rows = 0
+            table_counter = 0
+
+            # Second pass: extract data
+            for slide_idx, slide in enumerate(prs.slides):
+                for shape_idx, shape in enumerate(slide.shapes):
+                    if shape.has_table:
+                        table_counter += 1
+                        table_data = []
+                        headers = None
+
+                        # Extract table
+                        for row_idx, row in enumerate(shape.table.rows):
+                            row_data = []
+                            for cell in row.cells:
+                                # Clean cell text
+                                text = cell.text.strip()
+                                # Remove common PowerPoint formatting artifacts
+                                text = text.replace('\r', ' ').replace('\n', ' ')
+                                text = ' '.join(text.split())  # Normalize whitespace
+                                row_data.append(text)
+
+                            if row_idx == 0:
+                                # Use first row as headers - clean them up
+                                headers = []
+                                for j, h in enumerate(row_data):
+                                    if not h.strip():
+                                        h = f"Column_{j+1}"
+                                    # Clean header for use as column name
+                                    clean_h = self.normalize_column_name(h, self.column_mappings)
+                                    if not clean_h or clean_h == h.lower().replace(' ', '_'):
+                                        # If normalize didn't change it, do basic cleaning
+                                        clean_h = re.sub(r'[^\w\s]', '', h)
+                                        clean_h = clean_h.replace(' ', '_').lower()
+                                        if not clean_h:
+                                            clean_h = f"col_{j+1}"
+                                    headers.append(clean_h)
+                            else:
+                                # Create sample row
+                                sample_id = f"PPTX_S{slide_idx+1}_T{table_counter}_R{row_idx}"
+
+                                # Build notes with context
+                                notes = [
+                                    f"From: {Path(path).name}",
+                                    f"Slide: {slide_idx+1}",
+                                    f"Table: {table_counter}",
+                                    f"Row: {row_idx}"
+                                ]
+
+                                sample = {
+                                    'Sample_ID': sample_id,
+                                    'Notes': ' | '.join(notes)
+                                }
+
+                                # Add table data
+                                for j, value in enumerate(row_data):
+                                    if j < len(headers):
+                                        col_name = headers[j]
+
+                                        # Try to convert to number
+                                        try:
+                                            # Remove commas and try float conversion
+                                            clean_val = value.replace(',', '').strip()
+                                            if clean_val and clean_val.replace('.', '').replace('-', '').replace('e', '').replace('E', '').isdigit():
+                                                value = float(clean_val)
+                                                # If it's an integer, store as int
+                                                if value.is_integer():
+                                                    value = int(value)
+                                        except:
+                                            pass
+
+                                        sample[col_name] = value
+
+                                rows.append(sample)
+                                processed_rows += 1
+
+                                # Update progress every 10 rows
+                                if processed_rows % 10 == 0:
+                                    self.app.center.show_progress('import', processed_rows, total_rows,
+                                                                f"Table {table_counter}/{total_tables}")
+
+            self.app.center.show_progress('import', processed_rows, total_rows, "Processing complete")
+
+            # Show summary
+            if rows:
+                summary = (
+                    f"✅ Imported {len(rows)} rows from {total_tables} tables\n"
+                    f"📊 Columns found: {len(set().union(*[set(r.keys()) for r in rows])) - 2}"  # -2 for Sample_ID, Notes
+                )
+                self.app.center.set_status(summary, "success")
+
+            return rows
+
+        except Exception as e:
+            self.app.center.show_error('import', f"PPTX parsing failed: {str(e)[:50]}")
+            messagebox.showerror("PPTX Error", f"Failed to parse {path}:\n{e}")
+            return []
+
     def _parse_amptek_spectrum(self, path):
         """
         Parse an Amptek spectrum file (.txt, .mca, .spec) and return a list
@@ -610,8 +741,14 @@ class LeftPanel:
         self.notes_var.set("")
         self.sample_id_entry.focus()
 
-    def add_hardware_button(self, name, icon, command):
-        """Add hardware plugin button - with scrollable area"""
+    def add_hardware_button(self, name, icon, command, plugin_id=None):
+        """Add hardware plugin button - with scrollable area.
+
+        plugin_id: optional filename stem (e.g. 'spectroscopy_unified_suite').
+            When provided the button command stamps self.app._active_hw_plugin
+            before opening the plugin window, allowing the right panel to switch
+            automatically to the matching field panel (v3.0).
+        """
         # Check if this button already exists
         button_text = f"{icon} {name}"
         for btn in self.hw_buttons:
@@ -622,6 +759,14 @@ class LeftPanel:
         if hasattr(self, '_placeholder') and self._placeholder.winfo_exists():
             self._placeholder.destroy()
             delattr(self, '_placeholder')
+
+        # v3.0: wrap command to stamp active hardware plugin on the app so
+        # the right panel knows which field panel to suggest switching to.
+        if plugin_id is not None:
+            _original_cmd = command
+            def command(_pid=plugin_id, _cmd=_original_cmd):
+                self.app._active_hw_plugin = _pid
+                _cmd()
 
         # Create button in scrollable frame
         btn = tk.Button(self.hw_button_frame,

@@ -22,7 +22,7 @@ class RightPanel:
         # UI elements (will be created in _build_ui)
         self.hud_tree = None
 
-        # HUD sort state (set now, but binding happens after tree is created)
+        # HUD sort state
         self.hud_headings = {
             "ID": "ID",
             "Class": "Classification",
@@ -37,35 +37,29 @@ class RightPanel:
         self.run_target = tk.StringVar(value="all")
         self.scheme_list = []
         self.protocol_list = []
-        self.sorted_indices = None      # Sort order from center panel
-        self.is_sorted = False          # Whether sorting is active
-        # Cache for single‑scheme results
+        self.sorted_indices = None
+        self.is_sorted = False
         self.classification_results = []
 
-        # Cache for "Run All" results
         self.all_results = None
         self.all_derived_fields = None
         self.all_mode = False
-        self.all_schemes_list = []  # Store list of scheme names for reference
+        self.all_schemes_list = []
 
-        # Build the UI (this creates self.hud_tree)
+        # Build the UI
         self._build_ui()
-
-        # NOW bind the heading click – hud_tree exists
         self.hud_tree.bind("<Button-1>", self._on_hud_header_click)
-
         self._refresh_results_cache()
 
     def _on_hud_header_click(self, event):
         region = self.hud_tree.identify("region", event.x, event.y)
         if region == "heading":
-            column = self.hud_tree.identify_column(event.x)   # "#1", "#2", ...
+            column = self.hud_tree.identify_column(event.x)
             col_index = int(column[1:]) - 1
             col_name = list(self.hud_headings.keys())[col_index]
             self._sort_by_hud_column(col_name)
 
     def _sort_by_hud_column(self, col_name):
-        # Toggle direction
         if self.hud_sort_column == col_name:
             self.hud_sort_reverse = not self.hud_sort_reverse
         else:
@@ -78,7 +72,6 @@ class RightPanel:
 
         total = len(all_samples)
 
-        # Build list of (index, sort_key) for every sample
         def get_key(idx):
             sample = all_samples[idx]
 
@@ -87,7 +80,6 @@ class RightPanel:
 
             elif col_name == "Class":
                 if self.all_mode and self.all_results and self.all_results[idx]:
-                    # All schemes: pick best classification (by confidence)
                     best_class = "UNCLASSIFIED"
                     best_conf = -1.0
                     for _, cls, conf in self.all_results[idx]:
@@ -97,7 +89,6 @@ class RightPanel:
                                 best_conf = conf
                     return best_class
                 else:
-                    # Single scheme
                     if idx < len(self.classification_results) and self.classification_results[idx]:
                         return self.classification_results[idx].get('classification', 'UNCLASSIFIED')
                     return 'UNCLASSIFIED'
@@ -116,7 +107,6 @@ class RightPanel:
 
             elif col_name == "Flag":
                 if self.all_mode and self.all_results and self.all_results[idx]:
-                    # Count matches
                     match_count = sum(1 for _, cls, _ in self.all_results[idx]
                                     if cls not in ['UNCLASSIFIED','INVALID_SAMPLE','SCHEME_NOT_FOUND',''])
                     return match_count
@@ -128,17 +118,13 @@ class RightPanel:
         indexed = list(range(total))
         indexed.sort(key=get_key, reverse=self.hud_sort_reverse)
 
-        # Update center panel's sort order
         self.app.center.sorted_indices = indexed
-        self.app.center.sort_column = None          # HUD sort, not a data column
+        self.app.center.sort_column = None
         self.app.center.sort_reverse = False
-        self.app.center._update_header_indicators() # Remove any center arrows
-        self.app.center._refresh()                  # Rebuild table with new order
+        self.app.center._update_header_indicators()
+        self.app.center._refresh()
 
-        # Rebuild HUD (it will use the new sorted_indices)
         self._update_hud()
-
-        # Update HUD headers with sort arrows
         self._update_hud_header_indicators()
 
     def _update_hud_header_indicators(self):
@@ -159,11 +145,11 @@ class RightPanel:
         self.refresh_for_engine(getattr(self.app, 'current_engine_name', 'classification'))
 
         # ============ RUN OPTIONS ============
-        row2 = ttk.Frame(self.frame, bootstyle="dark")
-        row2.pack(fill=tk.X, padx=1, pady=1)
+        self.row2_frame = ttk.Frame(self.frame, bootstyle="dark")
+        self.row2_frame.pack(fill=tk.X, padx=1, pady=1)
 
         self.all_rows_radio = ttk.Radiobutton(
-            row2,
+            self.row2_frame,
             text="All Rows",
             variable=self.run_target,
             value="all",
@@ -172,7 +158,7 @@ class RightPanel:
         self.all_rows_radio.pack(side=tk.LEFT, padx=2)
 
         self.selected_radio = ttk.Radiobutton(
-            row2,
+            self.row2_frame,
             text="Selected",
             variable=self.run_target,
             value="selected",
@@ -181,10 +167,10 @@ class RightPanel:
         self.selected_radio.pack(side=tk.LEFT, padx=2)
 
         # ============ HUD ============
-        hud_frame = ttk.Frame(self.frame, bootstyle="dark")
-        hud_frame.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
+        self.hud_frame = ttk.Frame(self.frame, bootstyle="dark")
+        self.hud_frame.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
 
-        tree_frame = ttk.Frame(hud_frame, bootstyle="dark")
+        tree_frame = ttk.Frame(self.hud_frame, bootstyle="dark")
         tree_frame.pack(fill=tk.BOTH, expand=True)
 
         self.hud_tree = ttk.Treeview(
@@ -237,7 +223,6 @@ class RightPanel:
         self.sorted_indices = sorted_indices
         self.is_sorted = is_sorted
 
-        # Clear HUD sort state (sorting now comes from center)
         self.hud_sort_column = None
         self.hud_sort_reverse = False
         self._update_hud_header_indicators()
@@ -386,15 +371,12 @@ class RightPanel:
                 )
                 configured_tags.add(upper)
 
-        # Configure default tags
         self.hud_tree.tag_configure('UNCLASSIFIED', background='#3b3b3b', foreground='white')
 
     # ============ DOUBLE CLICK ============
 
     def _open_sample_detail(self, sample_idx, samples=None):
-        """Open the appropriate detail dialog for a given sample index.
-        Called by center_panel._on_double_click so the dialog logic stays in one place.
-        """
+        """Open the appropriate detail dialog for a given sample index."""
         if samples is None:
             samples = self.app.data_hub.get_all()
         if sample_idx >= len(samples):
@@ -439,9 +421,7 @@ class RightPanel:
         if target_idx is None:
             return
 
-        # IMPORTANT: If we're in all-mode, ALWAYS show the all-schemes dialog
         if self.all_mode and self.all_results is not None:
-            # Import here to avoid circular imports
             from ui.all_schemes_detail_dialog import AllSchemesDetailDialog
             AllSchemesDetailDialog(
                 self.app.root,
@@ -450,13 +430,11 @@ class RightPanel:
                 self.all_results,
                 target_idx,
                 self.all_schemes_list,
-                all_derived=self.all_derived_fields   # <-- NEW: pass derived fields
+                all_derived=self.all_derived_fields
             )
             return
 
-        # Otherwise show single-scheme explanation (this should only happen when not in all-mode)
         self._open_sample_detail(target_idx, samples)
-
         return "break"
 
     # ============ SCHEMES ============
@@ -479,20 +457,15 @@ class RightPanel:
             self.scheme_list = []
             self.all_schemes_list = ["🔁 Run All Schemes"]
 
-            # Add "Run All" as first item
             self.scheme_list.append(("🔁 Run All Schemes", "__ALL__"))
 
-            # Build list of normal schemes
             normal_schemes = []
             for scheme in schemes:
                 display = f"{scheme.get('icon', '📊')} {scheme['name']}"
                 normal_schemes.append((display, scheme['id']))
                 self.all_schemes_list.append(display)
 
-            # Sort normal schemes alphabetically by name
             normal_schemes.sort(key=lambda x: x[0].split(' ', 1)[-1].lower())
-
-            # Add to scheme_list
             self.scheme_list.extend(normal_schemes)
 
             if self.scheme_list:
@@ -526,6 +499,10 @@ class RightPanel:
         self.all_mode = False
         self._update_hud()
 
+        samples = self.app.data_hub.get_all()
+        if samples:
+            self.app.root.after(300, lambda: self._check_for_field_switch(samples))
+
     def _refresh_results_cache(self):
         """Reset single‑scheme cache to empty."""
         num_rows = self.app.data_hub.row_count()
@@ -539,23 +516,17 @@ class RightPanel:
         if not self.hud_tree:
             return
 
-        # Clear existing items
         for item in self.hud_tree.get_children():
             self.hud_tree.delete(item)
 
         center = self.app.center
         all_samples = self.app.data_hub.get_all()
 
-        # =========================================
-        # CRITICAL FIX:
-        # Use the actual indices that CenterPanel is displaying
-        # =========================================
         if hasattr(center, "sorted_indices") and center.sorted_indices:
             ordered_indices = center.sorted_indices
         else:
             ordered_indices = list(range(len(all_samples)))
 
-        # Apply same filtering logic as center (search + class filter)
         search = center.search_var.get().lower().strip()
         filter_class = center.filter_var.get()
         all_results = getattr(self, 'classification_results', [])
@@ -583,16 +554,12 @@ class RightPanel:
 
             filtered_indices.append(idx)
 
-        # Pagination (same as center)
         start = center.current_page * center.page_size
         page_indices = filtered_indices[start:start + center.page_size]
 
         if not page_indices:
             return
 
-        # =========================================
-        # Populate HUD
-        # =========================================
         for actual_idx in page_indices:
 
             sample = all_samples[actual_idx]
@@ -600,7 +567,6 @@ class RightPanel:
             if len(sample_id) > 8:
                 sample_id = sample_id[:8]
 
-            # --- Classification lookup ---
             if self.all_mode and self.all_results is not None and actual_idx < len(self.all_results):
                 results_list = self.all_results[actual_idx]
                 if results_list:
@@ -666,14 +632,12 @@ class RightPanel:
         if not self.hud_tree or not self.hud_tree.get_children():
             return
 
-        # Set minimum widths for each column
-        self.hud_tree.column('#0', width=50)  # Tree column
-        self.hud_tree.column('#1', width=80)  # Sample ID
-        self.hud_tree.column('#2', width=150) # Classification
-        self.hud_tree.column('#3', width=60)  # Confidence
-        self.hud_tree.column('#4', width=60)  # Flag (increase this!)
+        self.hud_tree.column('#0', width=50)
+        self.hud_tree.column('#1', width=80)
+        self.hud_tree.column('#2', width=150)
+        self.hud_tree.column('#3', width=60)
+        self.hud_tree.column('#4', width=60)
 
-        # Or better - auto-size based on content
         for col in ['#1', '#2', '#3', '#4']:
             max_width = 0
             for item in self.hud_tree.get_children():
@@ -682,7 +646,6 @@ class RightPanel:
                 if width > max_width:
                     max_width = width
 
-            # Add padding
             max_width = min(max(max_width, 50), 200)
             self.hud_tree.column(col, width=max_width)
 
@@ -714,7 +677,6 @@ class RightPanel:
             self._run_all_classifications()
             return
 
-        # Single scheme
         if self.run_target.get() == "all":
             samples = self.app.data_hub.get_all()
             indices = list(range(len(samples)))
@@ -757,7 +719,7 @@ class RightPanel:
 
             self.all_mode = False
             self._update_hud()
-            self.app.center._refresh()  # Refresh table to update colors
+            self.app.center._refresh()
 
         except Exception as e:
             self.app.center.show_error('classification', str(e)[:50])
@@ -795,9 +757,7 @@ class RightPanel:
         self.app.center.show_progress('classification', 0, total_samples * total_schemes,
                                       f"Running {total_schemes} schemes on {total_samples} samples...")
 
-        # Store results as list of lists for each sample
         all_results = [[] for _ in range(len(samples))]
-        # NEW: store derived fields per sample per scheme
         all_derived = [{} for _ in range(len(samples))]
 
         processed = 0
@@ -810,25 +770,24 @@ class RightPanel:
             for samp_idx, res in enumerate(results):
                 classification = res.get('classification', 'UNCLASSIFIED')
                 confidence = res.get('confidence', 0.0)
-                derived = res.get('derived_fields', {})   # <-- derived fields
+                derived = res.get('derived_fields', {})
                 all_results[samp_idx].append((scheme_name, classification, confidence))
-                all_derived[samp_idx][scheme_name] = derived   # store by scheme name
+                all_derived[samp_idx][scheme_name] = derived
 
             processed += len(samples)
             self.app.center.show_progress('classification', processed, total_samples * total_schemes,
                                           f"Completed {s_idx+1}/{total_schemes} schemes")
 
-        # Store in global index structure
         total_data_rows = self.app.data_hub.row_count()
         self.all_results = [None] * total_data_rows
-        self.all_derived_fields = [None] * total_data_rows   # NEW
+        self.all_derived_fields = [None] * total_data_rows
         for batch_idx, global_idx in enumerate(indices):
             self.all_results[global_idx] = all_results[batch_idx]
-            self.all_derived_fields[global_idx] = all_derived[batch_idx]   # NEW
+            self.all_derived_fields[global_idx] = all_derived[batch_idx]
 
         self.all_mode = True
         self._update_hud()
-        self.app.center._refresh()  # Refresh table to update colors
+        self.app.center._refresh()
 
         self.app.center.show_operation_complete('classification',
                                                 f"Ran {total_schemes} schemes on {total_samples} samples")
@@ -836,3 +795,560 @@ class RightPanel:
                             f"Ran {total_schemes} schemes on {total_samples} samples.\n"
                             "Double‑click any row in the HUD to see full details.",
                             parent=self.app.root)
+
+    # ============ v3.0 FIELD DETECTION & PANEL SWITCHING ============
+
+    _HARDWARE_PLUGIN_MAP = {
+        "archaeology_archaeometry_unified_suite":     "archaeology",
+        "barcode_scanner_unified_suite":              "archaeology",
+        "chromatography_analytical_unified_suite":    "chromatography",
+        "clinical_molecular_diagnostics_suite":       "molecular",
+        "electrochemistry_unified_suite":             "electrochem",
+        "elemental_geochemistry_unified_suite":       "geochemistry",
+        "geophysics_unified_suite":                   "geophysics",
+        "materials_characterization_unified_suite":   "materials",
+        "meteorology_environmental_unified_suite":    "meteorology",
+        "molecular_biology_unified_suite":            "molecular",
+        "physical_properties_unified_suite":          "physics",
+        "physics_test_and_measurement_suite":         "physics",
+        "solution_chemistry_unified_suite":           "solution",
+        "spectroscopy_unified_suite":                  "spectroscopy",
+        "thermal_analysis_calorimetry_unified_suite": "materials",
+        "zooarchaeology_unified_suite":               "zooarch",
+    }
+
+    _FIELD_DETECTION = {
+        "geochemistry":   ("Geochemistry",          "🪨", ["sio2", "tio2", "al2o3", "fe2o3", "mgo", "cao", "na2o", "k2o"]),
+        "geochronology":  ("Geochronology",         "⏳", ["pb206", "pb207", "u238", "ar40", "ar39"]),
+        "petrology":      ("Petrology",             "🔥", ["quartz", "plagioclase", "feldspar", "modal", "normative", "cipw"]),
+        "structural":     ("Structural Geology",    "📐", ["strike", "dip", "plunge", "trend", "azimuth"]),
+        "geophysics":     ("Geophysics",            "🌍", ["resistivity", "velocity", "gravity", "mgal", "susceptibility"]),
+        "spatial":        ("GIS & Spatial",         "🗺️", ["latitude", "longitude", "easting", "northing", "utm"]),
+        "archaeology":    ("Archaeology",           "🏺", ["length_mm", "width_mm", "platform", "lithic", "artifact"]),
+        "zooarch":        ("Zooarchaeology",        "🦴", ["taxon", "nisp", "mni", "faunal"]),
+        "spectroscopy":   ("Spectroscopy",          "🔬", [
+            "technique", "ftir", "raman", "uv-vis", "nir",
+            "peak_positions", "peaks", "peak", "compound",
+            "wavenumber", "wavelength", "absorbance", "intensity"
+        ]),
+        "chromatography": ("Chromatography",        "⚗️", ["retention_time", "peak_area", "abundance"]),
+        "electrochem":    ("Electrochemistry",      "⚡", ["potential", "scan_rate", "impedance"]),
+        "materials":      ("Materials Science",     "🧱", ["stress", "strain", "modulus", "hardness", "tensile"]),
+        "solution":       ("Solution Chemistry",    "💧", ["conductivity", "tds", "alkalinity", "turbidity"]),
+        "molecular":      ("Molecular Biology",     "🧬", ["ct_value", "cq", "melt_temp", "qpcr", "copies"]),
+        "meteorology":    ("Meteorology",           "🌤️", ["humidity", "rainfall", "dew", "wind_speed"]),
+        "physics":        ("Physics & Measurement", "📡", ["time_s", "fft", "signal", "amplitude"]),
+    }
+
+    def _check_for_field_switch(self, samples):
+        """Two-stage detection: hardware source or column scoring"""
+        if self.app._is_closing:
+            return
+
+        if not hasattr(self, '_current_field_panel'):
+            self._current_field_panel = 'classification'
+        if not hasattr(self, '_never_ask'):
+            self._never_ask = set()
+
+        hw_plugin = getattr(self.app, '_active_hw_plugin', None)
+        if hw_plugin:
+            self.app._active_hw_plugin = None
+            field_id = self._HARDWARE_PLUGIN_MAP.get(hw_plugin)
+            if field_id and field_id != self._current_field_panel:
+                if field_id not in self._never_ask:
+                    name, icon, _ = self._FIELD_DETECTION[field_id]
+                    self._show_switch_notification(field_id, name, icon, source="hardware")
+            return
+
+        columns = set()
+        for s in samples[:10]:
+            columns.update(k.lower() for k in s.keys())
+
+        best_field = None
+        best_score = 0
+
+        for field_id, (name, icon, fragments) in self._FIELD_DETECTION.items():
+            score = sum(1 for frag in fragments if any(frag in col for col in columns))
+            if score > best_score:
+                best_score = score
+                best_field = field_id
+
+        if best_score < 2:
+            return
+
+        if best_field == self._current_field_panel:
+            return
+
+        if best_field in self._never_ask:
+            return
+
+        name, icon, _ = self._FIELD_DETECTION[best_field]
+        self._show_switch_notification(best_field, name, icon, source="columns")
+
+    def _show_switch_notification(self, field_id, name, icon, source="columns"):
+        """Show a compact yes/no/never notification bar"""
+        if hasattr(self, '_notification_frame') and self._notification_frame:
+            try:
+                self._notification_frame.destroy()
+            except tk.TclError:
+                pass
+            self._notification_frame = None
+
+        notif = ttk.Frame(self.frame, bootstyle="info", relief=tk.RIDGE)
+        self._notification_frame = notif
+
+        if source == "hardware":
+            detail_text = f"{icon} {name} device active"
+        else:
+            detail_text = f"{icon} {name} detected"
+
+        ttk.Label(
+            notif,
+            text=detail_text,
+            font=("Segoe UI", 8, "bold"),
+            bootstyle="inverse-info",
+            anchor="center",
+        ).pack(fill=tk.X, padx=4, pady=(4, 1))
+
+        ttk.Label(
+            notif,
+            text="Switch to specialised panel?",
+            font=("Segoe UI", 8),
+            bootstyle="info",
+            anchor="center",
+        ).pack(fill=tk.X, padx=4)
+
+        btn_row = ttk.Frame(notif, bootstyle="info")
+        btn_row.pack(fill=tk.X, padx=4, pady=(3, 4))
+
+        def on_yes():
+            self._dismiss_notification()
+            self._load_field_panel(field_id)
+
+        def on_no():
+            self._dismiss_notification()
+            if not hasattr(self, '_never_ask'):
+                self._never_ask = set()
+            self._never_ask.add(field_id)
+
+        def on_never():
+            self._dismiss_notification()
+            if not hasattr(self, '_never_ask'):
+                self._never_ask = set()
+            self._never_ask.add(field_id)
+            self._save_never_ask(field_id)
+
+        ttk.Button(
+            btn_row, text="Yes",
+            command=on_yes,
+            bootstyle="success",
+            width=5,
+        ).pack(side=tk.LEFT, padx=2)
+
+        ttk.Button(
+            btn_row, text="No",
+            command=on_no,
+            bootstyle="secondary",
+            width=5,
+        ).pack(side=tk.LEFT, padx=2)
+
+        ttk.Button(
+            btn_row, text="Never",
+            command=on_never,
+            bootstyle="danger-link",
+            width=5,
+        ).pack(side=tk.LEFT, padx=2)
+
+        try:
+            notif.pack(fill=tk.X, padx=1, pady=1, before=self.engine_frame)
+        except tk.TclError:
+            notif.pack(fill=tk.X, padx=1, pady=1)
+
+        self._notif_after_id = self.app.root.after(
+            20000, self._dismiss_notification
+        )
+
+    def _dismiss_notification(self):
+        """Remove the notification bar cleanly."""
+        if hasattr(self, '_notif_after_id') and self._notif_after_id:
+            try:
+                self.app.root.after_cancel(self._notif_after_id)
+            except Exception:
+                pass
+            self._notif_after_id = None
+
+        if hasattr(self, '_notification_frame') and self._notification_frame:
+            try:
+                self._notification_frame.destroy()
+            except tk.TclError:
+                pass
+            self._notification_frame = None
+
+    def _load_field_panel(self, field_id):
+        """
+        Dynamically import right_panel_<field_id>.py and render it
+        """
+        import importlib.util
+        from pathlib import Path
+        from .right_panel import FieldPanelBase
+
+        this_dir = Path(__file__).parent
+        stub_path = this_dir / f"right_panel_{field_id}.py"
+
+        if not stub_path.exists():
+            messagebox.showwarning(
+                "Panel Not Found",
+                f"Panel file not found:\n{stub_path.name}",
+                parent=self.app.root
+            )
+            return
+
+        try:
+            import sys as _sys
+            full_name = f"ui.right_panel_{field_id}"
+            spec = importlib.util.spec_from_file_location(full_name, stub_path)
+            module = importlib.util.module_from_spec(spec)
+            module.__package__ = "ui"
+            _sys.modules[full_name] = module
+            spec.loader.exec_module(module)
+
+            panel_class = None
+            for attr_name in dir(module):
+                attr = getattr(module, attr_name)
+                if (isinstance(attr, type) and
+                    issubclass(attr, FieldPanelBase) and
+                    attr != FieldPanelBase and
+                    getattr(attr, 'is_right_panel', False)):
+                    panel_class = attr
+                    break
+
+            if panel_class is None:
+                messagebox.showwarning(
+                    "Panel Error",
+                    f"No valid panel class found in {stub_path.name}",
+                    parent=self.app.root
+                )
+                return
+
+            # Hide current classification UI
+            for widget in self.frame.winfo_children():
+                widget.pack_forget()
+
+            back_bar = ttk.Frame(self.frame, bootstyle="dark")
+            back_bar.pack(fill=tk.X, padx=1, pady=1)
+
+            name, icon, _ = self._FIELD_DETECTION[field_id]
+
+            ttk.Label(
+                back_bar,
+                text=f"{icon} {name}",
+                font=("Segoe UI", 8, "bold"),
+                bootstyle="light",
+            ).pack(side=tk.LEFT, padx=4)
+
+            ttk.Button(
+                back_bar,
+                text="← Back",
+                command=self._restore_classification_panel,
+                bootstyle="secondary-link",
+                width=7,
+            ).pack(side=tk.RIGHT, padx=2)
+
+            panel_container = ttk.Frame(self.frame, bootstyle="dark")
+            panel_container.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
+
+            self._active_field_panel = panel_class(panel_container, self.app)
+            self._current_field_panel = field_id
+            self._back_bar = back_bar
+            self._panel_container = panel_container
+
+            self.app.center.set_status(
+                f"Switched to {name} panel", "success"
+            )
+
+        except Exception as e:
+            messagebox.showerror(
+                "Panel Load Error",
+                f"Could not load {field_id} panel:\n{e}",
+                parent=self.app.root
+            )
+
+    def _restore_classification_panel(self):
+        """Put the original classification UI back."""
+        if hasattr(self, '_back_bar') and self._back_bar:
+            try:
+                self._back_bar.destroy()
+            except tk.TclError:
+                pass
+            self._back_bar = None
+
+        if hasattr(self, '_panel_container') and self._panel_container:
+            try:
+                self._panel_container.destroy()
+            except tk.TclError:
+                pass
+            self._panel_container = None
+
+        for widget in self.frame.winfo_children():
+            widget.pack_forget()
+
+        self.engine_frame.pack(fill=tk.X, padx=1, pady=1)
+        self.row2_frame.pack(fill=tk.X, padx=1, pady=1)
+        self.hud_frame.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
+
+        self._current_field_panel = 'classification'
+        self._active_field_panel = None
+
+        # Force a refresh of the center panel
+        if hasattr(self.app, 'center'):
+            if hasattr(self.app.center, '_refresh'):
+                self.app.center._refresh()
+            self.app.center.frame.update_idletasks()
+
+        self.app.root.update_idletasks()
+        self.app.center.set_status("Restored Classification panel", "info")
+
+    def _save_never_ask(self, field_id):
+        """Persist a 'never ask' preference for a field to config."""
+        config_path = Path("config/panel_preferences.json")
+        try:
+            prefs = {}
+            if config_path.exists():
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    prefs = json.load(f)
+            never = prefs.get('never_ask', [])
+            if field_id not in never:
+                never.append(field_id)
+            prefs['never_ask'] = never
+            config_path.parent.mkdir(exist_ok=True)
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(prefs, f, indent=2)
+        except Exception:
+            pass
+
+
+# ============================================================================
+# FIELD PANEL BASE CLASS
+# ============================================================================
+
+OK_ICON    = "✅"
+WARN_ICON  = "⚠️"
+ERROR_ICON = "❌"
+INFO_ICON  = "ℹ️"
+
+_SECTION_FONT      = ("Segoe UI", 8, "bold")
+_VALUE_FONT        = ("Segoe UI", 8)
+_LABEL_FONT        = ("Segoe UI", 8)
+_PLACEHOLDER_COLOR = "#666666"
+_COMING_SOON_TEXT  = "Coming soon"
+
+
+class FieldPanelBase:
+    """
+    Base class for all 16 field-specific right panels.
+    """
+
+    PANEL_ID       = "base"
+    PANEL_NAME     = "Base Panel"
+    PANEL_ICON     = "📊"
+    DETECT_COLUMNS = []
+    is_right_panel = True
+
+    def __init__(self, parent, app):
+        self.parent = parent
+        self.app    = app
+
+        self.frame = ttk.Frame(parent, bootstyle="dark")
+        self.frame.pack(fill=tk.BOTH, expand=True)
+
+        self._collapsed = {
+            "summary":    False,
+            "validation": False,
+            "quick":      False,
+        }
+
+        self._build_ui()
+
+    def _build_ui(self):
+        self._summary_outer, self._summary_body = self._make_section(
+            self.frame, "📊 Summary Statistics", "summary"
+        )
+        self._validation_outer, self._validation_body = self._make_section(
+            self.frame, "✅ Data Validation", "validation"
+        )
+        self._quick_outer, self._quick_body = self._make_section(
+            self.frame, "⚡ Quick Calculation", "quick"
+        )
+
+    def _make_section(self, parent, title, key):
+        outer = ttk.Frame(parent, bootstyle="dark")
+        outer.pack(fill=tk.X, padx=2, pady=(2, 0))
+
+        header = ttk.Button(
+            outer,
+            text=f"▼  {title}",
+            command=lambda k=key: self._toggle_section(k),
+            bootstyle="secondary-link",
+            width=26,
+        )
+        header.pack(fill=tk.X)
+
+        setattr(self, f"_{key}_header", header)
+        setattr(self, f"_{key}_title",  title)
+
+        body = ttk.Frame(outer, bootstyle="dark")
+        body.pack(fill=tk.X, padx=4, pady=(0, 4))
+
+        ttk.Separator(parent, orient="horizontal").pack(
+            fill=tk.X, padx=2, pady=(0, 2)
+        )
+        return outer, body
+
+    def _toggle_section(self, key):
+        self._collapsed[key] = not self._collapsed[key]
+        body   = getattr(self, f"_{key}_body")
+        header = getattr(self, f"_{key}_header")
+        title  = getattr(self, f"_{key}_title")
+        if self._collapsed[key]:
+            body.pack_forget()
+            header.config(text=f"▶  {title}")
+        else:
+            body.pack(fill=tk.X, padx=4, pady=(0, 4))
+            header.config(text=f"▼  {title}")
+
+    def refresh(self):
+        samples = self.app.data_hub.get_all() if hasattr(self.app, 'data_hub') else []
+        columns = self._get_columns(samples)
+        self._render_summary(samples, columns)
+        self._render_validation(samples, columns)
+        self._render_quick(samples, columns)
+
+    def on_data_changed(self, event=None, *args):
+        self.refresh()
+
+    def _render_summary(self, samples, columns):
+        self._clear(self._summary_body)
+        if not samples:
+            self._placeholder(self._summary_body, "No data loaded")
+            return
+        rows = self._calc_summary(samples, columns)
+        if not rows:
+            self._placeholder(self._summary_body)
+            return
+        for label, value in rows:
+            self._kv_row(self._summary_body, label, value)
+
+    def _render_validation(self, samples, columns):
+        self._clear(self._validation_body)
+        if not samples:
+            self._placeholder(self._validation_body, "No data loaded")
+            return
+        rows = self._calc_validation(samples, columns)
+        if not rows:
+            self._placeholder(self._validation_body)
+            return
+        for icon, message in rows:
+            self._status_row(self._validation_body, icon, message)
+
+    def _render_quick(self, samples, columns):
+        self._clear(self._quick_body)
+        if not samples:
+            self._placeholder(self._quick_body, "No data loaded")
+            return
+        rows = self._calc_quick(samples, columns)
+        if not rows:
+            self._placeholder(self._quick_body)
+            return
+        for label, value in rows:
+            self._kv_row(self._quick_body, label, value)
+
+    def _clear(self, frame):
+        for w in frame.winfo_children():
+            w.destroy()
+
+    def _kv_row(self, parent, label, value):
+        row = ttk.Frame(parent, bootstyle="dark")
+        row.pack(fill=tk.X, pady=1)
+        ttk.Label(
+            row, text=str(label)[:18],
+            font=_LABEL_FONT, bootstyle="secondary",
+            anchor="w", width=14,
+        ).pack(side=tk.LEFT)
+        ttk.Label(
+            row, text=str(value)[:16],
+            font=_VALUE_FONT, bootstyle="light",
+            anchor="e",
+        ).pack(side=tk.RIGHT)
+
+    def _status_row(self, parent, icon, message):
+        row = ttk.Frame(parent, bootstyle="dark")
+        row.pack(fill=tk.X, pady=1)
+        ttk.Label(row, text=icon, font=_LABEL_FONT).pack(
+            side=tk.LEFT, padx=(0, 3)
+        )
+        ttk.Label(
+            row, text=str(message)[:22],
+            font=_VALUE_FONT, bootstyle="light", anchor="w",
+        ).pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+    def _placeholder(self, parent, text=_COMING_SOON_TEXT):
+        ttk.Label(
+            parent, text=text,
+            font=_LABEL_FONT, foreground=_PLACEHOLDER_COLOR,
+        ).pack(anchor="w", pady=2)
+
+    def _get_columns(self, samples):
+        if not samples:
+            return set()
+        cols = set()
+        for s in samples[:5]:
+            cols.update(k.lower() for k in s.keys())
+        return cols
+
+    def _numeric_values(self, samples, key):
+        vals = []
+        for s in samples:
+            v = s.get(key)
+            if v is None:
+                continue
+            try:
+                vals.append(float(v))
+            except (ValueError, TypeError):
+                pass
+        return vals
+
+    def _find_column(self, samples, *fragments):
+        if not samples:
+            return None
+        for key in samples[0].keys():
+            kl = key.lower()
+            for frag in fragments:
+                if frag in kl:
+                    return key
+        return None
+
+    def _safe_mean(self, vals):
+        return round(sum(vals) / len(vals), 3) if vals else None
+
+    def _safe_min(self, vals):
+        return round(min(vals), 3) if vals else None
+
+    def _safe_max(self, vals):
+        return round(max(vals), 3) if vals else None
+
+    def _fmt(self, val, decimals=2):
+        if val is None:
+            return "—"
+        try:
+            return f"{float(val):.{decimals}f}"
+        except (ValueError, TypeError):
+            return str(val)
+
+    def _calc_summary(self, samples, columns):
+        return []
+
+    def _calc_validation(self, samples, columns):
+        return []
+
+    def _calc_quick(self, samples, columns):
+        return []

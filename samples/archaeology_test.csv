@@ -1,0 +1,21 @@
+SampleID,ContextID,Length_mm,Width_mm,Thickness_mm,Weight_g,Cortex_percent,RawMaterial,ArtefactType,PlatformType,RetouchType,ButcheryMarks,Weathering,Completeness,Technology,Color,MunsellCode,Comments
+ART-001,TR-101,45.2,32.1,8.5,23.4,15,Flint,Flake,Cortical,Scraper,Present,Slight,Complete,Levallois,Grey,10YR6/1,Distal scraper
+ART-002,TR-101,67.8,24.5,12.3,45.6,0,Obsidian,Blade,Flat,Burin,Absent,Fresh,Complete,P压力的,Grey-black,10YR3/1,Double burin
+ART-003,TR-102,89.3,31.2,15.7,78.9,25,Chert,Core,Platform,Core,Absent,Moderate,Complete,Blade,Grey-brown,10YR5/3,Blade core
+ART-004,TR-102,34.5,28.9,6.7,12.3,5,Quartzite,Flake,Cortical,Notch,Present,Slight,Complete,Discoidal,White,10YR8/1,Used flake
+ART-005,TR-103,78.9,25.6,14.3,67.8,0,Flint,Blade,Flat,Backed,Absent,Fresh,Complete,Aurignacian,Brown,10YR5/3,Backed blade
+ART-006,TR-103,56.7,34.5,9.8,34.5,45,Obsidian,Flake,Cortical,Scraper,Present,Slight,Broken,Levallois,Black,10YR2/1,Side scraper
+ART-007,TR-104,92.1,29.8,18.9,89.1,0,Chert,Blade,Platform,Point,Absent,Fresh,Complete,Gravettian,Tan,10YR6/4,Shouldered point
+ART-008,TR-104,43.2,31.2,7.8,21.3,10,Flint,Flake,Cortical,Notch,Present,Slight,Complete,Mousterian,Grey,10YR5/1,Notched flake
+ART-009,TR-105,71.5,27.8,13.4,54.3,0,Quartzite,Blade,Flat,Backed,Absent,Fresh,Complete,Magdalenian,White,10YR8/2,Backed bladelet
+ART-010,TR-105,63.4,33.9,11.2,43.2,30,Obsidian,Core,Platform,Core,Absent,Moderate,Complete,Blade,Black,10YR2/1,Exhausted core
+ART-011,TR-106,52.8,29.5,9.5,28.9,20,Chert,Flake,Cortical,Scraper,Present,Slight,Complete,Levallois,Grey-brown,10YR4/2,End scraper
+ART-012,TR-106,81.2,26.8,15.2,72.3,0,Flint,Blade,Flat,Burin,Absent,Fresh,Complete,Gravettian,Grey,10YR6/1,Multiple burin
+ART-013,TR-107,47.5,33.2,8.2,19.8,35,Obsidian,Flake,Cortical,Notch,Present,Moderate,Complete,Mousterian,Black,10YR2/1,Denticulate
+ART-014,TR-107,94.5,28.9,19.5,95.6,0,Chert,Blade,Platform,Point,Absent,Fresh,Complete,Solutrean,Tan,10YR7/4,Laurel leaf
+ART-015,TR-108,38.9,30.1,6.8,15.6,12,Flint,Flake,Cortical,Scraper,Present,Slight,Broken,Levallois,Grey,10YR5/1,Hollow scraper
+ART-016,TR-108,73.2,25.9,14.8,58.9,0,Quartzite,Blade,Flat,Backed,Absent,Fresh,Complete,Aurignacian,White,10YR8/1,Strangulated blade
+ART-017,TR-109,62.5,32.8,10.5,39.8,28,Obsidian,Core,Platform,Core,Absent,Moderate,Complete,Blade,Black,10YR2/1,Tested nodule
+ART-018,TR-109,49.8,29.2,8.9,25.6,15,Chert,Flake,Cortical,Notch,Present,Slight,Complete,Discoidal,Grey-brown,10YR4/3,Clactonian notch
+ART-019,TR-110,85.6,27.5,16.8,82.3,0,Flint,Blade,Flat,Burin,Absent,Fresh,Complete,Gravettian,Grey,10YR6/1,Noailles burin
+ART-020,TR-110,55.9,31.5,9.2,31.2,22,Obsidian,Flake,Cortical,Scraper,Present,Slight,Complete,Mousterian,Black,10YR2/1,Transverse scraper

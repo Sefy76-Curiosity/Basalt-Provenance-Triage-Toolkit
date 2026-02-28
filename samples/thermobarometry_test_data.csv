@@ -1,78 +1,32 @@
-Sample_ID,Phase,SiO2,TiO2,Al2O3,Fe2O3,FeO,MnO,MgO,CaO,Na2O,K2O,Cr2O3,NiO,H2O
-MT-001,cpx,52.3,0.8,4.2,1.2,3.5,0.1,16.8,19.2,0.4,0.0,0.3,0.0,
-MT-001,opx,54.1,0.2,2.8,0.8,8.2,0.2,30.5,2.1,0.1,0.0,0.2,0.0,
-MT-001,melt,62.5,1.2,16.8,1.5,3.2,0.1,2.8,5.2,4.1,1.8,0.0,0.0,2.5
-MT-001,plag,58.2,0.0,26.4,0.0,0.2,0.0,0.1,8.2,6.5,0.4,0.0,0.0,
-MT-001,amph,42.5,2.8,12.5,2.5,8.2,0.2,14.2,11.5,2.2,1.1,0.1,0.0,
-MT-001,ol,39.2,0.0,0.0,0.0,15.5,0.2,45.2,0.2,0.0,0.0,0.0,0.3,
-MT-001,grt,38.5,0.1,21.5,1.8,18.5,0.5,9.2,8.5,0.0,0.0,0.2,0.0,
-MT-001,bt,36.5,3.2,16.8,2.5,12.5,0.1,14.2,0.5,0.2,8.5,0.1,0.0,
-
-MT-002,cpx,51.8,1.2,5.1,1.5,4.2,0.2,15.2,18.5,0.5,0.0,0.4,0.0,
-MT-002,opx,53.5,0.3,3.2,1.0,9.5,0.3,28.5,2.8,0.1,0.0,0.3,0.0,
-MT-002,melt,58.5,1.5,15.2,1.8,4.8,0.2,3.5,6.8,3.8,2.2,0.0,0.0,3.2
-MT-002,plag,55.5,0.0,27.8,0.0,0.3,0.0,0.1,10.2,5.2,0.3,0.0,0.0,
-MT-002,amph,41.2,3.2,13.8,2.8,9.2,0.3,13.5,10.8,2.5,1.3,0.2,0.0,
-MT-002,ol,38.5,0.0,0.0,0.0,18.2,0.3,42.5,0.3,0.0,0.0,0.0,0.4,
-MT-002,grt,37.2,0.2,22.5,2.2,20.5,0.6,7.5,7.8,0.0,0.0,0.3,0.0,
-MT-002,bt,35.5,3.8,17.2,2.8,13.5,0.2,12.8,0.6,0.3,9.2,0.2,0.0,
-
-MT-003,cpx,50.5,1.5,6.2,1.8,5.2,0.3,13.5,16.5,0.6,0.0,0.5,0.0,
-MT-003,opx,52.8,0.4,3.8,1.2,11.2,0.4,26.5,3.5,0.2,0.0,0.4,0.0,
-MT-003,melt,55.5,1.8,14.5,2.2,5.5,0.3,4.2,7.5,3.5,2.5,0.0,0.0,3.8
-MT-003,plag,52.5,0.0,29.5,0.0,0.4,0.0,0.1,12.5,4.2,0.2,0.0,0.0,
-MT-003,amph,40.2,3.5,14.5,3.2,10.5,0.4,12.5,9.8,2.8,1.5,0.3,0.0,
-MT-003,ol,37.5,0.0,0.0,0.0,20.5,0.4,40.5,0.4,0.0,0.0,0.0,0.5,
-MT-003,grt,36.5,0.3,23.5,2.5,22.5,0.7,6.5,7.2,0.0,0.0,0.4,0.0,
-MT-003,bt,34.5,4.2,17.8,3.2,14.5,0.3,11.5,0.7,0.4,9.8,0.3,0.0,
-
-ARC-001,cpx,53.5,0.5,3.2,0.8,2.8,0.1,18.5,20.5,0.3,0.0,0.2,0.0,
-ARC-001,opx,55.2,0.1,2.2,0.5,6.5,0.1,32.5,1.8,0.1,0.0,0.1,0.0,
-ARC-001,melt,65.5,0.8,17.5,1.2,2.2,0.1,1.8,4.2,4.5,2.8,0.0,0.0,1.8
-ARC-001,plag,60.5,0.0,25.2,0.0,0.1,0.0,0.0,6.5,7.2,0.5,0.0,0.0,
-ARC-001,amph,44.5,2.2,11.2,2.2,6.5,0.1,15.5,12.5,1.8,0.8,0.1,0.0,
-ARC-001,ol,40.2,0.0,0.0,0.0,12.5,0.1,47.5,0.1,0.0,0.0,0.0,0.2,
-ARC-001,grt,39.5,0.1,20.5,1.5,15.5,0.4,10.5,9.5,0.0,0.0,0.1,0.0,
-ARC-001,bt,37.5,2.8,15.5,2.2,10.5,0.1,15.5,0.4,0.1,7.5,0.1,0.0,
-
-ARC-002,cpx,54.2,0.6,2.8,0.6,2.5,0.1,19.2,21.2,0.2,0.0,0.2,0.0,
-ARC-002,opx,56.5,0.1,1.8,0.4,5.8,0.1,34.5,1.5,0.1,0.0,0.1,0.0,
-ARC-002,melt,68.5,0.5,16.2,1.0,1.8,0.1,1.2,3.5,4.8,3.2,0.0,0.0,1.2
-ARC-002,plag,62.5,0.0,24.2,0.0,0.1,0.0,0.0,5.2,7.8,0.6,0.0,0.0,
-ARC-002,amph,45.5,1.8,10.5,1.8,5.8,0.1,16.5,13.2,1.5,0.6,0.1,0.0,
-ARC-002,ol,40.8,0.0,0.0,0.0,10.5,0.1,48.5,0.1,0.0,0.0,0.0,0.2,
-ARC-002,grt,40.2,0.1,19.5,1.2,13.5,0.3,11.5,10.2,0.0,0.0,0.1,0.0,
-ARC-002,bt,38.5,2.2,14.5,1.8,8.5,0.1,16.5,0.3,0.1,6.8,0.1,0.0,
-
-RFT-001,cpx,49.5,2.2,7.5,2.2,6.5,0.2,11.5,14.5,0.8,0.1,0.6,0.0,
-RFT-001,opx,51.2,0.6,4.5,1.5,13.5,0.3,22.5,4.2,0.2,0.0,0.5,0.0,
-RFT-001,melt,52.5,2.5,13.5,2.8,6.8,0.2,5.2,8.5,3.2,2.8,0.0,0.0,4.5
-RFT-001,plag,48.5,0.0,31.5,0.0,0.5,0.0,0.1,14.5,3.2,0.1,0.0,0.0,
-RFT-001,amph,38.5,4.2,15.8,3.8,12.5,0.3,10.5,8.5,3.2,1.8,0.4,0.0,
-RFT-001,ol,36.5,0.0,0.0,0.0,24.5,0.3,36.5,0.5,0.0,0.0,0.0,0.6,
-RFT-001,grt,35.5,0.4,24.5,3.2,25.5,0.8,5.2,6.2,0.0,0.0,0.5,0.0,
-RFT-001,bt,33.5,5.2,18.5,3.8,16.5,0.2,9.5,0.8,0.5,10.5,0.4,0.0,
-
-RFT-002,cpx,48.2,2.5,8.2,2.5,7.2,0.3,10.5,13.5,0.9,0.1,0.7,0.0,
-RFT-002,opx,50.5,0.7,5.2,1.8,14.5,0.4,20.5,4.8,0.3,0.0,0.6,0.0,
-RFT-002,melt,50.5,2.8,12.8,3.2,7.5,0.3,5.8,9.2,3.0,3.0,0.0,0.0,5.2
-RFT-002,plag,46.5,0.0,32.5,0.0,0.6,0.0,0.1,15.5,2.8,0.1,0.0,0.0,
-RFT-002,amph,37.2,4.5,16.5,4.2,13.5,0.4,9.5,7.8,3.5,2.0,0.5,0.0,
-RFT-002,ol,35.2,0.0,0.0,0.0,26.5,0.4,34.5,0.6,0.0,0.0,0.0,0.7,
-RFT-002,grt,34.5,0.5,25.5,3.5,27.5,0.9,4.5,5.5,0.0,0.0,0.6,0.0,
-RFT-002,bt,32.5,5.8,19.5,4.2,17.5,0.3,8.5,0.9,0.6,11.2,0.5,0.0,
-
-MET-001,grt,37.8,0.1,21.2,1.2,22.5,1.5,4.2,8.2,0.0,0.0,0.3,0.0,
-MET-001,bt,35.2,2.5,17.2,1.5,16.5,0.2,9.5,0.2,0.2,7.8,0.1,0.0,
-MET-001,plag,61.2,0.0,24.2,0.0,0.2,0.0,0.0,5.2,8.2,0.5,0.0,0.0,
-MET-001,opx,53.2,0.2,3.2,0.5,14.5,0.3,25.5,1.8,0.1,0.0,0.2,0.0,
-
-MET-002,grt,36.5,0.2,22.5,1.5,24.5,2.2,3.5,7.5,0.0,0.0,0.4,0.0,
-MET-002,bt,34.5,2.8,18.2,1.8,18.5,0.3,8.2,0.3,0.3,8.5,0.2,0.0,
-MET-002,plag,58.5,0.0,26.2,0.0,0.3,0.0,0.0,6.5,7.2,0.4,0.0,0.0,
-MET-002,opx,52.5,0.3,3.8,0.6,15.5,0.4,23.5,2.2,0.2,0.0,0.3,0.0,
-
-MET-003,grt,35.2,0.3,23.5,1.8,26.5,2.8,2.8,6.8,0.0,0.0,0.5,0.0,
-MET-003,bt,33.5,3.2,19.2,2.2,20.5,0.4,6.8,0.4,0.4,9.2,0.3,0.0,
-MET-003,plag,55.5,0.0,28.2,0.0,0.4,0.0,0.0,7.5,6.2,0.3,0.0,0.0,
-MET-003,opx,51.5,0.4,4.2,0.7,16.5,0.5,21.5,2.5,0.3,0.0,0.4,0.0,
+SampleID,Location,RockType,MineralPair,Phase,Element,Method,Temperature_C,Pressure_kbar,MinT_C,MaxT_C,MinP_kbar,MaxP_kbar,Equilibrium,Notes
+GEO-001,Mt. A,Granite,Plagioclase-Hornblende,Plagioclase,An30,Hbl-Pl,750,3.2,720,780,2.8,3.5,Good,Igneous
+GEO-001,Mt. A,Granite,Plagioclase-Hornblende,Hornblende,Altot,Hbl-Pl,750,3.2,720,780,2.8,3.5,Good,Igneous
+GEO-002,Mt. A,Granite,Zircon-Titanite,Zircon,Ti,Ti-in-Zircon,680,2.5,650,710,2.2,2.8,Good,Metamorphic overprint
+GEO-002,Mt. A,Granite,Zircon-Titanite,Titanite,Zr-in-Ttn,Ti-in-Ttn,690,2.5,660,720,2.2,2.8,Good,Metamorphic overprint
+GEO-003,Mt. B,Gneiss,Garnet-Biotite,Garnet,Alm65Prp20,Grt-Bt,620,5.8,590,650,5.2,6.4,Excellent,Peak metamorphism
+GEO-003,Mt. B,Gneiss,Garnet-Biotite,Biotite,XMg0.55,Grt-Bt,620,5.8,590,650,5.2,6.4,Excellent,Peak metamorphism
+GEO-004,Mt. B,Gneiss,Garnet-Plagioclase-Al2SiO5-Quartz,Garnet,Grs20,GASP,610,6.2,580,640,5.8,6.8,Good,Assemblage stable
+GEO-004,Mt. B,Gneiss,Garnet-Plagioclase-Al2SiO5-Quartz,Plagioclase,An25,GASP,610,6.2,580,640,5.8,6.8,Good,Assemblage stable
+GEO-005,Mt. C,Eclogite,Garnet-Clinopyroxene,Garnet,Alm50Prp25,Grt-Cpx,850,18.5,820,880,17.5,19.5,Excellent,UHP conditions
+GEO-005,Mt. C,Eclogite,Garnet-Clinopyroxene,Clinopyroxene,Jd40,Grt-Cpx,850,18.5,820,880,17.5,19.5,Excellent,UHP conditions
+GEO-006,Mt. C,Eclogite,Garnet-Phengite,Garnet,Alm45Prp30,Grt-Ph,820,19.2,790,850,18.2,20.2,Good,HP retrograde
+GEO-006,Mt. C,Eclogite,Garnet-Phengite,Phengite,Si3.45,Grt-Ph,820,19.2,790,850,18.2,20.2,Good,HP retrograde
+GEO-007,Mt. D,Peridotite,Ol-Sp-Opx,Orthopyroxene,Al2O3,Ol-Sp-Opx,1050,12.5,1000,1100,11.5,13.5,Excellent,Mantle xenolith
+GEO-007,Mt. D,Peridotite,Ol-Sp-Opx,Olivine,Fe90,Ol-Sp-Opx,1050,12.5,1000,1100,11.5,13.5,Excellent,Mantle xenolith
+GEO-007,Mt. D,Peridotite,Ol-Sp-Opx,Spinel,Cr#35,Ol-Sp-Opx,1050,12.5,1000,1100,11.5,13.5,Excellent,Mantle xenolith
+GEO-008,Mt. D,Peridotite,Two-Pyroxene,Orthopyroxene,En90,Two-Pyx,980,11.8,950,1010,10.8,12.8,Good,Reequilibrated
+GEO-008,Mt. D,Peridotite,Two-Pyroxene,Clinopyroxene,Ca50,Two-Pyx,980,11.8,950,1010,10.8,12.8,Good,Reequilibrated
+GEO-009,Mt. E,Amphibolite,Hornblende-Plagioclase,Hornblende,Altot,Hbl-Pl,590,4.2,560,620,3.8,4.8,Good,Amphibolite facies
+GEO-009,Mt. E,Amphibolite,Hornblende-Plagioclase,Plagioclase,An35,Hbl-Pl,590,4.2,560,620,3.8,4.8,Good,Amphibolite facies
+GEO-010,Mt. E,Amphibolite,Garnet-Hornblende,Garnet,Alm60Prp15,Grt-Hbl,605,4.5,575,635,4.0,5.2,Good,Peak conditions
+GEO-010,Mt. E,Amphibolite,Garnet-Hornblende,Hornblende,Altot,Grt-Hbl,605,4.5,575,635,4.0,5.2,Good,Peak conditions
+GEO-011,Mt. F,Schist,Garnet-Mica,Garnet,Alm70Prp5,Grt-Ms,540,3.8,510,570,3.2,4.4,Good,Greenschist facies
+GEO-011,Mt. F,Schist,Garnet-Mica,Muscovite,Si3.2,Grt-Ms,540,3.8,510,570,3.2,4.4,Good,Greenschist facies
+GEO-012,Mt. F,Schist,Chlorite-Phengite,Chlorite,XMg0.65,Chl-Ph,450,2.5,420,480,2.0,3.0,Good,Retrograde
+GEO-012,Mt. F,Schist,Chlorite-Phengite,Phengite,Si3.3,Chl-Ph,450,2.5,420,480,2.0,3.0,Good,Retrograde
+GEO-013,Mt. G,Metapelite,Garnet-Biotite-Muscovite-Plagioclase,Garnet,Alm68Prp12,GBMP,580,5.5,550,610,5.0,6.2,Excellent,Peak assemblage
+GEO-013,Mt. G,Metapelite,Garnet-Biotite-Muscovite-Plagioclase,Biotite,XMg0.48,GBMP,580,5.5,550,610,5.0,6.2,Excellent,Peak assemblage
+GEO-013,Mt. G,Metapelite,Garnet-Biotite-Muscovite-Plagioclase,Muscovite,Si3.15,GBMP,580,5.5,550,610,5.0,6.2,Excellent,Peak assemblage
+GEO-013,Mt. G,Metapelite,Garnet-Biotite-Muscovite-Plagioclase,Plagioclase,An22,GBMP,580,5.5,550,610,5.0,6.2,Excellent,Peak assemblage
+GEO-014,Mt. H,Granulite,Garnet-Orthopyroxene,Garnet,Alm55Prp30,Grt-Opx,820,7.5,790,850,7.0,8.5,Good,Granulite facies
+GEO-014,Mt. H,Granulite,Garnet-Orthopyroxene,Orthopyroxene,En70,Grt-Opx,820,7.5,790,850,7.0,8.5,Good,Gr

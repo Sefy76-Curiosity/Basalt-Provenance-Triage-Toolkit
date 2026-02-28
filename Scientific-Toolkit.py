@@ -17,7 +17,7 @@ import subprocess
 import sys
 import importlib.util
 import tkinter as tk
-from tkinter import messagebox, scrolledtext, ttk
+from tkinter import messagebox, scrolledtext, ttk, filedialog
 import threading
 import os
 from pathlib import Path
@@ -558,9 +558,14 @@ class ScientificToolkit:
         self.plot_plugin_types = []
         self._loaded_plugin_info = {}
 
+        # Build menu first, then bottom bar (side=BOTTOM must be packed before
+        # the expand=True main panel on Windows or it gets squeezed out), then
+        # panels, then wire the bottom bar's commands/variables to the panels.
         self._create_menu_structure()
-        self._create_panels()
         self._build_bottom_controls()
+        self._create_panels()
+        self._wire_bottom_controls()
+
         self._load_plugins()
         self._refresh_engine_menu()
 
@@ -572,6 +577,36 @@ class ScientificToolkit:
 
         self._apply_ui_settings()
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
+
+    def ensure_bottom_bar(self):
+        """Ensure the bottom bar exists and is visible (Windows fix)"""
+        if hasattr(self, 'bottom_frame') and self.bottom_frame:
+            try:
+                self.bottom_frame.winfo_exists()
+                self.bottom_frame.pack_forget()
+                self.bottom_frame.pack(fill=tk.X, side=tk.BOTTOM, padx=5, pady=(0, 5))
+                self.bottom_frame.lift()
+                self.bottom_frame.update_idletasks()
+                return
+            except:
+                self.bottom_frame = None
+
+        # If we get here, we need to rebuild
+        for child in self.root.winfo_children():
+            if isinstance(child, ttk.Frame) and child != getattr(self, 'bottom_frame', None):
+                try:
+                    for subchild in child.winfo_children():
+                        if isinstance(subchild, ttk.Button):
+                            text = subchild.cget('text')
+                            if text in ['◀ Prev', 'Next ▶', 'Select All', '🗑️ Delete']:
+                                child.destroy()
+                                break
+                except:
+                    pass
+
+        self._build_bottom_controls()
+        self._wire_bottom_controls()
+        self.root.update_idletasks()
 
     def _load_initial_engines(self):
         engines = self.engine_manager.get_available_engines()
@@ -605,7 +640,7 @@ class ScientificToolkit:
 
     def _on_closing(self):
         """Handle application closing"""
-        self._is_closing = True  # Set flag first
+        self._is_closing = True
 
         if hasattr(self, 'data_hub') and self.data_hub.has_unsaved_changes():
             response = messagebox.askyesnocancel(
@@ -613,18 +648,16 @@ class ScientificToolkit:
                 "You have unsaved changes.\n\nYes: Save now\nNo: Exit without saving\nCancel: Stay"
             )
             if response is None:
-                self._is_closing = False  # Reset flag if staying
+                self._is_closing = False
                 return
             elif response:
                 if not self.project_manager.save_project():
-                    self._is_closing = False  # Reset flag if save cancelled
+                    self._is_closing = False
                     return
 
-        # Stop auto-save if it exists
         if hasattr(self, 'auto_save') and self.auto_save:
             self.auto_save.stop()
 
-        # Destroy the window
         self.root.destroy()
 
     def _open_settings(self):
@@ -633,11 +666,9 @@ class ScientificToolkit:
         self._reapply_settings()
 
     def _reapply_settings(self):
-        # Recent files — always exists, just sync the max count
         if hasattr(self, 'recent_files'):
             self.recent_files.max_recent = self.settings.get('recent_files', 'max_files')
 
-        # Auto-save — create or destroy the manager object
         if self.settings.get('auto_save', 'enabled'):
             if not self.auto_save:
                 self.auto_save = AutoSaveManager(
@@ -650,14 +681,12 @@ class ScientificToolkit:
                 self.auto_save.stop()
                 self.auto_save = None
 
-        # Macro recorder — create or destroy the recorder object
         if self.settings.get('macro_recorder', 'enabled'):
             if not self.macro_recorder:
                 self.macro_recorder = MacroRecorder(self)
         else:
             self.macro_recorder = None
 
-        # Script exporter — create or destroy, then rewire the menu command
         if self.settings.get('script_exporter', 'enabled'):
             if not self.script_exporter:
                 self.script_exporter = ScriptExporter(self)
@@ -670,13 +699,11 @@ class ScientificToolkit:
         except Exception:
             pass
 
-        # Tooltips
         if self.settings.get('tooltips', 'enabled'):
             self.root.after(500, self._add_tooltips_to_panels)
         else:
             self.tooltip_manager.clear_all()
 
-        # Sync all menu states
         self._update_macro_menu_state()
 
     def _update_macro_menu_state(self):
@@ -691,8 +718,6 @@ class ScientificToolkit:
             pass
 
     # ── FIELD ORDER AND ICONS ─────────────────────────────────────────
-    # Canonical list — determines submenu order under Advanced.
-    # Only fields that have at least one enabled plugin appear in the menu.
     _FIELD_ORDER = [
         "Geology & Geochemistry",
         "Geochronology & Dating",
@@ -736,24 +761,11 @@ class ScientificToolkit:
     }
 
     def _get_plugin_category(self, plugin_info):
-        """
-        Resolve the scientific field for a plugin, used as the Advanced submenu name.
-
-        Priority:
-          1. PLUGIN_INFO['field']      — new plugins declare their field explicitly
-          2. PLUGIN_INFO['menu_category'] — legacy key, kept for backward compat
-          3. Keyword matching on name/description/id — catches all old plugins
-          4. 'General'                 — final fallback
-        """
-        # 1. Explicit field (new-style plugins)
         if plugin_info.get('field'):
             return plugin_info['field']
-
-        # 2. Legacy menu_category key (backward compat)
         if plugin_info.get('menu_category'):
             return plugin_info['menu_category']
 
-        # 3. Keyword matching — covers all existing plugins without 'field'
         search_text = " ".join([
             plugin_info.get('name', '').lower(),
             plugin_info.get('description', '').lower(),
@@ -825,22 +837,15 @@ class ScientificToolkit:
             if any(k in search_text for k in keywords):
                 return name
 
-        # 4. Final fallback
         return 'General'
 
     def _rebuild_advanced_menu(self):
-        """
-        Rebuild the Advanced menu grouping enabled software plugins by scientific field.
-        Only creates submenus for fields that actually have plugins.
-        Source badge: ☁️ for store-downloaded, 🖥 for local.
-        """
         self.advanced_menu.delete(0, tk.END)
 
         if not self._loaded_plugin_info:
             self.advanced_menu.add_command(label="No plugins loaded", state=tk.DISABLED)
             return
 
-        # Load downloaded set for source badge
         downloaded: set = set()
         dl_file = Path("config/downloaded_plugins.json")
         if dl_file.exists():
@@ -850,18 +855,13 @@ class ScientificToolkit:
             except Exception:
                 pass
 
-        # Group plugins by field
         by_field = defaultdict(list)
         for pid, info in self._loaded_plugin_info.items():
             field = info.get('field', 'General')
             by_field[field].append(info)
 
-        # ===== MODIFIED SECTION =====
-        # Sort fields alphabetically instead of using custom order
         sorted_fields = sorted(by_field.keys())
-        # ============================
 
-        # Build submenus in alphabetical order
         for field in sorted_fields:
             plugins = sorted(by_field[field], key=lambda x: x['name'].lower())
             icon    = self._FIELD_ICONS.get(field, "📦")
@@ -1043,6 +1043,18 @@ class ScientificToolkit:
         self.right = RightPanel(self.main_pane, self)
         self.main_pane.add(self.right.frame, weight=1)
 
+    def _wire_bottom_controls(self):
+        """Connect bottom bar buttons and labels to the center panel.
+
+        Called after _create_panels() so self.center is guaranteed to exist.
+        The bottom bar is built before the panels (for correct Windows pack
+        ordering), so commands and textvariable references are set here.
+        """
+        self.prev_btn.configure(command=self.center.prev_page)
+        self.next_btn.configure(command=self.center.next_page)
+        self.status_label.configure(textvariable=self.center.status_var)
+        self.status_label.bind("<Button-1>", lambda e: self._show_status_details())
+
     def _toggle_select_all(self):
         total = self.data_hub.row_count()
         all_selected = len(self.center.selected_rows) == total and total > 0
@@ -1077,20 +1089,29 @@ class ScientificToolkit:
             tree.column(col, width=min(max(80, max_width), 300))
 
     def _build_bottom_controls(self):
+        """Build the bottom navigation/status bar.
+
+        This must be called BEFORE _create_panels() on Windows so that the
+        side=BOTTOM widget is registered with pack before the expand=True
+        main frame claims all available space.  Commands that reference
+        self.center are wired up later in _wire_bottom_controls().
+        """
         bottom = ttk.Frame(self.root, bootstyle="dark")
         bottom.pack(fill=tk.X, side=tk.BOTTOM, padx=5, pady=(0, 5))
+        self.bottom_frame = bottom
 
         nav = ttk.Frame(bottom, bootstyle="dark")
         nav.pack(side=tk.LEFT, padx=6, pady=4)
 
-        self.prev_btn = ttk.Button(nav, text="◀ Prev", command=self.center.prev_page,
+        # Commands are placeholders; wired to center panel in _wire_bottom_controls()
+        self.prev_btn = ttk.Button(nav, text="◀ Prev", command=lambda: None,
                                    bootstyle="secondary-outline", width=8)
         self.prev_btn.pack(side=tk.LEFT, padx=2)
 
         self.page_label = ttk.Label(nav, text="Page 1 of 1", bootstyle="light", width=12)
         self.page_label.pack(side=tk.LEFT, padx=8)
 
-        self.next_btn = ttk.Button(nav, text="Next ▶", command=self.center.next_page,
+        self.next_btn = ttk.Button(nav, text="Next ▶", command=lambda: None,
                                    bootstyle="secondary-outline", width=8)
         self.next_btn.pack(side=tk.LEFT, padx=2)
 
@@ -1100,12 +1121,13 @@ class ScientificToolkit:
         status_frame = ttk.Frame(bottom, bootstyle="dark")
         status_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10, pady=4)
 
+        # textvariable is wired to center.status_var in _wire_bottom_controls()
+        self._bottom_status_var = tk.StringVar(value="Starting...")
         self.status_label = ttk.Label(
-            status_frame, textvariable=self.center.status_var,
+            status_frame, textvariable=self._bottom_status_var,
             anchor=tk.W, cursor="hand2", bootstyle="light"
         )
         self.status_label.pack(fill=tk.X, padx=4, pady=2)
-        self.status_label.bind("<Button-1>", lambda e: self._show_status_details())
 
         sel = ttk.Frame(bottom, bootstyle="dark")
         sel.pack(side=tk.RIGHT, padx=6, pady=4)
@@ -1131,7 +1153,6 @@ class ScientificToolkit:
 
     def _check_unsaved_changes(self):
         """Check for unsaved changes and update indicator"""
-        # Don't schedule next check if we're closing
         if self._is_closing:
             return
 
@@ -1141,7 +1162,6 @@ class ScientificToolkit:
             else:
                 self.unsaved_indicator.configure(text="○", bootstyle="secondary")
 
-        # Only schedule next check if we're not closing
         if not self._is_closing:
             self.root.after(2000, self._check_unsaved_changes)
 
@@ -1335,12 +1355,6 @@ class ScientificToolkit:
             self.menu_bar.add_cascade(label="Help", menu=self.help_menu)
 
     def _add_to_advanced_menu(self, info, inst):
-        """
-        Register a plugin for the Advanced menu.
-        Resolves its scientific field via _get_plugin_category which reads:
-          PLUGIN_INFO['field'] first, then 'menu_category', then keyword matching.
-        Old plugins without any of those keys still land in the right submenu.
-        """
         plugin_id = info.get('id', '')
         if plugin_id in self._added_plugins:
             return
@@ -1571,87 +1585,14 @@ Right-Click     Context Menu (Edit, Copy, Delete)
     def show_about(self):
         win = ttk.Toplevel(self.root)
         win.title("About Scientific Toolkit")
-        win.geometry("660x680")
         win.transient(self.root)
 
-        canvas = tk.Canvas(win, bg="#1c1c1c", highlightthickness=0)
-        scrollbar = ttk.Scrollbar(win, orient="vertical", command=canvas.yview)
-        frm = ttk.Frame(canvas, padding=24)
-
-        frm.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=frm, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        ttk.Label(frm, text="Scientific Toolkit v2.0",
-                font=("Segoe UI", 16, "bold"), bootstyle="light").pack(pady=(0, 3))
-        ttk.Label(frm, text="(Based on Basalt Provenance Triage Toolkit v10.2)",
-                font=("Segoe UI", 9, "italic"), bootstyle="secondary").pack()
-        ttk.Label(frm, text="© 2026 Sefy Levy  •  All Rights Reserved",
-                bootstyle="secondary").pack(pady=2)
-        email = ttk.Label(frm, text="sefy76@gmail.com", bootstyle="info", cursor="hand2")
-        email.pack()
-        email.bind("<Button-1>", lambda e: webbrowser.open("mailto:sefy76@gmail.com"))
-        ttk.Label(frm, text="DOI: https://doi.org/10.5281/zenodo.18727756",
-                bootstyle="info", cursor="hand2").pack()
-        ttk.Label(frm, text="CC BY-NC-SA 4.0 — Non-commercial research & education use",
-                font=("Segoe UI", 9, "italic"), bootstyle="secondary").pack(pady=(6, 4))
-        ttk.Label(frm, text="A unified platform for scientific data analysis with plugin architecture",
-                wraplength=580, justify="center", bootstyle="light").pack(pady=(0, 8))
-
-        # ===== FIXED SECTION =====
-        # Create a regular Frame with padding instead of LabelFrame
-        ded_frame = ttk.Frame(frm)
-        ded_frame.pack(pady=8, padx=20, fill=tk.X)
-
-        # Create a separate label for the "Dedication" title
-        ttk.Label(ded_frame, text="Dedication", font=("Segoe UI", 10, "bold"),
-                bootstyle="secondary").pack(anchor="w", pady=(0, 5))
-
-        # Create the content frame with padding
-        ded_content = ttk.Frame(ded_frame, padding=16)
-        ded_content.pack(fill=tk.X)
-
-        ttk.Label(ded_content, text="Dedicated to my beloved",
-                font=("Segoe UI", 10, "bold")).pack(pady=(0, 2))
-        ttk.Label(ded_content, text="Camila Portes Salles",
-                font=("Segoe UI", 12, "italic"), bootstyle="danger").pack()
-        ttk.Label(ded_content, text="Special thanks to my sister",
-                font=("Segoe UI", 9, "bold")).pack(pady=(8, 2))
-        ttk.Label(ded_content, text="Or Levy", font=("Segoe UI", 10, "italic")).pack()
-        ttk.Label(ded_content, text="In loving memory of my mother").pack(pady=(8, 2))
-        ttk.Label(ded_content, text="Chaya Levy", font=("Segoe UI", 10, "italic")).pack()
-        # ========================
-
-        ttk.Label(frm, text="Development: Sefy Levy (2026)", bootstyle="secondary").pack(pady=(12, 2))
-        ttk.Label(frm, text="Implementation with generous help from:").pack()
-        ttk.Label(frm, text="Gemini • Copilot • ChatGPT • Claude • DeepSeek • Mistral • Grok",
-                font=("Segoe UI", 9, "italic"), bootstyle="secondary").pack()
-        ttk.Label(frm, text="If used in research — please cite:",
-                font=("Segoe UI", 9, "bold")).pack(pady=(12, 2))
-        ttk.Label(frm,
-                text="Sefy Levy (2026). Scientific Toolkit v2.0.\n"
-                    "Based on Basalt Provenance Triage Toolkit v10.2.\n"
-                    "https://doi.org/10.5281/zenodo.18727756",
-                justify="center", bootstyle="secondary").pack()
-        ttk.Button(frm, text="Close", command=win.destroy,
-                bootstyle="secondary-outline", width=12).pack(pady=(16, 0))
-
-    def show_about(self):
-        win = ttk.Toplevel(self.root)
-        win.title("About Scientific Toolkit")
-        win.transient(self.root)
-
-        # Main container with padding
         main_container = ttk.Frame(win, padding=25)
         main_container.pack(fill=tk.BOTH, expand=True)
 
-        # REMOVED canvas and scrollbar - using simple frame instead
         frm = ttk.Frame(main_container)
         frm.pack(fill=tk.BOTH, expand=True)
 
-        # Header section
         header_frame = ttk.Frame(frm)
         header_frame.pack(fill=tk.X, pady=(0, 10))
 
@@ -1672,11 +1613,9 @@ Right-Click     Context Menu (Edit, Copy, Delete)
         ttk.Label(header_frame, text="A unified platform for scientific data analysis with plugin architecture",
                 wraplength=500, justify="center").pack(pady=(0, 8))
 
-        # Dedication section with box
         ded = ttk.LabelFrame(frm, text="Dedication")
         ded.pack(pady=8, fill=tk.X)
 
-        # Inner frame for padding
         ded_content = ttk.Frame(ded, padding=16)
         ded_content.pack(fill=tk.X)
 
@@ -1690,7 +1629,6 @@ Right-Click     Context Menu (Edit, Copy, Delete)
         ttk.Label(ded_content, text="In loving memory of my mother").pack(pady=(8, 2))
         ttk.Label(ded_content, text="Chaya Levy", font=("Segoe UI", 10, "italic")).pack()
 
-        # Footer section
         footer_frame = ttk.Frame(frm)
         footer_frame.pack(fill=tk.X, pady=(12, 0))
 
@@ -1709,18 +1647,14 @@ Right-Click     Context Menu (Edit, Copy, Delete)
                     "https://doi.org/10.5281/zenodo.18727756",
                 justify="center", wraplength=500).pack()
 
-        # Button frame at bottom
         button_frame = ttk.Frame(frm)
         button_frame.pack(fill=tk.X, pady=(16, 5))
         ttk.Button(button_frame, text="Close", command=win.destroy, width=12).pack()
 
-        # Set window size - fixed dimensions that fit all content
         win.update_idletasks()
-        width = 600  # Fixed comfortable width
-        height = 650  # Fixed height that should fit all content
+        width = 600
+        height = 650
         win.geometry(f"{width}x{height}+{(win.winfo_screenwidth()-width)//2}+{(win.winfo_screenheight()-height)//2}")
-
-        # Make window non-resizable to prevent scrollbar issues
         win.resizable(False, False)
 
     def show_support(self):
@@ -1749,12 +1683,9 @@ Right-Click     Context Menu (Edit, Copy, Delete)
                     "any support is deeply appreciated.",
                 justify="center", wraplength=400).pack(pady=(0, 16))
 
-        # ===== FIXED DONATION SECTION =====
-        # Create Labelframe without bootstyle
         donate_container = ttk.LabelFrame(frm, text="Ways to Support")
         donate_container.pack(fill=tk.X, pady=8, padx=10)
 
-        # Inner frame for padding
         donate_frame = ttk.Frame(donate_container, padding=14)
         donate_frame.pack(fill=tk.X)
 
@@ -1765,7 +1696,6 @@ Right-Click     Context Menu (Edit, Copy, Delete)
         ]:
             ttk.Button(donate_frame, text=label,
                     command=lambda u=url: webbrowser.open(u)).pack(fill=tk.X, pady=4, padx=8)
-        # ==================================
 
         ttk.Separator(frm).pack(fill=tk.X, pady=14)
         ttk.Label(frm, text="Thank you for believing in open scientific tools.",
@@ -1778,7 +1708,6 @@ Right-Click     Context Menu (Edit, Copy, Delete)
 
 # ============ MAIN ============
 def main():
-    # Run the unified dependency checker (already ran at import)
     root = ttk.Window(themename="darkly")
     root.withdraw()
     set_messagebox_parent(root)
@@ -1788,7 +1717,7 @@ def main():
     w, h = 500, 300
     ws, hs = splash.winfo_screenwidth(), splash.winfo_screenheight()
     splash.geometry(f"{w}x{h}+{(ws-w)//2}+{(hs-h)//2}")
-    splash.configure(bg='#2c3e50')  # intentional branded splash color
+    splash.configure(bg='#2c3e50')
 
     main_frame = tk.Frame(splash, bg='#2c3e50', padx=30, pady=30)
     main_frame.pack(fill=tk.BOTH, expand=True)

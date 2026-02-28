@@ -19,13 +19,3 @@ STR-017,Outcrop F,2024-01-15,LDavis,Joint,310,50,220,,,,,,,,,Extension,,,,Basalt
 STR-018,Outcrop F,2024-01-15,LDavis,Bedding,340,22,070,,,,,,,,,,,Basalt,Pillow lava
 STR-019,Outcrop G,2024-01-16,KWilson,FoldAxis,,,,,,,045,20,F2,,,,,,Schist,Crenulation cleavage
 STR-020,Outcrop G,2024-01-16,KWilson,Lineation,,,,045,20,,,Crenulation,,,,,,Schist,Intersection lineation
-STR-021,Outcrop G,2024-01-16,KWilson,Cleavage,135,60,225,,,,,,,,,,,Schist,Slaty cleavage
-STR-022,Outcrop H,2024-01-17,PMiller,Bedding,080,12,170,,,,,,,,,,,Dolomite,Massive
-STR-023,Outcrop H,2024-01-17,PMiller,Fracture,350,75,260,,,,,,,,,Extension,,,,Dolomite,Open fracture
-STR-024,Outcrop H,2024-01-17,PMiller,Vein,080,10,170,,,,,090,15,Calcite,Extension,,,,Dolomite,Stockwork
-STR-025,Outcrop I,2024-01-18,NThompson,Fault,150,70,240,240,65,25,25,,,,,Thrust,NE,Quartzite,Mylonite zone
-STR-026,Outcrop I,2024-01-18,NThompson,Bedding,045,30,135,,,,,,,,,,,Quartzite,Cross-bedded
-STR-027,Outcrop I,2024-01-18,NThompson,Lineation,,,,060,25,,,Mineral,,,,,,Quartzite,Quartz rods
-STR-028,Outcrop J,2024-01-19,OGarcia,Bedding,090,45,180,,,,,,,,,,,Marble,Banded
-STR-029,Outcrop J,2024-01-19,OGarcia,FoldAxis,,,,,,,090,10,F3,,,,,,Marble,Recumbent fold
-STR-030,Outcrop J,2024-01-19,OGarcia,Cleavage,180,50,270,,,,,,,,,,,Marble,Spaced cleavage

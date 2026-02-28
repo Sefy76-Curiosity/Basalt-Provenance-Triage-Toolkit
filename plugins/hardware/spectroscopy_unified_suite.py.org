@@ -114,19 +114,6 @@ try:
 except ImportError:
     HAS_BLEAK = False
 
-try:
-    from PIL import Image as _PILImage
-    import io as _pil_io
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
-
-try:
-    from pptx import Presentation as _PPTXPresentation
-    HAS_PPTX_LIB = True
-except ImportError:
-    HAS_PPTX_LIB = False
-
 # ============================================================================
 # CROSS-PLATFORM CHECK
 # ============================================================================
@@ -330,47 +317,23 @@ class Spectrum:
     metadata: Dict = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, str]:
-        """
-        Export every piece of spectroscopic data as clearly named flat columns.
-
-        Column naming convention — each word describes exactly what is in that cell:
-          Compound_1, Confidence_1_%, Group_1, Formula_1, Peaks_Hit_1
-          Compound_2, Confidence_2_%, Group_2, Formula_2, Peaks_Hit_2  … up to 5
-          Peak_1_cm, Peak_2_cm … (position in x-axis units)
-          All_Peaks_Summary  (comma-separated list)
-        """
-        technique_str = self.technique.value if self.technique else ''
-        # Pick the right axis-unit suffix for peak columns
-        unit = ''
-        if self.technique in (InstrumentType.FTIR, InstrumentType.RAMAN):
-            unit = '_cm'
-        elif self.technique in (InstrumentType.UVVIS, InstrumentType.UVVIS_NIR,
-                                InstrumentType.NIR):
-            unit = '_nm'
-
+        """Summary dictionary for table export"""
         d = {
-            'Sample_ID':            self.sample_id,
-            'Technique':            technique_str,
-            'Instrument':           self.instrument,
-            'Manufacturer':         self.manufacturer,
-            'File':                 Path(self.file_source).name if self.file_source else '',
-            'Peaks_Found':          str(len(self.peaks)),
+            'Timestamp': self.timestamp.isoformat() if self.timestamp else '',
+            'Sample_ID': self.sample_id,
+            'Technique': self.technique.value if self.technique else '',
+            'Manufacturer': self.manufacturer,
+            'Model': self.model,
+            'Instrument': self.instrument,
+            'Peaks_Found': str(len(self.peaks)),
             'Compounds_Identified': str(len(self.identifications)),
-            'All_Peaks_Summary':    ', '.join(f'{p:.1f}' for p in self.peaks[:10]),
+            'File': Path(self.file_source).name if self.file_source else ''
         }
 
-        # ── per-compound columns: Compound_1, Confidence_1_%, Group_1 … ─────
-        for i, ident in enumerate(self.identifications[:5], start=1):
-            hits = f"{ident.get('matches', 0)}/{ident.get('total', 0)}"
-            d[f'Compound_{i}']      = ident.get('name', '')
-            d[f'Confidence_{i}_%']  = f"{ident.get('confidence', 0):.1f}"
-            d[f'Group_{i}']         = ident.get('group', '')
-            d[f'Formula_{i}']       = ident.get('formula', '')
-            d[f'Peaks_Hit_{i}']     = hits
-
-        # ── per-peak position columns: Peak_1_cm, Peak_2_cm … ───────────────
-        for i, pos in enumerate(self.peaks[:10], start=1):
-            d[f'Peak_{i}{unit}'] = f'{pos:.2f}'
+        # Add top identification
+        if self.identifications:
+            d['Top_Match'] = self.identifications[0]['name']
+            d['Confidence_%'] = f"{self.identifications[0]['confidence']:.1f}"
 
         return d
 
@@ -1742,662 +1705,6 @@ class SpectroscopyParserFactory:
 
 
 # ============================================================================
-# OFFLINE SPECTRUM DIGITIZER  (no API, no internet — pure pixel maths)
-# ============================================================================
-class SpectrumDigitizer:
-    """
-    Convert a spectrum chart image into x/y data arrays using pixel analysis.
-
-    Algorithm
-    ---------
-    1.  Detect the outer border (near-black frame that wraps the slide image).
-    2.  Inside that border find the x-axis (darkest horizontal line in the
-        lower half) and the y-axis (darkest vertical line in the left quarter).
-    3.  The plot interior lies between those two axis lines.
-    4.  For every pixel column in the plot interior, locate the topmost
-        non-background pixel — that is one point on the spectrum curve.
-    5.  Map pixel coordinates → data coordinates using the user-supplied
-        axis ranges.
-
-    Requires only numpy + Pillow.  No network calls, no OCR, no AI.
-    """
-
-    # ------------------------------------------------------------------ #
-    @staticmethod
-    def _find_plot_bounds(arr, gray):
-        """
-        Return (plot_top, plot_bot, plot_left, plot_right) as pixel indices
-        delimiting the inner plot area (axes excluded).
-        """
-        h, w = gray.shape
-
-        # -- outer border: rows / cols that are almost entirely black ------
-        row_dark = np.sum(gray < 30, axis=1)
-        col_dark = np.sum(gray < 30, axis=0)
-
-        border_rows = np.where(row_dark > w * 0.85)[0]
-        border_cols = np.where(col_dark > h * 0.85)[0]
-
-        top_bdr  = int(border_rows[border_rows < h // 2][-1]) + 3                    if len(border_rows[border_rows < h // 2]) else 3
-        bot_bdr  = int(border_rows[border_rows > h // 2][0])  - 3                    if len(border_rows[border_rows > h // 2]) else h - 3
-        left_bdr = int(border_cols[border_cols < w // 2][-1]) + 3                    if len(border_cols[border_cols < w // 2]) else 3
-        right_bdr= int(border_cols[border_cols > w // 2][0])  - 3                    if len(border_cols[border_cols > w // 2]) else w - 3
-
-        # -- axis lines within the content area ----------------------------
-        inner  = gray[top_bdr:bot_bdr, left_bdr:right_bdr]
-        ih, iw = inner.shape
-
-        row_dark_i = np.sum(inner < 80, axis=1)
-        col_dark_i = np.sum(inner < 80, axis=0)
-
-        # x-axis: darkest row in the lower 60 % of the inner area
-        bot_region   = row_dark_i[int(ih * 0.4):]
-        x_axis_rel   = int(ih * 0.4) + int(np.argmax(bot_region))
-
-        # y-axis: darkest col in the left 25 %
-        left_quarter = col_dark_i[:max(1, iw // 4)]
-        y_axis_rel   = int(np.argmax(left_quarter))
-
-        plot_top   = top_bdr  + max(2, int(ih * 0.04))
-        plot_bot   = top_bdr  + x_axis_rel - 1
-        plot_left  = left_bdr + y_axis_rel + 2
-        plot_right = right_bdr - max(2, int(iw * 0.02))
-
-        # safety clamps
-        plot_top   = max(0,          min(plot_top,   h - 4))
-        plot_bot   = max(plot_top+4, min(plot_bot,   h - 1))
-        plot_left  = max(0,          min(plot_left,  w - 4))
-        plot_right = max(plot_left+4,min(plot_right, w - 1))
-
-        return plot_top, plot_bot, plot_left, plot_right
-
-    # ------------------------------------------------------------------ #
-    @staticmethod
-    def digitize(pil_image, x_min, x_max, y_min=0.0, y_max=1.0,
-                 bg_threshold=210, row_margin_frac=0.05):
-        """
-        Digitise a spectrum chart image.
-
-        Parameters
-        ----------
-        pil_image       : PIL.Image  (any mode; converted to RGB internally)
-        x_min, x_max    : data range of the horizontal axis
-        y_min, y_max    : data range of the vertical   axis
-        bg_threshold    : pixel mean-gray value above which a pixel is
-                          considered background (default 210)
-        row_margin_frac : fraction of plot height to skip at top/bottom
-                          to avoid picking up tick-mark artefacts
-
-        Returns
-        -------
-        x_arr, y_arr : numpy float arrays sorted by x_arr.
-                       Both are empty if no spectrum line is found.
-        """
-        if not HAS_PIL:
-            return np.array([]), np.array([])
-
-        arr  = np.array(pil_image.convert('RGB'), dtype=np.float32)
-        gray = arr.mean(axis=2)
-
-        try:
-            pt, pb, pl, pr = SpectrumDigitizer._find_plot_bounds(
-                arr.astype(np.uint8), gray)
-        except Exception:
-            h, w = gray.shape
-            pt, pb = int(h * 0.08), int(h * 0.88)
-            pl, pr = int(w * 0.10), int(w * 0.97)
-
-        plot_gray = gray[pt:pb, pl:pr]
-        ph, pw    = plot_gray.shape
-        if ph < 4 or pw < 4:
-            return np.array([]), np.array([])
-
-        margin = max(1, int(ph * row_margin_frac))
-        x_out, y_out = [], []
-
-        for col in range(pw):
-            col_g  = plot_gray[:, col]
-            non_bg = np.where(col_g < bg_threshold)[0]
-            if len(non_bg) < 2:
-                continue
-            band = non_bg[(non_bg >= margin) & (non_bg <= ph - margin)]
-            if len(band) == 0:
-                continue
-
-            # topmost non-background pixel = highest-intensity point
-            y_pix = int(band[0])
-            x_val = x_min + (col / pw) * (x_max - x_min)
-            # pixel row 0 → top → y_max;  row ph → bottom → y_min
-            y_val = y_max - (y_pix / ph) * (y_max - y_min)
-            x_out.append(x_val)
-            y_out.append(max(y_min, y_val))
-
-        if not x_out:
-            return np.array([]), np.array([])
-
-        x_arr = np.array(x_out)
-        y_arr = np.array(y_out)
-        idx   = np.argsort(x_arr)
-        return x_arr[idx], y_arr[idx]
-
-
-# ============================================================================
-# PPTX IMPORT DIALOG
-# ============================================================================
-class PPTXImportDialog:
-    """
-    Modal dialog that imports spectrum images from a PowerPoint file and
-    converts them to Spectrum objects using offline pixel digitisation.
-
-    Workflow
-    --------
-    1. Open a .pptx → every embedded image is listed on the left.
-    2. Click a slide to see its thumbnail and a live preview of the
-       digitised curve.
-    3. Set axis ranges and technique in the right panel (presets available).
-    4. Click "Import Selected" or "Import All" to push Spectrum objects
-       into the parent plugin and (optionally) directly to the main table.
-
-    Required pip packages: python-pptx, Pillow
-    Everything else is offline.
-    """
-
-    # Axis presets keyed by technique name
-    PRESETS = {
-        "FTIR":       dict(x_min=400,  x_max=4000, y_min=0, y_max=1,
-                           x_label="Wavenumber (cm⁻¹)", y_label="Absorbance",
-                           technique=None),   # filled in __init__
-        "Raman":      dict(x_min=100,  x_max=3500, y_min=0, y_max=1,
-                           x_label="Raman Shift (cm⁻¹)", y_label="Intensity",
-                           technique=None),
-        "UV-Vis":     dict(x_min=200,  x_max=800,  y_min=0, y_max=1,
-                           x_label="Wavelength (nm)", y_label="Absorbance",
-                           technique=None),
-        "UV-Vis-NIR": dict(x_min=200,  x_max=2500, y_min=0, y_max=1,
-                           x_label="Wavelength (nm)", y_label="Absorbance",
-                           technique=None),
-        "NIR":        dict(x_min=800,  x_max=2500, y_min=0, y_max=1,
-                           x_label="Wavelength (nm)", y_label="Reflectance",
-                           technique=None),
-    }
-
-    def __init__(self, parent_window, plugin):
-        self.plugin       = plugin
-        self.slide_images = []          # [(label, PIL.Image), ...]
-        self._tk_img      = None        # keep reference to avoid GC
-
-        # fill in InstrumentType references after enum is defined
-        self.PRESETS["FTIR"]["technique"]       = InstrumentType.FTIR
-        self.PRESETS["Raman"]["technique"]      = InstrumentType.RAMAN
-        self.PRESETS["UV-Vis"]["technique"]     = InstrumentType.UVVIS
-        self.PRESETS["UV-Vis-NIR"]["technique"] = InstrumentType.UVVIS_NIR
-        self.PRESETS["NIR"]["technique"]        = InstrumentType.NIR
-
-        self.win = tk.Toplevel(parent_window)
-        self.win.title("📊  Import Spectra from PPTX  —  Offline Digitizer")
-        self.win.geometry("1040x660")
-        self.win.minsize(820, 520)
-        self.win.transient(parent_window)
-        self.win.lift()
-        self.win.focus_force()
-
-        # ── tk variables ────────────────────────────────────────────────────
-        self.technique_var = tk.StringVar(value="FTIR")
-        self.x_min_var     = tk.StringVar(value="400")
-        self.x_max_var     = tk.StringVar(value="4000")
-        self.y_min_var     = tk.StringVar(value="0")
-        self.y_max_var     = tk.StringVar(value="1")
-        self.x_label_var   = tk.StringVar(value="Wavenumber (cm⁻¹)")
-        self.y_label_var   = tk.StringVar(value="Absorbance")
-        self.sample_var    = tk.StringVar(value="PPTX")
-        self.bg_thresh_var = tk.IntVar(value=210)
-
-        self._build_ui()
-
-    # ── UI ──────────────────────────────────────────────────────────────────
-    def _build_ui(self):
-        # header
-        hdr = tk.Frame(self.win, bg="#8e44ad", height=36)
-        hdr.pack(fill=tk.X)
-        hdr.pack_propagate(False)
-        tk.Label(hdr,
-                 text="📊  PPTX Spectrum Digitizer  ·  100 % offline · no internet · no API",
-                 font=("Arial", 10, "bold"), bg="#8e44ad", fg="white"
-                 ).pack(side=tk.LEFT, padx=10, pady=6)
-
-        # main horizontal pane
-        pane = tk.PanedWindow(self.win, orient=tk.HORIZONTAL, sashwidth=5)
-        pane.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
-
-        # ── LEFT: slide list + thumbnail ────────────────────────────────────
-        left = tk.Frame(pane, bg="#f0f0f0")
-        pane.add(left, width=248)
-
-        tk.Label(left, text="Slides / Images", font=("Arial", 9, "bold"),
-                 bg="#f0f0f0").pack(anchor=tk.W, padx=6, pady=(6, 2))
-
-        lf = tk.Frame(left, bg="#f0f0f0")
-        lf.pack(fill=tk.BOTH, expand=True, padx=4)
-
-        self.slide_lb = tk.Listbox(lf, selectmode=tk.EXTENDED,
-                                   font=("Arial", 8), bg="white",
-                                   activestyle="dotbox", exportselection=False)
-        sb = ttk.Scrollbar(lf, command=self.slide_lb.yview)
-        self.slide_lb.configure(yscrollcommand=sb.set)
-        self.slide_lb.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        sb.pack(side=tk.RIGHT, fill=tk.Y)
-        self.slide_lb.bind("<<ListboxSelect>>", self._on_select)
-
-        tk.Label(left, text="Thumbnail", font=("Arial", 8),
-                 bg="#f0f0f0").pack(anchor=tk.W, padx=6, pady=(4, 0))
-        self.thumb_canvas = tk.Canvas(left, bg="#cccccc", width=234,
-                                      height=132, highlightthickness=0)
-        self.thumb_canvas.pack(padx=4, pady=(0, 4))
-
-        # ── RIGHT: config + preview plot ────────────────────────────────────
-        right = tk.Frame(pane, bg="white")
-        pane.add(right)
-
-        # config frame
-        cfg = tk.LabelFrame(right, text=" Axis Configuration ",
-                             font=("Arial", 8), bg="white", padx=8, pady=4)
-        cfg.pack(fill=tk.X, padx=6, pady=(6, 2))
-
-        # row 0 — technique selector
-        tk.Label(cfg, text="Technique preset:", font=("Arial", 8, "bold"),
-                 bg="white").grid(row=0, column=0, sticky="w", pady=2)
-        tech_cb = ttk.Combobox(cfg, textvariable=self.technique_var,
-                               values=list(self.PRESETS.keys()),
-                               width=14, state="readonly")
-        tech_cb.grid(row=0, column=1, sticky="w", padx=4)
-        tech_cb.bind("<<ComboboxSelected>>", self._apply_preset)
-        tk.Label(cfg, text="↑ auto-fills axis defaults",
-                 font=("Arial", 7), bg="white", fg="#888"
-                 ).grid(row=0, column=2, columnspan=3, sticky="w")
-
-        # rows 1–2 — axis ranges
-        for lbl, var, row, col in [
-            ("X min:", self.x_min_var, 1, 0),
-            ("X max:", self.x_max_var, 1, 2),
-            ("Y min:", self.y_min_var, 2, 0),
-            ("Y max:", self.y_max_var, 2, 2),
-        ]:
-            tk.Label(cfg, text=lbl, font=("Arial", 8),
-                     bg="white").grid(row=row, column=col, sticky="w", pady=2)
-            tk.Entry(cfg, textvariable=var, width=10,
-                     font=("Arial", 8)).grid(row=row, column=col+1,
-                                             sticky="w", padx=4)
-
-        # row 3-4 — axis labels
-        tk.Label(cfg, text="X label:", font=("Arial", 8),
-                 bg="white").grid(row=3, column=0, sticky="w", pady=2)
-        tk.Entry(cfg, textvariable=self.x_label_var, width=24,
-                 font=("Arial", 8)).grid(row=3, column=1, columnspan=4,
-                                         sticky="w", padx=4)
-
-        tk.Label(cfg, text="Y label:", font=("Arial", 8),
-                 bg="white").grid(row=4, column=0, sticky="w", pady=2)
-        tk.Entry(cfg, textvariable=self.y_label_var, width=24,
-                 font=("Arial", 8)).grid(row=4, column=1, columnspan=4,
-                                         sticky="w", padx=4)
-
-        # row 5 — sample prefix + BG threshold
-        tk.Label(cfg, text="Sample prefix:", font=("Arial", 8),
-                 bg="white").grid(row=5, column=0, sticky="w", pady=2)
-        tk.Entry(cfg, textvariable=self.sample_var, width=12,
-                 font=("Arial", 8)).grid(row=5, column=1, sticky="w", padx=4)
-
-        tk.Label(cfg, text="BG threshold (0-254):", font=("Arial", 8),
-                 bg="white").grid(row=5, column=2, sticky="w")
-        tk.Spinbox(cfg, from_=100, to=254, textvariable=self.bg_thresh_var,
-                   width=5, font=("Arial", 8)).grid(row=5, column=3,
-                                                    sticky="w", padx=4)
-
-        # row 6 — hints
-        hint = ("↑ lower = detect fainter/darker lines  |  "
-                "try 180-220 for light backgrounds")
-        tk.Label(cfg, text=hint, font=("Arial", 7),
-                 bg="white", fg="#888").grid(row=6, column=0,
-                                             columnspan=5, sticky="w")
-
-        # dependency badge
-        badge_txt = ("✅ Pillow OK  |  ✅ python-pptx OK"
-                     if HAS_PIL and HAS_PPTX_LIB else
-                     "⚠️  pip install Pillow python-pptx")
-        badge_col = "#27ae60" if (HAS_PIL and HAS_PPTX_LIB) else "#c0392b"
-        tk.Label(cfg, text=badge_txt, font=("Arial", 7),
-                 bg="white", fg=badge_col).grid(row=7, column=0,
-                                                columnspan=5, sticky="w",
-                                                pady=(2, 0))
-
-        # ── action buttons ───────────────────────────────────────────────────
-        btn_row = tk.Frame(right, bg="white")
-        btn_row.pack(fill=tk.X, padx=6, pady=4)
-
-        ttk.Button(btn_row, text="📂 Open PPTX File…",
-                   command=self._open_file, width=18).pack(side=tk.LEFT, padx=2)
-        ttk.Separator(btn_row, orient=tk.VERTICAL).pack(side=tk.LEFT, padx=4, fill=tk.Y)
-        ttk.Button(btn_row, text="🔍 Preview Selected",
-                   command=self._preview, width=17).pack(side=tk.LEFT, padx=2)
-        ttk.Button(btn_row, text="✅ Import Selected",
-                   command=self._import_selected, width=16).pack(side=tk.LEFT, padx=2)
-        ttk.Button(btn_row, text="⬇️ Import All",
-                   command=self._import_all, width=12).pack(side=tk.LEFT, padx=2)
-        ttk.Button(btn_row, text="❌ Close",
-                   command=self.win.destroy, width=8).pack(side=tk.RIGHT, padx=2)
-
-        self.status_lbl = tk.Label(
-            right,
-            text="👆 Click  📂 Open PPTX File…  to begin.",
-            font=("Arial", 9, "bold"), bg="white", fg="#2c3e50", anchor=tk.W, wraplength=700)
-        self.status_lbl.pack(fill=tk.X, padx=8, pady=(0, 2))
-
-        # ── preview plot ─────────────────────────────────────────────────────
-        if HAS_MPL:
-            self.prev_fig    = Figure(figsize=(6, 3), dpi=85, facecolor="white")
-            self.prev_canvas = FigureCanvasTkAgg(self.prev_fig, master=right)
-            self.prev_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True,
-                                                  padx=4, pady=4)
-            ax = self.prev_fig.add_subplot(111)
-            ax.text(0.5, 0.5, "Select a slide and click  🔍 Preview",
-                    ha="center", va="center", transform=ax.transAxes,
-                    color="#888", fontsize=11)
-            ax.axis("off")
-            self.prev_canvas.draw()
-
-    # ── file open ────────────────────────────────────────────────────────────
-    def _open_file(self):
-        if not HAS_PPTX_LIB or not HAS_PIL:
-            missing = []
-            if not HAS_PIL:      missing.append("Pillow")
-            if not HAS_PPTX_LIB: missing.append("python-pptx")
-            messagebox.showerror(
-                "Missing libraries",
-                f"Please install: pip install {' '.join(missing)}",
-                parent=self.win)
-            self.win.destroy()
-            return
-
-        path = filedialog.askopenfilename(
-            title="Open PowerPoint file",
-            filetypes=[("PowerPoint", "*.pptx"), ("All files", "*.*")],
-            parent=self.win)
-        if not path:
-            return   # user cancelled — keep dialog open
-        self._load_pptx(path)
-
-    def _load_pptx(self, path):
-        self._set_status(f"Loading {Path(path).name} …")
-        try:
-            prs = _PPTXPresentation(path)
-        except Exception as e:
-            messagebox.showerror("PPTX error", str(e), parent=self.win)
-            self._set_status(f"❌ Failed to load file: {e}", "#c0392b")
-            return
-
-        self.slide_images.clear()
-        self.slide_lb.delete(0, tk.END)
-        img_count = 0
-
-        for slide_idx, slide in enumerate(prs.slides):
-            for shape in slide.shapes:
-                if not hasattr(shape, "image"):
-                    continue
-                try:
-                    blob  = shape.image.blob
-                    pil   = _PILImage.open(_pil_io.BytesIO(blob)).convert("RGB")
-                    label = f"Slide {slide_idx + 1}  img {img_count + 1}"
-                    self.slide_images.append((label, pil))
-                    self.slide_lb.insert(tk.END, label)
-                    img_count += 1
-                except Exception:
-                    continue
-
-        if img_count == 0:
-            messagebox.showwarning("No images",
-                                   "No embedded images found in this file.",
-                                   parent=self.win)
-            self.win.destroy()
-            return
-
-        self.slide_lb.selection_set(0)
-        self._on_select(None)
-        self._set_status(
-            f"Loaded {img_count} image(s) from {Path(path).name}.  "
-            "Set axis ranges and click Preview to verify before importing.")
-
-    # ── helpers ──────────────────────────────────────────────────────────────
-    def _set_status(self, msg, color="#555"):
-        self.status_lbl.configure(text=msg, fg=color)
-
-    def _apply_preset(self, _event=None):
-        p = self.PRESETS.get(self.technique_var.get())
-        if not p:
-            return
-        self.x_min_var.set(str(p["x_min"]))
-        self.x_max_var.set(str(p["x_max"]))
-        self.y_min_var.set(str(p["y_min"]))
-        self.y_max_var.set(str(p["y_max"]))
-        self.x_label_var.set(p["x_label"])
-        self.y_label_var.set(p["y_label"])
-
-    def _on_select(self, _event):
-        sel = self.slide_lb.curselection()
-        if not sel:
-            return
-        label, pil = self.slide_images[sel[-1]]
-
-        # thumbnail
-        thumb = pil.copy()
-        thumb.thumbnail((230, 128), _PILImage.LANCZOS)
-        canvas_bg = _PILImage.new("RGB", (234, 132), (200, 200, 200))
-        ox = (234 - thumb.width)  // 2
-        oy = (132 - thumb.height) // 2
-        canvas_bg.paste(thumb, (ox, oy))
-        try:
-            from PIL import ImageTk
-            self._tk_img = ImageTk.PhotoImage(canvas_bg)
-            self.thumb_canvas.delete("all")
-            self.thumb_canvas.create_image(117, 66, image=self._tk_img,
-                                           anchor=tk.CENTER)
-        except Exception:
-            self.thumb_canvas.delete("all")
-            self.thumb_canvas.create_text(117, 66, text=label,
-                                          anchor=tk.CENTER, fill="#444")
-
-    def _get_params(self):
-        """Parse axis params; raises ValueError on bad input."""
-        return (float(self.x_min_var.get()), float(self.x_max_var.get()),
-                float(self.y_min_var.get()), float(self.y_max_var.get()),
-                int(self.bg_thresh_var.get()))
-
-    def _digitize(self, pil, x_min, x_max, y_min, y_max, bg_thresh):
-        return SpectrumDigitizer.digitize(
-            pil, x_min, x_max, y_min, y_max, bg_threshold=bg_thresh)
-
-    # ── preview ──────────────────────────────────────────────────────────────
-    def _preview(self):
-        """Preview one image — heavy work in background thread, result via ui_queue."""
-        sel = self.slide_lb.curselection()
-        if not sel:
-            self._set_status("Select a slide first.", "#c0392b"); return
-        if not HAS_MPL:
-            self._set_status("matplotlib unavailable.", "#c0392b"); return
-        try:
-            x_min, x_max, y_min, y_max, bg_thresh = self._get_params()
-        except ValueError:
-            self._set_status("Invalid axis value.", "#c0392b"); return
-
-        label, pil   = self.slide_images[sel[-1]]
-        x_label      = self.x_label_var.get()
-        y_label      = self.y_label_var.get()
-        ui           = self.plugin.ui_queue   # the safe main-thread bridge
-
-        self._set_status(f"⏳ Digitising {label} …", "#f39c12")
-
-        def worker():
-            x_arr, y_arr = self._digitize(pil, x_min, x_max, y_min, y_max, bg_thresh)
-
-            def done():
-                if not self.win.winfo_exists():
-                    return
-                if len(x_arr) == 0:
-                    self._set_status(
-                        "⚠️ No spectrum detected. Try lowering BG threshold.", "#c0392b")
-                    return
-                self.prev_fig.clear()
-                ax = self.prev_fig.add_subplot(111)
-                ax.plot(x_arr, y_arr, "b-", linewidth=1.2, alpha=0.85)
-                ax.set_xlabel(x_label, fontsize=8)
-                ax.set_ylabel(y_label, fontsize=8)
-                ax.set_title(f"Preview: {label}  ({len(x_arr)} pts)", fontsize=9)
-                ax.grid(True, alpha=0.3)
-                self.prev_fig.tight_layout()
-                self.prev_canvas.draw()
-                self._set_status(
-                    f"✅ {len(x_arr)} pts  |  X {x_min}–{x_max}  Y {y_min}–{y_max}",
-                    "#27ae60")
-
-            ui.schedule(done)
-
-        threading.Thread(target=worker, daemon=True).start()
-
-    # ── build one Spectrum — pure numpy/scipy, no tkinter, safe in any thread ─
-    def _build_spectrum(self, label, pil, x_min, x_max, y_min, y_max,
-                        bg_thresh, tech, x_label, y_label, prefix):
-        x_arr, y_arr = self._digitize(pil, x_min, x_max, y_min, y_max, bg_thresh)
-        if len(x_arr) == 0:
-            return None
-        safe_lb = re.sub(r"[^\w]+", "_", label)
-        spec = Spectrum(
-            timestamp    = datetime.now(),
-            sample_id    = f"{prefix}_{safe_lb}",
-            instrument   = "PPTX Image Digitizer",
-            technique    = tech,
-            manufacturer = "Digitized",
-            model        = "Offline pixel analysis",
-            x_data       = x_arr,
-            y_data       = y_arr,
-            x_label      = x_label,
-            y_label      = y_label,
-            file_source  = label,
-            metadata     = {
-                "source":       "pptx_digitizer",
-                "x_range":      f"{x_min}–{x_max}",
-                "y_range":      f"{y_min}–{y_max}",
-                "bg_threshold": str(bg_thresh),
-                "points":       str(len(x_arr)),
-            },
-        )
-        if HAS_SCIPY:
-            spec.find_peaks(tech)
-        # identify_compounds runs here too — all in the worker thread, never on main
-        if spec.peaks:
-            spec.identify_compounds()
-        return spec
-
-    # ── import ───────────────────────────────────────────────────────────────
-    def _import_selected(self):
-        sel = self.slide_lb.curselection()
-        if not sel:
-            self._set_status("Select at least one slide.", "#c0392b"); return
-        self._do_import([self.slide_images[i] for i in sel])
-
-    def _import_all(self):
-        self._do_import(self.slide_images)
-
-    def _do_import(self, image_list):
-        """
-        Exactly mirrors _import_file / _batch_folder:
-          1. Snapshot all tk vars on the main thread NOW.
-          2. Spin up a daemon thread to do all CPU work.
-          3. Post every UI update through plugin.ui_queue — the safe bridge.
-        The main thread is never blocked.
-        """
-        try:
-            x_min, x_max, y_min, y_max, bg_thresh = self._get_params()
-        except ValueError:
-            self._set_status("Invalid axis values.", "#c0392b"); return
-
-        # Snapshot tk vars before leaving the main thread
-        preset  = self.PRESETS.get(self.technique_var.get(), self.PRESETS["FTIR"])
-        tech    = preset["technique"]
-        x_label = self.x_label_var.get()
-        y_label = self.y_label_var.get()
-        prefix  = self.sample_var.get().strip() or "PPTX"
-        total   = len(image_list)
-        plug    = self.plugin
-        ui      = plug.ui_queue   # ThreadSafeUI — polls on main thread every 50 ms
-
-        self._set_status(f"⏳ Starting … 0 / {total}", "#f39c12")
-
-        def worker():
-            results  = []   # list of Spectrum | None, built entirely off-thread
-            for idx, (label, pil) in enumerate(image_list):
-                n = idx + 1
-                # safe progress update through the queue
-                ui.schedule(lambda n=n, lbl=label:
-                    self._set_status(
-                        f"⏳ Processing {n} / {total} — {lbl}", "#f39c12")
-                    if self.win.winfo_exists() else None)
-
-                spec = self._build_spectrum(
-                    label, pil, x_min, x_max, y_min, y_max,
-                    bg_thresh, tech, x_label, y_label, prefix)
-                results.append(spec)
-
-            # All done — schedule the final UI update on the main thread
-            ui.schedule(lambda: self._finish_import(results, total))
-
-        threading.Thread(target=worker, daemon=True).start()
-
-    def _finish_import(self, results, total):
-        """Runs on the main thread via ui_queue once the worker is done."""
-        imported  = sum(1 for s in results if s is not None)
-        failed    = total - imported
-        last_spec = next((s for s in reversed(results) if s is not None), None)
-
-        if imported:
-            for spec in results:
-                if spec is not None:
-                    self.plugin.spectra.append(spec)
-            self.plugin.current_spectrum = last_spec
-
-        msg = f"✅ Imported {imported} spectra."
-        if failed:
-            msg += f"  {failed} had no detectable line."
-
-        # Update dialog status then close it
-        if self.win.winfo_exists():
-            self._set_status(msg, "#27ae60" if imported else "#c0392b")
-            self.win.destroy()
-
-        if not imported:
-            return
-
-        # Update the plugin's UI — we are on the main thread, safe to do directly
-        plug = self.plugin
-        try:
-            plug._update_tree()
-            plug.count_label.config(text=f"📊 {len(plug.spectra)} spectra")
-            if last_spec:
-                if last_spec.peaks:
-                    ps = ", ".join(f"{p:.1f}" for p in last_spec.peaks[:6])
-                    plug.peak_label.config(
-                        text=f"⚡ {len(last_spec.peaks)} peaks: {ps}"
-                             f"{'…' if len(last_spec.peaks) > 6 else ''}")
-                if last_spec.identifications:
-                    plug._show_identifications(last_spec.identifications)
-                if plug.plot_embedder:
-                    plug.plot_embedder.plot_spectrum(last_spec)
-            plug._update_status(
-                f"✅ Imported {imported} spectra — click a row to switch", "#27ae60")
-            plug._add_to_log(f"📊 PPTX: {imported} spectra added")
-        except Exception as e:
-            print(f"Plugin UI refresh error: {e}")
-
-
-# ============================================================================
 # PLOT EMBEDDER
 # ============================================================================
 class SpectroscopyPlotEmbedder:
@@ -2495,8 +1802,7 @@ class SpectroscopyUnifiedSuitePlugin:
         self.plot_fig = None
         self.status_indicator = None
         self.technique_combo = None
-        self.tree = None          # identifications treeview
-        self.spec_tree = None     # spectra browser treeview
+        self.tree = None
         self.import_btn = None
         self.batch_btn = None
         self.peak_label = None
@@ -2610,39 +1916,30 @@ class SpectroscopyUnifiedSuitePlugin:
         main.add(left, width=600)
 
         # File toolbar
-        # ── two toolbar rows so nothing gets clipped ────────────────────────
-        toolbar = tk.Frame(left, bg="#f0f0f0")
-        toolbar.pack(fill=tk.X)
+        file_bar = tk.Frame(left, bg="#f8f9fa", height=32)
+        file_bar.pack(fill=tk.X)
+        file_bar.pack_propagate(False)
 
-        file_bar = tk.Frame(toolbar, bg="#f0f0f0")
-        file_bar.pack(fill=tk.X, padx=3, pady=(3, 1))
-
-        self.import_btn = ttk.Button(file_bar, text="📂 Load File / PPTX",
-                                     command=self._import_file, width=18)
+        self.import_btn = ttk.Button(file_bar, text="📂 Load File",
+                                     command=self._import_file, width=10)
         self.import_btn.pack(side=tk.LEFT, padx=2)
 
         self.batch_btn = ttk.Button(file_bar, text="📁 Batch Folder",
-                                    command=self._batch_folder, width=14)
+                                    command=self._batch_folder, width=10)
         self.batch_btn.pack(side=tk.LEFT, padx=2)
 
+        ttk.Button(file_bar, text="🔍 Find Peaks",
+                  command=self._find_peaks, width=10).pack(side=tk.LEFT, padx=2)
+
+        ttk.Button(file_bar, text="🔬 Identify",
+                  command=self._identify_compounds, width=10).pack(side=tk.LEFT, padx=2)
+
+        ttk.Button(file_bar, text="📊 Send to Table",
+                  command=self.send_to_table, width=12).pack(side=tk.RIGHT, padx=2)
+
         self.file_label = tk.Label(file_bar, text="No file loaded",
-                                   font=("Arial", 8), bg="#f0f0f0", fg="#7f8c8d")
-        self.file_label.pack(side=tk.LEFT, padx=6)
-
-        action_bar = tk.Frame(toolbar, bg="#f0f0f0")
-        action_bar.pack(fill=tk.X, padx=3, pady=(0, 3))
-
-        ttk.Button(action_bar, text="🔍 Find Peaks",
-                  command=self._find_peaks, width=13).pack(side=tk.LEFT, padx=2)
-
-        ttk.Button(action_bar, text="🔬 Identify Compounds",
-                  command=self._identify_compounds, width=18).pack(side=tk.LEFT, padx=2)
-
-        ttk.Separator(action_bar, orient=tk.VERTICAL).pack(
-            side=tk.LEFT, padx=6, fill=tk.Y, pady=2)
-
-        ttk.Button(action_bar, text="📤 Send to Table",
-                  command=self.send_to_table, width=14).pack(side=tk.LEFT, padx=2)
+                                   font=("Arial", 8), bg="#f8f9fa", fg="#7f8c8d")
+        self.file_label.pack(side=tk.RIGHT, padx=10)
 
         # Spectrum plot
         plot_frame = tk.Frame(left, bg="white")
@@ -2679,42 +1976,13 @@ class SpectroscopyUnifiedSuitePlugin:
         right = tk.Frame(main, bg="white")
         main.add(right, width=350)
 
-        # ── top: spectra list (click to switch current spectrum) ────────────
-        spec_hdr = tk.Frame(right, bg="#f8f9fa", height=24)
-        spec_hdr.pack(fill=tk.X)
-        spec_hdr.pack_propagate(False)
-        tk.Label(spec_hdr, text="📂 Loaded Spectra  (click to select)",
-                 font=("Arial", 7, "bold"), bg="#f8f9fa").pack(side=tk.LEFT, padx=6)
-
-        spec_frame = tk.Frame(right, bg="white")
-        spec_frame.pack(fill=tk.X, padx=2, pady=(0, 2))
-
-        spec_cols = ('ID', 'Technique', 'Peaks', 'Source')
-        self.spec_tree = ttk.Treeview(spec_frame, columns=spec_cols,
-                                      show='headings', height=6,
-                                      selectmode='browse')
-        self.spec_tree.heading('ID',        text='Sample ID')
-        self.spec_tree.heading('Technique', text='Technique')
-        self.spec_tree.heading('Peaks',     text='Peaks')
-        self.spec_tree.heading('Source',    text='Source')
-        self.spec_tree.column('ID',        width=120)
-        self.spec_tree.column('Technique', width=55, anchor='center')
-        self.spec_tree.column('Peaks',     width=35, anchor='center')
-        self.spec_tree.column('Source',    width=100)
-        ss = ttk.Scrollbar(spec_frame, command=self.spec_tree.yview)
-        self.spec_tree.configure(yscrollcommand=ss.set)
-        self.spec_tree.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        ss.pack(side=tk.RIGHT, fill=tk.Y)
-        self.spec_tree.bind('<<TreeviewSelect>>', self._on_spec_select)
-
-        # ── bottom: identifications ──────────────────────────────────────────
         # Control bar
-        ctrl_bar = tk.Frame(right, bg="#f8f9fa", height=28)
+        ctrl_bar = tk.Frame(right, bg="#f8f9fa", height=32)
         ctrl_bar.pack(fill=tk.X)
         ctrl_bar.pack_propagate(False)
 
-        tk.Label(ctrl_bar, text="Identifications — Confidence ≥",
-                 font=("Arial", 7, "bold"), bg="#f8f9fa").pack(side=tk.LEFT, padx=4)
+        tk.Label(ctrl_bar, text="Confidence ≥", font=("Arial", 7),
+                bg="#f8f9fa").pack(side=tk.LEFT, padx=2)
 
         conf_combo = ttk.Combobox(ctrl_bar, textvariable=self.conf_var,
                                   values=[25, 50, 75, 90], width=3, state="readonly")
@@ -2725,36 +1993,34 @@ class SpectroscopyUnifiedSuitePlugin:
         ttk.Button(ctrl_bar, text="📋 Clear", command=self._clear_results,
                   width=6).pack(side=tk.RIGHT, padx=2)
 
-        # Identifications tree
-        id_frame = tk.Frame(right, bg="white")
-        id_frame.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
+        # Results tree
+        tree_frame = tk.Frame(right, bg="white")
+        tree_frame.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
 
-        columns = ('Compound', 'Conf', 'Group', 'Formula', 'Matches')
-        self.tree = ttk.Treeview(id_frame, columns=columns, show='headings',
-                                 height=14, selectmode='browse')
+        columns = ('Compound', 'Conf', 'Group', 'Matches')
+        self.tree = ttk.Treeview(tree_frame, columns=columns, show='headings',
+                                 height=22, selectmode='browse')
 
-        self.tree.heading('Compound', text='Compound / Mineral')
-        self.tree.heading('Conf',     text='%')
-        self.tree.heading('Group',    text='Group')
-        self.tree.heading('Formula',  text='Formula')
-        self.tree.heading('Matches',  text='Hits')
+        self.tree.heading('Compound', text='Compound/Mineral')
+        self.tree.heading('Conf', text='%')
+        self.tree.heading('Group', text='Group')
+        self.tree.heading('Matches', text='Peaks')
 
-        self.tree.column('Compound', width=120)
-        self.tree.column('Conf',     width=38,  anchor='center')
-        self.tree.column('Group',    width=65)
-        self.tree.column('Formula',  width=75)
-        self.tree.column('Matches',  width=38,  anchor='center')
+        self.tree.column('Compound', width=140)
+        self.tree.column('Conf', width=45, anchor='center')
+        self.tree.column('Group', width=80)
+        self.tree.column('Matches', width=60, anchor='center')
 
-        yscroll = ttk.Scrollbar(id_frame, command=self.tree.yview)
+        yscroll = ttk.Scrollbar(tree_frame, command=self.tree.yview)
         self.tree.configure(yscrollcommand=yscroll.set)
 
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         yscroll.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Colour tags
+        # Color tags
         self.tree.tag_configure('high', background='#d4edda')
-        self.tree.tag_configure('med',  background='#fff3cd')
-        self.tree.tag_configure('low',  background='#f8d7da')
+        self.tree.tag_configure('med', background='#fff3cd')
+        self.tree.tag_configure('low', background='#f8d7da')
 
         # ============ LIVE ACQUISITION BAR ============
         if HAS_SERIAL:
@@ -2929,10 +2195,9 @@ class SpectroscopyUnifiedSuitePlugin:
     # ============================================================================
 
     def _import_file(self):
-        """Import a spectral file or PowerPoint presentation."""
+        """Import a spectral file"""
         filetypes = [
-            ("All supported", "*.csv;*.txt;*.spa;*.wdf;*.jdx;*.dx;*.opj;*.dpt;*.ngs;*.pptx"),
-            ("PowerPoint (PPTX)", "*.pptx"),
+            ("All supported", "*.csv;*.txt;*.spa;*.wdf;*.jdx;*.dx;*.opj;*.dpt;*.ngs"),
             ("CSV/ASCII", "*.csv;*.txt;*.asc;*.dat"),
             ("Thermo SPA", "*.spa"),
             ("Witec WDF", "*.wdf"),
@@ -2945,14 +2210,6 @@ class SpectroscopyUnifiedSuitePlugin:
 
         path = filedialog.askopenfilename(filetypes=filetypes)
         if not path:
-            return
-
-        # Route PPTX to the offline digitizer dialog
-        if Path(path).suffix.lower() == '.pptx':
-            if not self.window:
-                return
-            dlg = PPTXImportDialog(self.window, self)
-            dlg._load_pptx(path)   # pre-load the already-chosen file
             return
 
         self._update_status(f"Parsing {Path(path).name}...", "#f39c12")
@@ -3031,29 +2288,6 @@ class SpectroscopyUnifiedSuitePlugin:
 
         threading.Thread(target=batch_thread, daemon=True).start()
 
-    def _import_pptx(self):
-        """Open the offline PPTX spectrum digitizer dialog."""
-        if not HAS_PPTX_LIB or not HAS_PIL:
-            missing = []
-            if not HAS_PIL:       missing.append("Pillow")
-            if not HAS_PPTX_LIB: missing.append("python-pptx")
-            if messagebox.askyesno(
-                    "Missing libraries",
-                    f"The following libraries are needed:\n\n"
-                    f"  pip install {' '.join(missing)}\n\n"
-                    "Open a terminal and install them, then try again.\n\n"
-                    "Would you like to copy the install command?"):
-                try:
-                    self.window.clipboard_clear()
-                    self.window.clipboard_append(
-                        f"pip install {' '.join(missing)}")
-                except Exception:
-                    pass
-            return
-        if not self.window:
-            return
-        PPTXImportDialog(self.window, self)
-
     def _acquire_live(self):
         """Acquire live spectrum from connected instrument"""
         # Find which instrument is connected
@@ -3123,80 +2357,23 @@ class SpectroscopyUnifiedSuitePlugin:
             threading.Thread(target=acquire_thread, daemon=True).start()
 
     def _update_tree(self):
-        """Refresh the spectra browser (top-right list)."""
-        if not hasattr(self, 'spec_tree') or self.spec_tree is None:
-            return
-        for item in self.spec_tree.get_children():
-            self.spec_tree.delete(item)
+        """Update the data tree"""
+        for item in self.tree.get_children():
+            self.tree.delete(item)
 
-        for i, spec in enumerate(self.spectra[-50:]):
-            tag = 'current' if spec is self.current_spectrum else ''
-            self.spec_tree.insert('', tk.END, iid=str(i), tags=(tag,), values=(
-                spec.sample_id[:18],
-                spec.technique.value.upper(),
+        # Add spectra (newest first)
+        for spec in reversed(self.spectra[-50:]):  # Last 50
+            top_match = spec.identifications[0]['name'] if spec.identifications else ""
+            conf = f"{spec.identifications[0]['confidence']:.0f}" if spec.identifications else ""
+
+            self.tree.insert('', 0, values=(
+                spec.sample_id[:15],
+                conf,
+                top_match[:20],
                 str(len(spec.peaks)),
-                (Path(spec.file_source).name if spec.file_source else 'Live')[:16],
+                spec.technique.value.upper(),
+                Path(spec.file_source).name if spec.file_source else "Live"
             ))
-
-        self.spec_tree.tag_configure('current', background='#cce5ff')
-
-        # Highlight current spectrum row.
-        # Unbind first so selection_set doesn't re-fire _on_spec_select.
-        if self.current_spectrum and self.current_spectrum in self.spectra:
-            idx = str(self.spectra.index(self.current_spectrum))
-            try:
-                self.spec_tree.unbind('<<TreeviewSelect>>')
-                self.spec_tree.selection_set(idx)
-                self.spec_tree.see(idx)
-            except Exception:
-                pass
-            finally:
-                self.spec_tree.bind('<<TreeviewSelect>>', self._on_spec_select)
-
-    def _on_spec_select(self, event):
-        """Switch current spectrum when user clicks a row in the spectra browser."""
-        sel = self.spec_tree.selection()
-        if not sel:
-            return
-        try:
-            idx = int(sel[0])
-            spec = self.spectra[idx]
-        except (ValueError, IndexError):
-            return
-        self.current_spectrum = spec
-        # Manually update the highlight tag without calling _update_tree()
-        # (which would re-fire this event via selection_set)
-        for item in self.spec_tree.get_children():
-            self.spec_tree.item(item, tags=())
-        try:
-            self.spec_tree.item(sel[0], tags=('current',))
-        except Exception:
-            pass
-
-        # Update plot
-        if self.plot_embedder:
-            self.plot_embedder.plot_spectrum(spec)
-
-        # Update peak label
-        if spec.peaks:
-            ps = ', '.join(f'{p:.1f}' for p in spec.peaks[:6])
-            self.peak_label.config(
-                text=f'⚡ {len(spec.peaks)} peaks: {ps}'
-                     f'{"..." if len(spec.peaks) > 6 else ""}')
-        else:
-            self.peak_label.config(text='⚡ No peaks detected')
-
-        # Show identifications if already computed
-        if spec.identifications:
-            self._show_identifications(spec.identifications)
-        else:
-            for item in self.tree.get_children():
-                self.tree.delete(item)
-
-        self.file_label.config(text=spec.sample_id[:30])
-        self._update_status(
-            f'📂 {spec.sample_id} | {spec.technique.value.upper()} | '
-            f'{len(spec.peaks)} peaks | {len(spec.identifications)} matches')
 
     def _find_peaks(self):
         """Find peaks in current spectrum"""
@@ -3258,31 +2435,30 @@ class SpectroscopyUnifiedSuitePlugin:
         threshold = self.conf_var.get()
         filtered = [r for r in results if r['confidence'] >= threshold]
 
-        self._show_identifications(filtered)
-        self._add_to_log(f"🔬 Identified {len(filtered)} compounds (≥{threshold}% confidence)")
+        # Update tree
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+
+        for r in filtered[:20]:
+            if r['confidence'] >= 70:
+                tag = 'high'
+            elif r['confidence'] >= 50:
+                tag = 'med'
+            else:
+                tag = 'low'
+
+            self.tree.insert('', tk.END, values=(
+                r['name'],
+                f"{r['confidence']:.0f}",
+                r['group'],
+                f"{r['matches']}/{r['total']}"
+            ), tags=(tag,))
+
+        self._add_to_log(f"🔬 Identified {len(filtered)} compounds")
         self.plot_embedder.plot_spectrum(self.current_spectrum)
-        self._update_tree()   # refresh spectra browser
 
         if not filtered:
             self.peak_label.config(text="⚠️ No compounds above confidence threshold")
-
-    def _show_identifications(self, results):
-        """
-        Populate the identifications tree with compound match results.
-        Expects a list of dicts: name, confidence, group, formula, matches, total.
-        """
-        for item in self.tree.get_children():
-            self.tree.delete(item)
-        for r in results[:25]:
-            conf = r.get('confidence', 0)
-            tag  = 'high' if conf >= 70 else ('med' if conf >= 50 else 'low')
-            self.tree.insert('', tk.END, tags=(tag,), values=(
-                r.get('name', ''),
-                f"{conf:.0f}",
-                r.get('group', ''),
-                r.get('formula', ''),
-                f"{r.get('matches', 0)}/{r.get('total', 0)}",
-            ))
 
     def _clear_results(self):
         """Clear identification results"""
@@ -3304,101 +2480,21 @@ class SpectroscopyUnifiedSuitePlugin:
     # ============================================================================
 
     def send_to_table(self):
-        """
-        Send spectra to main table - ONE row per spectrum.
-        Columns are created dynamically from the dictionary keys.
-        """
+        """Send data to main table"""
         if not self.spectra:
             messagebox.showwarning("No Data", "No spectra to send")
             return
 
-        table_data = []
-
-        for spec in self.spectra:
-            # Start with a clean dictionary - every key becomes a column
-            row = {}
-
-            # Sample ID is required
-            row["Sample_ID"] = spec.sample_id
-
-            # Add ALL metadata as columns
-            if spec.technique:
-                row["Technique"] = spec.technique.value
-            if spec.instrument:
-                row["Instrument"] = spec.instrument
-            if spec.manufacturer:
-                row["Manufacturer"] = spec.manufacturer
-            if spec.model:
-                row["Model"] = spec.model
-            if spec.file_source:
-                row["Source"] = Path(spec.file_source).name
-            if spec.timestamp:
-                row["Date"] = spec.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-
-            # STORE FULL SPECTRUM DATA as JSON strings
-            if spec.x_data is not None:
-                # Convert numpy array to list and store as JSON
-                row["X_Data"] = json.dumps(spec.x_data.tolist())
-            if spec.y_data is not None:
-                row["Y_Data"] = json.dumps(spec.y_data.tolist())
-            if spec.x_label:
-                row["X_Label"] = spec.x_label
-            if spec.y_label:
-                row["Y_Label"] = spec.y_label
-
-            # Peak information
-            if spec.peaks:
-                row["Peaks"] = str(len(spec.peaks))
-                row["Peak_Positions"] = ", ".join([f"{p:.1f}" for p in spec.peaks[:10]])
-            else:
-                row["Peaks"] = "0"
-
-            # Compound identifications
-            if spec.identifications:
-                compounds = []
-                groups = []
-                formulas = []
-                confidences = []
-                peaks_hit = []
-
-                for ident in spec.identifications[:5]:  # Limit to top 5
-                    compounds.append(ident.get('name', ''))
-                    groups.append(ident.get('group', ''))
-                    formulas.append(ident.get('formula', ''))
-                    confidences.append(f"{ident.get('confidence', 0):.0f}%")
-                    peaks_hit.append(f"{ident.get('matches', 0)}/{ident.get('total', 0)}")
-
-                row["Compound"] = ", ".join(compounds)
-                row["Group"] = ", ".join(groups)
-                row["Formula"] = ", ".join(formulas)
-                row["Confidence"] = ", ".join(confidences)
-                row["Peaks_Hit"] = ", ".join(peaks_hit)
-
-            # Add any other metadata
-            if spec.resolution_cm1:
-                row["Resolution_cm1"] = spec.resolution_cm1
-            if spec.integration_time_ms:
-                row["Integration_ms"] = spec.integration_time_ms
-            if spec.laser_power_mW:
-                row["Laser_Power_mW"] = spec.laser_power_mW
-
-            table_data.append(row)
+        data = [s.to_dict() for s in self.spectra]
 
         try:
-            # Send directly to data_hub
-            dh = self.app.data_hub
-            dh.add_samples(table_data)
-            self.app.samples = dh.get_all()
-
-            # Force table refresh
-            if hasattr(self.app, 'center') and hasattr(self.app.center, '_refresh'):
-                self.app.center._refresh()
-
-            self._add_to_log(f"📤 Sent {len(table_data)} spectra with full waveform data")
-            self._update_status(f"✅ Sent {len(table_data)} spectra")
-
+            self.app.import_data_from_plugin(data)
+            self._add_to_log(f"📤 Sent {len(data)} spectra to main table")
+            self._update_status(f"✅ Sent {len(data)} spectra")
+        except AttributeError:
+            messagebox.showwarning("Integration", "Main app: import_data_from_plugin() required")
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to send data: {str(e)}")
+            messagebox.showerror("Error", str(e))
 
     def collect_data(self) -> List[Dict]:
         return [s.to_dict() for s in self.spectra]

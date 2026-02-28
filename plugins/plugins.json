@@ -315,6 +315,18 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/ternary_plotter.py?ref_type=heads"
   },
   {
+    "id": "toolkit_ai",
+    "name": "Toolkit AI Assistant",
+    "version": "1.0",
+    "description": "Local AI that learns from your workflow and installed components",
+    "author": "Unknown",
+    "category": "add-ons",
+    "field": "General",
+    "icon": "\ud83e\udde0",
+    "requires": [],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/toolkit_ai.py?ref_type=heads"
+  },
+  {
     "id": "electrochemistry_analysis_suite",
     "name": "Electrochemistry Suite",
     "version": "1.0.0",
@@ -353,7 +365,7 @@
     "description": "High-resolution PDF/EPS/SVG export for publications",
     "author": "Sefy Levy",
     "category": "software",
-    "field": "Petrology & Mineralogy",
+    "field": "General",
     "icon": "\ud83d\udcbe",
     "requires": [
       "matplotlib"
@@ -417,7 +429,7 @@
     "description": "XRD Rietveld \u00b7 EDS ZAF/\u03a6\u03c1\u03b6 \u00b7 CT Otsu/Watershed \u00b7 OSL CAM/FMM \u00b7 GPR Hilbert \u00b7 TS LS \u00b7 Munsell Lab\u2194HVC",
     "author": "Sefy Levy & Claude",
     "category": "software",
-    "field": "General",
+    "field": "Archaeology & Archaeometry",
     "icon": "\ud83c\udffa",
     "requires": [
       "numpy",
@@ -976,7 +988,7 @@
     "description": "Advanced 3D visualization - geochemical extrusion, time animation, photo integration, Quartz sync",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
-    "field": "GIS & Spatial Science",
+    "field": "Geology & Geochemistry",
     "icon": "\ud83c\udf0f",
     "requires": [
       "simplekml",
