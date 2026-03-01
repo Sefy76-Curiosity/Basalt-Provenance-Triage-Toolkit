@@ -1,9 +1,9 @@
-🚀 Quick Start Guide
+Quick Start Guide
 
-Get Scientific Toolkit running in 5 minutes.
-*70 classification engines · 50 protocols · 37 software plugins · 25 add-ons · 16 hardware suites*
+Get Scientific Toolkit v2.0 running in 5 minutes.
+70 classification engines · 10 protocols · 37 software plugins · 25 add-ons · 16 hardware suites
 
-⚠️ Before You Start
+Before You Start
 
 This software is provided "AS IS" - you are responsible for validating results.
 
@@ -14,7 +14,7 @@ This software is provided "AS IS" - you are responsible for validating results.
 
 Found a problem? → https://gitlab.com/sefy76/scientific-toolkit/-/issues
 
-✅ Prerequisites
+Prerequisites
 Requirement     Minimum             Recommended
 Python          3.8                 3.10+
 pip             Any version         Latest
@@ -23,7 +23,8 @@ RAM             2 GB                4 GB
 OS              Windows 10,         Latest versions
                 macOS 10.14, Linux
 
-📦 Installation (3 minutes)
+Installation (3 minutes)
+
 Step 1: Download
 
     # Clone the repository
@@ -36,13 +37,12 @@ Step 2: Install Dependencies
 
 Choose your installation type:
 Installation    Command                                         What You Get
-Minimal         pip install numpy pandas matplotlib             Core features, 70 engines, basic plotting
+Minimal         pip install numpy pandas matplotlib ttkbootstrap   Core features, 70 engines, basic plotting
 Standard        pip install -r requirements.txt                 All plugins + add-ons
 Hardware        Add pyserial hidapi bleak                       All 16 hardware suites
 Full            pip install -r requirements.txt                 Everything
-                + pip install ttkbootstrap
 
-Note: ttkbootstrap is required for the modern UI (v2.5+):
+Note: ttkbootstrap is required for the modern UI:
     pip install ttkbootstrap
 
 Step 3: Launch
@@ -52,30 +52,31 @@ Step 3: Launch
 Windows users: Double-click Scientific-Toolkit.py
 First launch: May take 30-60 seconds to initialize plugins
 
-🎯 First Use (2 minutes)
+First Use (2 minutes)
+
 1. Load Sample Data
 
     File → Import Data → CSV
     Navigate to /samples/master_test_list.csv
     Click Open
 
-✅ You should see data loaded in the main table (center panel)
+You should see data loaded in the main table (center panel)
 
 2. Run Your First Classification
 
     Right panel → Select scheme from dropdown (e.g., TAS Volcanic Classification)
     Click Apply
 
-✅ Results appear in the HUD and colour-code the table rows
-✅ Double-click any row for the full classification detail
+Results appear in the HUD and colour-code the table rows
+Double-click any row for the full classification detail
 
-3. Try a Field Panel (NEW in v2.5)
+3. Try a Field Panel
 
     Import geochemistry data (e.g., samples/geochemistry_test.csv)
     Right panel shows: "Switch to Geochemistry Panel?"
     Click Yes
     See TAS diagram, AFM diagram, Mg# histogram — live!
-    Use ← Back to return to the Classification HUD
+    Use Back button to return to the Classification HUD
 
 4. Create Your First Plot
 
@@ -85,33 +86,33 @@ First launch: May take 30-60 seconds to initialize plugins
     Y-axis: Na2O_wt + K2O_wt
     Click "Plot"
 
-✅ Congratulations! You've created a TAS diagram
+Congratulations! You've created a TAS diagram
 
 5. Try a Protocol
 
     Protocols → Behrensmeyer Weathering Protocol
     Select a sample with weathering data
-    Run protocol → Returns weathering stage (0–5) with description
+    Run protocol → Returns weathering stage (0-5) with description
 
-🧭 Understanding the Interface
+Understanding the Interface
+
 Main Window Layout
 
-    ┌─────────────────────────────────────────────────────────────────┐
-    │  Menu Bar: File | Classify | Protocols | Visualize | Hardware   │
-    ├─────────┬─────────────────────────────┬─────────────────────────┤
-    │  LEFT   │        CENTER               │        RIGHT            │
-    │  Panel  │     (Data Table)            │   (Classification HUD   │
-    │  (10%)  │        80%                  │    or Field Panel v3.0) │
-    │         │                             │         (10%)           │
-    │ 📂 Import│ Sample_ID  SiO2  TiO2 MgO  │   🔬 Geochemistry Panel  │
-    │ 📝 Manual│ HAZ-001    48.3  1.2  7.4  │   TAS: Basalt            │
-    │  Entry  │ HAZ-002    49.1  1.1  7.9  │   Mg#: 52.3              │
-    │         │ HAZ-003    50.2  1.3  7.1  │   [TAS diagram embedded] │
-    │ 🔌      │ ...                         │   ← Back to HUD         │
-    │Hardware │                             │                         │
-    └─────────┴─────────────────────────────┴─────────────────────────┘
-    │  Status: 156 samples | 24 columns | Memory: 245MB | Ready       │
-    └─────────────────────────────────────────────────────────────────┘
+    +-------------------------------------------------------------------+
+    |  Menu Bar: File | Classify | Protocols | Visualize | Hardware     |
+    +---------+-----------------------------+---------------------------+
+    |  LEFT   |        CENTER              |        RIGHT               |
+    |  Panel  |     (Data Table)           |   (Classification HUD      |
+    |  (10%)  |        80%                 |    or Field Panel v3.0)    |
+    |         |                            |         (10%)              |
+    | Import  | Sample_ID  SiO2  TiO2 MgO | Geochemistry Panel         |
+    | Manual  | HAZ-001    48.3  1.2  7.4  | TAS: Basalt                |
+    | Entry   | HAZ-002    49.1  1.1  7.9  | Mg#: 52.3                  |
+    |         | HAZ-003    50.2  1.3  7.1  | [TAS diagram embedded]     |
+    | Hardware| ...                        | Back to HUD                |
+    +---------+-----------------------------+---------------------------+
+    |  Status: 156 samples | 24 columns | Memory: 245MB | Ready        |
+    +-------------------------------------------------------------------+
 
 Key Controls
 Shortcut    Action
@@ -125,14 +126,15 @@ Right-click Context menu with quick actions
 F1          Keyboard shortcuts help
 F5          Refresh all panels
 
-📋 Common First Tasks
+Common First Tasks
+
 Task 1: Import Your Own Data
 
 Supported formats:
-    ✅ CSV files (any delimiter)
-    ✅ Excel (.xlsx, .xls)
-    ✅ Tab-delimited text
-    ✅ Spectral files (.spa, .opj, .dpt)
+    CSV files (any delimiter)
+    Excel (.xlsx, .xls)
+    Tab-delimited text
+    Spectral files (.spa, .opj, .dpt)
 
 Required columns:
     Sample_ID (will auto-generate if missing)
@@ -152,7 +154,7 @@ Example: Mitutoyo Digital Caliper
     Place caliper in measurement field
     Click "Read"
 
-✅ Value appears in the field
+Value appears in the field
 
 All 16 hardware suites work the same way:
 
@@ -183,7 +185,7 @@ Example: Soil Texture
 
 Available classifications: 70 across all fields
 
-Task 4: Use a Domain Field Panel (NEW in v2.5)
+Task 4: Use a Domain Field Panel
 
 Each of the 16 supported domains has a dedicated analysis panel.
 Example: Zooarchaeology
@@ -191,7 +193,7 @@ Example: Zooarchaeology
     2. Right panel prompts: "Switch to Zooarchaeology Panel?"
     3. Click Yes — see NISP/MNI summaries, element distribution
     4. Select specific rows — panel updates instantly
-    5. Click ← Back to return to Classification HUD
+    5. Click Back to return to Classification HUD
 
 Task 5: Run a Protocol
 
@@ -201,13 +203,13 @@ Example: Zooarchaeology Fragmentation
     Select sample with bone measurements
     Run protocol → Returns fragmentation index, breakage pattern, freshness
 
-Task 6: Statistical Analysis (NEW in v2.5)
+Task 6: Statistical Analysis
 
 Example: Quick Summary
     1. Advanced → Plugin Manager → Add-ons → Statistical Console → Enable
     2. Open Statistical Console tab in center panel
-    3. Click 📊 Summary button — instant column statistics
-    4. Click 🔍 Correlate — pairwise correlation matrix
+    3. Click Summary button — instant column statistics
+    4. Click Correlate — pairwise correlation matrix
     5. Type: groups Classification — value counts by class
 
 Task 7: Record a Macro
@@ -217,10 +219,10 @@ Task 7: Record a Macro
     3. Ctrl+T to stop recording
     4. Name it "My Pipeline"
     5. Ctrl+M → select it → Run
-    ✅ All 13 action types are captured: imports, classifications, filters,
-       sorts, tab switches, protocol runs, pagination, and more
+    All 13 action types are captured: imports, classifications, filters,
+    sorts, tab switches, protocol runs, pagination, and more
 
-Task 8: Statistical Analysis
+Task 8: PCA Analysis
 
 Example: PCA
     1. Select samples with numeric data
@@ -237,9 +239,9 @@ Task 9: Export Publication Figure
     4. File → Export → High-Resolution PDF
     5. 300 DPI publication-ready output
 
-🔍 Example Workflows by Field
+Example Workflows by Field
 
-🌋 Igneous Petrology Workflow
+Igneous Petrology Workflow
 
     1. Import XRF data (CSV or direct from instrument)
     2. Import geochemistry_test.csv → switch to Geochemistry Field Panel
@@ -253,7 +255,7 @@ Task 9: Export Publication Figure
 
 Time: 5 minutes | Outputs: Rock type, magma series, normative minerals
 
-🦴 Zooarchaeology Workflow
+Zooarchaeology Workflow
 
     1. Hardware → Zooarchaeology Suite → Connect calipers
     2. Measure bone (GL, Bd, SD, etc.)
@@ -267,7 +269,7 @@ Time: 5 minutes | Outputs: Rock type, magma series, normative minerals
 
 Time: 10 minutes | Outputs: Species, age, taphonomy, diet
 
-⛏️ Field Geology Workflow
+Field Geology Workflow
 
     1. Hardware → GNSS (connect Emlid Reach)
     2. Start streaming position
@@ -281,7 +283,7 @@ Time: 10 minutes | Outputs: Species, age, taphonomy, diet
 
 Time: Real-time | Outputs: Geochemical maps with coordinates
 
-🌱 Soil Science Workflow
+Soil Science Workflow
 
     1. Import field data (texture, EC, pH, coordinates)
     2. Classify → USDA Soil Texture
@@ -293,7 +295,7 @@ Time: Real-time | Outputs: Geochemical maps with coordinates
 
 Time: 5 minutes | Outputs: Soil classification, salinity hazard, 3D maps
 
-⏳ Geochronology Workflow
+Geochronology Workflow
 
     1. Import LA-ICP-MS data
     2. Right panel: switch to Geochronology Field Panel
@@ -305,7 +307,7 @@ Time: 5 minutes | Outputs: Soil classification, salinity hazard, 3D maps
 
 Time: 10 minutes | Outputs: U-Pb ages, concordia diagrams
 
-🌡️ Spectroscopy Workflow (NEW in v2.5)
+Spectroscopy Workflow
 
     1. Hardware → Spectroscopy Suite → Connect spectrometer
     2. Collect spectra
@@ -316,15 +318,15 @@ Time: 10 minutes | Outputs: U-Pb ages, concordia diagrams
 
 Time: 5 minutes | Outputs: Identified compounds, peak assignments
 
-🔌 Enabling Optional Features
+Enabling Optional Features
 
-Enable Toolkit AI (NEW in v2.5)
+Enable Toolkit AI
 
     Advanced → Plugin Manager → Add-ons → Toolkit AI → Enable
     No API key required — works offline
     Ask about your data, get plugin recommendations, understand methods
 
-Enable Statistical Console (NEW in v2.5)
+Enable Statistical Console
 
     Advanced → Plugin Manager → Add-ons → Statistical Console → Enable
     Instant statistics without any Python knowledge
@@ -355,15 +357,13 @@ No additional software needed — plugins auto-detect:
     Bluetooth LE (wireless devices)
     File monitoring (universal fallback)
 
-🆘 Troubleshooting Quick Fixes
+Troubleshooting Quick Fixes
 
 "Module not found" error
-
     pip install [module-name]
-    # Or use Plugin Manager (auto-installs dependencies)
+    Or use Plugin Manager (auto-installs dependencies)
 
 "No module named ttkbootstrap"
-
     pip install ttkbootstrap
 
 Data won't import
@@ -401,7 +401,8 @@ Plots look wrong
     - Use "Auto-scale" button to reset view
     - Log scale may help with wide ranges
 
-📚 Next Steps
+Next Steps
+
 Learn More
 Document                    What It Covers
 ENHANCED_FEATURES_README    Complete guide to all 10 productivity features
@@ -414,19 +415,19 @@ Get Help
     GitLab Issues — Ask the community
     Email: sefy76@gmail.com
 
-💡 Tips for Success
+Tips for Success
 
-✅ Start small: Import 10–20 samples to learn the interface
-✅ Use sample data: 30+ domain test files in /samples/
-✅ Let the AI guide you: Toolkit AI recommends the right plugins for your data
-✅ Use Field Panels: Let the right panel switch to match your data domain
-✅ Record macros: Ctrl+R to start — captures 13 types of actions
-✅ One field at a time: Don't try to learn all fields at once
-✅ Save often: Ctrl+S — auto-save also runs every 5 minutes
-✅ Cite properly: Use CITATIONS.md for references
-✅ Report bugs: Every report makes the software better
+    Start small: Import 10-20 samples to learn the interface
+    Use sample data: 30+ domain test files in /samples/
+    Let the AI guide you: Toolkit AI recommends the right plugins for your data
+    Use Field Panels: Let the right panel switch to match your data domain
+    Record macros: Ctrl+R to start — captures 13 types of actions
+    One field at a time: Don't try to learn all fields at once
+    Save often: Ctrl+S — auto-save also runs every 5 minutes
+    Cite properly: Use CITATIONS.md for references
+    Report bugs: Every report makes the software better
 
-📋 Quick Reference Card
+Quick Reference Card
 
 File Operations
 Action          Menu Path                       Shortcut
@@ -447,17 +448,17 @@ Environmental   Classify → Environmental
 Meteoritics     Classify → Meteoritics
 Isotope         Classify → Isotope Geochemistry
 
-Field Panels (NEW — 16 domains)
+Field Panels (16 domains)
 Domain          Open via
 Geochemistry    Auto-detect OR right panel menu
 Spectroscopy    Auto-detect OR right panel menu
 Zooarchaeology  Auto-detect OR right panel menu
 [... all 16]    Auto-detect OR right panel menu
 
-Protocols (50 workflows)
+Protocols (10 workflows)
 Field           Menu Path
 Taphonomy       Protocols → Behrensmeyer Weathering
-Sediment        Protocols → Folk–Shepard Texture
+Sediment        Protocols → Folk-Shepard Texture
 Environmental   Protocols → Hakanson Ecological Risk
 Igneous         Protocols → IUGS Igneous
 Zooarch         Protocols → Maresha Zooarchaeology
@@ -481,42 +482,41 @@ Spectrometers       Hardware → Spectroscopy
 DSC/TGA/TMA         Hardware → Thermal Analysis & Calorimetry
 Zooarchaeology      Hardware → Zooarchaeology
 
-🎉 You're Ready!
+You're Ready!
 
 You now know enough to:
-    ✅ Import data from files or instruments
-    ✅ Run 70 classification engines
-    ✅ Execute 50 scientific protocols
-    ✅ View domain-specific Field Panels (16 domains)
-    ✅ Create publication-quality plots
-    ✅ Export results and scripts
-    ✅ Record macros for automation (13 action types)
-    ✅ Get AI-assisted guidance with Toolkit AI
+    Import data from files or instruments
+    Run 70 classification engines
+    Execute scientific protocols
+    View domain-specific Field Panels (16 domains)
+    Create publication-quality plots
+    Export results and scripts
+    Record macros for automation (13 action types)
+    Get AI-assisted guidance with Toolkit AI
 
 Explore at your own pace. Scientific Toolkit grows with your needs.
 
-🧪 Help Improve This Software
+Help Improve This Software
 
 Your testing and feedback is essential!
 
-As you use the toolkit:
-    ✅ Verify results make sense for your samples
-    ✅ Cross-check important results with other tools
-    ✅ Report bugs or unexpected behavior
-    ✅ Share what works well (and what doesn't)
+    Verify results make sense for your samples
+    Cross-check important results with other tools
+    Report bugs or unexpected behavior
+    Share what works well (and what doesn't)
 
 Found an issue? → Report on GitLab
 Everything working great? → Star the repository and tell colleagues!
 
-📞 Quick Contacts
+Quick Contacts
     Email:         sefy76@gmail.com
     GitLab Issues: https://gitlab.com/sefy76/scientific-toolkit/-/issues
     DOI:           https://doi.org/10.5281/zenodo.18727756
 
-📊 Quick Stats Summary
+Quick Stats Summary
 Category                Count
 Classification Engines  70
-Scientific Protocols    50
+Scientific Protocols    10
 Software Plugins        37
 Add-on Plugins          25
 Hardware Suites         16
@@ -525,5 +525,3 @@ Domain Field Panels     16
 Built-in Citations      200+
 Sample Files            30+
 Lines of Code           ~100,000+
-
-⬇️ Download Now | ⭐ Star on GitLab | 🐛 Report Bug

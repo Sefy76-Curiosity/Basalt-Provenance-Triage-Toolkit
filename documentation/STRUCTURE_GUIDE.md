@@ -1,65 +1,65 @@
-📁 Scientific Toolkit v2.5 - Complete Project Structure
-✨ Complete Visual Guide
+Scientific Toolkit v2.0 - Complete Project Structure
+Visual Guide to All Components
 
-This document shows the full structure of Scientific Toolkit v2.5, including all
-classification engines, protocols, plugins, field panels, and enhanced features.
+This document shows the full structure of Scientific Toolkit v2.0, including all
+classification engines, protocols, plugins, field panels, and productivity features.
 
 scientific-toolkit/
 │
-├── 📄 Scientific-Toolkit.py                       ← Main application (ttkbootstrap UI)
-├── 📄 data_hub.py                                 ← Central data management (observer pattern)
-├── 📄 color_manager.py                            ← Classification color schemes
-├── 📄 update_checker.py                           ← GitLab/GitHub update checker
+├── Scientific-Toolkit.py                       ← Main application (ttkbootstrap UI)
+├── data_hub.py                                 ← Central data management (observer pattern)
+├── color_manager.py                            ← Classification color schemes
+├── update_checker.py                           ← GitLab/GitHub update checker
 │
-├── 📂 features/                                    ← PRODUCTIVITY FEATURES (v2.5)
+├── features/                                   ← PRODUCTIVITY FEATURES
 │   ├── __init__.py
-│   ├── auto_save.py                                ← Thread-safe auto-save (UPDATED v2.5)
-│   │                                                  Race condition fixed, atomic writes,
-│   │                                                  crash recovery on startup
-│   ├── macro_recorder.py                           ← Workflow recorder (UPDATED v2.5)
-│   │                                                  Now captures 13 action types
-│   │                                                  (was 4 in v2.0)
-│   ├── project_manager.py                          ← Project save/load (.stproj JSON)
-│   ├── script_exporter.py                          ← Python/R script export
-│   ├── tooltip_manager.py                          ← Hover tooltips (500ms delay)
-│   └── recent_files_manager.py                     ← Tracks last 10 opened files
+│   ├── auto_save.py                            ← Thread-safe auto-save
+│   │                                              Race condition fixed, atomic writes,
+│   │                                              crash recovery on startup
+│   ├── macro_recorder.py                       ← Workflow recorder
+│   │                                              Captures 13 action types
+│   ├── project_manager.py                      ← Project save/load (.stproj JSON)
+│   ├── script_exporter.py                      ← Python/R script export
+│   ├── tooltip_manager.py                      ← Hover tooltips (500ms delay)
+│   ├── recent_files_manager.py                 ← Tracks last 10 opened files
+│   └── settings_manager.py                     ← User settings management
 │
-├── 📂 ui/                                          ← USER INTERFACE (EXPANDED in v2.5)
+├── ui/                                         ← USER INTERFACE
 │   ├── __init__.py
-│   ├── left_panel.py                               ← Data import, manual entry, hardware buttons
-│   ├── center_panel.py                             ← Main data table, plots, status bar,
-│   │                                                  field panel selection notification
-│   ├── right_panel.py                              ← Classification HUD (v2) + field panel
-│   │                                                  switcher, auto-detection logic
+│   ├── left_panel.py                           ← Data import, manual entry, hardware buttons
+│   ├── center_panel.py                         ← Main data table, plots, status bar,
+│   │                                              field panel selection notification
+│   ├── right_panel.py                          ← Classification HUD + field panel
+│   │                                              switcher, auto-detection logic
 │   │
-│   ├── ── FIELD PANELS v3.0 (16 new modules) ──
-│   ├── right_panel_archaeology.py                  ← Archaeology & archaeometry
-│   ├── right_panel_chromatography.py               ← Chromatography / analytical chemistry
-│   ├── right_panel_electrochem.py                  ← Electrochemistry
-│   ├── right_panel_geochemistry.py                 ← Geochemistry (TAS + AFM + Mg# embedded)
-│   ├── right_panel_geochronology.py                ← Geochronology (U-Pb, Ar-Ar)
-│   ├── right_panel_geophysics.py                   ← Geophysics surveys
-│   ├── right_panel_materials.py                    ← Materials characterisation
-│   ├── right_panel_meteorology.py                  ← Meteorology & environmental
-│   ├── right_panel_molecular.py                    ← Molecular biology / clinical
-│   ├── right_panel_petrology.py                    ← Petrology (modal/normative)
-│   ├── right_panel_physics.py                      ← Physics & test/measurement
-│   ├── right_panel_solution.py                     ← Solution / water chemistry
-│   ├── right_panel_spatial.py                      ← GIS & spatial data
-│   ├── right_panel_spectroscopy.py                 ← Spectroscopy (FTIR, Raman, UV-Vis)
-│   ├── right_panel_structural.py                   ← Structural geology
-│   ├── right_panel_zooarch.py                      ← Zooarchaeology (NISP, MNI)
-│   ├── right_panel_patch.py                        ← Selection-sync patch documentation
+│   ├── ── FIELD PANELS v3.0 (16 domain modules) ──
+│   ├── right_panel_archaeology.py              ← Archaeology & archaeometry
+│   ├── right_panel_chromatography.py           ← Chromatography / analytical chemistry
+│   ├── right_panel_electrochem.py              ← Electrochemistry
+│   ├── right_panel_geochemistry.py             ← Geochemistry (TAS + AFM + Mg# embedded)
+│   ├── right_panel_geochronology.py            ← Geochronology (U-Pb, Ar-Ar)
+│   ├── right_panel_geophysics.py               ← Geophysics surveys
+│   ├── right_panel_materials.py                ← Materials characterisation
+│   ├── right_panel_meteorology.py              ← Meteorology & environmental
+│   ├── right_panel_molecular.py                ← Molecular biology / clinical
+│   ├── right_panel_petrology.py                ← Petrology (modal/normative)
+│   ├── right_panel_physics.py                  ← Physics & test/measurement
+│   ├── right_panel_solution.py                 ← Solution / water chemistry
+│   ├── right_panel_spatial.py                  ← GIS & spatial data
+│   ├── right_panel_spectroscopy.py             ← Spectroscopy (FTIR, Raman, UV-Vis)
+│   ├── right_panel_structural.py               ← Structural geology
+│   ├── right_panel_zooarch.py                  ← Zooarchaeology (NISP, MNI)
+│   ├── right_panel_patch.py                    ← Selection-sync patch documentation
 │   │
-│   ├── results_dialog.py                           ← Classification results popup
-│   └── all_schemes_detail_dialog.py                ← "Run All Schemes" results viewer
+│   ├── results_dialog.py                       ← Classification results popup
+│   └── all_schemes_detail_dialog.py            ← "Run All Schemes" results viewer
 │
-├── 📂 engines/                                     ← SCIENTIFIC ENGINES
-│   ├── classification_engine.py                    ← Rule-based classification (70 schemes)
-│   ├── protocol_engine.py                          ← Multi-stage workflows (JSON-based, v2.5)
-│   ├── derived_fields.json                         ← Calculated field definitions
+├── engines/                                    ← SCIENTIFIC ENGINES
+│   ├── classification_engine.py                ← Rule-based classification (70 schemes)
+│   ├── protocol_engine.py                      ← Multi-stage workflows (JSON-based)
+│   ├── derived_fields.json                     ← Calculated field definitions
 │   │
-│   ├── 📂 classification/                          ← 70 CLASSIFICATION SCHEMES (JSON)
+│   ├── classification/                         ← 70 CLASSIFICATION SCHEMES (JSON)
 │   │   ├── afm_irvine-baragar_series.json
 │   │   ├── alteration_indices_ishikawa_ccpi.json
 │   │   ├── analytical_precision_filter.json
@@ -87,31 +87,35 @@ scientific-toolkit/
 │   │   ├── tas_volcanic_le_bas.json
 │   │   ├── usda_soil_texture.json
 │   │   ├── ... [70 total]
-│   │   └── _TEMPLATE.json                         ← Template for adding custom schemes
+│   │   └── _TEMPLATE.json                      ← Template for adding custom schemes
 │   │
-│   └── 📂 protocols/                              ← 50 SCIENTIFIC PROTOCOLS (JSON)
+│   └── protocols/                              ← SCIENTIFIC PROTOCOLS (JSON)
 │       ├── behrensmeyer_weathering.json
 │       ├── epa_water_quality.json
 │       ├── folk_shepard_texture.json
 │       ├── hakanson_ecological_risk.json
 │       ├── iugs_igneous_classification.json
 │       ├── maresha_zooarchaeology.json
-│       ├── ... [50 total]
+│       ├── shipman_rose_burning.json
+│       ├── stable_isotope_diet.json
+│       ├── usda_soil_morphology.json
+│       ├── zooarch_fragmentation_breakage.json
 │       └── _TEMPLATE.json
 │
-├── 📂 plugins/                                    ← ALL PLUGINS
-│   ├── plugins.json                               ← Plugin registry (updated for v2.5)
-│   ├── plugin_manager.py                          ← Plugin management UI (Plugin Manager v3)
+├── plugins/                                    ← ALL PLUGINS
+│   ├── plugins.json                            ← Plugin registry
+│   ├── plugin_store.json                       ← Online plugin store catalog
+│   ├── plugin_manager.py                       ← Plugin management UI (v3.0)
 │   ├── __init__.py
 │   │
-│   ├── 📂 add-ons/                               ← 25 ADD-ON PLUGINS
+│   ├── add-ons/                                ← 25 ADD-ON PLUGINS
 │   │   ├── __init__.py
-│   │   ├── toolkit_ai.py                          ← NEW v2.5 — Built-in AI assistant v2.2
-│   │   │                                             Plugin scanning, scheme lookup,
-│   │   │                                             recommendation engine, offline
-│   │   ├── statistical_console.py                 ← NEW v2.5 — Stats for non-programmers
-│   │   │                                             Summary, describe, correlate,
-│   │   │                                             groups, t-test
+│   │   ├── toolkit_ai.py                       ← Built-in AI assistant v2.2
+│   │   │                                          Plugin scanning, scheme lookup,
+│   │   │                                          recommendation engine, 100% offline
+│   │   ├── statistical_console.py              ← Stats for non-programmers
+│   │   │                                          Summary, describe, correlate,
+│   │   │                                          groups, t-test (no scipy)
 │   │   ├── ascii_plotter.py
 │   │   ├── batch_processor.py
 │   │   ├── chatgpt_ai.py
@@ -135,7 +139,7 @@ scientific-toolkit/
 │   │   ├── sql_console.py
 │   │   └── ternary_plotter.py
 │   │
-│   ├── 📂 hardware/                              ← 16 HARDWARE SUITES
+│   ├── hardware/                               ← 16 HARDWARE SUITES
 │   │   ├── __init__.py
 │   │   ├── archaeology_archaeometry_unified_suite.py
 │   │   ├── barcode_scanner_unified_suite.py
@@ -154,7 +158,7 @@ scientific-toolkit/
 │   │   ├── thermal_analysis_calorimetry_unified_suite.py
 │   │   └── zooarchaeology_unified_suite.py
 │   │
-│   └── 📂 software/                             ← 37 SOFTWARE PLUGINS
+│   └── software/                              ← 37 SOFTWARE PLUGINS
 │       ├── __init__.py
 │       ├── advanced_normative_calculations.py
 │       ├── archaeometry_analysis_suite_ultimate.py
@@ -190,28 +194,30 @@ scientific-toolkit/
 │       ├── zooarchaeology_analysis_suite.py
 │       └── ... [37 total]
 │
-├── 📂 config/                                   ← CONFIGURATION FILES
-│   ├── chemical_elements.json                   ← Column name mappings (58 KB)
-│   ├── scatter_colors.json                      ← Classification color schemes
-│   ├── user_settings.json                       ← User preferences (auto-created)
-│   ├── recent_files.json                        ← Recent files list (auto-created)
-│   ├── macros.json                              ← Saved macros (auto-created)
-│   ├── disabled_schemes.json                    ← Disabled classification schemes
-│   └── ai_knowledge_cache.json                  ← NEW v2.5 — Toolkit AI scan cache
-│                                                   (auto-created, 1-hour TTL)
+├── config/                                    ← CONFIGURATION FILES
+│   ├── chemical_elements.json                 ← Column name mappings (58 KB)
+│   ├── scatter_colors.json                    ← Classification color schemes
+│   ├── user_settings.json                     ← User preferences (auto-created)
+│   ├── recent_files.json                      ← Recent files list (auto-created)
+│   ├── macros.json                            ← Saved macros (auto-created)
+│   ├── disabled_schemes.json                  ← Disabled classification schemes
+│   ├── enabled_plugins.json                   ← Plugin enable/disable state
+│   ├── plugin_manager_state.json              ← Plugin Manager UI state
+│   └── ai_knowledge_cache.json               ← Toolkit AI scan cache
+│                                                 (auto-created, 1-hour TTL)
 │
-├── 📂 auto_save/                                ← AUTO-SAVE DIRECTORY (auto-created)
-│   └── recovery.stproj                         ← Crash recovery file (atomic writes)
+├── auto_save/                                 ← AUTO-SAVE DIRECTORY (auto-created)
+│   └── recovery.stproj                        ← Crash recovery file (atomic writes)
 │
-├── 📂 samples/                                  ← SAMPLE DATA (30+ files)
-│   ├── master_test_list.csv                     ← Master multi-domain test dataset
+├── samples/                                   ← SAMPLE DATA (30+ files)
+│   ├── master_test_list.csv                   ← Master multi-domain test dataset
 │   ├── classifications_master_test.csv
 │   ├── geochemistry.csv
 │   ├── geochemistry_location.csv
 │   ├── structural_data.csv
 │   ├── thermobarometry_test_data.csv
 │   │
-│   ├── ── DOMAIN TEST FILES (NEW v2.5, one per field panel) ──
+│   ├── ── DOMAIN TEST FILES (one per field panel) ──
 │   ├── archaeology_test.csv
 │   ├── chromatography_test.csv
 │   ├── electrochem_test.csv
@@ -229,8 +235,17 @@ scientific-toolkit/
 │   ├── structural_test.csv
 │   └── zooarch_test.csv
 │
-├── 📂 engines/                                  ← (see above)
-├── 📂 documentation/                            ← DOCUMENTATION
+├── templates/                                 ← REPORT/FIGURE TEMPLATES
+│   ├── aesthetic_templates.json
+│   ├── discipline_templates.json
+│   ├── functional_templates.json
+│   ├── geochem_specialized.json
+│   ├── journal_templates.json
+│   ├── presentation_templates.json
+│   ├── professional_templates.json
+│   └── quick_draft_templates.json
+│
+├── documentation/                             ← DOCUMENTATION
 │   ├── README.md
 │   ├── QUICK_START.md
 │   ├── INSTALLATION.md
@@ -242,50 +257,59 @@ scientific-toolkit/
 │   ├── CITATIONS.md
 │   └── DOCUMENTATION_PACKAGE_README.md
 │
-├── 📂 tests/                                    ← TESTS
-│   └── ...
+├── tests/                                     ← TEST SUITE
+│   ├── test_toolkit.py
+│   ├── README.md
+│   └── test_reports/
 │
-└── 📄 README.md                                 ← Root README
+├── snapshots/                                 ← SAMPLE SCREENSHOTS
+│
+├── README.md                                  ← Root README
+├── LICENSE                                    ← CC BY-NC-SA 4.0
+├── index.html                                 ← Web documentation
+├── favicon.ico
+└── .gitignore
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🔄 Data Flow (v2.5)
+Data Flow (v2.0)
 
 Hardware / File Import
         ↓
    Left Panel
         ↓
-   DataHub   ←──────────────────────────── Observer pattern
-   (single source of truth)                (all panels subscribe)
-        ↓                ↓                          ↓
-  Center Panel      Right Panel               Toolkit AI
-  (main table)      (HUD or Field Panel v3)   (KnowledgeBase scan)
+   DataHub   ←────────────────────── Observer pattern
+   (single source of truth)          (all panels subscribe)
+        ↓                ↓                    ↓
+  Center Panel      Right Panel           Toolkit AI
+  (main table)      (HUD or Field Panel)  (KnowledgeBase scan)
         ↓                ↓
-  Statistical      Classification         Field Panel
-  Console tab      results + HUD          (auto-detected,
-                                           embedded diagrams,
-                                           selection-sync)
+  Statistical      Classification    Field Panel
+  Console tab      results + HUD     (auto-detected,
+                                     embedded diagrams,
+                                     selection-sync)
         ↓
   Auto-Save (background thread)
   → recovery.stproj (atomic write, thread-safe)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📊 Key Numbers
+Key Numbers — Scientific Toolkit v2.0
 Category                Count
 Classification Engines  70
-Scientific Protocols    50
+Scientific Protocols    10
 Software Plugins        37
-Add-on Plugins          25   (+2 vs v2.0)
-Hardware Suites         16   (+9 vs v2.0)
-Domain Field Panels     16   (NEW in v2.5)
-Macro Action Types      13   (+9 vs v2.0)
-Sample Files            30+  (+20 vs v2.0)
+Add-on Plugins          25
+Hardware Suites         16
+Domain Field Panels     16
+Macro Action Types      13
+Sample Files            30+
+AI Assistants           8 (1 built-in offline + 7 external)
 UI Framework            ttkbootstrap
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🏗️ Adding to the Toolkit
+Adding to the Toolkit
 
 Adding a Classification Scheme
 1. Copy engines/classification/_TEMPLATE.json

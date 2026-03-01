@@ -1,12 +1,13 @@
-📥 Installation Guide
+Installation Guide
 
 Complete installation instructions for Windows, macOS, and Linux.
-Scientific Toolkit v2.5
+Scientific Toolkit v2.0
 
-⚠️ Disclaimer
+Disclaimer
 
 This software is provided "AS IS" without any warranty.
-You are responsible for validating all results and verifying methods are appropriate for your data.
+You are responsible for validating all results and verifying methods are
+appropriate for your data.
 
 Found a problem? → https://gitlab.com/sefy76/scientific-toolkit/-/issues
 
@@ -15,7 +16,7 @@ Requirements
     Operating System: Windows 10/11, macOS 10.14+, or modern Linux
     Disk Space: ~50 MB for core files, +500 MB for full dependencies and sample data
     RAM: 2 GB minimum, 4 GB recommended (8 GB for large datasets)
-    Display: 1280×800 minimum resolution
+    Display: 1280x800 minimum resolution
 
 Quick Install (All Platforms)
 
@@ -30,16 +31,16 @@ Quick Install (All Platforms)
     python Scientific-Toolkit.py
 
 That's it for basic functionality! You'll have access to:
-    ✅ 70 classification engines
-    ✅ 50 protocols
-    ✅ Data import/export
-    ✅ Basic plotting
-    ✅ Toolkit AI (offline, no API key)
-    ✅ All 16 Field Panels
-    ✅ Statistical Console
-    ✅ Auto-save with crash recovery
+    70 classification engines
+    Scientific protocols
+    Data import/export
+    Basic plotting
+    Toolkit AI (offline, no API key)
+    All 16 Field Panels
+    Statistical Console
+    Auto-save with crash recovery
 
-New in v2.5: ttkbootstrap is now required for the UI.
+ttkbootstrap is required for the UI.
 Install separately if not picked up by requirements.txt:
     pip install ttkbootstrap
 
@@ -49,9 +50,10 @@ For complete functionality including all software plugins, add-ons, and hardware
 
     pip install -r requirements.txt
 
-Note: This installs ~40+ packages. Internet connection required. Total download ~300–500 MB.
+Note: This installs ~40+ packages. Internet connection required. Total download ~300-500 MB.
 
 Platform-Specific Instructions
+
 Windows
 
 Option 1: Using Python from python.org
@@ -135,7 +137,7 @@ After installation, test that everything works:
     python Scientific-Toolkit.py
 
 You should see:
-    Splash screen with "Scientific Toolkit v2.5"
+    Splash screen with "Scientific Toolkit v2.0"
     Main window loads with three-panel ttkbootstrap layout
     Menu bar shows: File, Classify, Protocols, Visualize, Hardware, Advanced, Help
 
@@ -144,7 +146,7 @@ Test basic functionality:
     1. File → Import Data → CSV → samples/geochemistry_test.csv
     2. Right panel shows: "Switch to Geochemistry Panel?" → Click Yes
     3. TAS diagram, AFM diagram, and Mg# histogram appear in right panel
-    4. Click ← Back to return to Classification HUD
+    4. Click Back to return to Classification HUD
     5. Select scheme → Apply → results appear in HUD
 
 Test Field Panels:
@@ -179,7 +181,7 @@ Core (Required — 4 packages)
     numpy>=1.20.0           # Numerical computing
     pandas>=1.3.0           # Data structures
     matplotlib>=3.4.0       # Plotting
-    ttkbootstrap>=1.10.0    # Modern UI framework (NEW in v2.5)
+    ttkbootstrap>=1.10.0    # Modern UI framework
 
 Standard (Recommended — adds 10 packages)
     scipy>=1.7.0            # Scientific computing
@@ -239,12 +241,12 @@ The Plugin Manager makes dependency management easy:
         Add-ons (25 plugins): Plotting, consoles, AI assistants
         Hardware (16 suites): Device drivers
     For each plugin, the manager shows:
-        ✅ Installed and enabled
-        ⚠️ Missing dependencies (with install button)
-        ❌ Not installed (with install button)
+        Installed and enabled
+        Missing dependencies (with install button)
+        Not installed (with install button)
     Click "Install Dependencies" to auto-install required packages
 
-Two plugins are highlighted as always enabled by default:
+Two plugins are always enabled by default:
     Toolkit AI (built-in AI, no dependencies)
     Statistical Console (no scipy needed)
 
@@ -356,21 +358,21 @@ Scenario 3: Archaeologist with zooarchaeology focus
     # Enable Zooarchaeology field panel, Zooarch Analysis Suite, Photo Manager
 
 Scenario 4: Researcher needing full capabilities
-    pip install -r requirements.txt    # may take 10–15 minutes
+    pip install -r requirements.txt    # may take 10-15 minutes
 
 Post-Installation Checklist
 
 After installation, verify:
-    ☐ python Scientific-Toolkit.py launches with ttkbootstrap-styled UI
-    ☐ Sample data loads: File → Import Data → samples/geochemistry_test.csv
-    ☐ Field panel auto-offer appears for geochemistry data
-    ☐ Classification works: right panel → TAS → Apply
-    ☐ Protocols work: Protocols → Behrensmeyer Weathering Protocol
-    ☐ Plugin Manager loads: Advanced → Plugin Manager (37 sw + 25 add-ons + 16 hw)
-    ☐ Toolkit AI listed: Advanced → Plugin Manager → Add-ons → Toolkit AI
-    ☐ Statistical Console listed: Advanced → Plugin Manager → Add-ons
-    ☐ Auto-save folder created: auto_save/ appears after first data import
-    ☐ At least one plot generates: Visualize → Scatter Plot
+    python Scientific-Toolkit.py launches with ttkbootstrap-styled UI
+    Sample data loads: File → Import Data → samples/geochemistry_test.csv
+    Field panel auto-offer appears for geochemistry data
+    Classification works: right panel → TAS → Apply
+    Protocols work: Protocols → Behrensmeyer Weathering Protocol
+    Plugin Manager loads: Advanced → Plugin Manager (37 sw + 25 add-ons + 16 hw)
+    Toolkit AI listed: Advanced → Plugin Manager → Add-ons → Toolkit AI
+    Statistical Console listed: Advanced → Plugin Manager → Add-ons
+    Auto-save folder created: auto_save/ appears after first data import
+    At least one plot generates: Visualize → Scatter Plot
 
 Need Help?
     Check FAQ.md for common issues
@@ -385,14 +387,12 @@ When reporting issues, include:
     Output of pip list
 
 Quick Reference
-Command                                             Purpose
-git clone https://...scientific-toolkit.git         Download
-pip install -r requirements.txt                     Full install
-pip install numpy pandas matplotlib ttkbootstrap    Minimal install
-python Scientific-Toolkit.py                        Launch
-python -m tkinter                                   Test Tkinter
-pytest tests/ -v                                    Run tests
+Command                                                 Purpose
+git clone https://...scientific-toolkit.git             Download
+pip install -r requirements.txt                         Full install
+pip install numpy pandas matplotlib ttkbootstrap        Minimal install
+python Scientific-Toolkit.py                            Launch
+python -m tkinter                                       Test Tkinter
+pytest tests/ -v                                        Run tests
 
 Questions? sefy76@gmail.com | Issues? GitLab Issues
-
-Happy Scientisting! 🔬

@@ -1,10 +1,11 @@
-❓ Frequently Asked Questions
+Frequently Asked Questions
 
-Honest answers to common questions about Scientific Toolkit.
-Updated February 2026 to reflect v2.5 (70 engines, 50 protocols, 90+ plugins, 16 hardware suites,
-16 field panels, Toolkit AI, Statistical Console, extended Macro Recorder, thread-safe Auto-Save).
+Honest answers to common questions about Scientific Toolkit v2.0.
+Updated March 2026 — 70 classification engines, 10 protocols, 90+ plugins,
+16 hardware suites, 16 field panels, Toolkit AI, Statistical Console,
+Macro Recorder (13 action types), thread-safe Auto-Save.
 
-⚠️ DISCLAIMER: Read This First
+DISCLAIMER: Read This First
 
 This software is provided "AS IS" without any warranty.
 
@@ -24,10 +25,10 @@ This is scientific software in active development. You MUST:
 We rely on users to test and report issues. Your bug reports help everyone.
 → Report issues on GitLab
 
-📊 Quick Stats Reference
+Quick Stats Reference
 Category                Count
 Classification Engines  70
-Scientific Protocols    50
+Scientific Protocols    10
 Software Plugins        37
 Add-on Plugins          25
 Hardware Suites         16
@@ -35,7 +36,7 @@ Domain Field Panels     16
 Total Plugins           90+
 Built-in Citations      200+
 Lines of Code           ~100,000+
-Active Development      2024–2026
+Active Development      2024-2026
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 General Questions
@@ -43,11 +44,11 @@ General Questions
 
 What is Scientific Toolkit?
 
-A free, open-source desktop application (Python / ttkbootstrap) for scientific data analysis
-across multiple domains: geochemistry, archaeology, soil science, meteoritics, spectroscopy,
-zooarchaeology, and many more. It combines data management, 70 classification engines,
-50 scientific protocols, 90+ plugins, 16 hardware integration suites, 16 domain-specific
-field panels, and a built-in AI assistant — all in one tool.
+A free, open-source desktop application (Python / ttkbootstrap) for scientific data
+analysis across multiple domains: geochemistry, archaeology, soil science, meteoritics,
+spectroscopy, zooarchaeology, and many more. It combines data management, 70 classification
+engines, scientific protocols, 90+ plugins, 16 hardware integration suites,
+16 domain-specific field panels, and a built-in AI assistant — all in one tool.
 
 Who made this?
 
@@ -65,29 +66,29 @@ Yes! You can use Scientific Toolkit for commercial purposes — a mining company
 it for exploration, a consulting firm for client work, a museum for paid exhibitions.
 
 What you CANNOT do:
-    ❌ Sell the software itself (charging for Scientific Toolkit)
-    ❌ Incorporate the code into commercial products you sell
-    ❌ Take the code and use it in proprietary software you're selling
+    Cannot sell the software itself (charging for Scientific Toolkit)
+    Cannot incorporate the code into commercial products you sell
+    Cannot take the code and use it in proprietary software you're selling
 
 Example scenarios:
 Scenario                                                Allowed?
-Mining company uses toolkit for client soil analysis    ✅ ALLOWED
-Museum uses it to classify artifacts for exhibitions    ✅ ALLOWED
-Consultant uses it to generate reports for customers    ✅ ALLOWED
-Company sells "GeoAnalyzer Pro" based on this code      ❌ NOT ALLOWED
-Charging $500 for the toolkit download                  ❌ NOT ALLOWED
+Mining company uses toolkit for client soil analysis    ALLOWED
+Museum uses it to classify artifacts for exhibitions    ALLOWED
+Consultant uses it to generate reports for customers    ALLOWED
+Company sells "GeoAnalyzer Pro" based on this code      NOT ALLOWED
+Charging $500 for the toolkit download                  NOT ALLOWED
 
 Contact sefy76@gmail.com to discuss commercial licensing of the source code.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎯 Capabilities
+Capabilities
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 What can Scientific Toolkit do?
 Category            Capabilities
 Classification      70 engines (TAS, AFM, REE, soil texture, bone diagenesis,
                     meteorite shock, etc.)
-Protocols           50 multi-stage workflows (Behrensmeyer, EPA, IUGS, Maresha, etc.)
+Protocols           10 multi-stage workflows (Behrensmeyer, EPA, IUGS, Maresha, etc.)
 Software Analysis   37 plugins (PCA/LDA, geochronology, isotope mixing, normative
                     calculations, 14 discipline suites)
 Hardware            16 suites (archaeology, barcode, chromatography, clinical,
@@ -96,7 +97,7 @@ Hardware            16 suites (archaeology, barcode, chromatography, clinical,
                     spectroscopy, thermal, zooarchaeology)
 Plotting            25 add-ons (matplotlib, seaborn, ternary, GIS, ASCII, missingno,
                     6 consoles including Statistical Console, 7+ AI assistants)
-Field Panels        16 domain-specific right panels (v3.0): geochemistry, spectroscopy,
+Field Panels        16 domain-specific right panels: geochemistry, spectroscopy,
                     zooarchaeology, structural, spatial, petrology, geochronology,
                     geophysics, archaeology, chromatography, electrochem, materials,
                     solution, molecular, meteorology, physics
@@ -104,11 +105,11 @@ AI Assistants       8 options: Toolkit AI (built-in, offline), Claude, ChatGPT,
                     Gemini, DeepSeek, Grok, Copilot, Ollama
 
 What can't it do?
-    ❌ Handle massive datasets (performance degrades >10,000 samples)
-    ❌ Replace specialized commercial tools in their single domains
-    ❌ Provide enterprise-level support contracts
-    ❌ Run in a web browser (desktop only)
-    ❌ Replay manual in-table cell edits in macros (coming in future release)
+    Cannot handle massive datasets (performance degrades >10,000 samples)
+    Cannot replace specialized commercial tools in their single domains
+    Cannot provide enterprise-level support contracts
+    Cannot run in a web browser (desktop only)
+    Cannot replay manual in-table cell edits in macros (reserved for future release)
 
 How does this compare to commercial software?
 Tool                Cost            Strengths                               Weaknesses
@@ -123,7 +124,7 @@ Best use: Budget-constrained researchers, students, teaching labs, cross-discipl
 projects, museums, field work with portable instruments.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-💻 Installation & Technical
+Installation & Technical
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 What are the system requirements?
@@ -132,7 +133,7 @@ Python      3.8                             3.10+
 OS          Windows 10, macOS 10.14, Linux  Latest versions
 RAM         2 GB                            4 GB (8 GB for large datasets)
 Disk Space  50 MB                           500 MB (with all plugins)
-Display     1280×800                        1920×1080
+Display     1280x800                        1920x1080
 
 See INSTALLATION.md for details.
 
@@ -143,9 +144,8 @@ However, knowing Python helps if you want to create custom plugins or modify eng
 
 Is ttkbootstrap required?
 
-Yes, as of v2.5. The entire UI has been migrated to ttkbootstrap for a modern look
-and consistent theming. Install it with:
-
+Yes. The entire UI uses ttkbootstrap for a modern look and consistent theming.
+Install it with:
     pip install ttkbootstrap
 
 Does it work offline?
@@ -168,27 +168,27 @@ Clear the AI knowledge cache after updates: delete config/ai_knowledge_cache.jso
 so Toolkit AI rescans the new plugins.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📁 Data & Files
+Data & Files
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 What file formats are supported?
 
 Import:
-    ✅ CSV (any delimiter)
-    ✅ Excel (.xlsx, .xls)
-    ✅ Tab-delimited text
-    ✅ Hardware-specific: Bruker, Niton, Olympus, SciAps, Thermo
-    ✅ Spectral: .spa, .opj, .dpt, .wdf, .ngs, .jdx
-    ✅ Images: .jpg, .png, .tif (for lithics/photos)
+    CSV (any delimiter)
+    Excel (.xlsx, .xls)
+    Tab-delimited text
+    Hardware-specific: Bruker, Niton, Olympus, SciAps, Thermo
+    Spectral: .spa, .opj, .dpt, .wdf, .ngs, .jdx
+    Images: .jpg, .png, .tif (for lithics/photos)
 
 Export:
-    ✅ CSV
-    ✅ Excel
-    ✅ JSON
-    ✅ PDF (figures)
-    ✅ PNG/SVG (figures)
-    ✅ KML (for Google Earth)
-    ✅ Shapefile (GIS)
+    CSV
+    Excel
+    JSON
+    PDF (figures)
+    PNG/SVG (figures)
+    KML (for Google Earth)
+    Shapefile (GIS)
 
 Can I save my work and come back later?
 
@@ -197,32 +197,32 @@ Yes. Projects are saved as .stproj files (JSON format). They store:
     Column order and structure
     Current filters and search terms
     Selected classification scheme
-    Active field panel (NEW in v2.5)
+    Active field panel
     UI state (tabs, page numbers)
     Window size and position
 
 Auto-save creates recovery.stproj every 5 minutes and prompts for recovery on startup
-if unsaved work is detected (see Auto-Save section below).
+if unsaved work is detected.
 
 How big can my datasets be?
 Size                Performance
-<1,000 samples      ✅ Smooth, instant
-1,000–5,000 samples ⚠️ Good, slight delay on some operations
-5,000–10,000 samples ⚠️ Slower but usable
->10,000 samples     ❌ Not recommended
+<1,000 samples      Smooth, instant
+1,000-5,000 samples Good, slight delay on some operations
+5,000-10,000 samples Slower but usable
+>10,000 samples     Not recommended
 
 For large datasets: use filters, enable pagination, or export to R/Python.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🧬 Classifications & Analysis
+Classifications & Analysis
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 How many classification engines are there?
 
-70 classification engines + 50 protocols across 2 engine types:
+70 classification engines across 1 engine type, plus 10 multi-stage protocols:
 Engine Type             Count   Description
 Classification Engine   70      Rule-based JSON schemes
-Protocol Engine         50      Multi-stage workflows
+Protocol Engine         10      Multi-stage workflows
 
 These cover: Geochemistry (20+), Metamorphic petrology (5+), Sedimentology (12+),
 Geochronology (3+), Isotope geochemistry (3+), Environmental (8+), Soil science (8+),
@@ -242,15 +242,15 @@ Yes! Classification engines are JSON files in engines/classification/:
     Save and restart — your scheme appears in the dropdown
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔬 Field Panels (NEW in v2.5)
+Field Panels
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 What are Field Panels?
 
-Field Panels are domain-specific right-panel modules (v3.0) that replace the
-Classification HUD when a recognised data type is loaded. They show live diagrams,
-computed summaries, and domain-relevant derived values — all updated instantly
-when you select rows in the main table.
+Field Panels are domain-specific right-panel modules that replace the Classification HUD
+when a recognised data type is loaded. They show live diagrams, computed summaries, and
+domain-relevant derived values — all updated instantly when you select rows in the main
+table.
 
 16 domains are supported: geochemistry, geochronology, petrology, structural,
 geophysics, spatial, archaeology, zooarchaeology, spectroscopy, chromatography,
@@ -262,7 +262,7 @@ How does auto-detection work?
 When data is imported, the right panel checks column names against each domain's
 detection list. If a match is found (e.g., sio2, tio2, al2o3 → geochemistry),
 a prompt appears: "Switch to [Domain] Panel?" Clicking Yes loads the field panel.
-The ← Back button always returns you to the Classification HUD.
+The Back button always returns you to the Classification HUD.
 
 Can I switch panels manually?
 
@@ -276,7 +276,7 @@ inside the right panel, rendering a TAS diagram (Le Bas et al. 1986), AFM diagra
 and Mg# histogram. These update as you select or deselect rows.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🧠 Toolkit AI (NEW in v2.5)
+Toolkit AI
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 What is Toolkit AI? How is it different from the other AI plugins?
@@ -297,7 +297,7 @@ Can Toolkit AI recommend plugins for my data?
 Yes. Based on what data you've loaded and what analyses you've run,
 Toolkit AI suggests relevant plugins. For example:
     Loading geochemistry data → suggests Thermobarometry Suite, Normative Calculator
-    Loading spectral data → suggests Spectral Toolbox, MCR-ALS
+    Loading spectral data → suggests Spectral Toolbox
     Loading zooarch data → suggests Zooarchaeology Analysis Suite
 
 Does Toolkit AI need internet access?
@@ -306,7 +306,7 @@ No. It scans the local codebase only. Internet is only needed if you ask it to
 check the online plugin store for new plugins to download.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📊 Statistical Console (NEW in v2.5)
+Statistical Console
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 What is the Statistical Console?
@@ -315,7 +315,7 @@ A plain-language statistics terminal for users who aren't programmers.
 It runs inside the center panel as its own tab, with a dark terminal-style interface.
 
 One-click buttons run: Summary, Describe, Correlate, Groups, T-Test.
-Text commands at the 📊> prompt offer finer control.
+Text commands at the prompt offer finer control.
 
 Does it require scipy or R?
 
@@ -323,19 +323,15 @@ No. It uses Python's built-in statistics module only.
 No additional dependencies beyond the core install.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎬 Macro Recorder
+Macro Recorder
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 What actions can the macro recorder capture?
 
-As of v2.5, 13 action types are captured:
+13 action types are captured:
     import_file, add_row, classify, scheme_changed, run_protocol, sort_by,
     tab_switched, generate_plot, apply_filter, delete_selected, update_row,
     prev_page, next_page
-
-Previous versions only captured 4 action types. The new types include protocol
-execution, column sorting, tab switching, scheme dropdown changes, pagination,
-and DataHub row updates.
 
 Can I replay macros on different datasets?
 
@@ -350,7 +346,7 @@ The action type is reserved for a future release. Other edit actions
 (delete_selected, update_row via DataHub) are captured and replayed.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-💾 Auto-Save
+Auto-Save
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 How does auto-save work?
@@ -361,10 +357,10 @@ write-then-rename pattern — meaning the recovery file is never in a partial st
 
 What was the race condition that was fixed?
 
-The previous version called data_hub.mark_saved() from the background thread with
-no lock, while the UI thread could be modifying data simultaneously.
-v2.5 adds two threading.Lock objects (_save_lock and _data_lock) that guard all
-shared state between the UI and background threads.
+The previous implementation called data_hub.mark_saved() from the background thread
+with no lock, while the UI thread could be modifying data simultaneously.
+Two threading.Lock objects (_save_lock and _data_lock) now guard all shared state
+between the UI and background threads.
 
 Will I be prompted to recover if the application crashed?
 
@@ -373,7 +369,7 @@ Yes. On startup, if recovery.stproj is less than 24 hours old, a dialog asks:
 Yes loads it; No deletes the file.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔌 Hardware Integration
+Hardware Integration
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Which instruments are supported?
@@ -416,7 +412,7 @@ Linux users: add yourself to the dialout group:
     sudo usermod -a -G dialout $USER    # then log out and back in
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📈 Visualization & Plotting
+Visualization & Plotting
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 What plot types are available?
@@ -431,10 +427,10 @@ From software plugins:
     PCA biplots, LDA projections, U-Pb concordia diagrams
     Ar-Ar age spectra, KDE density plots, ternary mixing diagrams
 
-From Field Panels (NEW in v2.5):
-    TAS diagram (embedded in Geochemistry Panel)
-    AFM diagram (embedded in Geochemistry Panel)
-    Mg# histogram (embedded in Geochemistry Panel)
+From Field Panels (Geochemistry Panel):
+    TAS diagram (embedded)
+    AFM diagram (embedded)
+    Mg# histogram (embedded)
     Domain-specific plots in all 16 panels
 
 Are plots publication-quality?
@@ -443,7 +439,7 @@ Yes. Export as PDF (vector), SVG (editable), PNG (adjustable DPI), or EPS (LaTeX
 Journal-specific templates: Nature, Science, AGU, Elsevier, GSA.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🤖 AI Features
+AI Features
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 How many AI assistants are available?
@@ -475,17 +471,15 @@ Only if you use external AI assistant plugins AND explicitly query them.
 Your data stays local otherwise. Toolkit AI and Ollama never send anything externally.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🐞 Errors & Troubleshooting
+Errors & Troubleshooting
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 "No module named ttkbootstrap"
-
     pip install ttkbootstrap
 
 "Module not found" for other packages
-
     pip install [module-name]
-    # OR use Plugin Manager (auto-installs)
+    OR use Plugin Manager (auto-installs)
 
 Classification returns no results
     Required columns missing — check engine description
@@ -518,7 +512,7 @@ Hardware device not detected
     Try Hardware → File Monitor as fallback
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🤝 Contributing & Development
+Contributing & Development
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Can I contribute?
@@ -544,13 +538,13 @@ I found a bug. What should I do?
 Include: OS, Python version, full error message, steps to reproduce.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-💭 Misc
+Misc
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Why ttkbootstrap instead of vanilla tkinter/ttk?
 
 ttkbootstrap provides a modern, themed widget set built on top of tkinter.
-The migration (completed in v2.5) gives the UI:
+The UI uses ttkbootstrap throughout for:
     - Consistent modern theming across all panels
     - Better visual hierarchy
     - Easier widget styling (bootstyle= parameter)
@@ -559,15 +553,15 @@ The migration (completed in v2.5) gives the UI:
 Why was this created?
 
 To provide free, integrated tools for budget-constrained researchers.
-Many labs cannot afford $5,000–8,000/year in software subscriptions.
+Many labs cannot afford $5,000-8,000/year in software subscriptions.
 
 Software                    Annual Cost
 ioGAS                       ~$2,000
 SPSS                        ~$1,500
 ArcGIS                      ~$1,600
 MATLAB                      ~$2,150
-Specialized petrology tools ~$1,000–3,000
-Total commercial stack       $5,000–10,000/year
+Specialized petrology tools ~$1,000-3,000
+Total commercial stack       $5,000-10,000/year
 Scientific Toolkit           $0
 
 What's the long-term plan?
@@ -582,13 +576,13 @@ Will this always be free?
 
 Yes. Free to use forever. Just don't try to sell it or profit from the code itself.
 
-📝 Still have questions?
+Still have questions?
 
     Email:         sefy76@gmail.com
     GitLab Issues: https://gitlab.com/sefy76/scientific-toolkit/-/issues
     Documentation: See /documentation/ folder for all guides
 
-📋 Quick Reference
+Quick Reference
 Topic                   Go To
 Getting started         QUICK_START.md
 Installation            INSTALLATION.md
@@ -596,4 +590,4 @@ All 10 features         ENHANCED_FEATURES_README.md
 Citations               CITATIONS.md
 Structure guide         STRUCTURE_GUIDE.md
 
-This FAQ is updated based on real user questions. Last updated: February 2026 (v2.5)
+This FAQ is updated based on real user questions. Last updated: March 2026 (v2.0)
