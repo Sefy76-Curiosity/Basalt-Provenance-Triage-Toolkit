@@ -1,0 +1,137 @@
+# ============================================================
+# Scientific Toolkit v2.0 — Requirements
+# ============================================================
+# Install options:
+#
+#   Minimal (core app only):
+#     pip install numpy pandas matplotlib ttkbootstrap
+#
+#   Standard (recommended — adds scientific + export):
+#     pip install -r requirements.txt
+#
+#   Hardware support (add after standard install):
+#     pip install pyserial pyvisa bleak hidapi watchdog
+#
+#   Full (everything including database + AI plugins):
+#     pip install -r requirements.txt
+#     pip install psycopg2-binary pymongo sqlalchemy
+#     pip install anthropic openai google-generativeai ollama
+# ============================================================
+
+
+# ------------------------------------------------------------
+# CORE — Required for the application to launch
+# ------------------------------------------------------------
+numpy>=1.20.0                # Numerical computing
+pandas>=1.3.0                # Data manipulation and analysis
+matplotlib>=3.4.0            # Plotting and visualization
+ttkbootstrap>=1.10.0         # Modern themed UI framework (required)
+packaging>=21.0              # Version parsing (update checker)
+
+
+# ------------------------------------------------------------
+# DATA IMPORT — Required for file format support
+# ------------------------------------------------------------
+openpyxl>=3.0.0              # Excel .xlsx read/write
+xlrd>=2.0.0                  # Excel .xls (legacy format)
+odfpy>=1.4.0                 # LibreOffice .ods files
+chardet>=4.0.0               # File encoding auto-detection
+
+
+# ------------------------------------------------------------
+# SCIENTIFIC COMPUTING — Strongly recommended
+# (used across 40+ plugins and classification engines)
+# ------------------------------------------------------------
+scipy>=1.7.0                 # Signal processing, statistics, optimization
+scikit-learn>=0.24.0         # PCA, LDA, clustering, machine learning
+statsmodels>=0.13.0          # Statistical models, regression, time series
+sympy>=1.9.0                 # Symbolic mathematics (thermobarometry, norm calcs)
+
+
+# ------------------------------------------------------------
+# VISUALIZATION — Recommended
+# ------------------------------------------------------------
+seaborn>=0.11.0              # Statistical visualization
+pillow>=8.0.0                # Image processing (photo manager, plots)
+plotly>=5.0.0                # Interactive plots (3D GIS viewer)
+
+
+# ------------------------------------------------------------
+# GEOSPATIAL — Required for GIS features
+# ------------------------------------------------------------
+geopandas>=0.10.0            # Spatial data analysis
+shapely>=1.8.0               # Geometric operations
+fiona>=1.8.0                 # Geospatial file I/O (dependency of geopandas)
+rasterio>=1.2.0              # Raster data (terrain, DEM)
+folium>=0.12.0               # Interactive web maps
+contextily>=1.1.0            # Map tile backgrounds
+
+
+# ------------------------------------------------------------
+# STATISTICAL & MCMC — Required for isotope mixing models
+# ------------------------------------------------------------
+emcee>=3.1.0                 # MCMC sampling (Bayesian isotope mixing)
+corner>=2.2.1                # Corner/triangle plots for MCMC results
+joblib>=1.1.0                # Parallel processing
+
+
+# ------------------------------------------------------------
+# SPECTROSCOPY — Required for spectral analysis plugins
+# ------------------------------------------------------------
+pybaselines>=1.0.0           # Baseline correction algorithms
+lmfit>=1.0.0                 # Peak fitting (Gaussian, Lorentzian, Voigt)
+
+
+# ------------------------------------------------------------
+# DATA EXPORT & REPORTING
+# ------------------------------------------------------------
+reportlab>=3.6.0             # PDF generation (report generator plugin)
+python-docx>=0.8.0           # Word document export
+jinja2>=3.0.0                # Template engine (report generator)
+PyYAML>=5.4.0                # YAML config files
+
+
+# ------------------------------------------------------------
+# WEB & API ACCESS
+# ------------------------------------------------------------
+requests>=2.26.0             # HTTP requests (AI plugins, museum import, update checker)
+beautifulsoup4>=4.10.0       # HTML parsing (museum import — Europeana API)
+
+
+# ------------------------------------------------------------
+# HARDWARE COMMUNICATION
+# (install only what your instruments require)
+# ------------------------------------------------------------
+pyserial>=3.5                # USB serial devices (XRF, GPS, pH meters, etc.)
+pyvisa>=1.11.0               # GPIB/USB-TMC instrument control (Keysight, Tektronix)
+bleak>=0.14.0                # Bluetooth LE (Sylvac calipers, wireless sensors)
+hidapi>=0.10.0               # USB HID devices (Mitutoyo calipers, barcode scanners)
+watchdog>=2.1.0              # File system monitoring (file-based instrument import)
+simplekml>=1.3.0             # KML export (Google Earth, GPS tracks)
+pynmea2>=1.15.0              # GPS NMEA sentence parsing (Emlid Reach, GNSS)
+
+
+# ------------------------------------------------------------
+# SPECIALIZED SCIENTIFIC
+# ------------------------------------------------------------
+pyrolite>=0.3.0              # Geochemical data utilities
+trimesh>=3.9.0               # 3D mesh handling (virtual microscopy)
+
+
+# ------------------------------------------------------------
+# DATABASE (optional — needed only if using DB export features)
+# ------------------------------------------------------------
+# psycopg2-binary>=2.9.0     # PostgreSQL (use psycopg2-binary, not psycopg2)
+# pymongo>=4.0.0             # MongoDB
+# SQLAlchemy>=1.4.0          # Database ORM (abstracts SQL backends)
+
+
+# ------------------------------------------------------------
+# AI ASSISTANT PLUGINS (optional — one per plugin used)
+# Each requires a separate API key from the provider.
+# Toolkit AI (built-in) requires NONE of these.
+# ------------------------------------------------------------
+# anthropic>=0.3.0           # Claude AI plugin
+# openai>=1.0.0              # ChatGPT AI plugin
+# google-generativeai>=0.3.0 # Gemini AI plugin
+# ollama>=0.1.0              # Ollama local AI (also requires Ollama app installed)
