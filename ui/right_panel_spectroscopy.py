@@ -85,6 +85,28 @@ class SpectroscopyPanel(FieldPanelBase):
         # Load data and compute
         self.refresh()
 
+    def destroy(self):
+        """Clean up bindings and destroy the panel."""
+        print("DEBUG: Cleaning up spectroscopy panel")  # Optional debug
+        try:
+            # Unbind mousewheel events from canvas
+            if hasattr(self, 'canvas') and self.canvas:
+                try:
+                    self.canvas.unbind("<MouseWheel>")
+                    self.canvas.unbind("<Button-4>")
+                    self.canvas.unbind("<Button-5>")
+                except:
+                    pass
+        except:
+            pass
+
+        # Destroy the frame
+        if hasattr(self, 'frame') and self.frame:
+            try:
+                self.frame.destroy()
+            except:
+                pass
+
     # ------------------------------------------------------------------
     # Public API called by CenterPanel._notify_field_panel_selection()
     # ------------------------------------------------------------------
@@ -131,19 +153,59 @@ class SpectroscopyPanel(FieldPanelBase):
         self.canvas.bind('<Configure>', _configure_canvas)
 
     def _bind_mousewheel(self):
-        """Bind mouse wheel for scrolling."""
+        """Bind mouse wheel for scrolling with proper cleanup."""
         def _on_mousewheel(event):
-            if event.delta:
-                self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-            elif event.num == 4:
-                self.canvas.yview_scroll(-1, "units")
-            elif event.num == 5:
-                self.canvas.yview_scroll(1, "units")
+            try:
+                # Check if canvas still exists and is valid
+                if not hasattr(self, 'canvas') or not self.canvas:
+                    return "break"
+
+                # Try to check if widget exists - this will raise TclError if destroyed
+                try:
+                    if not self.canvas.winfo_exists():
+                        # Canvas is gone, unbind everything
+                        self._unbind_mousewheel()
+                        return "break"
+                except (tk.TclError, AttributeError):
+                    # Widget was destroyed, unbind everything
+                    self._unbind_mousewheel()
+                    return "break"
+
+                # Safe to scroll
+                if event.delta:
+                    # Windows/macOS
+                    self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+                else:
+                    # Linux
+                    if event.num == 4:
+                        self.canvas.yview_scroll(-1, "units")
+                    elif event.num == 5:
+                        self.canvas.yview_scroll(1, "units")
+
+            except (tk.TclError, AttributeError) as e:
+                # Any Tkinter error means the widget is gone - unbind
+                print(f"DEBUG: Mousewheel error - {e}")  # Optional debug
+                self._unbind_mousewheel()
+
             return "break"
 
-        self.canvas.bind_all("<MouseWheel>", _on_mousewheel)
-        self.canvas.bind_all("<Button-4>", _on_mousewheel)
-        self.canvas.bind_all("<Button-5>", _on_mousewheel)
+        # Bind the mousewheel events
+        self.canvas.bind("<MouseWheel>", _on_mousewheel)
+        self.canvas.bind("<Button-4>", _on_mousewheel)
+        self.canvas.bind("<Button-5>", _on_mousewheel)
+
+    def _unbind_mousewheel(self):
+        """Unbind mouse wheel events safely."""
+        try:
+            if hasattr(self, 'canvas') and self.canvas:
+                try:
+                    self.canvas.unbind("<MouseWheel>")
+                    self.canvas.unbind("<Button-4>")
+                    self.canvas.unbind("<Button-5>")
+                except:
+                    pass
+        except:
+            pass
 
     # ------------------------------------------------------------------
     # Selection → display routing
@@ -255,13 +317,18 @@ class SpectroscopyPanel(FieldPanelBase):
         if not self.samples:
             return None
 
-        peak_candidates = ['peak_positions', 'peaks', 'peak_list', 'peak_table', 'peak']
+        # Explicit peak column names (as they appear in the hardware plugin output)
+        peak_candidates = [
+            'Peak_Positions', 'peak_positions', 'Peaks', 'peaks',
+            'peak_list', 'peak_table', 'peak'
+        ]
         for cand in peak_candidates:
             col = self._find_column(self.samples, cand)
             if col:
                 self.peak_col = col
                 return 'peak_list'
 
+        # No peak column – try long format
         intensity_candidates = ['absorbance', 'intensity', 'transmittance', 'counts', 'signal']
         for cand in intensity_candidates:
             if self._find_column(self.samples, cand):
@@ -274,21 +341,36 @@ class SpectroscopyPanel(FieldPanelBase):
         if not peak_str:
             return []
         try:
+            # If it's already a number (single peak)
             if isinstance(peak_str, (int, float)):
                 return [float(peak_str)]
-            if isinstance(peak_str, str):
-                peak_str = re.sub(r'[\[\]"\'(){}]', '', peak_str)
-                peaks = []
-                for p in peak_str.split(','):
-                    p = p.strip()
-                    if p:
-                        num_match = re.search(r'-?\d+\.?\d*', p)
-                        if num_match:
-                            peaks.append(float(num_match.group()))
-                return peaks
+
+            s = str(peak_str).strip()
+            # Try JSON first
+            if s.startswith('[') and s.endswith(']'):
+                try:
+                    arr = json.loads(s)
+                    if isinstance(arr, list):
+                        return [float(x) for x in arr if x is not None]
+                except:
+                    pass
+
+            # Remove common brackets and quotes
+            s = re.sub(r'[\[\]\"\'\(\)\{\}]', '', s)
+            # Split by comma or space
+            parts = re.split(r'[,\s]+', s)
+            peaks = []
+            for p in parts:
+                p = p.strip()
+                if not p:
+                    continue
+                # Extract first number found (handles strings like "713.5 cm-1")
+                num_match = re.search(r'-?\d+\.?\d*', p)
+                if num_match:
+                    peaks.append(float(num_match.group()))
+            return peaks
         except Exception:
-            pass
-        return []
+            return []
 
     def _extract_data(self):
         """Extract spectral data."""
@@ -319,45 +401,61 @@ class SpectroscopyPanel(FieldPanelBase):
         if self.data_format == 'long':
             self._extract_long_format()
         elif self.data_format == 'peak_list':
-            self._extract_peak_list_format()
-
+            self._extract_peak_list_format()   # <-- this populates spectra_summary
         self._extract_spectrum_data()
 
     def _extract_spectrum_data(self):
-        """Extract full spectrum data from JSON columns."""
-        x_candidates = ['x_data', 'X_Data', 'xdata', 'wavenumber_array', 'wavelength_array']
-        y_candidates = ['y_data', 'Y_Data', 'ydata', 'intensity_array', 'absorbance_array']
+        """Extract full spectrum data from columns containing JSON arrays."""
+        # Look for the actual column names from the hardware plugin
+        x_candidates = ['Wavenumber (cm⁻¹)', 'Wavelength (nm)', 'x_data', 'X_Data', 'wavenumber_array']
+        y_candidates = ['Absorbance', 'Intensity', 'y_data', 'Y_Data', 'intensity_array']
 
         for cand in x_candidates:
-            self.x_data_col = self._find_column(self.samples, cand)
-            if self.x_data_col:
+            if cand in self.samples[0] if self.samples else False:
+                self.x_data_col = cand
                 break
 
         for cand in y_candidates:
-            self.y_data_col = self._find_column(self.samples, cand)
-            if self.y_data_col:
+            if cand in self.samples[0] if self.samples else False:
+                self.y_data_col = cand
                 break
 
-        self.x_label_col = self._find_column(self.samples, 'x_label', 'X_Label', 'xaxis')
-        self.y_label_col = self._find_column(self.samples, 'y_label', 'Y_Label', 'yaxis')
-
         if not (self.x_data_col and self.y_data_col):
+            print("DEBUG: No spectrum data columns found")
             return
+
+        print(f"DEBUG: Found spectrum columns: x={self.x_data_col}, y={self.y_data_col}")
 
         for i, sample in enumerate(self.samples):
             try:
-                x_json = sample.get(self.x_data_col)
-                y_json = sample.get(self.y_data_col)
-                if x_json and y_json:
-                    x_list = json.loads(x_json)
-                    y_list = json.loads(y_json)
-                    self.spectrum_x_data.append((i, np.array(x_list)))
-                    self.spectrum_y_data.append((i, np.array(y_list)))
+                x_val = sample.get(self.x_data_col)
+                y_val = sample.get(self.y_data_col)
+
+                if x_val and y_val:
+                    # Handle JSON arrays
+                    if isinstance(x_val, str) and x_val.startswith('['):
+                        x_list = json.loads(x_val)
+                    else:
+                        x_list = x_val
+
+                    if isinstance(y_val, str) and y_val.startswith('['):
+                        y_list = json.loads(y_val)
+                    else:
+                        y_list = y_val
+
+                    x_array = np.array(x_list, dtype=float)
+                    y_array = np.array(y_list, dtype=float)
+
+                    self.spectrum_x_data.append((i, x_array))
+                    self.spectrum_y_data.append((i, y_array))
+
                     # Back-fill into spectra_summary if present
                     if i < len(self.spectra_summary):
-                        self.spectra_summary[i]['x_data'] = np.array(x_list)
-                        self.spectra_summary[i]['y_data'] = np.array(y_list)
-            except Exception:
+                        self.spectra_summary[i]['x_data'] = x_array
+                        self.spectra_summary[i]['y_data'] = y_array
+
+            except Exception as e:
+                print(f"DEBUG: Error extracting spectrum for row {i}: {e}")
                 pass
 
     def _extract_long_format(self):

@@ -258,38 +258,58 @@ class AnalysisTab:
     def _ftir_cols(self, sample):
         """
         Return (x_col, y_col, x_vals, y_vals) for any FTIR-style sample,
-        accepting both:
-          a) Columns storing comma-separated arrays  →  'Wavelength': '400,401,...'
-          b) Columns storing single numeric values   →  one row per wavenumber point
-        Returns (None, None, None, None) if no match found.
+        with improved Unicode handling.
         """
         keys = list(sample.keys())
 
-        # Helper: try to parse a value as a float list
         def as_floats(v):
             if not v and v != 0:
                 return None
-            s = str(v)
+            s = str(v).strip()
+            if s.startswith('[') and s.endswith(']'):
+                try:
+                    arr = json.loads(s)
+                    if isinstance(arr, list):
+                        return [float(x) for x in arr if x is not None]
+                except:
+                    pass
             parts = [p.strip() for p in s.split(',')]
             try:
                 return [float(p) for p in parts if p]
             except ValueError:
                 return None
 
-        # 1. Exact legacy names (backward compat)
+        # 1. Hardware plugin's JSON columns
+        if 'X_Data' in sample and 'Y_Data' in sample:
+            xv = as_floats(sample['X_Data'])
+            yv = as_floats(sample['Y_Data'])
+            if xv and yv and len(xv) == len(yv):
+                x_col = sample.get('X_Label', 'X_Data')
+                y_col = sample.get('Y_Label', 'Y_Data')
+                return x_col, y_col, xv, yv
+
+        # 2. Exact legacy names
         if 'Wavelength' in sample and 'Intensity' in sample:
             xv = as_floats(sample['Wavelength'])
             yv = as_floats(sample['Intensity'])
             if xv and yv:
                 return 'Wavelength', 'Intensity', xv, yv
 
-        # 2. Pattern-match column names
+        # 3. Pattern-match with Unicode normalisation
         x_col = y_col = None
+        wl_patterns  = ['wavenumber', 'wave_number', 'wavenum', 'cm-1', 'cm^-1', 'cm⁻¹',
+                        'wavelength', 'wl', 'nm', 'frequency', 'x']
+        int_patterns = ['absorbance', 'abs', 'transmittance', 'trans', '%t',
+                        'intensity', 'reflectance', 'refl', 'signal', 'y']
+
         for k in keys:
-            kl = k.lower().replace(' ', '_').replace('(', '').replace(')', '').replace('/', '_')
-            if x_col is None and any(p in kl for p in self._WL_PATTERNS):
+            kl = k.lower()
+            kl = kl.replace(' ', '_').replace('(', '').replace(')', '').replace('/', '_')
+            kl = kl.replace('⁻', '-')
+
+            if x_col is None and any(p in kl for p in wl_patterns):
                 x_col = k
-            if y_col is None and any(p in kl for p in self._INT_PATTERNS):
+            if y_col is None and any(p in kl for p in int_patterns):
                 y_col = k
 
         if x_col and y_col:
@@ -298,9 +318,7 @@ class AnalysisTab:
             if xv and yv:
                 return x_col, y_col, xv, yv
 
-        # 3. Single-value numeric columns that look spectral (scalar per row)
-        # The caller (refresh_sample_list) aggregates multiple rows; here we
-        # at least confirm the column exists and is numeric.
+        # 4. Single-value fallback
         if x_col and y_col:
             try:
                 xv = [float(sample.get(x_col, 0) or 0)]
@@ -582,9 +600,12 @@ class LibrarySearchTab(AnalysisTab):
         x_col, y_col, xv, yv = self._ftir_cols(sample)
         if x_col:
             try:
-                self.query_wl  = np.array(xv, dtype=float)
+                self.query_wl = np.array(xv, dtype=float)
                 self.query_int = np.array(yv, dtype=float)
-                self._plot_query()
+
+                if hasattr(self, 'search_canvas'):
+                    self._plot_query()
+
                 self.status_label.config(
                     text=f"Loaded spectrum from table  [{x_col}  vs  {y_col}]")
             except Exception as e:
@@ -1145,12 +1166,14 @@ class BaselineEngine:
     def als_baseline(cls, y, lam=1e5, p=0.01, niter=10):
         """
         Asymmetric Least Squares baseline (Eilers & Boelens 2005)
-
-        Parameters:
-        - y: input signal
-        - lam: smoothness penalty (higher = smoother)
-        - p: asymmetry parameter (0.001-0.1, lower = more flexible)
         """
+        # Check if sparse functions are available
+        try:
+            from scipy.sparse import diags
+            from scipy.sparse.linalg import spsolve
+        except ImportError:
+            raise ImportError("SciPy sparse modules required for ALS baseline. Please install scipy with: pip install scipy")
+
         L = len(y)
         D = diags([1, -2, 1], [0, -1, -2], shape=(L-2, L))
         w = np.ones(L)
@@ -1227,6 +1250,13 @@ class BaselineEngine:
     @classmethod
     def whittaker_smooth(cls, y, lam=1e3):
         """Whittaker smoother baseline"""
+        # Check if sparse functions are available
+        try:
+            from scipy.sparse import diags, eye
+            from scipy.sparse.linalg import spsolve
+        except ImportError:
+            raise ImportError("SciPy sparse modules required for Whittaker baseline. Please install scipy with: pip install scipy")
+
         L = len(y)
         D = diags([1, -2, 1], [0, -1, -2], shape=(L-2, L))
         try:
@@ -1310,7 +1340,10 @@ class BaselineTab(AnalysisTab):
             try:
                 self.wavelength = np.array(xv, dtype=float)
                 self.intensity  = np.array(yv, dtype=float)
-                self._plot_original()
+
+                if hasattr(self, 'base_canvas'):
+                    self._plot_original()
+
                 self.status_label.config(
                     text=f"Loaded spectrum from table  [{x_col}  vs  {y_col}]")
             except Exception as e:
@@ -1397,9 +1430,11 @@ class BaselineTab(AnalysisTab):
     def _plot_original(self):
         if not HAS_MPL or self.wavelength is None:
             return
+        if not hasattr(self, 'base_ax_original') or not hasattr(self, 'base_canvas'):
+            return
         self.base_ax_original.clear()
         self.base_ax_original.plot(self.wavelength, self.intensity,
-                                 color=C_ACCENT, lw=1.5)
+                                color=C_ACCENT, lw=1.5)
         self.base_ax_original.set_xlabel("Wavelength (nm)", fontsize=8)
         self.base_ax_original.set_ylabel("Intensity", fontsize=8)
         self.base_ax_original.grid(True, alpha=0.3)
@@ -1442,11 +1477,11 @@ class BaselineTab(AnalysisTab):
                     if HAS_MPL:
                         self.base_ax_original.clear()
                         self.base_ax_original.plot(self.wavelength, self.intensity,
-                                                 color='b', lw=1, label="Original")
+                                                color='b', lw=1, label="Original")
                         self.base_ax_original.plot(self.wavelength, baseline,
-                                                 'r--', lw=2, label="Baseline")
+                                                'r--', lw=2, label="Baseline")
                         self.base_ax_original.fill_between(self.wavelength, baseline, self.intensity,
-                                                          alpha=0.3, color='orange')
+                                                        alpha=0.3, color='orange')
                         self.base_ax_original.set_xlabel("Wavelength (nm)", fontsize=8)
                         self.base_ax_original.set_ylabel("Intensity", fontsize=8)
                         self.base_ax_original.legend(fontsize=7)
@@ -1454,7 +1489,7 @@ class BaselineTab(AnalysisTab):
 
                         self.base_ax_corrected.clear()
                         self.base_ax_corrected.plot(self.wavelength, corrected,
-                                                  color=C_ACCENT2, lw=1.5)
+                                                color=C_ACCENT2, lw=1.5)
                         self.base_ax_corrected.axhline(0, color='k', ls='--', lw=1)
                         self.base_ax_corrected.set_xlabel("Wavelength (nm)", fontsize=8)
                         self.base_ax_corrected.set_ylabel("Corrected Intensity", fontsize=8)
@@ -1465,8 +1500,13 @@ class BaselineTab(AnalysisTab):
                     self.status_label.config(text=f"✅ Baseline corrected using {method}")
 
                 self.ui_queue.schedule(update_ui)
+
+            except ImportError as e:
+                error_msg = str(e)
+                self.ui_queue.schedule(lambda msg=error_msg: messagebox.showerror("Missing Dependency", msg))
             except Exception as e:
-                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+                error_msg = str(e)
+                self.ui_queue.schedule(lambda msg=error_msg: messagebox.showerror("Error", msg))
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -1523,13 +1563,31 @@ class PeakFittingEngine:
         return A / (1 + ((x - mu)**2 / (m * sigma**2)))**m
 
     @classmethod
-    def find_peaks(cls, x, y, prominence=0.01, width=None):
-        """Find peaks in spectrum"""
-        if not HAS_SCIPY:
-            return []
-        peaks, properties = find_peaks(y, prominence=prominence * np.max(y),
-                                       width=width)
-        return peaks, properties
+    def find_peaks(cls, x, y, prominence=0.05, width=None):
+        """
+        Find peaks in spectrum after normalising to [0,1].
+        Uses prominence (relative to normalised scale) and distance only.
+        """
+        import numpy as np
+        from scipy.signal import find_peaks as sp_find_peaks
+
+        y_min = y.min()
+        y_max = y.max()
+        if y_max - y_min < 1e-12:
+            return [], {}
+        y_norm = (y - y_min) / (y_max - y_min)
+
+        # Distance in indices
+        distance = 20
+
+        try:
+            peaks, properties = sp_find_peaks(y_norm,
+                                            distance=distance,
+                                            prominence=prominence,
+                                            width=width)
+            return peaks, properties
+        except Exception as e:
+            return [], {}
 
     @classmethod
     def fit_peaks(cls, x, y, peak_positions, model='gaussian'):
@@ -1689,8 +1747,17 @@ class PeakFittingTab(AnalysisTab):
             try:
                 self.wavelength = np.array(xv, dtype=float)
                 self.intensity  = np.array(yv, dtype=float)
-                self._find_peaks_auto()
-                self._plot_spectrum()
+
+                # Only run auto peak detection if UI is ready
+                if hasattr(self, 'peak_prom'):
+                    self._find_peaks_auto()
+                else:
+                    self.peaks = []
+
+                # Only plot if canvas exists
+                if hasattr(self, 'peak_canvas'):
+                    self._plot_spectrum()
+
                 self.status_label.config(
                     text=f"Loaded spectrum from table  [{x_col}  vs  {y_col}]")
             except Exception as e:
@@ -1724,7 +1791,7 @@ class PeakFittingTab(AnalysisTab):
         row1 = tk.Frame(param_frame, bg="white")
         row1.pack(fill=tk.X, pady=2)
         tk.Label(row1, text="Peak prominence:", font=("Arial", 8), bg="white").pack(side=tk.LEFT)
-        self.peak_prom = tk.StringVar(value="0.01")
+        self.peak_prom = tk.StringVar(value="0.05")
         ttk.Entry(row1, textvariable=self.peak_prom, width=8).pack(side=tk.LEFT, padx=2)
 
         ttk.Button(left, text="🔍 FIND PEAKS AUTO",
@@ -1788,8 +1855,11 @@ class PeakFittingTab(AnalysisTab):
             return
         prom = float(self.peak_prom.get())
         peaks, props = self.engine.find_peaks(self.wavelength, self.intensity,
-                                              prominence=prom)
-        self.peaks = self.wavelength[peaks]
+                                      prominence=prom)
+        if len(peaks) > 0:
+            self.peaks = self.wavelength[peaks]
+        else:
+            self.peaks = []
 
         # Update listbox
         self.peak_listbox.delete(0, tk.END)
@@ -1931,8 +2001,7 @@ class MCRALSEngine:
         """
         n_samples, n_wl = D.shape
 
-        # Initial guess using EFA or random
-        # Use PCA for initial estimate
+        # Initial guess using PCA
         U, s, Vt = svd(D, full_matrices=False)
         C_init = U[:, :n_components] @ np.diag(s[:n_components])
         S_init = Vt[:n_components, :].T
@@ -1945,7 +2014,6 @@ class MCRALSEngine:
 
         for iteration in range(max_iter):
             # Update C (concentrations) with fixed S
-            # C = D @ S @ inv(S.T @ S)
             try:
                 C_new = D @ S @ pinv(S.T @ S)
             except:
@@ -1960,7 +2028,6 @@ class MCRALSEngine:
                 C_new = C_new / row_sums
 
             # Update S (spectra) with fixed C
-            # S = D.T @ C @ pinv(C.T @ C)
             try:
                 S_new = D.T @ C_new @ pinv(C_new.T @ C_new)
             except:
@@ -2117,7 +2184,10 @@ class MCRALSTab(AnalysisTab):
         threading.Thread(target=worker, daemon=True).start()
 
     def _load_sample_data(self, idx):
+        """Load mixture data from a sample. Expects a 'Mixture_Matrix' column or multiple spectra."""
         sample = self.samples[idx]
+
+        # Check if the sample contains a pre‑computed mixture matrix (JSON)
         if 'Mixture_Matrix' in sample:
             try:
                 data = json.loads(sample['Mixture_Matrix'])
@@ -2126,7 +2196,15 @@ class MCRALSTab(AnalysisTab):
                 self._plot_mixtures()
                 self.status_label.config(text=f"Loaded mixture data from table")
             except Exception as e:
-                self.status_label.config(text=f"Error: {e}")
+                self.status_label.config(text=f"Error loading mixture matrix: {e}")
+            return
+
+        # If no mixture matrix, try to build from multiple spectra if available
+        # (This would require a selection of multiple rows – not implemented here)
+        self.status_label.config(
+            text="No mixture data found. Load a file with multiple spectra or use the 'Manual' import mode.",
+            foreground="orange"
+        )
 
     def _build_content_ui(self):
         main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
@@ -2701,7 +2779,11 @@ class IntensityCorrectionTab(AnalysisTab):
             try:
                 self.wavelength = np.array(xv, dtype=float)
                 self.intensity  = np.array(yv, dtype=float)
-                self._plot_original()
+
+                # Only plot if canvas/axes exist
+                if hasattr(self, 'corr_canvas'):
+                    self._plot_original()
+
                 self.status_label.config(
                     text=f"Loaded spectrum from table  [{x_col}  vs  {y_col}]")
             except Exception as e:

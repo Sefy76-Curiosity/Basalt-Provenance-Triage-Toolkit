@@ -381,6 +381,13 @@ class RightPanel:
             samples = self.app.data_hub.get_all()
         if sample_idx >= len(samples):
             return
+
+        # If a field panel is active, delegate to it
+        if hasattr(self, '_active_field_panel') and self._active_field_panel is not None:
+            if hasattr(self._active_field_panel, 'on_sample_double_click'):
+                self._active_field_panel.on_sample_double_click(sample_idx)
+                return
+
         if self.all_mode and self.all_results is not None:
             AllSchemesDetailDialog(self.app.root, self.app, samples, self.all_results, sample_idx, self.all_schemes_list)
             return
@@ -400,6 +407,32 @@ class RightPanel:
 
     def _on_hud_double_click(self, event):
         """Show appropriate detail dialog based on mode."""
+        # If a field panel is active, delegate to it
+        if hasattr(self, '_active_field_panel') and self._active_field_panel is not None:
+            item = self.hud_tree.identify_row(event.y)
+            if not item:
+                return
+
+            values = self.hud_tree.item(item, "values")
+            if not values or len(values) < 1:
+                return
+
+            short_id = values[0]
+            samples = self.app.data_hub.get_all()
+            target_idx = None
+
+            for idx, sample in enumerate(samples):
+                full_id = sample.get('Sample_ID', '')
+                if full_id.endswith(short_id) or full_id == short_id:
+                    target_idx = idx
+                    break
+
+            if target_idx is not None and hasattr(self._active_field_panel, 'on_sample_double_click'):
+                self._active_field_panel.on_sample_double_click(target_idx)
+                return "break"
+            return
+
+        # Original double-click behavior for classification mode
         item = self.hud_tree.identify_row(event.y)
         if not item:
             return
@@ -1105,6 +1138,16 @@ class RightPanel:
 
     def _restore_classification_panel(self):
         """Put the original classification UI back."""
+        # Clean up active field panel first
+        if hasattr(self, '_active_field_panel') and self._active_field_panel:
+            try:
+                # Call destroy if it exists
+                if hasattr(self._active_field_panel, 'destroy'):
+                    self._active_field_panel.destroy()
+            except Exception as e:
+                print(f"Error cleaning up field panel: {e}")
+            self._active_field_panel = None
+
         if hasattr(self, '_back_bar') and self._back_bar:
             try:
                 self._back_bar.destroy()
@@ -1127,7 +1170,6 @@ class RightPanel:
         self.hud_frame.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
 
         self._current_field_panel = 'classification'
-        self._active_field_panel = None
 
         # Force a refresh of the center panel
         if hasattr(self.app, 'center'):
@@ -1198,6 +1240,23 @@ class FieldPanelBase:
         }
 
         self._build_ui()
+
+    def on_sample_double_click(self, sample_idx):
+        """
+        Handle double-click on a sample in the HUD.
+        Override this method in field-specific panels to provide custom behavior.
+        By default, shows a simple info message about the sample.
+        """
+        samples = self.app.data_hub.get_all()
+        if sample_idx < len(samples):
+            sample = samples[sample_idx]
+            sample_id = sample.get('Sample_ID', f'Sample {sample_idx+1}')
+            messagebox.showinfo(
+                f"{self.PANEL_ICON} {self.PANEL_NAME}",
+                f"Double-clicked on sample: {sample_id}\n\n"
+                f"Override 'on_sample_double_click' in {self.__class__.__name__} "
+                f"to provide custom behavior."
+            )
 
     def _build_ui(self):
         self._summary_outer, self._summary_body = self._make_section(
