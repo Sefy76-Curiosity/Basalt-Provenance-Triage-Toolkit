@@ -1,15 +1,19 @@
 """
-Toolkit AI Assistant v2.2 — Plugin-Aware Deep Knowledge System
+Toolkit AI Assistant v2.3 — Full-Codebase Deep Knowledge System
 ===================================================
-Now with plugin recommendations, auto-installation, and intelligent usage!
-Can suggest relevant plugins based on your data and workflow.
+Now with complete working knowledge of all plugins, classification schemes,
+hardware drivers, field panels, and workflow guidance baked in.
 
-New Features:
-  • Plugin recommendation engine
+Features:
+  • Plugin recommendation engine with full plugin catalogue knowledge
   • One-click installation from store
   • Automatic dependency handling
   • Smart plugin suggestions based on data type
   • Integration with Plugin Manager v3.0
+  • Deep knowledge of all 70+ classification schemes
+  • Knowledge of all hardware suite drivers and instruments
+  • Knowledge of all software analysis suites
+  • Enriched geochemical / archaeological / geophysical term definitions
 """
 
 import tkinter as tk
@@ -51,43 +55,86 @@ PLUGIN_INFO = {
     'name':        'Toolkit AI',
     'category':    'add-ons',
     'icon':        '🧠',
-    'version':     '2.2',
+    'version':     '2.3',
     'requires':    [],
-    'description': 'Deep-knowledge AI assistant — recommends and installs plugins for you!',
+    'description': 'Full-codebase AI assistant — deep knowledge of all plugins, schemes, hardware, and workflows!',
 }
 # ─────────────────────────────────────────────────────────────────────────────
 # BUILT-IN TOOLKIT KNOWLEDGE
 # ─────────────────────────────────────────────────────────────────────────────
 
 _TOOLKIT_STRUCTURE = """
-The Scientific Toolkit is a multi-panel desktop application built with Python and ttkbootstrap.
+The Scientific Toolkit (Basalt Provenance Triage Toolkit) is a multi-panel
+desktop application built with Python and ttkbootstrap. It is designed for
+geochemical, archaeological, environmental, and multi-disciplinary scientific
+data analysis — with a primary focus on basalt provenance research.
 
 PANELS:
-  Left Panel   — Import data (CSV, Excel), add samples manually, launch hardware devices.
-  Center Panel — Main data table with pagination, search, filter, plots, and plugin tabs.
-  Right Panel  — Classification HUD (v2) + field-specific analysis panels (v3.0).
-                 Switches automatically when data type is detected.
+  Left Panel   — Import data (CSV/Excel), add samples manually, connect hardware.
+                 Also shows hardware plugin device launchers.
+  Center Panel — Main data table with pagination (50 rows/page), search,
+                 column filter, bulk edit, plots, and plugin tabs.
+                 Each enabled add-on or software plugin gets its own tab.
+  Right Panel  — Classification HUD (v2) with confidence scores and colour-coding
+                 + 16 field-specific analysis panels (v3.0) that auto-switch
+                 based on detected data type. Use ← Back to return to HUD.
 
 ENGINES:
-  Classification Engine — Applies geochemical/scientific classification schemes to samples.
-  Protocol Engine       — Runs measurement protocols for hardware instruments.
+  Classification Engine (v10.2) — Loads 70+ JSON scheme files from
+    engines/classification/. Uses a safe formula evaluator (no eval()).
+    Supports derived fields, multi-criteria logic, and confidence scoring.
+  Protocol Engine — Runs measurement protocols for hardware instruments,
+    manages device connections, real-time data streaming.
 
-DATA FLOW:
-  Hardware/Import → DataHub → Observers notified → Center + Right panels update.
-  DataHub is the single source of truth for all sample data.
+DATA LAYER:
+  DataHub — Single source of truth for all sample data. Observer pattern
+    notifies all panels on add/update/delete. Auto-tracks unsaved changes.
+    Samples keyed by Sample_ID; supports column ordering.
+  Column normalisation happens at import; internal names are used for schemes.
+
+CONFIGURATION FILES (config/):
+  chemical_elements.json    — Element/oxide knowledge with display names, groups,
+                              common aliases, and descriptions.
+  enabled_plugins.json      — Which plugins are active (persisted across sessions).
+  plugin_manager_state.json — Plugin Manager window state.
+  recent_files.json         — Recently opened files list.
+  scatter_colors.json       — Per-classification colour mapping for plots.
+  user_settings.json        — App preferences (theme, page size, auto-save, etc.).
+  disabled_schemes.json     — Schemes hidden from the right panel dropdown.
+  ai_knowledge_cache.json   — Toolkit AI scan cache (auto-rebuilt hourly).
+  ai_learning/              — Toolkit AI learning DB and exported conversations.
 
 CLASSIFICATION WORKFLOW:
-  1. Import or collect data into the table.
-  2. In the right panel, select a classification scheme from the dropdown.
+  1. Import CSV/Excel or collect data via hardware.
+  2. Right panel → select a classification scheme from the dropdown.
   3. Click Apply to classify all rows (or selected rows only).
-  4. Results appear in the HUD and colour-code the table.
-  5. Double-click any row for full classification detail.
-  6. Use "Run All Schemes" to run every available scheme at once.
+  4. Results appear in the HUD; table rows are colour-coded by classification.
+  5. Double-click any HUD row for full per-field classification detail.
+  6. "Run All Schemes" runs every enabled scheme at once and aggregates results.
+  7. Export results via File → Export CSV or the Advanced Export plugin.
 
-FIELD PANELS (v3.0):
-  When data is loaded, the right panel detects its type and offers to switch to
-  a specialised panel. 16 scientific domains are supported. Use the ← Back
-  button to return to the classification HUD at any time.
+FIELD PANELS (v3.0) — 16 Scientific Domains:
+  geochemistry, geochronology, petrology, structural, geophysics, spatial,
+  archaeology, zooarch, spectroscopy, chromatography, electrochem, materials,
+  solution, molecular, meteorology, physics.
+  Auto-detected from column names on data load; can also switch manually.
+
+PLUGIN ARCHITECTURE:
+  Three categories: hardware (instrument drivers), software (analysis suites),
+  add-ons (utilities, consoles, AI assistants, plotters).
+  Plugin Manager (Tools → Plugin Manager) enables/disables plugins without
+  restarting the app. Plugins register via register_plugin(main_app) and
+  expose a PLUGIN_INFO dict for discovery.
+
+FEATURES (features/):
+  auto_save        — Periodic auto-save of unsaved changes.
+  macro_recorder   — Record and replay sequences of toolkit actions.
+  project_manager  — Save/load complete project state (data + settings).
+  recent_files_manager — Track and re-open recent files.
+  script_exporter  — Export current session as a reproducible Python script.
+  settings_manager — Read/write user_settings.json.
+  tooltip_manager  — Context-sensitive help tooltips across the UI.
+  update_checker   — Check for new toolkit versions on startup.
 """
 
 # Hardware plugin id → field panel id mapping
@@ -112,140 +159,353 @@ _HW_TO_FIELD = {
 
 # Field panel id → human description
 _FIELD_DESCRIPTIONS = {
-    "geochemistry":   "Major and trace element geochemistry. Summarises oxide totals, "
-                      "computes Mg#, FeOt, and alkali sums.",
-    "geochronology":  "Radiometric dating data. Handles U-Pb, Ar-Ar, and similar systems.",
-    "petrology":      "Modal/normative mineralogy and petrogenetic diagrams.",
-    "structural":     "Structural measurements: strike, dip, plunge, trend, azimuth.",
-    "geophysics":     "Geophysical surveys: seismic, gravity, magnetics, ERT.",
-    "spatial":        "GIS and spatial data: latitude/longitude, UTM, easting/northing.",
-    "archaeology":    "Lithic and artifact morphometrics, museum catalogue data.",
-    "zooarch":        "Zooarchaeological assemblage: NISP, MNI, taxon, element.",
-    "spectroscopy":   "Spectral data: wavelength/wavenumber vs intensity (FTIR, Raman, UV-Vis).",
-    "chromatography": "Chromatography: retention time, peak area, m/z, abundance.",
-    "electrochem":    "Electrochemical measurements: potential, current, impedance, scan rate.",
-    "materials":      "Materials characterisation: stress, strain, hardness, modulus.",
-    "solution":       "Water/solution chemistry: pH, conductivity, TDS, alkalinity.",
-    "molecular":      "Molecular biology / clinical: Ct, Cq, melt temperature, qPCR.",
-    "meteorology":    "Meteorological data: temperature, humidity, pressure, wind, rainfall.",
-    "physics":        "Physics and test/measurement: time-series, FFT, signal, voltage.",
+    "geochemistry":   "Major and trace element geochemistry. Summarises oxide totals (SiO2, TiO2, "
+                      "Al2O3, Fe2O3, FeO, MgO, CaO, Na2O, K2O, P2O5, MnO), computes Mg#, FeOt, "
+                      "alkali sums, and A/CNK. Pairs with TAS, AFM, Pearce, Winchester-Floyd, "
+                      "REE, tectonic discrimination, and provenance fingerprinting schemes.",
+    "geochronology":  "Radiometric dating data. Handles U-Pb concordia (zircon), Ar-Ar isochrons, "
+                      "detrital age spectra, Rb-Sr, Sm-Nd, and Lu-Hf systems. Compatible with "
+                      "the Geochronology Suite and U-Pb Concordia QC scheme.",
+    "petrology":      "Modal and normative mineralogy, mineral chemistry, and petrogenetic diagrams. "
+                      "Supports CIPW norms, QAPF classification, thermobarometry, and petrogenetic "
+                      "modeling (AFC, fractional crystallisation, partial melting). Pairs with the "
+                      "QAPF Mineralogy, Normative Molar Proportions, and Metamorphic Facies schemes.",
+    "structural":     "Structural measurements: strike, dip, plunge, trend, azimuth, bearing. "
+                      "Shows stereonets, rose diagrams, and foliation/lineation statistics. "
+                      "Pairs with the Structural Suite plugin.",
+    "geophysics":     "Geophysical surveys: seismic (velocity, amplitude), gravity (Bouguer anomaly), "
+                      "magnetics (RTP, TMI), ERT (resistivity), EM, MT, and GPR. "
+                      "Pairs with the Geophysics Analysis Suite and hardware drivers.",
+    "spatial":        "GIS and spatial data: latitude/longitude (WGS84), UTM coordinates, "
+                      "easting/northing, elevation, site codes. Supports Quartz GIS, 3D GIS Viewer, "
+                      "spatial kriging, and Google Earth export.",
+    "archaeology":    "Lithic and artifact morphometrics, XRF provenance of ceramics/glass/metals, "
+                      "museum catalogue data (context, locus, phase, object type). Pairs with the "
+                      "Archaeometry Analysis Suite, Lithic Morphometrics, Museum Import, and "
+                      "Report Generator plugins. Classification schemes include Copper Alloy, "
+                      "Glass Compositional Families, Iron Bloom, Munsell Colour, Ceramic Firing "
+                      "Temperature, and bone diagenesis schemes.",
+    "zooarch":        "Zooarchaeological assemblage data: NISP (Number of Identified Specimens), "
+                      "MNI (Minimum Number of Individuals), taxon, skeletal element, age-at-death "
+                      "(epiphyseal fusion, eruption stage), taphonomy codes, and butchery marks. "
+                      "Pairs with the Zooarchaeology Analysis Suite and hardware caliper driver.",
+    "spectroscopy":   "Spectral data: wavelength or wavenumber vs intensity for FTIR, Raman, "
+                      "UV-Vis-NIR, and fluorescence. Supports baseline correction, peak detection, "
+                      "library search, and the FTIR Crystallinity Index scheme for bone diagenesis.",
+    "chromatography": "Chromatography data: retention time, peak area, peak height, m/z, "
+                      "abundance, Kovats index. Supports GC, HPLC, IC, LC-MS, and NMR FID. "
+                      "Pairs with the Chromatography Analysis Suite.",
+    "electrochem":    "Electrochemical measurements: potential (V), current (A), impedance (Ω), "
+                      "scan rate (V/s), charge (C), capacity (Ah). Supports CV, EIS, Tafel, "
+                      "chronoamperometry, and battery analysis via Electrochemistry Suite.",
+    "materials":      "Materials characterisation: stress, strain, Young's modulus, hardness "
+                      "(HV, HRC), surface area (BET), particle size (DLS), viscosity, thermal "
+                      "conductivity, DSC heat flow. Pairs with Materials Science Suite and "
+                      "Thermal Analysis Suite. Also handles slag basicity and thermochemical "
+                      "properties via dedicated classification schemes.",
+    "solution":       "Water and solution chemistry: pH, electrical conductivity (EC/TDS), "
+                      "alkalinity, major ions (Ca, Mg, Na, K, HCO3, SO4, Cl), SAR, hardness. "
+                      "Supports Piper and Stiff diagram classification, water hardness, "
+                      "soil salinity (EC) and sodicity (SAR) schemes.",
+    "molecular":      "Molecular biology and clinical diagnostics: Ct/Cq values, ΔΔCt, "
+                      "melt temperature, qPCR efficiency, ELISA OD, flow cytometry, ddPCR. "
+                      "Pairs with Clinical Diagnostics Suite and Molecular Biology Suite.",
+    "meteorology":    "Meteorological and environmental data: temperature (°C/K), relative "
+                      "humidity (%), atmospheric pressure (hPa), wind speed/direction, "
+                      "precipitation, solar radiation, dew point, AQI. Pairs with "
+                      "Meteorology Analysis Suite and weather station hardware drivers.",
+    "physics":        "Physics and test/measurement data: time-series signals, voltage (V), "
+                      "current (A), frequency (Hz), FFT spectra, LCR measurements, "
+                      "oscilloscope traces, Allan deviation. Pairs with Physics TM Suite.",
 }
 
 # Plugin categories and their typical use cases
+# Populated from real PLUGIN_INFO entries across the codebase.
 _PLUGIN_RECOMMENDATIONS = {
     "Geology & Geochemistry": [
-        ("compositional_stats_pro", "📊 Compositional Data Analysis",
-         "For Aitchison geometry, CLR transforms, and compositional statistics"),
+        ("compositional_stats_pro", "📊 Compositional Data Analysis PRO",
+         "Aitchison geometry, CLR/ILR transforms, Pyrolite diagrams, drillhole plots, "
+         "bootstrap, CIPW norms, and 10+ geochemical diagrams"),
         ("geochemical_explorer", "🔬 Geochemical Explorer",
-         "PCA, LDA, clustering for geochemical fingerprinting"),
-        ("advanced_normative_calculations", "⚖️ Normative Calculator",
-         "CIPW norms and mineral modes from bulk chemistry"),
-        ("thermobarometry_suite", "🌡️ Thermobarometry",
-         "P-T calculations from mineral compositions"),
-        ("petrogenetic_modeling_suite", "🔥 Petrogenetic Modeling",
-         "AFC, fractional crystallization, partial melting models"),
+         "PCA, LDA, PLS-DA, RF, SVM, t-SNE, clustering, and correlation for "
+         "geochemical fingerprinting and provenance"),
+        ("advanced_normative_calculations", "⚖️ Professional Normative Calculator",
+         "All industry-standard normative methods: CIPW, Hutchison, Niggli, "
+         "Mesonorm, Catanorm — from bulk major-oxide chemistry"),
+        ("thermobarometry_suite", "🌡️ Thermobarometry Suite",
+         "Publication-grade P-T toolkit: Pyroxene, Feldspar, Amphibole, Olivine, "
+         "Garnet thermobarometers"),
+        ("petrogenetic_modeling_suite", "🔥 Petrogenetic Modeling Suite",
+         "AFC, fractional crystallisation, zone refining, mixing, and partial "
+         "melting models for complete magma evolution"),
+        ("literature_comparison", "📚 Literature Comparison",
+         "Compare your basalt samples to 9 published reference suites with 45+ "
+         "samples — colour-coded provenance matching"),
+        ("advanced_normalization", "📐 Advanced Normalization",
+         "Lucas-Tooth & Compton normalization for pXRF/ICP with inter-lab "
+         "comparison tables"),
+        ("laicpms_pro", "🔬 LA-ICP-MS Pro",
+         "Signal processing, U-Pb dating, elemental analysis, and data reduction "
+         "for laser ablation ICP-MS data"),
+        ("isotope_mixing_models", "🔀 Isotope Mixing Models",
+         "Binary/ternary mixing, end-member estimation, Monte Carlo, and "
+         "Bayesian inversion for Sr, Nd, Pb, O isotopes"),
+    ],
+    "Geochronology & Dating": [
+        ("geochronology_suite", "⏱️ Geochronology Suite",
+         "U-Pb concordia, Ar-Ar isochrons, detrital age spectra, Rb-Sr, Sm-Nd, "
+         "Lu-Hf — complete geochronology toolkit"),
+        ("dating_integration", "📅 Chronological Dating",
+         "Bayesian age-depth modelling with MCMC, parallel processing, and "
+         "user-supplied calibration curves"),
+        ("laicpms_pro", "🔬 LA-ICP-MS Pro",
+         "U-Pb zircon dating, signal processing, and data reduction"),
+    ],
+    "Petrology & Mineralogy": [
+        ("advanced_normative_calculations", "⚖️ Professional Normative Calculator",
+         "CIPW, Hutchison, Niggli, Mesonorm, Catanorm norms from bulk chemistry"),
+        ("thermobarometry_suite", "🌡️ Thermobarometry Suite",
+         "Pyroxene, feldspar, amphibole, olivine, garnet thermobarometers"),
+        ("petrogenetic_modeling_suite", "🔥 Petrogenetic Modeling Suite",
+         "AFC, fractional crystallisation, partial melting models"),
+        ("virtual_microscopy_pro", "🔬 Virtual Microscopy Pro",
+         "Petrographic image analysis and 3D archaeological mesh analysis"),
+    ],
+    "Structural Geology": [
+        ("structural_suite", "🧭 Structural Suite",
+         "Stereonets, rose diagrams, and contouring for strike, dip, plunge, "
+         "and trend/plunge measurements"),
     ],
     "Archaeology & Archaeometry": [
-        ("museum_import", "🏛️ Museum Database",
-         "Import artifacts from 15+ museums worldwide"),
-        ("lithic_morphometrics", "🪨 Lithic Analysis",
-         "Artifact outline extraction, edge damage quantification"),
-        ("archaeometry_analysis_suite_ultimate", "🔬 Archaeometry Suite",
-         "XRD, SEM-EDS, micro-CT, OSL, GPR analysis"),
+        ("museum_import", "🏛️ Museum Database Pro",
+         "Import artifacts from 15+ museums worldwide — Europeana default, "
+         "with pagination support"),
+        ("lithic_morphometrics", "🪨 Lithic Morphometrics",
+         "Artifact outline extraction, edge damage quantification, Fourier "
+         "shape analysis"),
+        ("archaeometry_analysis_suite_ultimate", "🔬 Archaeometry Analysis Suite",
+         "XRD Rietveld, SEM-EDS ZAF, micro-CT Otsu/Watershed, OSL CAM/FMM, "
+         "GPR Hilbert transform, and thin-section analysis"),
         ("report_generator", "📄 Report Generator",
-         "Auto-generate excavation reports and IAA submissions"),
+         "Auto-generate excavation season reports, IAA submissions, and "
+         "provenance summaries"),
         ("photo_manager", "📸 Photo Manager",
-         "Link and organize field photographs with samples"),
+         "Link sample photos, organise field photography, and open photo "
+         "folders directly from the data table"),
+        ("quartz_gis_pro", "🗺️ Quartz GIS",
+         "Ultimate GIS for archaeologists — measure, viewshed, attribute "
+         "table, QGIS export"),
+        ("dating_integration", "📅 Chronological Dating",
+         "Bayesian age-depth modelling for site chronology"),
+        ("ague_hg_mobility", "☣️ Ague Hg Mobility",
+         "BCR/GBT sequential extraction, mobility indices, RAC, MF — for "
+         "heavy-metal contamination studies"),
+    ],
+    "Zooarchaeology": [
+        ("zooarchaeology_analysis_suite", "🦴 Zooarchaeology Analysis Suite",
+         "NISP/MNI, age-at-death, taphonomy, 3D morphometrics, species ID, "
+         "and mortality profiles"),
     ],
     "Spectroscopy": [
-        ("spectral_toolbox", "📈 Spectral Toolbox",
-         "Peak detection, baseline correction, smoothing, derivatives"),
-        ("spectroscopy_analysis_suite", "🔬 Spectroscopy Suite",
-         "Library search, calibration, MCR-ALS analysis"),
+        ("spectral_toolbox", "📈 Spectral Processing Toolbox",
+         "MATLAB-like peak detection, baseline correction, smoothing, "
+         "derivatives, and Savitzky-Golay filtering"),
+        ("spectroscopy_analysis_suite", "🔬 Spectroscopy Analysis Suite",
+         "Library search, calibration curves, baseline correction, peak "
+         "fitting, MCR-ALS, and preprocessing"),
+        ("geoplot_pro", "📉 GeoPlot Pro",
+         "IUGS geochemical diagrams, mineral classification plots, and "
+         "spider/REE diagrams"),
     ],
     "GIS & Spatial Science": [
         ("quartz_gis_pro", "🗺️ Quartz GIS",
-         "Complete GIS for archaeologists - measure, viewshed, QGIS export"),
-        ("gis_3d_viewer_pro", "🌍 3D GIS Viewer",
-         "2D maps, 3D terrain, SRTM data, web maps"),
-        ("spatial_kriging", "📊 Spatial Kriging",
-         "Variogram analysis, interpolation, contouring"),
+         "Complete GIS for archaeologists — measure, viewshed, attribute "
+         "table, and QGIS export"),
+        ("gis_3d_viewer_pro", "🌍 3D GIS Viewer PRO",
+         "Professional 2D maps, 3D terrain, SRTM elevation data, and "
+         "web map tiles"),
+        ("spatial_kriging", "📊 Spatial Kriging & Density",
+         "Industry-standard spatial interpolation with variogram analysis "
+         "and KDE contouring"),
         ("google_earth_pro", "🌎 Google Earth Pro",
-         "3D visualization with geochemical extrusion"),
+         "Advanced 3D visualisation with geochemical extrusion, time "
+         "animation, and photo integration"),
+        ("interactive_contouring", "🗺️ Interactive Contouring",
+         "Interactive contouring and density estimation for scatter plots"),
+        ("geopandas_plotter", "🗺️ Geopandas Archaeological Mapper",
+         "Map archaeological sites with basemaps using geopandas"),
     ],
     "Geophysics": [
-        ("geophysics_analysis_suite", "🌋 Geophysics Suite",
-         "Seismic, ERT, gravity, magnetics, GPR processing"),
-    ],
-    "Zooarchaeology": [
-        ("zooarchaeology_analysis_suite", "🦴 Zooarchaeology Suite",
-         "NISP/MNI, age-at-death, taphonomy, 3D morphometrics"),
+        ("geophysics_analysis_suite", "🌋 Geophysics Analysis Suite",
+         "Seismic, ERT, gravity, magnetics, MT, GPR, and attribute "
+         "processing — industry-standard methods"),
     ],
     "Chromatography & Analytical Chemistry": [
         ("chromatography_analysis_suite", "🧪 Chromatography Suite",
-         "Peak integration, Kovats indices, AMDIS, standard curves"),
+         "Peak integration, Kovats indices, AMDIS, NMR FID, standard "
+         "curves, and resolution calculations"),
     ],
     "Electrochemistry": [
         ("electrochemistry_analysis_suite", "⚡ Electrochemistry Suite",
-         "CV, EIS, Tafel, battery analysis, chrono methods"),
+         "CV, EIS, Tafel, battery analysis, chrono methods, and RDE — "
+         "industry-standard electrochemical analysis"),
     ],
     "Materials Science": [
-        ("materials_science_analysis_suite", "🧱 Materials Science",
-         "Tensile, nanoindentation, BET, rheology, DMA"),
+        ("materials_science_analysis_suite", "🧱 Materials Science Suite",
+         "Tensile, nanoindentation, BET surface area, DLS, rheology, DMA, "
+         "and fatigue analysis"),
+        ("thermal_analysis_suite", "🌡️ Thermal Analysis Suite",
+         "DSC, Tg, TGA kinetics, DMA, LFA, calorimetry — ASTM/ISO "
+         "compliant thermal analysis"),
+        ("physical_properties_suite", "⚖️ Physical Properties Suite",
+         "Grain size, FORC, AMS, settling, PSD, shape analysis — "
+         "sedimentology and rock physics"),
+    ],
+    "Solution Chemistry & Water Quality": [
+        ("solution_chemistry_analysis_suite", "💧 Solution Chemistry Suite",
+         "Speciation, titration, Piper/Stiff diagrams, WQI, saturation "
+         "indices, mixing, and reagent water quality"),
     ],
     "Molecular Biology & Clinical Diagnostics": [
-        ("clinical_diagnostics_analysis_suite", "🧬 Clinical Suite",
-         "qPCR, ΔΔCt, ELISA, flow cytometry, ddPCR"),
-        ("molecular_biology_suite", "🔬 Molecular Biology",
-         "Cell counting, colony counter, fluorescence analysis"),
+        ("clinical_diagnostics_suite", "🧬 Clinical Diagnostics Suite",
+         "qPCR, ΔΔCt, ELISA, flow cytometry, ddPCR, HRM — CLSI/ICH "
+         "compliant clinical analysis"),
+        ("molecular_biology_suite", "🔬 Molecular Biology Suite",
+         "Cell counting, colony counter, fluorescence, liquid handling, "
+         "time-lapse, and plate reader analysis"),
+    ],
+    "Meteorology & Environmental Science": [
+        ("meteorology_analysis_suite", "🌦️ Meteorology Suite",
+         "Gap filling, AQI, wind rose, solar radiation, kriging, climate "
+         "normals, ET — WMO/EPA/FAO compliant"),
+    ],
+    "Physics & Test/Measurement": [
+        ("physics_test_measurement_suite", "🔌 Physics TM Suite",
+         "FFT, pulse analysis, I-V curves, LCR, Allan deviation, eye "
+         "diagrams, and statistics — IEEE/IEC compliant"),
     ],
     "General": [
-        ("pca_lda_explorer", "📊 PCA/LDA Explorer",
-         "Complete multivariate statistics with visualizations"),
+        ("pca_lda_explorer", "📊 PCA+LDA Explorer Pro",
+         "Complete statistical suite — PCA, LDA, PLS-DA, RF, SVM, t-SNE, "
+         "clustering, correlation, and visualisation"),
         ("uncertainty_propagation", "🎲 Uncertainty Propagation",
-         "Monte Carlo methods, confidence ellipses, error propagation"),
-        ("publication_layouts", "📑 Publication Layouts",
-         "Professional multi-panel figure designer"),
+         "Monte Carlo classification, confidence ellipses, error "
+         "propagation with Gaussian and systematic uncertainties"),
+        ("publication_layouts", "📑 Publication Layouts Pro",
+         "Professional multi-panel figure designer with main app "
+         "integration for journal-ready figures"),
         ("dataprep_pro", "🧹 DataPrep Pro",
-         "Outlier detection, missing imputation, robust normalization"),
+         "Outlier detection, missing imputation, CLR/ILR transforms, "
+         "and robust normalisation"),
+        ("data_validation_filter", "✅ Data Quality & Filter",
+         "IoGAS-style validation and advanced column filtering in one tool"),
         ("batch_processor", "📁 Batch Processor",
-         "Process multiple CSV files at once"),
+         "Process multiple CSV files in a directory at once"),
         ("scripting_console", "🐍 Python Console",
-         "Interactive Python console with data access"),
+         "Interactive Python console with direct access to the data hub "
+         "and app state"),
+        ("advanced_export", "📤 Publication Export",
+         "High-resolution PDF/EPS/SVG export for publications"),
+        ("demo_data_generator", "🗄️ Demo Data Generator",
+         "Generate robust synthetic geochemical datasets for testing "
+         "and tutorials (Tel Hazor reference data)"),
     ],
 }
 
-# Plugin dependencies mapping
+# Plugin dependencies mapping — pip package names required by each plugin
 _PLUGIN_DEPENDENCIES = {
-    "compositional_stats_pro": ["numpy", "scipy", "scikit-learn", "matplotlib"],
-    "geochemical_explorer": ["numpy", "scipy", "matplotlib", "pandas", "scikit-learn"],
-    "advanced_normative_calculations": ["pandas", "numpy", "scipy", "matplotlib"],
-    "thermobarometry_suite": ["numpy", "scipy", "matplotlib", "pandas"],
-    "petrogenetic_modeling_suite": ["numpy", "scipy", "matplotlib", "pandas"],
-    "museum_import": ["requests", "bs4"],
-    "lithic_morphometrics": ["opencv-python", "scikit-image", "numpy", "scipy", "matplotlib"],
+    # Geochemistry / Petrology
+    "compositional_stats_pro":          ["numpy", "scipy", "scikit-learn", "matplotlib", "pandas"],
+    "geochemical_explorer":             ["numpy", "scipy", "matplotlib", "pandas", "scikit-learn"],
+    "advanced_normative_calculations":  ["pandas", "numpy", "scipy", "matplotlib"],
+    "advanced_normalization":           ["pandas", "numpy", "scipy", "matplotlib"],
+    "thermobarometry_suite":            ["numpy", "scipy", "matplotlib", "pandas"],
+    "petrogenetic_modeling_suite":      ["numpy", "scipy", "matplotlib", "pandas"],
+    "literature_comparison":            ["numpy", "pandas", "matplotlib"],
+    "laicpms_pro":                      ["numpy", "pandas", "scipy", "matplotlib"],
+    "isotope_mixing_models":            ["numpy", "pandas", "scipy", "matplotlib"],
+    "geochem_advanced":                 ["numpy", "pandas", "scipy", "matplotlib", "requests"],
+    "geoplot_pro":                      ["numpy", "pandas", "matplotlib"],
+    # Geochronology
+    "geochronology_suite":              ["numpy", "pandas", "scipy", "matplotlib"],
+    "dating_integration":               ["numpy", "pandas", "scipy", "matplotlib"],
+    "upb_concordia_qc":                 ["numpy", "pandas"],
+    # Petrology / Mineralogy
+    "virtual_microscopy_pro":           ["pillow", "numpy", "scipy", "matplotlib"],
+    "structural_suite":                 ["numpy", "matplotlib", "scipy"],
+    # Archaeology / Archaeometry
+    "museum_import":                    ["requests", "bs4"],
+    "lithic_morphometrics":             ["opencv-python", "scikit-image", "numpy", "scipy", "matplotlib"],
     "archaeometry_analysis_suite_ultimate": ["numpy", "pandas", "scipy", "matplotlib", "pillow"],
-    "report_generator": ["python-docx"],
-    "photo_manager": ["pillow"],
-    "spectral_toolbox": ["numpy", "scipy", "pybaselines", "lmfit", "matplotlib"],
-    "spectroscopy_analysis_suite": ["numpy", "pandas", "scipy", "matplotlib"],
-    "quartz_gis_pro": ["geopandas", "shapely", "pyproj", "matplotlib", "contextily"],
-    "gis_3d_viewer_pro": ["matplotlib", "numpy", "scipy", "requests"],
-    "spatial_kriging": ["numpy", "scipy", "matplotlib"],
-    "google_earth_pro": ["simplekml", "numpy", "scipy", "pillow"],
-    "geophysics_analysis_suite": ["numpy", "pandas", "scipy", "matplotlib"],
-    "zooarchaeology_analysis_suite": ["numpy", "pandas", "scipy", "matplotlib"],
-    "chromatography_analysis_suite": ["numpy", "pandas", "scipy", "matplotlib"],
-    "electrochemistry_analysis_suite": ["numpy", "pandas", "scipy", "matplotlib"],
+    "report_generator":                 ["python-docx"],
+    "photo_manager":                    ["pillow"],
+    "barcode_scanner_suite":            ["pillow"],
+    "ague_hg_mobility":                 ["numpy", "pandas", "scipy", "matplotlib"],
+    # Spectroscopy
+    "spectral_toolbox":                 ["numpy", "scipy", "pybaselines", "lmfit", "matplotlib"],
+    "spectroscopy_analysis_suite":      ["numpy", "pandas", "scipy", "matplotlib"],
+    # GIS / Spatial
+    "quartz_gis_pro":                   ["geopandas", "shapely", "pyproj", "matplotlib", "contextily"],
+    "gis_3d_viewer_pro":                ["matplotlib", "numpy", "scipy", "requests"],
+    "spatial_kriging":                  ["numpy", "scipy", "matplotlib"],
+    "google_earth_pro":                 ["simplekml", "numpy", "scipy", "pillow"],
+    "interactive_contouring":           ["numpy", "scipy", "matplotlib"],
+    "geopandas_plotter":                ["geopandas", "matplotlib", "contextily"],
+    "gis_console":                      ["geopandas", "shapely", "pyproj"],
+    # Geophysics
+    "geophysics_analysis_suite":        ["numpy", "pandas", "scipy", "matplotlib"],
+    # Zooarchaeology
+    "zooarchaeology_analysis_suite":    ["numpy", "pandas", "scipy", "matplotlib"],
+    # Chromatography
+    "chromatography_analysis_suite":    ["numpy", "pandas", "scipy", "matplotlib"],
+    # Electrochemistry
+    "electrochemistry_analysis_suite":  ["numpy", "pandas", "scipy", "matplotlib"],
+    # Materials
     "materials_science_analysis_suite": ["numpy", "pandas", "scipy", "matplotlib"],
-    "clinical_diagnostics_analysis_suite": ["numpy", "pandas", "scipy", "matplotlib"],
-    "molecular_biology_suite": ["numpy", "pandas", "scipy", "matplotlib"],
-    "pca_lda_explorer": ["scikit-learn", "matplotlib", "numpy", "pandas", "scipy", "seaborn"],
-    "uncertainty_propagation": ["numpy", "scipy", "matplotlib"],
-    "publication_layouts": ["matplotlib", "numpy", "pillow", "seaborn"],
-    "dataprep_pro": ["numpy", "pandas", "scipy", "scikit-learn"],
-    "batch_processor": ["pandas", "numpy"],
-    "scripting_console": ["tkinter"],
+    "thermal_analysis_suite":           ["numpy", "pandas", "scipy", "matplotlib"],
+    "physical_properties_suite":        ["numpy", "pandas", "scipy", "matplotlib"],
+    # Solution chemistry
+    "solution_chemistry_analysis_suite":["numpy", "pandas", "scipy", "matplotlib"],
+    # Molecular / Clinical
+    "clinical_diagnostics_suite":       ["numpy", "pandas", "scipy", "matplotlib"],
+    "molecular_biology_suite":          ["numpy", "pandas", "scipy", "matplotlib"],
+    # Meteorology
+    "meteorology_analysis_suite":       ["numpy", "pandas", "scipy", "matplotlib"],
+    # Physics
+    "physics_test_measurement_suite":   ["numpy", "pandas", "scipy", "matplotlib"],
+    # General / Utilities
+    "pca_lda_explorer":                 ["scikit-learn", "matplotlib", "numpy", "pandas", "scipy", "seaborn"],
+    "uncertainty_propagation":          ["numpy", "scipy", "matplotlib"],
+    "publication_layouts":              ["matplotlib", "numpy", "pillow", "seaborn"],
+    "dataprep_pro":                     ["numpy", "pandas", "scipy", "scikit-learn"],
+    "data_validation_filter":           ["pandas", "numpy"],
+    "batch_processor":                  ["pandas", "numpy"],
+    "scripting_console":                [],
+    "advanced_export":                  ["matplotlib", "pillow"],
+    "demo_data_generator":              ["pandas", "numpy"],
+    # Plotters
+    "matplotlib_plotter":               ["matplotlib", "numpy"],
+    "seaborn_plotter":                  ["seaborn", "matplotlib", "pandas", "numpy"],
+    "ternary_plotter":                  ["matplotlib", "numpy"],
+    "missingno_plotter":                ["missingno", "matplotlib"],
+    "geopandas_plotter":                ["geopandas", "matplotlib", "contextily"],
+    "ascii_plotter":                    [],
+    "pillow_plotter":                   ["pillow"],
+    # Consoles
+    "python_console":                   [],
+    "r_console":                        [],
+    "julia_console":                    [],
+    "sql_console":                      [],
+    "statistical_console":              ["numpy", "scipy", "pandas"],
+    "file_console":                     [],
+    # AI add-ons
+    "chatgpt_ai":                       ["openai"],
+    "claude_ai":                        ["anthropic"],
+    "gemini_ai":                        ["google-generativeai"],
+    "deepseek_ai":                      ["openai"],
+    "grok_ai":                          ["openai"],
+    "copilot_ai":                       [],
+    "ollama_ai":                        ["requests"],
 }
 
 # Store URL for plugin index
@@ -1127,25 +1387,25 @@ class PluginRecommender:
         installed = self.get_installed_plugins()
         enabled = self.get_enabled_plugins()
 
-        # Map data types to plugin categories
+        # Map data types to plugin recommendation categories
         type_to_category = {
-            "geochemistry": "Geology & Geochemistry",
-            "geochronology": "Geochronology & Dating",
-            "petrology": "Petrology & Mineralogy",
-            "structural": "Structural Geology",
-            "geophysics": "Geophysics",
-            "spatial": "GIS & Spatial Science",
-            "archaeology": "Archaeology & Archaeometry",
-            "zooarch": "Zooarchaeology",
-            "spectroscopy": "Spectroscopy",
+            "geochemistry":   "Geology & Geochemistry",
+            "geochronology":  "Geochronology & Dating",
+            "petrology":      "Petrology & Mineralogy",
+            "structural":     "Structural Geology",
+            "geophysics":     "Geophysics",
+            "spatial":        "GIS & Spatial Science",
+            "archaeology":    "Archaeology & Archaeometry",
+            "zooarch":        "Zooarchaeology",
+            "spectroscopy":   "Spectroscopy",
             "chromatography": "Chromatography & Analytical Chemistry",
-            "electrochem": "Electrochemistry",
-            "materials": "Materials Science",
-            "solution": "Solution Chemistry",
-            "molecular": "Molecular Biology & Clinical Diagnostics",
-            "meteorology": "Meteorology & Environmental Science",
-            "physics": "Physics & Test/Measurement",
-            "general": "General",
+            "electrochem":    "Electrochemistry",
+            "materials":      "Materials Science",
+            "solution":       "Solution Chemistry & Water Quality",
+            "molecular":      "Molecular Biology & Clinical Diagnostics",
+            "meteorology":    "Meteorology & Environmental Science",
+            "physics":        "Physics & Test/Measurement",
+            "general":        "General",
         }
 
         category = type_to_category.get(data_type, "General")
@@ -1181,23 +1441,168 @@ class PluginRecommender:
         return recommendations[:max_recommendations]
 
     def suggest_plugins_for_workflow(self, workflow: str) -> List[Dict]:
-        """Suggest plugins for specific workflows."""
+        """Suggest plugins for specific workflows.
+        Workflow keys are matched as substrings of the user's query (case-insensitive).
+        All plugin IDs correspond to real files in plugins/software/ or plugins/add-ons/.
+        """
         workflow_plugins = {
-            "petrology": ["advanced_normative_calculations", "thermobarometry_suite",
-                         "petrogenetic_modeling_suite", "virtual_microscopy_pro"],
-            "provenance": ["literature_comparison", "pca_lda_explorer", "geochemical_explorer"],
-            "dating": ["dating_integration", "geochronology_suite", "isotope_mixing_models"],
-            "mapping": ["quartz_gis_pro", "gis_3d_viewer_pro", "google_earth_pro",
-                       "spatial_kriging", "interactive_contouring"],
-            "publication": ["publication_layouts", "advanced_export", "report_generator"],
-            "quality_control": ["dataprep_pro", "uncertainty_propagation", "data_validation_filter"],
-            "multivariate": ["pca_lda_explorer", "geochemical_explorer"],
-            "spectral": ["spectral_toolbox", "spectroscopy_analysis_suite"],
-            "chromatography": ["chromatography_analysis_suite"],
-            "electrochemistry": ["electrochemistry_analysis_suite"],
-            "materials": ["materials_science_analysis_suite"],
-            "clinical": ["clinical_diagnostics_analysis_suite", "molecular_biology_suite"],
-            "archaeology": ["museum_import", "lithic_morphometrics", "photo_manager"],
+            # Geochemistry / Petrology
+            "petrology":        ["advanced_normative_calculations", "thermobarometry_suite",
+                                 "petrogenetic_modeling_suite", "virtual_microscopy_pro",
+                                 "compositional_stats_pro"],
+            "geochemi":         ["compositional_stats_pro", "geochemical_explorer",
+                                 "advanced_normalization", "literature_comparison",
+                                 "geoplot_pro", "pca_lda_explorer"],
+            "norm":             ["advanced_normative_calculations", "compositional_stats_pro"],
+            "magma":            ["petrogenetic_modeling_suite", "thermobarometry_suite",
+                                 "compositional_stats_pro"],
+            "thermobar":        ["thermobarometry_suite", "petrogenetic_modeling_suite"],
+            "fractionat":       ["petrogenetic_modeling_suite", "compositional_stats_pro"],
+            # Provenance
+            "provenance":       ["literature_comparison", "pca_lda_explorer",
+                                 "geochemical_explorer", "isotope_mixing_models",
+                                 "compositional_stats_pro"],
+            "basalt":           ["literature_comparison", "compositional_stats_pro",
+                                 "geochemical_explorer", "geoplot_pro",
+                                 "pca_lda_explorer"],
+            "fingerprint":      ["literature_comparison", "geochemical_explorer",
+                                 "pca_lda_explorer", "isotope_mixing_models"],
+            # Geochronology / Isotopes
+            "dating":           ["dating_integration", "geochronology_suite",
+                                 "isotope_mixing_models", "laicpms_pro"],
+            "geochronol":       ["geochronology_suite", "laicpms_pro",
+                                 "dating_integration", "isotope_mixing_models"],
+            "isochron":         ["geochronology_suite", "isotope_mixing_models"],
+            "isotope":          ["isotope_mixing_models", "geochronology_suite",
+                                 "dating_integration"],
+            "u-pb":             ["geochronology_suite", "laicpms_pro"],
+            "la-icp":           ["laicpms_pro", "geochronology_suite"],
+            # Spatial / GIS
+            "mapping":          ["quartz_gis_pro", "gis_3d_viewer_pro", "google_earth_pro",
+                                 "spatial_kriging", "interactive_contouring",
+                                 "geopandas_plotter"],
+            "gis":              ["quartz_gis_pro", "gis_3d_viewer_pro",
+                                 "spatial_kriging", "geopandas_plotter"],
+            "spatial":          ["spatial_kriging", "quartz_gis_pro",
+                                 "interactive_contouring", "gis_3d_viewer_pro"],
+            "interpolat":       ["spatial_kriging", "interactive_contouring"],
+            "kriging":          ["spatial_kriging"],
+            "google earth":     ["google_earth_pro"],
+            # Structural geology
+            "structural":       ["structural_suite"],
+            "stereonet":        ["structural_suite"],
+            "fold":             ["structural_suite"],
+            # Publication / Export
+            "publication":      ["publication_layouts", "advanced_export",
+                                 "report_generator", "uncertainty_propagation"],
+            "export":           ["advanced_export", "publication_layouts"],
+            "figure":           ["publication_layouts", "advanced_export",
+                                 "matplotlib_plotter", "seaborn_plotter"],
+            "report":           ["report_generator", "publication_layouts"],
+            # Data Quality / Preprocessing
+            "quality":          ["dataprep_pro", "uncertainty_propagation",
+                                 "data_validation_filter"],
+            "quality control":  ["dataprep_pro", "data_validation_filter",
+                                 "uncertainty_propagation"],
+            "outlier":          ["dataprep_pro", "data_validation_filter"],
+            "missing":          ["dataprep_pro", "missingno_plotter"],
+            "normaliz":         ["advanced_normalization", "dataprep_pro",
+                                 "advanced_normative_calculations"],
+            "clean":            ["dataprep_pro", "data_validation_filter"],
+            # Statistics / Multivariate
+            "multivariate":     ["pca_lda_explorer", "geochemical_explorer",
+                                 "compositional_stats_pro"],
+            "pca":              ["pca_lda_explorer", "geochemical_explorer"],
+            "lda":              ["pca_lda_explorer"],
+            "cluster":          ["pca_lda_explorer", "geochemical_explorer"],
+            "statistic":        ["pca_lda_explorer", "uncertainty_propagation",
+                                 "compositional_stats_pro"],
+            "uncertainty":      ["uncertainty_propagation"],
+            "monte carlo":      ["uncertainty_propagation", "isotope_mixing_models"],
+            # Spectroscopy
+            "spectral":         ["spectral_toolbox", "spectroscopy_analysis_suite"],
+            "spectroscop":      ["spectral_toolbox", "spectroscopy_analysis_suite"],
+            "raman":            ["spectral_toolbox", "spectroscopy_analysis_suite"],
+            "ftir":             ["spectral_toolbox", "spectroscopy_analysis_suite"],
+            "baseline":         ["spectral_toolbox"],
+            "peak":             ["spectral_toolbox", "spectroscopy_analysis_suite"],
+            # Chromatography
+            "chromatograph":    ["chromatography_analysis_suite"],
+            "gcms":             ["chromatography_analysis_suite"],
+            "hplc":             ["chromatography_analysis_suite"],
+            # Electrochemistry
+            "electrochemi":     ["electrochemistry_analysis_suite"],
+            "cyclic voltamm":   ["electrochemistry_analysis_suite"],
+            "eis":              ["electrochemistry_analysis_suite"],
+            "battery":          ["electrochemistry_analysis_suite"],
+            # Materials Science
+            "materials":        ["materials_science_analysis_suite",
+                                 "thermal_analysis_suite",
+                                 "physical_properties_suite"],
+            "tensile":          ["materials_science_analysis_suite"],
+            "hardness":         ["materials_science_analysis_suite"],
+            "thermal":          ["thermal_analysis_suite"],
+            "dsc":              ["thermal_analysis_suite"],
+            "tga":              ["thermal_analysis_suite"],
+            # Solution Chemistry
+            "water":            ["solution_chemistry_analysis_suite"],
+            "solution":         ["solution_chemistry_analysis_suite"],
+            "piper":            ["solution_chemistry_analysis_suite"],
+            # Molecular Biology / Clinical
+            "clinical":         ["clinical_diagnostics_suite", "molecular_biology_suite"],
+            "qpcr":             ["clinical_diagnostics_suite"],
+            "molecular":        ["molecular_biology_suite", "clinical_diagnostics_suite"],
+            # Meteorology
+            "meteorol":         ["meteorology_analysis_suite"],
+            "weather":          ["meteorology_analysis_suite"],
+            "climate":          ["meteorology_analysis_suite"],
+            # Physics
+            "physics":          ["physics_test_measurement_suite"],
+            "fft":              ["physics_test_measurement_suite"],
+            "signal":           ["physics_test_measurement_suite"],
+            # Archaeology / Archaeometry
+            "archaeol":         ["museum_import", "lithic_morphometrics",
+                                 "photo_manager", "archaeometry_analysis_suite_ultimate",
+                                 "report_generator", "quartz_gis_pro"],
+            "archaeometr":      ["archaeometry_analysis_suite_ultimate",
+                                 "lithic_morphometrics", "museum_import"],
+            "museum":           ["museum_import", "photo_manager", "report_generator"],
+            "lithic":           ["lithic_morphometrics", "virtual_microscopy_pro"],
+            "ceramic":          ["archaeometry_analysis_suite_ultimate",
+                                 "compositional_stats_pro", "pca_lda_explorer"],
+            "glass":            ["compositional_stats_pro", "pca_lda_explorer",
+                                 "archaeometry_analysis_suite_ultimate"],
+            "metal":            ["compositional_stats_pro",
+                                 "archaeometry_analysis_suite_ultimate"],
+            "bone":             ["zooarchaeology_analysis_suite",
+                                 "spectral_toolbox"],
+            "burial":           ["report_generator", "photo_manager", "museum_import"],
+            "excavat":          ["report_generator", "photo_manager",
+                                 "quartz_gis_pro"],
+            # Zooarchaeology
+            "zooarch":          ["zooarchaeology_analysis_suite"],
+            "faunal":           ["zooarchaeology_analysis_suite"],
+            "nisp":             ["zooarchaeology_analysis_suite"],
+            "mni":              ["zooarchaeology_analysis_suite"],
+            # Batch / Scripting
+            "batch":            ["batch_processor", "scripting_console"],
+            "script":           ["scripting_console", "batch_processor"],
+            "automat":          ["batch_processor", "scripting_console",
+                                 "macro_recorder"],
+            # Environmental
+            "environment":      ["meteorology_analysis_suite",
+                                 "solution_chemistry_analysis_suite",
+                                 "ague_hg_mobility"],
+            "contaminat":       ["ague_hg_mobility", "dataprep_pro"],
+            "pollution":        ["ague_hg_mobility", "meteorology_analysis_suite"],
+            "soil":             ["solution_chemistry_analysis_suite",
+                                 "ague_hg_mobility", "dataprep_pro"],
+            # Geophysics
+            "geophysic":        ["geophysics_analysis_suite"],
+            "seismic":          ["geophysics_analysis_suite"],
+            "gravity":          ["geophysics_analysis_suite"],
+            "magnetics":        ["geophysics_analysis_suite"],
+            "ert":              ["geophysics_analysis_suite"],
         }
 
         installed = self.get_installed_plugins()
@@ -1430,7 +1835,7 @@ class ToolkitAIPlugin:
     def __init__(self, main_app):
         self.app     = main_app
         self.name    = "Toolkit AI"
-        self.version = "2.2"
+        self.version = "2.3"
         self.app.toolkit_ai = self
 
         # Thread safety
@@ -1751,7 +2156,7 @@ class ToolkitAIPlugin:
             info_bar.pack(fill=tk.X, padx=4, pady=(4, 0))
             self._status_lbl = ttk.Label(
                 info_bar,
-                text=f"🧠 Toolkit AI v2.2  •  {self.kb.summary()}",
+                text=f"🧠 Toolkit AI v2.3  •  {self.kb.summary()}",
                 font=("Segoe UI", 8),
                 bootstyle="inverse-secondary",
             )
@@ -1884,7 +2289,7 @@ class ToolkitAIPlugin:
         if not self.chat_output:
             return
 
-        self._append("🧠 Toolkit AI v2.2 — Plugin-Aware Deep Knowledge Assistant\n", "header")
+        self._append("🧠 Toolkit AI v2.3 — Full-Codebase Deep Knowledge Assistant\n", "header")
         self._append("─" * 52 + "\n", "system")
 
         # What I know
@@ -1920,15 +2325,15 @@ class ToolkitAIPlugin:
 
         self._append("\nTry asking me:\n", "assistant")
         examples = [
-            "  • 'Analyze my data'",
-            "  • 'Recommend plugins' (NEW!)",
-            "  • 'Plugins for petrology'",
-            "  • 'Install compositional_stats_pro'",
-            "  • 'What classification schemes are available?'",
-            "  • 'Run TAS classification'",
-            "  • 'What is MORB?'",
-            "  • 'What plugins do I have?'",
-            "  • 'Switch to geochemistry panel'",
+            "  • 'Analyze my data'  •  'Check my data for problems'",
+            "  • 'Recommend plugins'  •  'Plugins for petrology'",
+            "  • 'Install compositional_stats_pro'  •  'List store'",
+            "  • 'List classification schemes'  •  'Run TAS'  •  'Run all schemes'",
+            "  • 'What is MORB?'  •  'What is REE?'  •  'What is Mg#?'",
+            "  • 'What is regional_triage?'  •  'What is provenance_fingerprinting?'",
+            "  • 'What plugins do I have?'  •  'What should I do next?'",
+            "  • 'Switch to geochemistry panel'  •  'Switch to archaeology panel'",
+            "  • 'Plugins for basalt provenance'  •  'Plugins for dating'",
         ]
         self._append("\n".join(examples) + "\n\n", "system")
 
@@ -2319,7 +2724,7 @@ class ToolkitAIPlugin:
 
         # Update status label
         if hasattr(self, '_status_lbl'):
-            self._status_lbl.config(text=f"🧠 Toolkit AI v2.2  •  {self.kb.summary()}")
+            self._status_lbl.config(text=f"🧠 Toolkit AI v2.3  •  {self.kb.summary()}")
 
         # Refresh plugin manager if open
         for child in self.app.root.winfo_children():
@@ -2335,36 +2740,52 @@ class ToolkitAIPlugin:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _resp_help(self):
-        """Updated help with plugin commands."""
+        """Full help guide with all commands and knowledge areas."""
         return (
-            "Toolkit AI v2.2 — What I can do:\n\n"
+            "Toolkit AI v2.3 — Full-Codebase Knowledge Assistant\n\n"
             "🔬 DATA ANALYSIS\n"
-            "  • 'Analyze my data' — full column statistics\n"
-            "  • 'Check my data for problems' — validation\n"
-            "  • 'What data do I have?' — quick summary\n\n"
-            "🏷️ CLASSIFICATION\n"
-            "  • 'List classification schemes' — see all available\n"
-            "  • 'Run TAS' — run a specific scheme\n"
-            "  • 'Run all schemes' — run everything at once\n"
-            "  • 'What is MORB?' — explain a classification\n\n"
-            "🔌 PLUGIN RECOMMENDATIONS (NEW!)\n"
-            "  • 'Recommend plugins' — get suggestions for your data\n"
-            "  • 'Plugins for petrology' — workflow-specific suggestions\n"
-            "  • 'List store' — see all available plugins\n"
-            "  • 'Install compositional_stats_pro' — install a plugin\n"
-            "  • 'Enable pca_lda_explorer' — enable installed plugin\n"
-            "  • 'What plugins do I have?' — check installed status\n\n"
+            "  • 'Analyze my data' — full column statistics and data type detection\n"
+            "  • 'Check my data for problems' — validate oxides, totals, duplicates\n"
+            "  • 'What data do I have?' — quick summary of loaded samples\n\n"
+            "🏷️ CLASSIFICATION (70+ schemes)\n"
+            "  • 'List classification schemes' — see all available schemes\n"
+            "  • 'Run TAS' / 'Run regional_triage' — run a specific scheme\n"
+            "  • 'Run all schemes' — run every enabled scheme at once\n"
+            "  • 'What is regional_triage?' — explain any scheme\n"
+            "  • 'What is MORB?' / 'What is REE?' — define geochemical terms\n"
+            "  • 'What is Mg#?' / 'What is CIA?' — explain indices and ratios\n\n"
+            "🔌 PLUGIN RECOMMENDATIONS\n"
+            "  • 'Recommend plugins' — get data-type-aware plugin suggestions\n"
+            "  • 'Plugins for basalt provenance' — workflow-specific suggestions\n"
+            "  • 'Plugins for petrology' / 'Plugins for dating' — domain suggestions\n"
+            "  • 'Plugins for mapping' / 'Plugins for publication' — task suggestions\n"
+            "  • 'List store' — browse all plugins in the online store\n"
+            "  • 'Install compositional_stats_pro' — install any plugin\n"
+            "  • 'Enable pca_lda_explorer' — enable an installed plugin\n"
+            "  • 'What plugins do I have?' — check installed/enabled status\n\n"
             "🧩 PLUGINS & PANELS\n"
-            "  • 'List plugins' — see all installed tools\n"
-            "  • 'Open spectroscopy' — launch a plugin\n"
-            "  • 'Switch to geochemistry panel' — change right panel\n\n"
-            "📚 KNOWLEDGE\n"
-            "  • 'What does SiO2 mean?' — element/oxide info\n"
-            "  • 'How do I classify my data?' — workflow guidance\n"
-            "  • 'What should I do next?' — intelligent next step\n\n"
-            "📤 EXPORT\n"
-            "  • 'Export learning data' — backup your AI's knowledge\n\n"
-            "⚙️ Click the gear icon to configure learning settings."
+            "  • 'List plugins' — see all installed plugins by category\n"
+            "  • 'Open spectroscopy' / 'Open literature comparison' — launch plugin\n"
+            "  • 'Switch to geochemistry panel' — switch right panel (16 domains)\n\n"
+            "📚 KNOWLEDGE DOMAINS (baked in)\n"
+            "  Geochemistry: TAS, AFM, Pearce, Winchester-Floyd, REE patterns,\n"
+            "    tectonic discrimination, provenance fingerprinting, regional_triage,\n"
+            "    alteration indices, QAPF, normative mineralogy, Mg#, CIA, Eu anomaly\n"
+            "  Archaeology: copper alloys, glass, iron bloom, ceramics, bone diagenesis,\n"
+            "    Munsell colour, isotope provenance, OSL, XRD, SEM-EDS, pXRF\n"
+            "  Sedimentology: Wentworth grain size, sandstone classification,\n"
+            "    carbonate (Folk, Dunham), soil texture (USDA), soil salinity/sodicity\n"
+            "  Meteorites: chondrites, shock stage, weathering grade, CI normalisation\n"
+            "  Water: Piper, Stiff, water hardness, WQI, soil pH\n"
+            "  Environmental: enrichment factor, geo-accumulation index, PLI\n"
+            "  Mining: Au-As-Sb pathfinders, ore-grade anomaly grids\n\n"
+            "💡 WORKFLOW GUIDANCE\n"
+            "  • 'How do I classify my data?' — step-by-step workflow\n"
+            "  • 'What should I do next?' — intelligent next-step suggestion\n"
+            "  • 'Status' — see active panel, loaded data, enabled plugins\n\n"
+            "📤 EXPORT & LEARNING\n"
+            "  • 'Export learning data' — backup AI conversation history\n\n"
+            "⚙️ Click the gear icon to configure learning and auto-suggest settings."
         )
 
     def _resp_current_data(self):
@@ -2686,30 +3107,153 @@ class ToolkitAIPlugin:
             if entity_lower in fid or fid in entity_lower:
                 return f"📐 Field Panel — {fid}:\n   {desc}"
 
-        # 6. Known geochemical/petrology terms
+        # 6. Known geochemical/petrology/archaeometry terms
         known_terms = {
-            "morb":  "Mid-Ocean Ridge Basalt. Tholeiitic basalts erupted at "
-                     "divergent plate boundaries. Characterised by depleted "
-                     "incompatible element patterns, low K2O/TiO2, flat REE.",
-            "oib":   "Ocean Island Basalt. Intraplate basalts from hot-spot "
-                     "volcanism (e.g. Hawaii). Enriched incompatible elements, "
-                     "high TiO2 and Nb/Y.",
-            "iab":   "Island Arc Basalt. Subduction-zone magmatism. Enriched "
-                     "in LILE (Ba, K, Sr), depleted in HFSE (Nb, Ta, Ti).",
-            "cab":   "Continental Arc Basalt. Similar to IAB but with stronger "
-                     "crustal contamination signature.",
+            # Basalt types
+            "morb":     "Mid-Ocean Ridge Basalt. Tholeiitic basalts erupted at "
+                        "divergent plate boundaries. Characterised by depleted "
+                        "incompatible element patterns, low K2O/TiO2, flat REE "
+                        "pattern, and negative Nb-Ta anomaly absence.",
+            "n-morb":   "Normal MORB — the most depleted mantle-derived basalt, "
+                        "with very low Nb, Ta, La/Yb, and (La/Sm)N < 1.",
+            "e-morb":   "Enriched MORB — transitional between N-MORB and OIB. "
+                        "Slightly elevated incompatible elements.",
+            "oib":      "Ocean Island Basalt. Intraplate basalts from hot-spot "
+                        "volcanism (e.g. Hawaii, Canaries). Enriched incompatible "
+                        "elements, high TiO2, Nb/Y, and (La/Yb)N > 10.",
+            "iab":      "Island Arc Basalt. Subduction-zone magmatism. Enriched "
+                        "in LILE (Ba, K, Sr), depleted in HFSE (Nb, Ta, Ti), "
+                        "giving a distinctive 'arc signature' on spider diagrams.",
+            "cab":      "Continental Arc Basalt. Similar to IAB but with stronger "
+                        "crustal contamination, higher Sr/Y, La/Yb.",
+            "wpa":      "Within-Plate Alkali basalt — intraplate setting, "
+                        "elevated Nb, Ta, Ti relative to MORB.",
+            "wpt":      "Within-Plate Tholeiite — intraplate but tholeiitic "
+                        "composition, intermediate between MORB and OIB.",
             "boninite": "High-Mg andesite found in fore-arc settings. Very low "
-                        "TiO2 (<0.5 wt%), high MgO (>8%), and high SiO2.",
-            "komatiite":"Ultramafic volcanic rock. Very high MgO (>18 wt%), "
-                        "low SiO2, spinifex texture. Common in Archaean.",
-            "tas":   "Total Alkali-Silica diagram (Le Bas et al. 1986). "
-                     "Classifies volcanic rocks by Na2O+K2O vs SiO2.",
-            "afm":   "AFM diagram (Alkali-FeO*-MgO). Discriminates tholeiitic "
-                     "from calc-alkaline differentiation trends.",
-            "nisp":  "Number of Identified Specimens. Count of all identified "
-                     "animal bone fragments in a zooarchaeological assemblage.",
-            "mni":   "Minimum Number of Individuals. The minimum number of "
-                     "animals represented by the skeletal elements recovered.",
+                        "TiO2 (<0.5 wt%), high MgO (>8%), and high SiO2 (>52%). "
+                        "Formed by melting of highly depleted mantle.",
+            "komatiite":"Ultramafic volcanic rock with very high MgO (>18 wt%), "
+                        "low SiO2, and characteristic spinifex texture. Common "
+                        "in Archaean greenstone belts.",
+            "picrite":  "Ultramafic basalt with MgO 12–18 wt%, olivine-phyric. "
+                        "Transitional between basalt and komatiite.",
+            "basanite": "Silica-undersaturated mafic volcanic rock with "
+                        "normative nepheline. Na2O+K2O typically 5–9 wt%.",
+            "phonolite":"Evolved alkaline volcanic rock, equivalent of syenite. "
+                        "High Na2O+K2O, low SiO2 (~50–60%), nepheline-bearing.",
+            "trachyte": "Evolved volcanic rock with SiO2 ~60–65%, high alkalis, "
+                        "plagioclase-poor, sanidine-rich.",
+            "rhyolite": "Silicic volcanic rock, SiO2 > 69%. Volcanic equivalent "
+                        "of granite. Often associated with explosive volcanism.",
+            "dacite":   "Intermediate volcanic rock, SiO2 63–69%, between "
+                        "andesite and rhyolite.",
+            "andesite": "Intermediate volcanic rock, SiO2 52–63%, typical of "
+                        "subduction-zone arc volcanism.",
+            # Diagrams and classification schemes
+            "tas":      "Total Alkali-Silica diagram (Le Bas et al. 1986). "
+                        "Classifies volcanic rocks by Na2O+K2O vs SiO2 into "
+                        "15 IUGS fields. Requires anhydrous normalization first.",
+            "afm":      "AFM diagram (Irvine & Baragar 1971). Alkali (Na2O+K2O) "
+                        "— FeO* — MgO ternary. Discriminates tholeiitic (FE-enriched "
+                        "trend) from calc-alkaline (MgO-enriched trend) series.",
+            "qapf":     "QAPF double triangle. IUGS modal mineralogy classification "
+                        "for plutonic and volcanic rocks using Quartz (Q), Alkali "
+                        "Feldspar (A), Plagioclase (P), and Feldspathoid (F).",
+            "winchester-floyd": "Winchester & Floyd (1977) immobile-element "
+                        "discrimination diagram: Zr/TiO2 vs Nb/Y. Useful for "
+                        "altered or metamorphosed volcanic rocks.",
+            "pearce":   "Pearce tectonic discrimination diagrams. Several variants: "
+                        "Zr/Y vs Zr (Pearce & Norry 1979), Ti-Zr-Y ternary, "
+                        "Nb/Y vs Zr/Y mantle array. Used to identify tectonic setting.",
+            "ree":      "Rare Earth Elements, La through Lu. Usually plotted "
+                        "normalised to chondrite (Boynton 1984). Eu anomaly "
+                        "(Eu/Eu*) indicates feldspar fractionation or source.",
+            "spidergram": "Multi-element diagram normalised to primitive mantle "
+                        "or chondrite. Shows relative enrichment/depletion "
+                        "of incompatible elements.",
+            "spider":   "See 'spidergram'.",
+            "lile":     "Large Ion Lithophile Elements: Rb, Ba, Th, U, K, Pb, Sr. "
+                        "Compatible with melt and fluid, enriched in arc settings.",
+            "hfse":     "High Field Strength Elements: Nb, Ta, Zr, Hf, Ti, Y. "
+                        "Immobile in fluids; depleted in subduction-zone rocks.",
+            "cipw":     "Cross-Iddings-Pirsson-Washington normative mineralogy. "
+                        "Calculates theoretical mineralogy from bulk major oxides. "
+                        "Implemented in the Professional Normative Calculator plugin.",
+            # Indices and ratios
+            "mg#":      "Magnesium Number = MgO/(MgO+FeO) molar. Primary magmas "
+                        "typically have Mg# ~0.65–0.75. Decreases with fractionation.",
+            "feot":     "Total iron as FeO (all Fe as FeO). Required for many "
+                        "classification diagrams. Convert using Fe2O3 × 0.8998.",
+            "asi":      "Aluminium Saturation Index = Al2O3/(CaO+Na2O+K2O) molar. "
+                        "<1 metaluminous, 1–1.1 peraluminous, >1.1 strongly peraluminous.",
+            "cia":      "Chemical Index of Alteration = Al2O3/(Al2O3+CaO+Na2O+K2O)×100. "
+                        "0 = unweathered, 100 = completely weathered to kaolinite.",
+            "eu anomaly": "Eu/Eu* = EuN / sqrt(SmN × GdN). <1 negative anomaly "
+                        "(feldspar fractionation), >1 positive anomaly (cumulate or "
+                        "source-region plagioclase melting).",
+            "la/yb":    "(La/Yb)N chondrite-normalised ratio. Measures LREE/HREE "
+                        "fractionation. >10 suggests OIB-like source.",
+            "nb/y":     "Nb/Y ratio on Winchester-Floyd diagram. >0.7 alkaline, "
+                        "<0.7 sub-alkaline volcanic rocks.",
+            "zr/y":     "Zr/Y ratio used in Pearce & Norry (1979) diagram. "
+                        "Distinguishes MORB, OIB, and within-plate basalts.",
+            # Provenance terms (toolkit-specific)
+            "regional_triage": "Toolkit-specific classification scheme. Classifies "
+                        "samples as Egyptian (Golan, Hauran, Jordan Valley), Sinai, "
+                        "or Levantine basalt based on immobile trace element ratios.",
+            "provenance_fingerprinting": "Classification using Nb, Zr, Y, Ti, and "
+                        "La to distinguish Nile/Ethiopian flood basalt sources from "
+                        "Levantine rift basalt sources.",
+            # Archaeology / Archaeometry
+            "nisp":     "Number of Identified Specimens. Count of all identified "
+                        "animal bone fragments in a zooarchaeological assemblage.",
+            "mni":      "Minimum Number of Individuals. The minimum number of "
+                        "animals represented by the skeletal elements recovered.",
+            "iai":      "Ishikawa Alteration Index = 100×(K2O+MgO)/(K2O+MgO+Na2O+CaO). "
+                        "Quantifies hydrothermal alteration in volcanic rocks (0=fresh, "
+                        "100=fully altered).",
+            "ccpi":     "Chlorite-Carbonate-Pyrite Index = 100×(MgO+FeO)/(MgO+FeO+Na2O+K2O). "
+                        "Tracks chlorite-carbonate alteration in volcanic systems.",
+            "sar":      "Sodium Adsorption Ratio. Measures soil sodicity: "
+                        "SAR = Na / sqrt((Ca+Mg)/2) in meq/L.",
+            "ftir":     "Fourier Transform Infrared spectroscopy. Identifies mineral "
+                        "phases (calcite, quartz, apatite) and organic compounds. "
+                        "FTIR Crystallinity Index (splitting factor) assesses bone "
+                        "diagenesis.",
+            "xrd":      "X-ray Diffraction. Identifies crystalline mineral phases "
+                        "by their d-spacings. Used in the Archaeometry Suite.",
+            "sem-eds":  "Scanning Electron Microscopy with Energy Dispersive Spectroscopy. "
+                        "Point chemical analysis of mineral phases, slag inclusions, "
+                        "and artifact surfaces.",
+            "pxrf":     "Portable X-Ray Fluorescence. Field instrument for rapid "
+                        "major and trace element analysis. Supported by the Elemental "
+                        "Geochemistry hardware plugin (SciAps, Olympus, Bruker, Thermo).",
+            "icp-ms":   "Inductively Coupled Plasma Mass Spectrometry. "
+                        "High-precision trace element and isotope analysis. "
+                        "Supported via LA-ICP-MS Pro plugin.",
+            "osl":      "Optically Stimulated Luminescence dating. Dates when "
+                        "sediment was last exposed to light. CAM/FMM models in "
+                        "the Archaeometry Suite.",
+            "gpr":      "Ground Penetrating Radar. Subsurface mapping. Supported "
+                        "in the Geophysics Suite and hardware drivers.",
+            "munsell":  "Munsell colour system (hue, value, chroma). Standard for "
+                        "describing soil and sediment colour. Classification scheme "
+                        "built into the toolkit.",
+            "wentworth":"Udden-Wentworth grain size scale. Classifies clastic "
+                        "sediment from clay (<4μm) through gravel (>64mm). "
+                        "Implemented in the Sediment Grain Size scheme.",
+            "piper":    "Piper diagram. Classifies water chemistry using cation "
+                        "(Ca, Mg, Na+K) and anion (HCO3, SO4, Cl) ternary plots. "
+                        "Implemented in the Piper Diagram Classification scheme.",
+            # Meteorite terms
+            "chondrite": "Primitive, undifferentiated meteorites that preserve "
+                         "solar system composition. Used as normalisation standard "
+                         "for REE patterns (Boynton 1984 CI chondrite).",
+            "achondrite":"Differentiated meteorites lacking chondrules. Includes "
+                         "HED (howardites, eucrites, diogenites) from asteroid Vesta.",
+            "shock stage":"Stöffler scale (S1–S6) for impact shock metamorphism "
+                         "in ordinary chondrites, based on olivine/pyroxene features.",
         }
         el_lower = entity.lower().replace("'s", "").strip()
         for term, explanation in known_terms.items():
@@ -2884,10 +3428,16 @@ class ToolkitAIPlugin:
             f"I'm not sure how to answer: '{prompt[:60]}'\n\n"
             "Here are things I understand:\n"
             "  'analyze my data'  •  'validate data'  •  'list schemes'\n"
-            "  'run [scheme]'  •  'what is [term]'  •  'open [plugin]'\n"
-            "  'switch to [field] panel'  •  'what should I do next?'\n"
-            "  'recommend plugins'  •  'install [plugin]'  •  'list store'\n"
+            "  'run [scheme]'  •  'run all schemes'  •  'what is [term]'\n"
+            "  'open [plugin]'  •  'switch to [field] panel'\n"
+            "  'what should I do next?'  •  'workflow'\n"
+            "  'recommend plugins'  •  'plugins for [workflow]'\n"
+            "  'install [plugin]'  •  'enable [plugin]'  •  'list store'\n"
+            "  'what plugins do I have?'  •  'status'\n"
             "  'export learning data'  •  'help'\n\n"
+            "Examples of terms I know about: MORB, OIB, TAS, AFM, REE, Mg#,\n"
+            "CIA, Eu anomaly, provenance_fingerprinting, regional_triage,\n"
+            "NISP, MNI, FTIR, pXRF, Munsell, Wentworth, Piper, chondrite.\n\n"
             "Type 'help' for the full guide."
         )
 
@@ -2896,16 +3446,48 @@ class ToolkitAIPlugin:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _suggest_scheme_for_type(self, dtype):
-        """Return the best KB scheme for a detected data type."""
+        """Return the best KB scheme for a detected data type.
+        Uses real scheme IDs from engines/classification/*.json.
+        """
         if not dtype:
             return None
+        # Map data type → ordered list of preferred scheme id fragments
         type_hints = {
-            "geochemistry":   ["tas", "winchester", "afm", "tectonic"],
-            "spectroscopy":   ["spectral", "raman", "ftir"],
+            "geochemistry":   ["regional_triage", "provenance_fingerprinting",
+                               "tas_full", "tas_le_bas", "tectonic_discrimination",
+                               "afm_irvine", "pearce_zr_y", "winchester",
+                               "igneous_major_oxide", "ree_pattern", "rare_earth"],
+            "spectroscopy":   ["ftir_crystallinity", "ci_normalized_spider",
+                               "spectral", "raman", "ftir"],
+            "geochronology":  ["upb_concordia", "isotope_provenance"],
             "structural":     ["structural", "stereonet"],
-            "solution":       ["water", "piper", "wqi"],
-            "molecular":      ["qpcr", "clinical"],
-            "zooarch":        ["zooarch", "faunal"],
+            "petrology":      ["qapf_mineralogy", "normative_molar",
+                               "metamorphic_facies", "magma_rheology",
+                               "eruption_style"],
+            "solution":       ["piper_diagram", "stiff_diagram", "water_hardness",
+                               "soil_salinity", "soil_sodicity",
+                               "fao_soil_classification", "soil_chemical"],
+            "molecular":      ["bone_collagen_qc", "ftir_crystallinity"],
+            "zooarch":        ["bone_trophic_diet", "bone_diagenesis",
+                               "bone_collagen_qc", "stable_isotope_diet"],
+            "archaeology":    ["copper_alloy_classification", "glass_compositional",
+                               "iron_bloom_classification", "ceramic_firing",
+                               "munsell_color", "isotope_provenance",
+                               "strontium_mobility"],
+            "materials":      ["slag_basicity_index", "slag_thermochemical",
+                               "enrichment_factor", "environmental_pollution"],
+            "spatial":        ["regional_triage", "provenance_fingerprinting",
+                               "ore-grade_multi-element"],
+            "meteorology":    ["fao_soil_classification_ph_ec",
+                               "environmental_pollution_indices"],
+            "chromatography": ["pathfinder_log_transformation",
+                               "au_as_sb_pathfinder"],
+            "electrochem":    ["electrochemistry"],
+            "physics":        ["analytical_precision_filter",
+                               "analytical_quality_control"],
+            "general":        ["analytical_quality_control",
+                               "analytical_precision_filter",
+                               "enrichment_factor_screening"],
         }
         hints = type_hints.get(dtype, [dtype])
         for hint in hints:
@@ -2920,7 +3502,7 @@ class ToolkitAIPlugin:
 
     def show_settings(self):
         dlg = tk.Toplevel(self.app.root)
-        dlg.title("🧠 Toolkit AI v2.2 — Settings")
+        dlg.title("🧠 Toolkit AI v2.3 — Settings")
         dlg.geometry("560x520")
         dlg.transient(self.app.root)
         dlg.grab_set()
@@ -2928,7 +3510,7 @@ class ToolkitAIPlugin:
         main = ttk.Frame(dlg, padding=20)
         main.pack(fill=tk.BOTH, expand=True)
 
-        ttk.Label(main, text="Toolkit AI v2.2 Configuration",
+        ttk.Label(main, text="Toolkit AI v2.3 Configuration",
                   font=("Segoe UI", 12, "bold")).pack(pady=(0, 12))
 
         # Status
@@ -3043,7 +3625,7 @@ class ToolkitAIPlugin:
             c = self.conn.cursor()
             c.execute("SELECT COUNT(*) FROM actions")
             n = c.fetchone()[0]
-        return f"🧠 Toolkit AI v2.2 ({self.kb.summary().split(',')[0]})"
+        return f"🧠 Toolkit AI v2.3 ({self.kb.summary().split(',')[0]})"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
