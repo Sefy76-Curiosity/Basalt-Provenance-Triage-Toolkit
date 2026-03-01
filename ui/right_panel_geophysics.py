@@ -493,7 +493,7 @@ class GeophysicsPanel(FieldPanelBase):
         if lats and lons:
             if bouguer_vals and any(v != 0 for v in bouguer_vals):
                 scatter = ax.scatter(lons, lats, c=bouguer_vals, s=50, cmap='viridis', edgecolors='black')
-                plt.colorbar(scatter, ax=ax, label='Bouguer Anomaly (mGal)')
+                fig.colorbar(scatter, ax=ax, label='Bouguer Anomaly (mGal)')
             else:
                 ax.scatter(lons, lats, c='blue', s=50, edgecolors='black', alpha=0.7)
 

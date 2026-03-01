@@ -1924,7 +1924,6 @@ class PPTXImportDialog:
     def __init__(self, parent_window, plugin):
         self.plugin       = plugin
         self.slide_images = []          # [(label, PIL.Image), ...]
-        self._tk_img      = None        # keep reference to avoid GC
 
         # fill in InstrumentType references after enum is defined
         self.PRESETS["FTIR"]["technique"]       = InstrumentType.FTIR
@@ -1987,12 +1986,6 @@ class PPTXImportDialog:
         self.slide_lb.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         sb.pack(side=tk.RIGHT, fill=tk.Y)
         self.slide_lb.bind("<<ListboxSelect>>", self._on_select)
-
-        tk.Label(left, text="Thumbnail", font=("Arial", 8),
-                 bg="#f0f0f0").pack(anchor=tk.W, padx=6, pady=(4, 0))
-        self.thumb_canvas = tk.Canvas(left, bg="#cccccc", width=234,
-                                      height=132, highlightthickness=0)
-        self.thumb_canvas.pack(padx=4, pady=(0, 4))
 
         # ── RIGHT: config + preview plot ────────────────────────────────────
         right = tk.Frame(pane, bg="white")
@@ -2077,8 +2070,6 @@ class PPTXImportDialog:
         ttk.Button(btn_row, text="📂 Open PPTX File…",
                    command=self._open_file, width=18).pack(side=tk.LEFT, padx=2)
         ttk.Separator(btn_row, orient=tk.VERTICAL).pack(side=tk.LEFT, padx=4, fill=tk.Y)
-        ttk.Button(btn_row, text="🔍 Preview Selected",
-                   command=self._preview, width=17).pack(side=tk.LEFT, padx=2)
         ttk.Button(btn_row, text="✅ Import Selected",
                    command=self._import_selected, width=16).pack(side=tk.LEFT, padx=2)
         ttk.Button(btn_row, text="⬇️ Import All",
@@ -2185,25 +2176,8 @@ class PPTXImportDialog:
         sel = self.slide_lb.curselection()
         if not sel:
             return
-        label, pil = self.slide_images[sel[-1]]
-
-        # thumbnail
-        thumb = pil.copy()
-        thumb.thumbnail((230, 128), _PILImage.LANCZOS)
-        canvas_bg = _PILImage.new("RGB", (234, 132), (200, 200, 200))
-        ox = (234 - thumb.width)  // 2
-        oy = (132 - thumb.height) // 2
-        canvas_bg.paste(thumb, (ox, oy))
-        try:
-            from PIL import ImageTk
-            self._tk_img = ImageTk.PhotoImage(canvas_bg)
-            self.thumb_canvas.delete("all")
-            self.thumb_canvas.create_image(117, 66, image=self._tk_img,
-                                           anchor=tk.CENTER)
-        except Exception:
-            self.thumb_canvas.delete("all")
-            self.thumb_canvas.create_text(117, 66, text=label,
-                                          anchor=tk.CENTER, fill="#444")
+        # Immediately preview the selected slide in the big right-panel plot
+        self._preview()
 
     def _get_params(self):
         """Parse axis params; raises ValueError on bad input."""

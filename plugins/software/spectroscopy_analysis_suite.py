@@ -249,6 +249,73 @@ class AnalysisTab:
     def _manual_import(self):
         pass
 
+    # ── FTIR / spectral column name patterns ────────────────────────────────
+    _WL_PATTERNS  = ['wavenumber', 'wave_number', 'wavenum', 'cm-1', 'cm^-1',
+                     'wavelength', 'wl', 'nm', 'frequency', 'x']
+    _INT_PATTERNS = ['absorbance', 'abs', 'transmittance', 'trans', '%t',
+                     'intensity', 'reflectance', 'refl', 'signal', 'y']
+
+    def _ftir_cols(self, sample):
+        """
+        Return (x_col, y_col, x_vals, y_vals) for any FTIR-style sample,
+        accepting both:
+          a) Columns storing comma-separated arrays  →  'Wavelength': '400,401,...'
+          b) Columns storing single numeric values   →  one row per wavenumber point
+        Returns (None, None, None, None) if no match found.
+        """
+        keys = list(sample.keys())
+
+        # Helper: try to parse a value as a float list
+        def as_floats(v):
+            if not v and v != 0:
+                return None
+            s = str(v)
+            parts = [p.strip() for p in s.split(',')]
+            try:
+                return [float(p) for p in parts if p]
+            except ValueError:
+                return None
+
+        # 1. Exact legacy names (backward compat)
+        if 'Wavelength' in sample and 'Intensity' in sample:
+            xv = as_floats(sample['Wavelength'])
+            yv = as_floats(sample['Intensity'])
+            if xv and yv:
+                return 'Wavelength', 'Intensity', xv, yv
+
+        # 2. Pattern-match column names
+        x_col = y_col = None
+        for k in keys:
+            kl = k.lower().replace(' ', '_').replace('(', '').replace(')', '').replace('/', '_')
+            if x_col is None and any(p in kl for p in self._WL_PATTERNS):
+                x_col = k
+            if y_col is None and any(p in kl for p in self._INT_PATTERNS):
+                y_col = k
+
+        if x_col and y_col:
+            xv = as_floats(sample.get(x_col, ''))
+            yv = as_floats(sample.get(y_col, ''))
+            if xv and yv:
+                return x_col, y_col, xv, yv
+
+        # 3. Single-value numeric columns that look spectral (scalar per row)
+        # The caller (refresh_sample_list) aggregates multiple rows; here we
+        # at least confirm the column exists and is numeric.
+        if x_col and y_col:
+            try:
+                xv = [float(sample.get(x_col, 0) or 0)]
+                yv = [float(sample.get(y_col, 0) or 0)]
+                return x_col, y_col, xv, yv
+            except (ValueError, TypeError):
+                pass
+
+        return None, None, None, None
+
+    def _sample_has_ftir_data(self, sample):
+        """Generic check: does this sample carry spectral/FTIR data?"""
+        x_col, y_col, xv, yv = self._ftir_cols(sample)
+        return x_col is not None
+
     def get_samples(self):
         if hasattr(self.app, 'data_hub'):
             return self.app.data_hub.get_all()
@@ -470,8 +537,8 @@ class LibrarySearchTab(AnalysisTab):
         self._build_content_ui()
 
     def _sample_has_data(self, sample):
-        return any(col in sample and sample[col] for col in
-                  ['Spectrum_File', 'Wavelength', 'Intensity'])
+        return self._sample_has_ftir_data(sample) or \
+               any(col in sample and sample[col] for col in ['Spectrum_File'])
 
     def _manual_import(self):
         path = filedialog.askopenfilename(
@@ -485,8 +552,18 @@ class LibrarySearchTab(AnalysisTab):
         def worker():
             try:
                 df = pd.read_csv(path)
-                wl_col = next((c for c in df.columns if 'wavelength' in c.lower() or 'wl' in c.lower()), df.columns[0])
-                int_col = next((c for c in df.columns if 'intensity' in c.lower() or 'abs' in c.lower()), df.columns[1])
+                wl_patterns  = ['wavenumber', 'wave_number', 'wavenum', 'cm-1', 'cm^-1',
+                                 'wavelength', 'wl', 'nm', 'frequency']
+                int_patterns = ['absorbance', 'abs', 'transmittance', 'trans', '%t',
+                                 'intensity', 'reflectance', 'refl', 'signal']
+                def _fc(patterns, fb):
+                    for c in df.columns:
+                        cl = c.lower().replace(' ','_').replace('(','').replace(')','')
+                        if any(p in cl for p in patterns):
+                            return c
+                    return df.columns[fb]
+                wl_col  = _fc(wl_patterns, 0)
+                int_col = _fc(int_patterns, 1)
 
                 def update():
                     self.query_wl = df[wl_col].values
@@ -502,14 +579,16 @@ class LibrarySearchTab(AnalysisTab):
 
     def _load_sample_data(self, idx):
         sample = self.samples[idx]
-        if 'Wavelength' in sample and 'Intensity' in sample:
+        x_col, y_col, xv, yv = self._ftir_cols(sample)
+        if x_col:
             try:
-                self.query_wl = np.array([float(x) for x in sample['Wavelength'].split(',')])
-                self.query_int = np.array([float(x) for x in sample['Intensity'].split(',')])
+                self.query_wl  = np.array(xv, dtype=float)
+                self.query_int = np.array(yv, dtype=float)
                 self._plot_query()
-                self.status_label.config(text=f"Loaded spectrum from table")
+                self.status_label.config(
+                    text=f"Loaded spectrum from table  [{x_col}  vs  {y_col}]")
             except Exception as e:
-                self.status_label.config(text=f"Error: {e}")
+                self.status_label.config(text=f"Error loading sample: {e}")
 
     def _build_content_ui(self):
         main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
@@ -1160,13 +1239,25 @@ class BaselineEngine:
 
     @classmethod
     def load_spectrum(cls, path):
-        """Load spectrum for baseline correction"""
+        """Load spectrum for baseline correction (FTIR-aware column detection)"""
         df = pd.read_csv(path)
-        wl_col = next((c for c in df.columns if 'wavelength' in c.lower() or 'wl' in c.lower()), df.columns[0])
-        int_col = next((c for c in df.columns if 'intensity' in c.lower() or 'abs' in c.lower()), df.columns[1])
+        wl_patterns  = ['wavenumber', 'wave_number', 'wavenum', 'cm-1', 'cm^-1',
+                         'wavelength', 'wl', 'nm', 'frequency']
+        int_patterns = ['absorbance', 'abs', 'transmittance', 'trans', '%t',
+                         'intensity', 'reflectance', 'refl', 'signal']
+
+        def _find_col(patterns, fallback_idx):
+            for c in df.columns:
+                cl = c.lower().replace(' ', '_').replace('(', '').replace(')', '')
+                if any(p in cl for p in patterns):
+                    return c
+            return df.columns[fallback_idx]
+
+        wl_col  = _find_col(wl_patterns, 0)
+        int_col = _find_col(int_patterns, 1)
         return {
             'wavelength': df[wl_col].values,
-            'intensity': df[int_col].values
+            'intensity':  df[int_col].values
         }
 
 
@@ -1184,8 +1275,8 @@ class BaselineTab(AnalysisTab):
         self._build_content_ui()
 
     def _sample_has_data(self, sample):
-        return any(col in sample and sample[col] for col in
-                  ['Spectrum_File', 'Wavelength', 'Intensity'])
+        return self._sample_has_ftir_data(sample) or \
+               any(col in sample and sample[col] for col in ['Spectrum_File'])
 
     def _manual_import(self):
         path = filedialog.askopenfilename(
@@ -1214,14 +1305,16 @@ class BaselineTab(AnalysisTab):
 
     def _load_sample_data(self, idx):
         sample = self.samples[idx]
-        if 'Wavelength' in sample and 'Intensity' in sample:
+        x_col, y_col, xv, yv = self._ftir_cols(sample)
+        if x_col:
             try:
-                self.wavelength = np.array([float(x) for x in sample['Wavelength'].split(',')])
-                self.intensity = np.array([float(x) for x in sample['Intensity'].split(',')])
+                self.wavelength = np.array(xv, dtype=float)
+                self.intensity  = np.array(yv, dtype=float)
                 self._plot_original()
-                self.status_label.config(text=f"Loaded spectrum from table")
+                self.status_label.config(
+                    text=f"Loaded spectrum from table  [{x_col}  vs  {y_col}]")
             except Exception as e:
-                self.status_label.config(text=f"Error: {e}")
+                self.status_label.config(text=f"Error loading sample: {e}")
 
     def _build_content_ui(self):
         main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
@@ -1560,8 +1653,8 @@ class PeakFittingTab(AnalysisTab):
         self._build_content_ui()
 
     def _sample_has_data(self, sample):
-        return any(col in sample and sample[col] for col in
-                  ['Spectrum_File', 'Wavelength', 'Intensity'])
+        return self._sample_has_ftir_data(sample) or \
+               any(col in sample and sample[col] for col in ['Spectrum_File'])
 
     def _manual_import(self):
         path = filedialog.askopenfilename(
@@ -1591,15 +1684,17 @@ class PeakFittingTab(AnalysisTab):
 
     def _load_sample_data(self, idx):
         sample = self.samples[idx]
-        if 'Wavelength' in sample and 'Intensity' in sample:
+        x_col, y_col, xv, yv = self._ftir_cols(sample)
+        if x_col:
             try:
-                self.wavelength = np.array([float(x) for x in sample['Wavelength'].split(',')])
-                self.intensity = np.array([float(x) for x in sample['Intensity'].split(',')])
+                self.wavelength = np.array(xv, dtype=float)
+                self.intensity  = np.array(yv, dtype=float)
                 self._find_peaks_auto()
                 self._plot_spectrum()
-                self.status_label.config(text=f"Loaded spectrum from table")
+                self.status_label.config(
+                    text=f"Loaded spectrum from table  [{x_col}  vs  {y_col}]")
             except Exception as e:
-                self.status_label.config(text=f"Error: {e}")
+                self.status_label.config(text=f"Error loading sample: {e}")
 
     def _build_content_ui(self):
         main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
@@ -2278,8 +2373,8 @@ class PreprocessingTab(AnalysisTab):
         self._build_content_ui()
 
     def _sample_has_data(self, sample):
-        return any(col in sample and sample[col] for col in
-                  ['Spectrum_File', 'Wavelength', 'Intensity'])
+        return self._sample_has_ftir_data(sample) or \
+               any(col in sample and sample[col] for col in ['Spectrum_File'])
 
     def _manual_import(self):
         path = filedialog.askopenfilename(
@@ -2308,14 +2403,16 @@ class PreprocessingTab(AnalysisTab):
 
     def _load_sample_data(self, idx):
         sample = self.samples[idx]
-        if 'Wavelength' in sample and 'Intensity' in sample:
+        x_col, y_col, xv, yv = self._ftir_cols(sample)
+        if x_col:
             try:
-                self.wavelength = np.array([float(x) for x in sample['Wavelength'].split(',')])
-                self.intensity = np.array([float(x) for x in sample['Intensity'].split(',')])
+                self.wavelength = np.array(xv, dtype=float)
+                self.intensity  = np.array(yv, dtype=float)
                 self._plot_original()
-                self.status_label.config(text=f"Loaded spectrum from table")
+                self.status_label.config(
+                    text=f"Loaded spectrum from table  [{x_col}  vs  {y_col}]")
             except Exception as e:
-                self.status_label.config(text=f"Error: {e}")
+                self.status_label.config(text=f"Error loading sample: {e}")
 
     def _build_content_ui(self):
         main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
@@ -2569,8 +2666,8 @@ class IntensityCorrectionTab(AnalysisTab):
         self._build_content_ui()
 
     def _sample_has_data(self, sample):
-        return any(col in sample and sample[col] for col in
-                  ['Spectrum_File', 'Wavelength', 'Intensity'])
+        return self._sample_has_ftir_data(sample) or \
+               any(col in sample and sample[col] for col in ['Spectrum_File'])
 
     def _manual_import(self):
         path = filedialog.askopenfilename(
@@ -2599,14 +2696,16 @@ class IntensityCorrectionTab(AnalysisTab):
 
     def _load_sample_data(self, idx):
         sample = self.samples[idx]
-        if 'Wavelength' in sample and 'Intensity' in sample:
+        x_col, y_col, xv, yv = self._ftir_cols(sample)
+        if x_col:
             try:
-                self.wavelength = np.array([float(x) for x in sample['Wavelength'].split(',')])
-                self.intensity = np.array([float(x) for x in sample['Intensity'].split(',')])
+                self.wavelength = np.array(xv, dtype=float)
+                self.intensity  = np.array(yv, dtype=float)
                 self._plot_original()
-                self.status_label.config(text=f"Loaded spectrum from table")
+                self.status_label.config(
+                    text=f"Loaded spectrum from table  [{x_col}  vs  {y_col}]")
             except Exception as e:
-                self.status_label.config(text=f"Error: {e}")
+                self.status_label.config(text=f"Error loading sample: {e}")
 
     def _build_content_ui(self):
         main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)

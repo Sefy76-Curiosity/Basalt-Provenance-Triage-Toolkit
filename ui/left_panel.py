@@ -666,12 +666,19 @@ class LeftPanel:
                 filtered_file = io.StringIO(''.join(non_comment_lines))
 
                 # Try different delimiters
-                sample = filtered_file.read(1024)
+                sample = filtered_file.read(2048)
                 filtered_file.seek(0)
 
-                # Detect delimiter
-                dialect = csv.Sniffer().sniff(sample)
-                delimiter = dialect.delimiter
+                # Detect delimiter — validate sniffer result against known candidates
+                delimiter = ','  # safe default
+                try:
+                    dialect = csv.Sniffer().sniff(sample, delimiters=',;\t|')
+                    candidate = dialect.delimiter
+                    # Only accept the sniffer's result if it's a plausible delimiter
+                    if candidate in (',', ';', '\t', '|'):
+                        delimiter = candidate
+                except csv.Error:
+                    pass  # keep default comma
 
                 # Reopen with detected delimiter
                 filtered_file.seek(0)

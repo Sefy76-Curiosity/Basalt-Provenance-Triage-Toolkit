@@ -170,7 +170,41 @@ class SpectralToolboxPlugin:
                 # Fallback: get from first sample
                 all_columns = list(self.app.samples[0].keys())
 
-            # Look for trace element columns (common patterns)
+            first_sample = self.app.samples[0]
+
+            # ── 1. Try FTIR / spectroscopic column detection first ───────────
+            x_col, y_col = self._detect_ftir_columns(all_columns, first_sample)
+
+            if x_col and y_col:
+                # Build a single spectrum from all samples (one row = one wavenumber)
+                xs, ys, valid_samples = [], [], 0
+                for sample in self.app.samples:
+                    xv = self._safe_float(sample.get(x_col, ''))
+                    yv = self._safe_float(sample.get(y_col, ''))
+                    if xv is not None and yv is not None:
+                        xs.append(xv)
+                        ys.append(yv)
+                        valid_samples += 1
+
+                if xs:
+                    order = np.argsort(xs)
+                    wavelengths = np.array(xs)[order]
+                    intensities = np.array(ys)[order]
+
+                    self.original_spectrum = (wavelengths.copy(), intensities.copy())
+                    self.current_spectrum  = (wavelengths.copy(), intensities.copy())
+                    self.spectrum_elements = [y_col]
+                    self._update_preview()
+                    if hasattr(self, 'stats_label'):
+                        self.stats_label.config(
+                            text=f"Loaded FTIR spectrum: {len(wavelengths)} pts "
+                                 f"| X={x_col}  Y={y_col}")
+                    messagebox.showinfo("Data Loaded",
+                        f"✅ Loaded FTIR spectrum ({valid_samples} rows)\n"
+                        f"X axis : {x_col}\nY axis : {y_col}")
+                    return
+
+            # ── 2. Trace-element geochemistry columns (original logic) ───────
             trace_elements = []
             element_patterns = ['Zr', 'Nb', 'Ba', 'Rb', 'Cr', 'Ni', 'La', 'Ce',
                             'Nd', 'Sm', 'Eu', 'Gd', 'Yb', 'Lu', 'Sr', 'Y']
@@ -182,28 +216,25 @@ class SpectralToolboxPlugin:
                         trace_elements.append(col)
                         break
 
-            # If no trace elements found, use numeric columns
+            # ── 3. Fall back to any numeric column ──────────────────────────
             if not trace_elements:
-                # Try to identify numeric columns
                 numeric_cols = []
-                sample = self.app.samples[0]
                 for col in all_columns:
                     try:
-                        val = self._safe_float(sample.get(col, ''))
+                        val = self._safe_float(first_sample.get(col, ''))
                         if val is not None:
                             numeric_cols.append(col)
                     except:
                         pass
-                trace_elements = numeric_cols[:10]  # Use first 10 numeric columns
+                trace_elements = numeric_cols[:10]
 
             if not trace_elements:
-                messagebox.showwarning("No Numeric Data", "No numeric trace element data found.")
+                messagebox.showwarning("No Numeric Data",
+                    "Could not identify spectral or numeric data columns.\n"
+                    "Expected columns like: Wavenumber, Absorbance, Wavelength, Intensity, or ppm trace elements.")
                 return
 
-            # Use element indices as pseudo-wavelengths
             wavelengths = np.arange(len(trace_elements))
-
-            # Create average spectrum from all samples
             all_intensities = []
             valid_samples = 0
 
@@ -225,21 +256,14 @@ class SpectralToolboxPlugin:
                 messagebox.showwarning("No Valid Data", "No valid numeric data found in samples.")
                 return
 
-            # Use median spectrum (robust to outliers)
             all_intensities = np.array(all_intensities)
             intensities = np.median(all_intensities, axis=0)
 
-            # Store the spectrum
             self.original_spectrum = (wavelengths.copy(), intensities.copy())
-            self.current_spectrum = (wavelengths.copy(), intensities.copy())
-
-            # Store element names for reference
+            self.current_spectrum  = (wavelengths.copy(), intensities.copy())
             self.spectrum_elements = trace_elements
-
-            # Update preview
             self._update_preview()
 
-            # Update status
             if hasattr(self, 'stats_label'):
                 self.stats_label.config(
                     text=f"Loaded pseudo-spectrum from {valid_samples} samples, {len(trace_elements)} elements"
@@ -254,6 +278,29 @@ class SpectralToolboxPlugin:
             import traceback
             traceback.print_exc()
             messagebox.showerror("Load Error", f"Failed to load data: {str(e)}")
+
+    # ── FTIR / spectral column name patterns ────────────────────────────────
+    WAVENUMBER_PATTERNS = ['wavenumber', 'wave_number', 'wavenum', 'cm-1', 'cm^-1',
+                           'wavelength', 'wl', 'nm', 'frequency']
+    INTENSITY_PATTERNS  = ['absorbance', 'abs', 'transmittance', 'trans', '%t',
+                           'intensity', 'reflectance', 'refl', 'signal']
+
+    def _detect_ftir_columns(self, all_columns, sample):
+        """
+        Return (x_col, y_col) for FTIR-style data, or (None, None) if not found.
+        Matches column names case-insensitively against known FTIR patterns.
+        """
+        x_col = y_col = None
+        for col in all_columns:
+            cl = col.lower().replace(' ', '_').replace('(', '').replace(')', '')
+            if x_col is None and any(p in cl for p in self.WAVENUMBER_PATTERNS):
+                # Verify the column has numeric data
+                if self._safe_float(sample.get(col, '')) is not None:
+                    x_col = col
+            if y_col is None and any(p in cl for p in self.INTENSITY_PATTERNS):
+                if self._safe_float(sample.get(col, '')) is not None:
+                    y_col = col
+        return x_col, y_col
 
     def _safe_float(self, value):
         """Safely convert to float"""

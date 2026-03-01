@@ -16,6 +16,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from matplotlib.patches import Circle as MplCircle
 
 from .right_panel import FieldPanelBase, OK_ICON, WARN_ICON, ERROR_ICON, INFO_ICON
 
@@ -438,7 +439,7 @@ class StructuralPanel(FieldPanelBase):
         ax = fig.add_subplot(111)
 
         # Draw the stereonet circle
-        circle = plt.Circle((0, 0), 1, fill=False, color='black', linewidth=1)
+        circle = MplCircle((0, 0), 1, fill=False, color='black', linewidth=1)
         ax.add_patch(circle)
 
         # Draw grid lines (simplified)
@@ -452,7 +453,7 @@ class StructuralPanel(FieldPanelBase):
         for dip in range(10, 90, 10):
             rho = math.radians(90 - dip)
             R = math.sqrt(2) * math.sin(rho/2)
-            circle = plt.Circle((0, 0), R, fill=False, color='gray', linewidth=0.5, alpha=0.3)
+            circle = MplCircle((0, 0), R, fill=False, color='gray', linewidth=0.5, alpha=0.3)
             ax.add_patch(circle)
 
         ax.set_xlim(-1.1, 1.1)
@@ -546,8 +547,8 @@ class StructuralPanel(FieldPanelBase):
             # Add mean strike line
             if strikes:
                 # Circular mean
-                sin_sum = sum(math.sin(math.radians(s*2)))  # Double for bidirectional
-                cos_sum = sum(math.cos(math.radians(s*2)))
+                sin_sum = sum(math.sin(math.radians(s * 2)) for s in strikes)
+                cos_sum = sum(math.cos(math.radians(s * 2)) for s in strikes)
                 mean_dir = (math.atan2(sin_sum, cos_sum) / 2) % 360  # Halve to get back to strike
                 mean_rad = math.radians(mean_dir)
                 ax.plot([0, mean_rad], [0, max(hist)], 'r-', linewidth=2, label=f'Mean: {mean_dir:.0f}°')

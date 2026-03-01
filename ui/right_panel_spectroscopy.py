@@ -21,7 +21,6 @@ import numpy as np
 import json
 import matplotlib
 matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt          # needed for cm.tab10
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import re
@@ -594,7 +593,7 @@ class SpectroscopyPanel(FieldPanelBase):
                             ha='center', va='center', transform=ax.transAxes)
 
             elif len(spec_indices) > 1:
-                colors = plt.cm.tab10(np.linspace(0, 1, len(spec_indices)))
+                colors = matplotlib.cm.tab10(np.linspace(0, 1, len(spec_indices)))
                 for i, idx in enumerate(sorted(spec_indices)):
                     x_data = x_dict.get(idx)
                     y_data = y_dict.get(idx)

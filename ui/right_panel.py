@@ -497,11 +497,19 @@ class RightPanel:
         self._refresh_results_cache()
         self.all_results = None
         self.all_mode = False
-        self._update_hud()
 
         samples = self.app.data_hub.get_all()
-        if samples:
-            self.app.root.after(300, lambda: self._check_for_field_switch(samples))
+
+        # If data was cleared and we're on a field panel, go back to classification
+        if not samples:
+            current = getattr(self, '_current_field_panel', 'classification')
+            if current != 'classification':
+                self._restore_classification_panel()
+            self._update_hud()  # always clear the HUD when data is gone
+            return
+
+        self._update_hud()
+        self.app.root.after(300, lambda: self._check_for_field_switch(samples))
 
     def _refresh_results_cache(self):
         """Reset single‑scheme cache to empty."""
@@ -819,10 +827,17 @@ class RightPanel:
 
     _FIELD_DETECTION = {
         "geochemistry":   ("Geochemistry",          "🪨", ["sio2", "tio2", "al2o3", "fe2o3", "mgo", "cao", "na2o", "k2o"]),
-        "geochronology":  ("Geochronology",         "⏳", ["pb206", "pb207", "u238", "ar40", "ar39"]),
-        "petrology":      ("Petrology",             "🔥", ["quartz", "plagioclase", "feldspar", "modal", "normative", "cipw"]),
+        # Geochronology: isotope columns are written as 206pb_ppm / 238u_ppm (number first),
+        # so fragments must also be number-first.  Also catch Ar-Ar and age columns.
+        "geochronology":  ("Geochronology",         "⏳", ["206pb", "207pb", "238u", "ar40", "ar39",
+                                                            "discordance", "age206", "age207", "th_u"]),
+        # Petrology expanded to also catch thermobarometry data (pressure_kbar, mineralpair, etc.)
+        "petrology":      ("Petrology",             "🔥", ["quartz", "plagioclase", "feldspar", "modal",
+                                                            "normative", "cipw", "pressure", "kbar", "mineralpair"]),
         "structural":     ("Structural Geology",    "📐", ["strike", "dip", "plunge", "trend", "azimuth"]),
-        "geophysics":     ("Geophysics",            "🌍", ["resistivity", "velocity", "gravity", "mgal", "susceptibility"]),
+        "geophysics":     ("Geophysics",            "🌍", ["resistivity", "velocity", "gravity", "mgal",
+                                                            "susceptibility", "bouguer", "igrf", "anom",
+                                                            "seismic", "refract", "tomograph", "magnetic"]),
         "spatial":        ("GIS & Spatial",         "🗺️", ["latitude", "longitude", "easting", "northing", "utm"]),
         "archaeology":    ("Archaeology",           "🏺", ["length_mm", "width_mm", "platform", "lithic", "artifact"]),
         "zooarch":        ("Zooarchaeology",        "🦴", ["taxon", "nisp", "mni", "faunal"]),
@@ -831,8 +846,15 @@ class RightPanel:
             "peak_positions", "peaks", "peak", "compound",
             "wavenumber", "wavelength", "absorbance", "intensity"
         ]),
-        "chromatography": ("Chromatography",        "⚗️", ["retention_time", "peak_area", "abundance"]),
-        "electrochem":    ("Electrochemistry",      "⚡", ["potential", "scan_rate", "impedance"]),
+        # Chromatography: real-world columns use abbreviated names (RTime_min, IntArea_mAU,
+        # Analyte, Plates, TailFact, Resol) — match those instead of long canonical names.
+        "chromatography": ("Chromatography",        "⚗️", ["analyte", "rtime", "intarea", "retention",
+                                                            "peak_area", "abundance", "plate", "tailfact",
+                                                            "resol", "chromatog", "elution", "inject"]),
+        # Electrochemistry: ScanRate_mVs has no underscore before Rate; also match current & electrode.
+        "electrochem":    ("Electrochemistry",      "⚡", ["potential", "scan", "current", "electrode",
+                                                            "impedance", "voltamm", "epa", "epc",
+                                                            "coulomb", "electrolyte"]),
         "materials":      ("Materials Science",     "🧱", ["stress", "strain", "modulus", "hardness", "tensile"]),
         "solution":       ("Solution Chemistry",    "💧", ["conductivity", "tds", "alkalinity", "turbidity"]),
         "molecular":      ("Molecular Biology",     "🧬", ["ct_value", "cq", "melt_temp", "qpcr", "copies"]),
@@ -875,6 +897,17 @@ class RightPanel:
 
         if best_score < 2:
             return
+
+        # Spatial columns (lat/lon/UTM) are routine metadata on science datasets.
+        # If another science field also scores ≥ 2, defer to it rather than GIS.
+        if best_field == "spatial":
+            for field_id, (name, icon, fragments) in self._FIELD_DETECTION.items():
+                if field_id == "spatial":
+                    continue
+                score = sum(1 for frag in fragments if any(frag in col for col in columns))
+                if score >= 2:
+                    best_field = field_id
+                    break
 
         if best_field == self._current_field_panel:
             return
@@ -959,10 +992,7 @@ class RightPanel:
             width=5,
         ).pack(side=tk.LEFT, padx=2)
 
-        try:
-            notif.pack(fill=tk.X, padx=1, pady=1, before=self.engine_frame)
-        except tk.TclError:
-            notif.pack(fill=tk.X, padx=1, pady=1)
+        notif.pack(side=tk.BOTTOM, fill=tk.X, padx=1, pady=1)
 
         self._notif_after_id = self.app.root.after(
             20000, self._dismiss_notification
