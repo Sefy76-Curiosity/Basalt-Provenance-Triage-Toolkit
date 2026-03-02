@@ -640,13 +640,12 @@ class LibrarySearchEngine:
                     })
             return library
 
-
 # ============================================================================
-# ENGINE 1B — NIST WEBBOOK SPECTRAL LIBRARY
+# ENGINE 1B — NIST WEBBOOK SPECTRAL LIBRARY with name-free matching
 # ============================================================================
 class NISTWebbookEngine:
     """
-    NIST Chemistry WebBook spectral library integration.
+    NIST Chemistry WebBook spectral library integration with true spectral matching.
     Fetches IR, UV-Vis, and Raman spectra from NIST's free online database.
     Uses nistchempy package which handles the web scraping.
     """
@@ -654,10 +653,38 @@ class NISTWebbookEngine:
     # Cache for downloaded spectra to avoid repeated web requests
     _cache = {}
     _cache_dir = Path.home() / '.spectroscopy_cache' / 'nist'
+    _spectra_dir = _cache_dir / 'spectra'
 
     # Rate limiting - respect NIST's servers
     _last_request_time = 0
     REQUEST_DELAY = 2.0  # seconds between requests
+
+    # Candidate list for spectral matching
+    CANDIDATE_COMPOUNDS = [
+        # Alcohols
+        "Water", "Methanol", "Ethanol", "Isopropanol", "Butanol", "Phenol",
+        # Ketones
+        "Acetone", "Butanone", "Cyclohexanone",
+        # Aromatics
+        "Benzene", "Toluene", "Xylene", "Styrene",
+        # Acids
+        "Acetic acid", "Formic acid", "Benzoic acid",
+        # Esters
+        "Ethyl acetate", "Methyl acetate",
+        # Alkanes
+        "Hexane", "Cyclohexane", "Octane",
+        # Nitriles
+        "Acetonitrile",
+        # Others
+        "Chloroform", "Carbon tetrachloride", "Dimethyl sulfoxide",
+        # Additional common compounds
+        "Ammonia", "Carbon dioxide", "Carbon monoxide", "Methane",
+        "Ethane", "Propane", "Butane", "Pentane",
+        "Ethene", "Propene", "Butene",
+        "Benzaldehyde", "Aniline", "Pyridine",
+        "Ethylene glycol", "Glycerol", "Glucose",
+        "Aspirin", "Caffeine", "Ibuprofen"
+    ]
 
     @classmethod
     def _rate_limit(cls):
@@ -671,8 +698,114 @@ class NISTWebbookEngine:
 
     @classmethod
     def ensure_cache_dir(cls):
-        """Create cache directory if it doesn't exist"""
+        """Create cache directories if they don't exist"""
         cls._cache_dir.mkdir(parents=True, exist_ok=True)
+        cls._spectra_dir.mkdir(parents=True, exist_ok=True)
+
+    @classmethod
+    def _parse_jcamp(cls, jdx_text):
+        """Parse JCAMP-DX into numpy arrays"""
+        if not jdx_text:
+            return None, None
+
+        x_vals = []
+        y_vals = []
+
+        lines = jdx_text.splitlines()
+        reading_xy = False
+
+        for line in lines:
+            line = line.strip()
+
+            if line.startswith("##XYDATA"):
+                reading_xy = True
+                continue
+
+            if reading_xy:
+                if line.startswith("##"):
+                    break
+
+                parts = line.replace(",", " ").split()
+                if len(parts) >= 2:
+                    try:
+                        x = float(parts[0])
+                        for y in parts[1:]:
+                            y_vals.append(float(y))
+                            x_vals.append(x)
+                            x += 1
+                    except:
+                        continue
+
+        if not x_vals:
+            return None, None
+
+        x_array = np.array(x_vals, dtype=float)
+        y_array = np.array(y_vals, dtype=float)
+
+        sort_idx = np.argsort(x_array)
+        return x_array[sort_idx], y_array[sort_idx]
+
+    @classmethod
+    def _cache_spectrum(cls, name, wl, intensity):
+        """Save spectrum locally for future searches"""
+        try:
+            cls.ensure_cache_dir()
+            safe_name = re.sub(r'[^\w\s-]', '', name).strip().replace(' ', '_')
+            file_path = cls._spectra_dir / f"{safe_name}.npz"
+            np.savez_compressed(file_path, wl=wl, int=intensity, name=name)
+            return True
+        except Exception as e:
+            print(f"Error caching {name}: {e}")
+            return False
+
+    @classmethod
+    def _load_cached_spectra(cls):
+        """Load all cached spectra"""
+        cls.ensure_cache_dir()
+
+        if not cls._spectra_dir.exists():
+            return []
+
+        spectra = []
+        for file in cls._spectra_dir.glob("*.npz"):
+            try:
+                data = np.load(file, allow_pickle=True)
+                spectra.append({
+                    "name": data["name"].item(),
+                    "wl": data["wl"],
+                    "int": data["int"]
+                })
+            except Exception as e:
+                print(f"Error loading {file}: {e}")
+                continue
+
+        return spectra
+
+    @classmethod
+    def _download_ir_spectrum(cls, compound_obj):
+        """Download and parse IR spectrum"""
+        if not HAS_NIST:
+            return None, None
+
+        try:
+            cls._rate_limit()
+
+            if hasattr(compound_obj, "get_ir_spectra"):
+                compound_obj.get_ir_spectra()
+
+            if not hasattr(compound_obj, "ir_specs") or not compound_obj.ir_specs:
+                return None, None
+
+            spectrum = compound_obj.ir_specs[0]
+
+            if not hasattr(spectrum, "jdx_text"):
+                return None, None
+
+            return cls._parse_jcamp(spectrum.jdx_text)
+
+        except Exception as e:
+            print(f"Error downloading IR spectrum: {e}")
+            return None, None
 
     @classmethod
     def search_compound(cls, query, library_type='ir', use_cache=True):
@@ -684,7 +817,6 @@ class NISTWebbookEngine:
             cls.ensure_cache_dir()
             cls._rate_limit()
 
-            # Try cache first - but only if we're okay with dict results
             cache_key = f"{query}_{library_type}"
             cache_file = cls._cache_dir / f"{cache_key.replace(' ', '_')}.json"
 
@@ -692,24 +824,19 @@ class NISTWebbookEngine:
                 with open(cache_file, 'r') as f:
                     cached = json.load(f)
                     if cached.get('timestamp', 0) > time.time() - 30*24*3600:
-                        # Return cached dicts
                         return cached.get('results', [])
 
-            # Search NIST - returns a single NistSearch object
             import nistchempy
             result = nistchempy.run_search(query, search_type='name')
 
-            # Get compounds from the result
             compounds = []
             if hasattr(result, 'compounds'):
                 compounds = result.compounds
             elif hasattr(result, 'results'):
                 compounds = result.results
             else:
-                # If it's a single compound object
                 compounds = [result] if result else []
 
-            # Cache results as dicts
             if use_cache:
                 with open(cache_file, 'w') as f:
                     serializable_results = []
@@ -720,7 +847,7 @@ class NISTWebbookEngine:
                                 'formula': getattr(r, 'formula', ''),
                                 'cas': getattr(r, 'cas_rn', ''),
                                 'mw': getattr(r, 'mol_weight', 0),
-                                '_is_dict': False  # Flag that this came from object
+                                '_is_dict': False
                             })
                         except:
                             pass
@@ -730,14 +857,14 @@ class NISTWebbookEngine:
                         'results': serializable_results
                     }, f)
 
-            return compounds  # Return original objects
+            return compounds
 
         except Exception as e:
             return {'error': str(e)}
 
     @classmethod
     def get_spectrum(cls, compound_name, library_type='ir'):
-        """Download spectrum from NIST"""
+        """Download spectrum from NIST with JCAMP parsing"""
         if not HAS_NIST:
             return None
 
@@ -745,21 +872,18 @@ class NISTWebbookEngine:
             import nistchempy
             cls._rate_limit()
 
-            # Search for compound
             result = nistchempy.run_search(compound_name, search_type='name')
 
-            # Get compound object
             if hasattr(result, 'compounds') and result.compounds:
                 compound = result.compounds[0]
             else:
                 return None
 
-            # STEP 1: Call the download method to populate the data
             if library_type == 'ir':
-                compound.get_ir_spectra()  # This populates ir_specs
+                compound.get_ir_spectra()
                 spectra = compound.ir_specs
             elif library_type == 'uvvis':
-                compound.get_uv_spectra()  # This populates uv_specs
+                compound.get_uv_spectra()
                 spectra = compound.uv_specs
             else:
                 return None
@@ -767,8 +891,19 @@ class NISTWebbookEngine:
             if not spectra:
                 return None
 
-            # Use first spectrum
             spectrum = spectra[0]
+
+            if hasattr(spectrum, 'jdx_text'):
+                wl, intensity = cls._parse_jcamp(spectrum.jdx_text)
+                if wl is not None:
+                    cls._cache_spectrum(compound.name, wl, intensity)
+                    return {
+                        'name': compound.name,
+                        'formula': compound.formula,
+                        'wavelength': wl,
+                        'intensity': intensity,
+                        'source': 'NIST Webbook'
+                    }
 
             return {
                 'name': compound.name,
@@ -783,36 +918,184 @@ class NISTWebbookEngine:
             return None
 
     @classmethod
+    def match_query_spectrum(cls, query_wl, query_int, top_n=10, use_cache_only=False, progress_callback=None):
+        """
+        FULL spectral match against NIST - NO NAME NEEDED!
+        """
+        if not HAS_NIST and not use_cache_only:
+            print("⚠️ nistchempy not installed, using cache only")
+            use_cache_only = True
+
+        import nistchempy
+        from scipy.interpolate import interp1d
+        from scipy.spatial.distance import cosine
+
+        results = []
+
+        cached = cls._load_cached_spectra()
+
+        if progress_callback:
+            progress_callback(0, len(cached) + len(cls.CANDIDATE_COMPOUNDS), "Checking cache...")
+
+        for i, entry in enumerate(cached):
+            try:
+                f = interp1d(entry["wl"], entry["int"],
+                             kind="linear",
+                             bounds_error=False,
+                             fill_value=0)
+
+                lib_aligned = f(query_wl)
+                similarity = 1 - cosine(query_int, lib_aligned)
+
+                if similarity > 0.1:
+                    results.append({
+                        "name": entry["name"],
+                        "similarity": similarity * 100,
+                        "wl": entry["wl"],
+                        "int": entry["int"],
+                        "source": "cache"
+                    })
+
+                if progress_callback:
+                    progress_callback(i + 1, len(cached) + len(cls.CANDIDATE_COMPOUNDS),
+                                     f"Cache: {entry['name']}")
+
+            except Exception as e:
+                continue
+
+        if not use_cache_only and HAS_NIST:
+            for i, name in enumerate(cls.CANDIDATE_COMPOUNDS):
+                try:
+                    cache_offset = len(cached)
+                    current = cache_offset + i + 1
+                    total = len(cached) + len(cls.CANDIDATE_COMPOUNDS)
+
+                    if progress_callback:
+                        progress_callback(current, total, f"NIST: {name}")
+
+                    already_cached = any(r["name"] == name for r in results)
+                    if already_cached:
+                        continue
+
+                    search_result = nistchempy.run_search(name, search_type="name")
+
+                    if hasattr(search_result, "compounds") and search_result.compounds:
+                        compound = search_result.compounds[0]
+                    elif isinstance(search_result, list) and search_result:
+                        compound = search_result[0]
+                    else:
+                        continue
+
+                    wl, intensity = cls._download_ir_spectrum(compound)
+
+                    if wl is None:
+                        continue
+
+                    cls._cache_spectrum(name, wl, intensity)
+
+                    f = interp1d(wl, intensity,
+                                 kind="linear",
+                                 bounds_error=False,
+                                 fill_value=0)
+
+                    lib_aligned = f(query_wl)
+                    similarity = 1 - cosine(query_int, lib_aligned)
+
+                    if similarity > 0.1:
+                        results.append({
+                            "name": name,
+                            "similarity": similarity * 100,
+                            "wl": wl,
+                            "int": intensity,
+                            "source": "nist"
+                        })
+
+                    if i < len(cls.CANDIDATE_COMPOUNDS) - 1:
+                        time.sleep(cls.REQUEST_DELAY)
+
+                except Exception as e:
+                    continue
+
+        results.sort(key=lambda x: x["similarity"], reverse=True)
+
+        if progress_callback:
+            progress_callback(100, 100, "Complete!")
+
+        return results[:top_n]
+
+    @classmethod
+    def preload_common_compounds(cls, library_type='ir', progress_callback=None):
+        """Pre-download common compounds to build the cache"""
+        if not HAS_NIST:
+            return {'error': 'nistchempy not installed'}
+
+        results = {
+            'total': len(cls.CANDIDATE_COMPOUNDS),
+            'success': 0,
+            'failed': 0,
+            'skipped': 0
+        }
+
+        for i, compound in enumerate(cls.CANDIDATE_COMPOUNDS):
+            try:
+                if progress_callback:
+                    progress_callback(i+1, len(cls.CANDIDATE_COMPOUNDS), compound, "checking")
+
+                safe_name = re.sub(r'[^\w\s-]', '', compound).strip().replace(' ', '_')
+                cache_file = cls._spectra_dir / f"{safe_name}.npz"
+
+                if cache_file.exists():
+                    results['skipped'] += 1
+                    if progress_callback:
+                        progress_callback(i+1, len(cls.CANDIDATE_COMPOUNDS), compound, "skipped")
+                    continue
+
+                search_results = cls.search_compound(compound, library_type, use_cache=True)
+
+                if isinstance(search_results, list) and search_results:
+                    compound_data = search_results[0]
+                    wl, intensity = cls._download_ir_spectrum(compound_data)
+
+                    if wl is not None:
+                        cls._cache_spectrum(compound, wl, intensity)
+                        results['success'] += 1
+                        if progress_callback:
+                            progress_callback(i+1, len(cls.CANDIDATE_COMPOUNDS), compound, "success")
+                    else:
+                        results['failed'] += 1
+                        if progress_callback:
+                            progress_callback(i+1, len(cls.CANDIDATE_COMPOUNDS), compound, "failed")
+                else:
+                    results['failed'] += 1
+                    if progress_callback:
+                        progress_callback(i+1, len(cls.CANDIDATE_COMPOUNDS), compound, "not found")
+
+                if i < len(cls.CANDIDATE_COMPOUNDS) - 1:
+                    time.sleep(cls.REQUEST_DELAY)
+
+            except Exception as e:
+                results['failed'] += 1
+                if progress_callback:
+                    progress_callback(i+1, len(cls.CANDIDATE_COMPOUNDS), compound, f"error")
+                continue
+
+        return results
+
+    @classmethod
     def batch_match(cls, spectra, library_type='ir', max_per_sample=3):
-        """
-        Automatically match multiple spectra against NIST.
-        Respects rate limits and uses caching.
-
-        Args:
-            spectra: List of Spectrum objects
-            library_type: 'ir', 'uvvis', 'ms'
-            max_per_sample: Max compounds to try per spectrum
-
-        Returns:
-            List of best matches for each spectrum
-        """
+        """Automatically match multiple spectra against NIST."""
         if not HAS_NIST:
             return [{'error': 'nistchempy not installed'} for _ in spectra]
 
         results = []
 
         for i, spec in enumerate(spectra):
-            print(f"Processing {i+1}/{len(spectra)}: {spec.sample_id}")
-
-            # Try to guess compound name from sample_id
             candidates = []
             if spec.sample_id:
-                # Clean up sample_id (remove numbers, underscores)
                 name = re.sub(r'[0-9_]+', '', spec.sample_id).strip()
                 if name and len(name) > 2:
                     candidates.append(name)
 
-            # Add common fallbacks if nothing found
             if not candidates:
                 candidates = ['acetone', 'ethanol', 'benzene', 'water']
 
@@ -823,7 +1106,6 @@ class NISTWebbookEngine:
                 try:
                     spec_data = cls.get_spectrum(name, library_type)
                     if spec_data:
-                        # Align and match
                         from scipy.interpolate import interp1d
                         from scipy.spatial.distance import cosine
 
@@ -843,12 +1125,11 @@ class NISTWebbookEngine:
                                 'source': 'NIST'
                             }
 
-                            # Stop if very good match
                             if similarity > 0.95:
                                 break
 
                 except Exception as e:
-                    print(f"Error matching {name}: {e}")
+                    continue
 
             results.append({
                 'sample_id': spec.sample_id,
@@ -860,18 +1141,7 @@ class NISTWebbookEngine:
 
     @classmethod
     def batch_match_from_results(cls, spectra_with_results, library_type='ir'):
-        """
-        Automatically match spectra against NIST using existing Top Matches.
-
-        Args:
-            spectra_with_results: List of dicts containing:
-                - 'spectrum': Spectrum object
-                - 'matches': list of match dicts from library search (with 'name' field)
-            library_type: 'ir', 'uvvis', 'ms'
-
-        Returns:
-            List of NIST matches for each spectrum
-        """
+        """Automatically match spectra against NIST using existing Top Matches."""
         if not HAS_NIST:
             return [{'error': 'nistchempy not installed'} for _ in spectra_with_results]
 
@@ -881,24 +1151,19 @@ class NISTWebbookEngine:
             spec = item['spectrum']
             matches = item.get('matches', [])
 
-            print(f"Processing {spec.sample_id} - trying top matches...")
-
             best_nist_match = None
             best_score = 0
 
-            # Try each top match from library search
-            for match in matches[:3]:  # Try top 3 matches
+            for match in matches[:3]:
                 compound_name = match.get('name', '')
                 if not compound_name:
                     continue
 
                 try:
-                    # Download NIST spectrum for this compound
                     spec_data = cls.get_spectrum(compound_name, library_type)
                     if not spec_data:
                         continue
 
-                    # Align and match
                     from scipy.interpolate import interp1d
                     from scipy.spatial.distance import cosine
 
@@ -906,7 +1171,6 @@ class NISTWebbookEngine:
                             kind='linear', bounds_error=False, fill_value=0)
                     nist_int = f(spec.x_data)
 
-                    # Calculate similarity
                     similarity = 1 - cosine(spec.y_data, nist_int)
 
                     if similarity > best_score:
@@ -921,12 +1185,10 @@ class NISTWebbookEngine:
                             'original_score': match.get('similarity', 0)
                         }
 
-                        # If very good match, stop searching
                         if similarity > 0.95:
                             break
 
                 except Exception as e:
-                    print(f"Error getting NIST spectrum for {compound_name}: {e}")
                     continue
 
             results.append({
@@ -946,7 +1208,6 @@ class NISTWebbookEngine:
 
         results = []
 
-        # If we have a compound name, try it first
         if query_name:
             compound_data = cls.get_spectrum(query_name, library_type)
             if compound_data:
@@ -997,7 +1258,7 @@ class NISTWebbookEngine:
 
 
 # ============================================================================
-# TAB 1: SPECTRAL LIBRARY SEARCH
+# TAB 1: SPECTRAL LIBRARY SEARCH (CLEAN 2-PANEL DESIGN with progress bar)
 # ============================================================================
 class LibrarySearchTab(AnalysisTab):
     def __init__(self, parent, app, ui_queue):
@@ -1008,6 +1269,8 @@ class LibrarySearchTab(AnalysisTab):
         self.query_int = None
         self.library = []
         self.results = []
+        self.nist_results = []
+        self.nist_match_results = []
         self.nist_cache = {}
 
         # Set NIST status
@@ -1035,24 +1298,26 @@ class LibrarySearchTab(AnalysisTab):
         def worker():
             try:
                 df = pd.read_csv(path)
-                wl_patterns = ['wavenumber', 'wave_number', 'wavenum', 'cm-1', 'cm^-1',
-                              'wavelength', 'wl', 'nm', 'frequency']
-                int_patterns = ['absorbance', 'abs', 'transmittance', 'trans', '%t',
-                               'intensity', 'reflectance', 'refl', 'signal']
 
-                def _fc(patterns, fb):
+                wl_patterns = ['wavenumber', 'wave_number', 'wavenum', 'cm-1', 'cm^-1',
+                              'wavelength', 'wl', 'nm', 'frequency', 'x']
+                int_patterns = ['absorbance', 'abs', 'transmittance', 'trans', '%t',
+                               'intensity', 'reflectance', 'refl', 'signal', 'y']
+
+                def _find_col(patterns, fallback_idx):
                     for c in df.columns:
                         cl = c.lower().replace(' ', '_').replace('(', '').replace(')', '')
+                        cl = cl.replace('-', '_').replace('^', '')
                         if any(p in cl for p in patterns):
                             return c
-                    return df.columns[fb]
+                    return df.columns[fallback_idx]
 
-                wl_col = _fc(wl_patterns, 0)
-                int_col = _fc(int_patterns, 1)
+                wl_col = _find_col(wl_patterns, 0)
+                int_col = _find_col(int_patterns, 1)
 
                 def update():
-                    self.query_wl = df[wl_col].values
-                    self.query_int = df[int_col].values
+                    self.query_wl = df[wl_col].values.astype(float)
+                    self.query_int = df[int_col].values.astype(float)
                     self.manual_label.config(text=f"✓ {Path(path).name}")
                     self._plot_query()
                     self.status_label.config(text=f"Loaded {len(self.query_wl)} points")
@@ -1079,169 +1344,136 @@ class LibrarySearchTab(AnalysisTab):
                 self.status_label.config(text=f"Error loading sample: {e}")
 
     def _build_content_ui(self):
-        """Redesigned UI with three logical panels"""
+        """Clean 2-panel design with clear workflow"""
 
-        # Main container with three columns
+        # Main container with two columns
         main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
         main_pane.pack(fill=tk.BOTH, expand=True)
 
-        # ============ LEFT PANEL: QUERY & PARAMETERS ============
-        left = tk.Frame(main_pane, bg="white", width=280)
+        # ============ LEFT PANEL: CONTROLS ============
+        left = tk.Frame(main_pane, bg="white", width=400)
         main_pane.add(left, weight=1)
 
-        # Query Spectrum Section
-        query_frame = tk.LabelFrame(left, text="📊 Query Spectrum",
+        # 1. QUERY SPECTRUM SECTION
+        query_frame = tk.LabelFrame(left, text="📊 1. LOAD QUERY SPECTRUM",
                                    bg="white", font=("Arial", 9, "bold"),
                                    fg=C_HEADER, padx=8, pady=4)
         query_frame.pack(fill=tk.X, padx=8, pady=5)
 
-        # Spectrum info (shows when loaded)
         self.query_info = tk.Label(query_frame, text="No spectrum loaded",
                                   font=("Arial", 8), bg="white", fg="#888",
                                   anchor=tk.W, height=2)
         self.query_info.pack(fill=tk.X, pady=2)
 
-        # Manual load button (already in base class, but we'll show status here)
+        # 2. SEARCH PARAMETERS SECTION
+        search_frame = tk.LabelFrame(left, text="🔎 2. SEARCH PARAMETERS",
+                                    bg="white", font=("Arial", 9, "bold"),
+                                    fg=C_HEADER, padx=8, pady=4)
+        search_frame.pack(fill=tk.X, padx=8, pady=5)
 
-        # Parameters Section
-        param_frame = tk.LabelFrame(left, text="⚙️ Search Parameters",
-                                   bg="white", font=("Arial", 9, "bold"),
-                                   fg=C_HEADER, padx=8, pady=4)
-        param_frame.pack(fill=tk.X, padx=8, pady=5)
+        # Library Source - Radio buttons
+        source_row = tk.Frame(search_frame, bg="white")
+        source_row.pack(fill=tk.X, pady=3)
+        tk.Label(source_row, text="Library Source:", font=("Arial", 8, "bold"),
+                bg="white", width=15, anchor=tk.W).pack(side=tk.LEFT)
 
-        # Similarity Metric
-        metric_row = tk.Frame(param_frame, bg="white")
+        self.lib_source = tk.StringVar(value="builtin")
+
+        builtin_rb = tk.Radiobutton(source_row, text="Built-in Demo",
+                                   variable=self.lib_source, value="builtin",
+                                   bg="white", command=self._toggle_library_source)
+        builtin_rb.pack(side=tk.LEFT, padx=2)
+
+        nist_rb = tk.Radiobutton(source_row, text="NIST Spectral Match",
+                                variable=self.lib_source, value="nist",
+                                bg="white", command=self._toggle_library_source)
+        nist_rb.pack(side=tk.LEFT, padx=2)
+
+        # NIST status indicator
+        self.nist_status_label = tk.Label(search_frame, text=self.nist_status,
+                                         font=("Arial", 7), bg="white",
+                                         fg=C_STATUS if "✅" in self.nist_status else C_WARN)
+        self.nist_status_label.pack(anchor=tk.W, padx=8, pady=2)
+
+        # Similarity Metric (for built-in)
+        metric_row = tk.Frame(search_frame, bg="white")
         metric_row.pack(fill=tk.X, pady=3)
         tk.Label(metric_row, text="Similarity Metric:", font=("Arial", 8),
                 bg="white", width=15, anchor=tk.W).pack(side=tk.LEFT)
-        self.search_metric = tk.StringVar(value="Dot Product")
-        ttk.Combobox(metric_row, textvariable=self.search_metric,
-                     values=["Dot Product", "Euclidean", "Mahalanobis",
-                            "Pearson Correlation", "Contrast Angle"],
-                     width=15, state="readonly").pack(side=tk.RIGHT)
+        self.search_metric = ttk.Combobox(metric_row,
+                                         values=["Dot Product", "Euclidean", "Mahalanobis",
+                                                "Pearson Correlation", "Contrast Angle"],
+                                         width=20, state="readonly")
+        self.search_metric.pack(side=tk.RIGHT)
+        self.search_metric.set("Dot Product")
 
-        # Library Source
-        library_row = tk.Frame(param_frame, bg="white")
-        library_row.pack(fill=tk.X, pady=3)
-        tk.Label(library_row, text="Library Source:", font=("Arial", 8),
+        # NIST-specific options (visible when NIST selected)
+        self.nist_options_frame = tk.Frame(search_frame, bg="white")
+
+        # Spectrum type for NIST
+        type_row = tk.Frame(self.nist_options_frame, bg="white")
+        type_row.pack(fill=tk.X, pady=3)
+        tk.Label(type_row, text="Spectrum Type:", font=("Arial", 8),
                 bg="white", width=15, anchor=tk.W).pack(side=tk.LEFT)
-        self.lib_selector = ttk.Combobox(library_row,
-                                         values=["Built-in Demo", "NIST Webbook", "Custom"],
-                                         width=15, state="readonly")
-        self.lib_selector.pack(side=tk.RIGHT)
-        self.lib_selector.set("Built-in Demo")
-        self.lib_selector.bind('<<ComboboxSelected>>', self._on_library_change)
+        self.nist_type = ttk.Combobox(type_row, values=["IR", "UV-Vis", "MS"],
+                                     width=10, state="readonly")
+        self.nist_type.pack(side=tk.RIGHT)
+        self.nist_type.set("IR")
+        self.nist_type.bind('<<ComboboxSelected>>', lambda e: self._update_cache_count())
 
-        # Search button
-        ttk.Button(param_frame, text="🔎 SEARCH LIBRARY",
+        # NIST Similarity Metric
+        metric_row2 = tk.Frame(self.nist_options_frame, bg="white")
+        metric_row2.pack(fill=tk.X, pady=3)
+        tk.Label(metric_row2, text="Match Metric:", font=("Arial", 8),
+                bg="white", width=15, anchor=tk.W).pack(side=tk.LEFT)
+        self.nist_metric = ttk.Combobox(metric_row2,
+                                       values=["Cosine", "Pearson", "Euclidean"],
+                                       width=10, state="readonly")
+        self.nist_metric.pack(side=tk.RIGHT)
+        self.nist_metric.set("Cosine")
+
+        # Cache info
+        cache_frame = tk.Frame(search_frame, bg="#e8f4f8", relief=tk.SUNKEN, bd=1)
+        cache_frame.pack(fill=tk.X, pady=5)
+
+        self.cache_label = tk.Label(cache_frame, text="📚 Loading cache...",
+                                   font=("Arial", 7), bg="#e8f4f8", fg=C_HEADER)
+        self.cache_label.pack(padx=5, pady=2)
+
+        self._update_cache_count()
+
+        # Progress Bar
+        progress_frame = tk.Frame(search_frame, bg="white")
+        progress_frame.pack(fill=tk.X, pady=5)
+
+        self.progress_label = tk.Label(progress_frame, text="",
+                                      font=("Arial", 7), bg="white", fg=C_HEADER)
+        self.progress_label.pack(anchor=tk.W)
+
+        self.progress_bar = ttk.Progressbar(progress_frame, mode='determinate', length=350)
+        self.progress_bar.pack(fill=tk.X, pady=2)
+
+        # SEARCH BUTTON
+        ttk.Button(search_frame, text="🔍 SEARCH LIBRARY",
                   command=self._search, width=25).pack(pady=8)
 
-        # ============ MIDDLE PANEL: NIST WEBBOOK ============
-        middle = tk.Frame(main_pane, bg="white", width=300)
-        main_pane.add(middle, weight=1)
+        # NIST Preload button (visible when NIST selected)
+        self.preload_button = ttk.Button(search_frame, text="📦 Preload Common Compounds",
+                                        command=self._preload_candidates)
 
-        # NIST Section Header
-        nist_header = tk.Frame(middle, bg=C_HEADER, height=28)
-        nist_header.pack(fill=tk.X, padx=8, pady=(5,0))
-        nist_header.pack_propagate(False)
+        # 3. RESULTS SECTION
+        results_frame = tk.LabelFrame(left, text="📋 3. SEARCH RESULTS",
+                                     bg="white", font=("Arial", 9, "bold"),
+                                     fg=C_HEADER, padx=5, pady=5)
+        results_frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=5)
 
-        tk.Label(nist_header, text="🔬 NIST WEBBOOK",
-                font=("Arial", 9, "bold"), bg=C_HEADER, fg="white").pack(side=tk.LEFT, padx=8)
+        # Results tree
+        tree_container = tk.Frame(results_frame, bg="white")
+        tree_container.pack(fill=tk.BOTH, expand=True)
 
-        # Status indicator
-        nist_status = tk.Label(nist_header, text="●" if HAS_NIST else "○",
-                              font=("Arial", 10),
-                              bg=C_HEADER, fg=C_STATUS if HAS_NIST else C_WARN)
-        nist_status.pack(side=tk.RIGHT, padx=8)
-
-        # NIST Main Frame
-        nist_frame = tk.Frame(middle, bg="white", relief=tk.SOLID, bd=1)
-        nist_frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=(0,5))
-
-        # Status message
-        status_msg = tk.Label(nist_frame, text=self.nist_status,
-                             font=("Arial", 7), bg="#f8f9fa", fg=C_HEADER,
-                             anchor=tk.W, padx=5, pady=2)
-        status_msg.pack(fill=tk.X)
-
-        # Search Panel
-        search_panel = tk.Frame(nist_frame, bg="white", padx=8, pady=5)
-        search_panel.pack(fill=tk.X)
-
-        # Row 1: Spectrum type
-        type_row = tk.Frame(search_panel, bg="white")
-        type_row.pack(fill=tk.X, pady=2)
-        tk.Label(type_row, text="Spectrum type:", font=("Arial", 8, "bold"),
-                bg="white", width=12, anchor=tk.W).pack(side=tk.LEFT)
-        self.nist_type = tk.StringVar(value="IR")
-        ttk.Combobox(type_row, textvariable=self.nist_type,
-                     values=["IR", "UV-Vis", "MS"], width=8,
-                     state="readonly").pack(side=tk.RIGHT)
-
-        # Row 2: Compound search
-        compound_row = tk.Frame(search_panel, bg="white")
-        compound_row.pack(fill=tk.X, pady=2)
-        tk.Label(compound_row, text="Compound:", font=("Arial", 8, "bold"),
-                bg="white", width=12, anchor=tk.W).pack(side=tk.LEFT)
-        self.nist_compound = tk.StringVar()
-        ttk.Entry(compound_row, textvariable=self.nist_compound,
-                 width=18).pack(side=tk.RIGHT)
-
-        # Row 3: Action buttons
-        btn_row = tk.Frame(search_panel, bg="white")
-        btn_row.pack(fill=tk.X, pady=4)
-
-        ttk.Button(btn_row, text="🔍 Search",
-                  command=self._search_nist, width=10).pack(side=tk.LEFT, padx=2)
-        ttk.Button(btn_row, text="📥 Download & Match",
-                  command=self._download_and_match, width=15).pack(side=tk.RIGHT)
-
-        # Results Frame
-        results_frame = tk.LabelFrame(nist_frame, text="Search Results",
-                                     bg="white", font=("Arial", 8, "bold"),
-                                     padx=5, pady=5)
-        results_frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
-
-        # Listbox with scrollbar
-        list_container = tk.Frame(results_frame, bg="white")
-        list_container.pack(fill=tk.BOTH, expand=True)
-
-        self.nist_listbox = tk.Listbox(list_container, height=6,
-                                       font=("Courier", 8),
-                                       selectmode=tk.SINGLE,
-                                       relief=tk.SUNKEN, bd=1)
-        scrollbar = ttk.Scrollbar(list_container, orient=tk.VERTICAL,
-                                  command=self.nist_listbox.yview)
-        self.nist_listbox.configure(yscrollcommand=scrollbar.set)
-
-        self.nist_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        self.nist_listbox.bind('<<ListboxSelect>>', self._on_nist_select)
-
-        # Compound Info Display
-        info_frame = tk.Frame(nist_frame, bg="#f8f9fa", height=50)
-        info_frame.pack(fill=tk.X, padx=8, pady=(0,8))
-        info_frame.pack_propagate(False)
-
-        self.nist_info = tk.Label(info_frame, text="Select a compound to view details",
-                                  font=("Arial", 7), bg="#f8f9fa", fg=C_HEADER,
-                                  wraplength=250, justify=tk.LEFT, anchor=tk.W)
-        self.nist_info.pack(fill=tk.BOTH, padx=5, pady=5)
-
-        # ============ RIGHT PANEL: RESULTS & PLOTS ============
-        right = tk.Frame(main_pane, bg="white")
-        main_pane.add(right, weight=2)
-
-        # Top Matches Tree
-        tree_frame = tk.LabelFrame(right, text="🏆 Top Matches",
-                                   bg="white", font=("Arial", 9, "bold"),
-                                   fg=C_HEADER, padx=5, pady=5)
-        tree_frame.pack(fill=tk.X, padx=8, pady=5)
-
-        self.search_tree = ttk.Treeview(tree_frame,
+        self.search_tree = ttk.Treeview(tree_container,
                                         columns=("Rank", "Compound", "Similarity", "Source"),
-                                        show="headings", height=5)
+                                        show="headings", height=10)
 
         self.search_tree.heading("Rank", text="Rank")
         self.search_tree.heading("Compound", text="Compound")
@@ -1249,31 +1481,39 @@ class LibrarySearchTab(AnalysisTab):
         self.search_tree.heading("Source", text="Source")
 
         self.search_tree.column("Rank", width=50, anchor=tk.CENTER)
-        self.search_tree.column("Compound", width=180)
+        self.search_tree.column("Compound", width=200)
         self.search_tree.column("Similarity", width=80, anchor=tk.CENTER)
         self.search_tree.column("Source", width=80, anchor=tk.CENTER)
 
-        tree_scroll = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL,
+        tree_scroll = ttk.Scrollbar(tree_container, orient=tk.VERTICAL,
                                     command=self.search_tree.yview)
         self.search_tree.configure(yscrollcommand=tree_scroll.set)
 
         self.search_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Plot Area
+        # Action button
+        self.action_button = ttk.Button(results_frame, text="📥 Use Selected Match",
+                                       command=self._use_selected, state=tk.DISABLED)
+        self.action_button.pack(fill=tk.X, pady=5)
+
+        # ============ RIGHT PANEL: VISUALIZATION ============
+        right = tk.Frame(main_pane, bg="white")
+        main_pane.add(right, weight=2)
+
         if HAS_MPL:
-            plot_frame = tk.LabelFrame(right, text="📈 Spectral Comparison",
-                                       bg="white", font=("Arial", 9, "bold"),
-                                       fg=C_HEADER, padx=5, pady=5)
+            plot_frame = tk.LabelFrame(right, text="📈 SPECTRAL COMPARISON",
+                                      bg="white", font=("Arial", 9, "bold"),
+                                      fg=C_HEADER, padx=5, pady=5)
             plot_frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=5)
 
-            self.search_fig = Figure(figsize=(8, 5), dpi=100, facecolor="white")
-            gs = GridSpec(2, 1, figure=self.search_fig, hspace=0.25)
+            self.search_fig = Figure(figsize=(8, 6), dpi=100, facecolor="white")
+            gs = GridSpec(2, 1, figure=self.search_fig, hspace=0.3)
             self.search_ax_query = self.search_fig.add_subplot(gs[0])
             self.search_ax_match = self.search_fig.add_subplot(gs[1])
 
             self.search_ax_query.set_title("Query Spectrum", fontsize=9, fontweight="bold")
-            self.search_ax_match.set_title("Best Match Overlay", fontsize=9, fontweight="bold")
+            self.search_ax_match.set_title("Selected Match", fontsize=9, fontweight="bold")
 
             self.search_canvas = FigureCanvasTkAgg(self.search_fig, plot_frame)
             self.search_canvas.draw()
@@ -1282,13 +1522,29 @@ class LibrarySearchTab(AnalysisTab):
             toolbar = NavigationToolbar2Tk(self.search_canvas, plot_frame)
             toolbar.update()
 
-    def _on_library_change(self, event=None):
-        """Handle library source change"""
-        lib = self.lib_selector.get()
-        if lib == "NIST Webbook" and not HAS_NIST:
-            messagebox.showwarning("NIST Unavailable",
-                                 "nistchempy not installed.\n\nRun: pip install nistchempy")
-            self.lib_selector.set("Built-in Demo")
+        # Bind selection event
+        self.search_tree.bind('<<TreeviewSelect>>', self._on_result_selected)
+
+    def _toggle_library_source(self):
+        """Show/hide NIST-specific options"""
+        if self.lib_source.get() == "nist":
+            self.nist_options_frame.pack(fill=tk.X, padx=8, pady=5)
+            self.preload_button.pack(fill=tk.X, padx=8, pady=2)
+            self._update_cache_count()
+        else:
+            self.nist_options_frame.pack_forget()
+            self.preload_button.pack_forget()
+
+    def _update_cache_count(self):
+        """Update the cache info label"""
+        try:
+            spectra = self.nist_engine._load_cached_spectra()
+            count = len(spectra)
+            self.cache_label.config(text=f"📚 {count} spectra in local cache")
+            if count == 0:
+                self.cache_label.config(text="📚 Cache empty - click 'Preload Common Compounds'")
+        except:
+            self.cache_label.config(text="📚 Cache status unknown")
 
     def _plot_query(self):
         if not HAS_MPL or self.query_wl is None:
@@ -1296,205 +1552,39 @@ class LibrarySearchTab(AnalysisTab):
         self.search_ax_query.clear()
         self.search_ax_query.plot(self.query_wl, self.query_int,
                                 color=C_ACCENT, lw=1.5)
-        self.search_ax_query.set_xlabel("Wavelength (nm)", fontsize=8)
+
+        if self.query_wl is not None and len(self.query_wl) > 0:
+            if self.query_wl[0] > 400 and self.query_wl[-1] < 4000:
+                self.search_ax_query.set_xlabel("Wavenumber (cm⁻¹)", fontsize=8)
+                self.search_ax_query.invert_xaxis()
+            else:
+                self.search_ax_query.set_xlabel("Wavelength (nm)", fontsize=8)
+
         self.search_ax_query.set_ylabel("Intensity", fontsize=8)
         self.search_ax_query.grid(True, alpha=0.3)
 
-        # Update query info
-        self.query_info.config(text=f"✓ {len(self.query_wl)} points | Range: {self.query_wl[0]:.1f}-{self.query_wl[-1]:.1f} nm")
-
+        self.query_info.config(text=f"✓ {len(self.query_wl)} points | Range: {self.query_wl[0]:.1f}-{self.query_wl[-1]:.1f}")
         self.search_canvas.draw()
 
-    def _search_nist(self):
-        """Search NIST for compounds"""
-        compound = self.nist_compound.get().strip()
-        if not compound:
-            messagebox.showwarning("No Query", "Enter a compound name")
-            return
-
-        if not HAS_NIST:
-            messagebox.showerror("NIST Unavailable",
-                            "nistchempy not installed.\n\nRun: pip install nistchempy")
-            return
-
-        self.status_label.config(text=f"🔍 Searching NIST for '{compound}'...")
-        self.nist_listbox.delete(0, tk.END)
-        self.nist_listbox.insert(tk.END, "⏳ Searching...")
-
-        # Clear previous results storage
-        self.nist_results = []  # Add this to store results
-
-        def worker():
-            try:
-                results = self.nist_engine.search_compound(
-                    compound,
-                    library_type=self.nist_type.get().lower()
-                )
-
-                def update_ui():
-                    self.nist_listbox.delete(0, tk.END)
-                    self.nist_results = []  # Reset storage
-
-                    if isinstance(results, dict) and 'error' in results:
-                        self.nist_info.config(text=f"❌ {results['error']}")
-                        return
-
-                    if not results:
-                        self.nist_listbox.insert(tk.END, "No matches found")
-                        self.nist_info.config(text="No compounds found")
-                        return
-
-                    for i, res in enumerate(results[:15]):
-                        name = getattr(res, 'name', 'Unknown')
-                        formula = getattr(res, 'formula', '')
-
-                        display = f"{name}"
-                        if formula:
-                            display += f" [{formula}]"
-
-                        self.nist_listbox.insert(tk.END, display)
-                        self.nist_results.append(res)  # Store result in list
-
-                    self.nist_info.config(text=f"Found {len(results)} compounds. Select one and click Download.")
-                    self.status_label.config(text="✅ NIST search complete")
-
-                self.ui_queue.schedule(update_ui)
-
-            except Exception as e:
-                self.ui_queue.schedule(
-                    lambda: messagebox.showerror("NIST Error", str(e))
-                )
-
-        threading.Thread(target=worker, daemon=True).start()
-
-    def _download_and_match(self):
-        """Download spectrum from NIST and match against query"""
-        if self.query_wl is None:
-            messagebox.showwarning("No Data", "Load query spectrum first")
-            return
-
-        selection = self.nist_listbox.curselection()
-        if not selection:
-            messagebox.showwarning("No Selection", "Select a compound from the list first")
-            return
-
-        idx = selection[0]
-
-        # Get the stored result object
-        if not hasattr(self, 'nist_results') or idx >= len(self.nist_results):
-            messagebox.showerror("Error", "Result data not found. Please search again.")
-            return
-
-        compound_obj = self.nist_results[idx]
-        compound_name = getattr(compound_obj, 'name', 'Unknown')
-
-        self.status_label.config(text=f"📥 Downloading {compound_name} from NIST...")
-        self.nist_info.config(text=f"⏳ Downloading...")
-
-        def worker():
-            try:
-                spec_data = self.nist_engine.get_spectrum(
-                    compound_obj,  # Pass the object directly
-                    library_type=self.nist_type.get().lower()
-                )
-
-                if spec_data is None:
-                    self.ui_queue.schedule(
-                        lambda: messagebox.showerror("Download Failed",
-                                                f"No spectrum found for {compound_name}")
-                    )
-                    return
-
-                # Align and match
-                from scipy.interpolate import interp1d
-                from scipy.spatial.distance import cosine
-
-                f = interp1d(spec_data['wavelength'], spec_data['intensity'],
-                            kind='linear', bounds_error=False, fill_value=0)
-                lib_int_aligned = f(self.query_wl)
-
-                similarity = 1 - cosine(self.query_int, lib_int_aligned)
-
-                result = {
-                    'name': spec_data['name'],
-                    'similarity': similarity * 100,
-                    'formula': spec_data.get('formula', ''),
-                    'cas': spec_data.get('cas', ''),
-                    'source': 'NIST',
-                    'metadata': spec_data
-                }
-
-                def update_ui():
-                    # Add to results tree
-                    for row in self.search_tree.get_children():
-                        self.search_tree.delete(row)
-
-                    self.search_tree.insert("", 0, values=(
-                        1, result['name'], f"{result['similarity']:.1f}%", "NIST"
-                    ))
-
-                    # Show info
-                    info = f"{result['name']}"
-                    if result.get('formula'):
-                        info += f" | {result['formula']}"
-                    if result.get('cas'):
-                        info += f" | CAS: {result['cas']}"
-                    self.nist_info.config(text=info)
-
-                    # Plot overlay
-                    if HAS_MPL:
-                        self.search_ax_match.clear()
-                        self.search_ax_match.plot(self.query_wl, self.query_int,
-                                                'b-', lw=1.5, label="Query", alpha=0.7)
-                        self.search_ax_match.plot(self.query_wl, lib_int_aligned,
-                                                'r--', lw=1.5, label=f"NIST: {result['name']}")
-                        self.search_ax_match.set_xlabel("Wavelength (nm)", fontsize=8)
-                        self.search_ax_match.set_ylabel("Intensity", fontsize=8)
-                        self.search_ax_match.legend(fontsize=7, loc='upper right')
-                        self.search_ax_match.grid(True, alpha=0.3)
-                        self.search_canvas.draw()
-
-                    self.status_label.config(
-                        text=f"✅ NIST match: {result['similarity']:.1f}% similarity"
-                    )
-
-                self.ui_queue.schedule(update_ui)
-
-            except Exception as e:
-                self.ui_queue.schedule(
-                    lambda: messagebox.showerror("NIST Error", str(e))
-                )
-
-        threading.Thread(target=worker, daemon=True).start()
-
-    def _on_nist_select(self, event):
-        """Show info about selected NIST compound"""
-        selection = self.nist_listbox.curselection()
-        if not selection:
-            return
-
-        idx = selection[0]
-        item_text = self.nist_listbox.get(idx)
-
-        if "No matches" in item_text or "Searching" in item_text:
-            return
-
-        compound = item_text.split('[')[0].strip()
-        self.nist_info.config(text=f"Selected: {compound}\nClick 'Download & Match' to fetch spectrum")
-
     def _search(self):
-        """Search the selected library"""
+        """Unified search method"""
         if self.query_wl is None:
             messagebox.showwarning("No Data", "Load query spectrum first")
             return
 
-        lib_source = self.lib_selector.get()
+        source = self.lib_source.get()
 
-        if lib_source == "NIST Webbook":
+        if source == "nist":
             self._search_nist()
-            return
+        else:
+            self._search_builtin()
 
-        self.status_label.config(text="🔄 Searching library...")
+    def _search_builtin(self):
+        """Search built-in demo library"""
+        self.status_label.config(text="🔄 Searching built-in library...")
+
+        self.progress_label.config(text="")
+        self.progress_bar['value'] = 0
 
         def worker():
             try:
@@ -1517,17 +1607,14 @@ class LibrarySearchTab(AnalysisTab):
                 self.results = results
 
                 def update_ui():
-                    # Clear existing
                     for row in self.search_tree.get_children():
                         self.search_tree.delete(row)
 
-                    # Add results
                     for i, r in enumerate(results, 1):
                         self.search_tree.insert("", tk.END, values=(
                             i, r['name'], f"{r['similarity']:.1f}%", "Built-in"
                         ))
 
-                    # Plot best match
                     if HAS_MPL and results:
                         best = results[0]
                         lib_entry = next((e for e in self.library if e['name'] == best['name']), None)
@@ -1540,7 +1627,13 @@ class LibrarySearchTab(AnalysisTab):
                             )
                             self.search_ax_match.plot(self.query_wl, lib_int_aligned,
                                                     'r--', lw=1.5, label=f"Match: {best['name']}")
-                            self.search_ax_match.set_xlabel("Wavelength (nm)", fontsize=8)
+
+                            if self.query_wl[0] > 400 and self.query_wl[-1] < 4000:
+                                self.search_ax_match.set_xlabel("Wavenumber (cm⁻¹)", fontsize=8)
+                                self.search_ax_match.invert_xaxis()
+                            else:
+                                self.search_ax_match.set_xlabel("Wavelength (nm)", fontsize=8)
+
                             self.search_ax_match.set_ylabel("Intensity", fontsize=8)
                             self.search_ax_match.legend(fontsize=7, loc='upper right')
                             self.search_ax_match.grid(True, alpha=0.3)
@@ -1553,6 +1646,332 @@ class LibrarySearchTab(AnalysisTab):
                 self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _search_nist(self):
+        """Name-free spectral matching against NIST with progress updates"""
+        if self.query_wl is None:
+            messagebox.showwarning("No Data", "Load query spectrum first")
+            return
+
+        self.status_label.config(text="🔍 Matching spectrum against NIST...")
+
+        for row in self.search_tree.get_children():
+            self.search_tree.delete(row)
+
+        self.search_tree.insert("", tk.END, values=("...", "Matching against NIST...", "", ""))
+
+        self.progress_label.config(text="Initializing...")
+        self.progress_bar['value'] = 0
+
+        def update_progress(current, total, message):
+            def ui_update():
+                percent = (current / total) * 100 if total > 0 else 0
+                self.progress_bar['value'] = percent
+                self.progress_label.config(text=f"{message}")
+            self.ui_queue.schedule(ui_update)
+
+        def worker():
+            try:
+                results = self.nist_engine.match_query_spectrum(
+                    self.query_wl,
+                    self.query_int,
+                    top_n=15,
+                    use_cache_only=False,
+                    progress_callback=update_progress
+                )
+
+                def update_ui():
+                    for row in self.search_tree.get_children():
+                        self.search_tree.delete(row)
+
+                    if not results:
+                        self.search_tree.insert("", tk.END, values=(
+                            "❌", "No matches found", "", ""
+                        ))
+                        self.status_label.config(
+                            text="No matches found. Try preloading more compounds."
+                        )
+                        self.progress_label.config(text="No matches found")
+                        return
+
+                    self.nist_match_results = results
+
+                    for i, r in enumerate(results, 1):
+                        source_display = "NIST"
+                        if r.get('source') == 'cache':
+                            source_display = "Cache"
+
+                        self.search_tree.insert("", tk.END, values=(
+                            i,
+                            r["name"],
+                            f"{r['similarity']:.1f}%",
+                            source_display
+                        ))
+
+                    self._update_cache_count()
+
+                    self.status_label.config(
+                        text=f"✅ Found {len(results)} matches. Best: {results[0]['name']} ({results[0]['similarity']:.1f}%)"
+                    )
+                    self.progress_label.config(text="Search complete")
+
+                self.ui_queue.schedule(update_ui)
+
+            except Exception as e:
+                self.ui_queue.schedule(
+                    lambda: messagebox.showerror("Error", f"Matching failed: {str(e)}")
+                )
+                self.ui_queue.schedule(
+                    lambda: self.progress_label.config(text="Search failed")
+                )
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _preload_candidates(self):
+        """Preload all candidate compounds to build cache with progress"""
+        if not HAS_NIST:
+            messagebox.showerror("NIST Unavailable", "nistchempy not installed")
+            return
+
+        response = messagebox.askyesno(
+            "Preload Common Compounds",
+            f"This will download spectra for {len(self.nist_engine.CANDIDATE_COMPOUNDS)} common compounds.\n\n"
+            "This may take several minutes due to NIST rate limiting.\n"
+            "Progress will be shown in the status bar.\n\n"
+            "Proceed?"
+        )
+
+        if not response:
+            return
+
+        self.status_label.config(text="🔄 Preloading common compounds...")
+        self.action_button.config(state=tk.DISABLED)
+        self.preload_button.config(state=tk.DISABLED)
+
+        self.progress_label.config(text="Starting preload...")
+        self.progress_bar['value'] = 0
+
+        def update_progress(current, total, compound, status):
+            def ui_update():
+                percent = (current / total) * 100
+                self.progress_bar['value'] = percent
+                status_text = {
+                    "checking": "⏳ Checking...",
+                    "skipped": "⏭️ Already cached",
+                    "success": "✅ Downloaded",
+                    "failed": "❌ Failed",
+                    "not found": "❌ Not found"
+                }.get(status, status)
+                self.progress_label.config(text=f"[{current}/{total}] {compound}: {status_text}")
+                self.status_label.config(text=f"🔄 Preloading {current}/{total}: {compound}")
+            self.ui_queue.schedule(ui_update)
+
+        def worker():
+            try:
+                results = self.nist_engine.preload_common_compounds(
+                    self.nist_type.get().lower(),
+                    progress_callback=update_progress
+                )
+
+                def update_ui():
+                    self._update_cache_count()
+                    self.action_button.config(state=tk.NORMAL)
+                    self.preload_button.config(state=tk.NORMAL)
+                    self.progress_label.config(text="Preload complete")
+
+                    if results['failed'] > 0:
+                        messagebox.showwarning(
+                            "Preload Complete",
+                            f"✅ Success: {results['success']}\n"
+                            f"⏭️ Skipped: {results['skipped']}\n"
+                            f"❌ Failed: {results['failed']}\n\n"
+                            f"Total in cache: {results['success'] + results['skipped']}"
+                        )
+                    else:
+                        messagebox.showinfo(
+                            "Preload Complete",
+                            f"✅ Successfully cached {results['success']} new compounds\n"
+                            f"⏭️ Skipped: {results['skipped']}\n"
+                            f"Total in cache: {results['success'] + results['skipped']}"
+                        )
+
+                    self.status_label.config(
+                        text=f"✅ Preload complete. {results['success'] + results['skipped']} spectra in cache"
+                    )
+
+                self.ui_queue.schedule(update_ui)
+
+            except Exception as e:
+                self.ui_queue.schedule(
+                    lambda: messagebox.showerror("Error", f"Preload failed: {str(e)}")
+                )
+                self.ui_queue.schedule(
+                    lambda: self.action_button.config(state=tk.NORMAL)
+                )
+                self.ui_queue.schedule(
+                    lambda: self.preload_button.config(state=tk.NORMAL)
+                )
+                self.ui_queue.schedule(
+                    lambda: self.progress_label.config(text="Preload failed")
+                )
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_result_selected(self, event):
+        """Handle selection in results tree - automatically shows the match"""
+        selection = self.search_tree.selection()
+        if not selection:
+            self.action_button.config(state=tk.DISABLED)
+            return
+
+        item = self.search_tree.item(selection[0])
+        values = item['values']
+
+        if not values or len(values) < 2:
+            return
+
+        source = values[3] if len(values) > 3 else values[2]
+
+        self._show_match_from_selection(selection[0])
+
+        if source == "Built-in":
+            self.action_button.config(text="📥 Use Selected Match", state=tk.NORMAL)
+        else:
+            self.action_button.config(text="📥 Download Full Spectrum", state=tk.NORMAL)
+
+    def _show_match_from_selection(self, item_id):
+        """Show the match from a tree selection"""
+        item = self.search_tree.item(item_id)
+        values = item['values']
+
+        if not values or len(values) < 2:
+            return
+
+        rank_display = values[0]
+        display_name = values[1]
+        source = values[3] if len(values) > 3 else "Cache"
+
+        if self.query_wl is None or self.query_int is None:
+            return
+
+        try:
+            if isinstance(rank_display, str):
+                import re
+                numbers = re.findall(r'\d+', rank_display)
+                rank = int(numbers[0]) if numbers else 1
+            else:
+                rank = int(rank_display)
+        except:
+            rank = 1
+
+        match = None
+
+        if source == "Built-in":
+            if not hasattr(self, 'results') or not self.results:
+                return
+
+            if rank < 1 or rank > len(self.results):
+                return
+
+            match_meta = self.results[rank - 1]
+            match_name = match_meta['name']
+
+            lib_entry = next((e for e in self.library if e['name'] == match_name), None)
+            if not lib_entry:
+                return
+
+            match = {
+                'name': match_name,
+                'similarity': match_meta['similarity'],
+                'wl': lib_entry['wl'],
+                'int': lib_entry['int'],
+                'source': 'Built-in'
+            }
+
+        else:
+            if not hasattr(self, 'nist_match_results') or not self.nist_match_results:
+                return
+
+            if rank < 1 or rank > len(self.nist_match_results):
+                return
+
+            match = self.nist_match_results[rank - 1]
+
+        if match and 'wl' in match and 'int' in match:
+            self._plot_match_comparison(match)
+
+    def _plot_match_comparison(self, match):
+        """Plot the comparison between query and match"""
+        if not HAS_MPL or self.query_wl is None:
+            return
+
+        try:
+            self.search_ax_query.clear()
+            self.search_ax_match.clear()
+
+            self.search_ax_query.plot(self.query_wl, self.query_int,
+                                    color=C_ACCENT, lw=1.5, label="Query")
+            self.search_ax_query.set_title("Query Spectrum", fontsize=9, fontweight="bold")
+            self.search_ax_query.set_ylabel("Intensity", fontsize=8)
+            self.search_ax_query.grid(True, alpha=0.3)
+            self.search_ax_query.legend(fontsize=7, loc='upper right')
+
+            if self.query_wl[0] > 400 and self.query_wl[-1] < 4000:
+                self.search_ax_query.set_xlabel("Wavenumber (cm⁻¹)", fontsize=8)
+                self.search_ax_query.invert_xaxis()
+            else:
+                self.search_ax_query.set_xlabel("Wavelength (nm)", fontsize=8)
+
+            from scipy.interpolate import interp1d
+
+            f = interp1d(match['wl'], match['int'],
+                        kind='linear',
+                        bounds_error=False,
+                        fill_value=0)
+
+            lib_aligned = f(self.query_wl)
+
+            self.search_ax_match.plot(self.query_wl, self.query_int,
+                                    'b-', lw=1.5, label="Query", alpha=0.7)
+            self.search_ax_match.plot(self.query_wl, lib_aligned,
+                                    'r--', lw=1.5,
+                                    label=f"{match['name']} ({match['similarity']:.1f}%)")
+
+            self.search_ax_match.set_title("Comparison Overlay", fontsize=9, fontweight="bold")
+            self.search_ax_match.set_ylabel("Intensity", fontsize=8)
+            self.search_ax_match.legend(fontsize=7, loc='upper right')
+            self.search_ax_match.grid(True, alpha=0.3)
+
+            if self.query_wl[0] > 400 and self.query_wl[-1] < 4000:
+                self.search_ax_match.set_xlabel("Wavenumber (cm⁻¹)", fontsize=8)
+                self.search_ax_match.invert_xaxis()
+            else:
+                self.search_ax_match.set_xlabel("Wavelength (nm)", fontsize=8)
+
+            self.search_canvas.draw_idle()
+            self.search_canvas.flush_events()
+
+        except Exception as e:
+            pass
+
+    def _use_selected(self):
+        """Alternative action for the button"""
+        selection = self.search_tree.selection()
+        if not selection:
+            return
+
+        item = self.search_tree.item(selection[0])
+        values = item['values']
+
+        if not values or len(values) < 2:
+            return
+
+        source = values[3] if len(values) > 3 else values[2]
+
+        if source == "Built-in":
+            self._show_match_from_selection(selection[0])
+        else:
+            messagebox.showinfo("Info", "Download full spectrum from NIST - to be implemented")
 
     def _generate_demo_library(self):
         """Generate synthetic library for demo"""
