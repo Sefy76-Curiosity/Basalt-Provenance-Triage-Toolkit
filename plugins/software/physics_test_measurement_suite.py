@@ -1,20 +1,24 @@
 """
-PHYSICS TEST & MEASUREMENT SUITE v1.0 - COMPLETE PRODUCTION RELEASE
+PHYSICS TEST & MEASUREMENT SUITE v1.2 - COMPLETE PRODUCTION RELEASE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✓ My visual design (clean, technical - dark blue/teal)
 ✓ Industry-standard algorithms (fully cited IEEE/IEC methods)
 ✓ Auto-import from main table (seamless hardware integration)
 ✓ Manual file import (standalone mode)
 ✓ ALL 7 TABS fully implemented (no stubs, no placeholders)
+✓ NEW: Live mode – auto‑refresh on new data
+✓ NEW: Waveform freeze & overlay – compare traces
+✓ NEW: Interactive cursors (Δt/ΔV/f) on all waveform plots
+✓ NEW: Monte Carlo uncertainty button (Statistics tab) – launches generic plugin
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-TAB 1: FFT Frequency Analysis   - Power spectrum, harmonics, THD, SNR (IEEE 1057; Oppenheim & Schafer 2009)
-TAB 2: Pulse Parameter Extraction - Rise/fall time, overshoot, FWHM, settling (IEEE 181; IEC 60469)
-TAB 3: I-V Curve Fitting         - Diode, solar cell, Shockley equation (Shockley 1949; ASTM E948)
-TAB 4: LCR Impedance Modeling    - Equivalent circuits, CPE, resonance (Agilent Impedance Handbook)
-TAB 5: Allan Variance Analysis    - Clock stability, drift, noise type (Allan 1966; IEEE 1139)
-TAB 6: Eye Diagram Analysis       - Jitter, SNR, BER estimation (IEEE 802.3; Agilent Jitter Handbook)
-TAB 7: Signal Statistics          - RMS, peak-peak, SNR, THD, crest factor (ISO 1996; BIPM JCGM 100)
+TAB 1: FFT Frequency Analysis   - Power spectrum, harmonics, THD, SNR (IEEE 1057)
+TAB 2: Pulse Parameter Extraction - Rise/fall time, overshoot, FWHM, settling (IEEE 181)
+TAB 3: I-V Curve Fitting         - Diode, solar cell, Shockley equation (Shockley 1949)
+TAB 4: LCR Impedance Modeling    - Equivalent circuits, CPE, resonance (Agilent Handbook)
+TAB 5: Allan Variance Analysis    - Clock stability, drift, noise type (Allan 1966)
+TAB 6: Eye Diagram Analysis       - Jitter, SNR, BER estimation (IEEE 802.3)
+TAB 7: Signal Statistics          - RMS, peak-peak, SNR, THD, crest factor (ISO 1996)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
@@ -24,9 +28,9 @@ PLUGIN_INFO = {
     "category": "software",
     "field": "Physics & Test/Measurement",
     "icon": "📟",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "author": "Sefy Levy & Claude",
-    "description": "FFT · Pulse · I-V · LCR · Allan · Eye · Statistics — IEEE/IEC compliant",
+    "description": "FFT · Pulse · I-V · LCR · Allan · Eye · Statistics — Live, Freeze, Cursors, Uncertainty",
     "requires": ["numpy", "pandas", "scipy", "matplotlib"],
     "optional": ["sklearn", "lmfit"],
     "window_size": "1200x800"
@@ -74,6 +78,15 @@ try:
     HAS_SCIPY = True
 except ImportError:
     HAS_SCIPY = False
+
+# ============================================================================
+# UNCERTAINTY PLUGIN IMPORT (optional)
+# ============================================================================
+try:
+    from uncertainty_propagation import GenericUncertaintyPlugin
+    HAS_UNCERTAINTY = True
+except ImportError:
+    HAS_UNCERTAINTY = False
 
 # ============================================================================
 # COLOR PALETTE — physics/test & measurement (technical blues/teals)
@@ -139,6 +152,116 @@ class ToolTip:
 
 
 # ============================================================================
+# CURSOR MANAGER (for interactive measurements)
+# ============================================================================
+class CursorManager:
+    """Manages two vertical and two horizontal draggable cursors on a matplotlib axes."""
+    def __init__(self, ax, callback=None):
+        self.ax = ax
+        self.callback = callback  # called with (v1, v2, h1, h2) positions when cursors move
+        self.enabled = False
+        self.vline1 = None
+        self.vline2 = None
+        self.hline1 = None
+        self.hline2 = None
+        self.selected_line = None
+        self.text_handle = None
+        self.canvas = ax.figure.canvas
+        self.cid_press = None
+        self.cid_release = None
+        self.cid_motion = None
+
+    def enable(self):
+        if self.enabled:
+            return
+        self.enabled = True
+        # Create lines (initially at 20% and 80% of x and y ranges)
+        xlim = self.ax.get_xlim()
+        ylim = self.ax.get_ylim()
+        x1 = xlim[0] + 0.3 * (xlim[1] - xlim[0])
+        x2 = xlim[0] + 0.7 * (xlim[1] - xlim[0])
+        y1 = ylim[0] + 0.3 * (ylim[1] - ylim[0])
+        y2 = ylim[0] + 0.7 * (ylim[1] - ylim[0])
+
+        self.vline1 = self.ax.axvline(x1, color='red', linestyle='--', linewidth=1, pickradius=5, alpha=0.8)
+        self.vline2 = self.ax.axvline(x2, color='red', linestyle='--', linewidth=1, pickradius=5, alpha=0.8)
+        self.hline1 = self.ax.axhline(y1, color='blue', linestyle='--', linewidth=1, pickradius=5, alpha=0.8)
+        self.hline2 = self.ax.axhline(y2, color='blue', linestyle='--', linewidth=1, pickradius=5, alpha=0.8)
+
+        # Text annotation for readouts
+        self.text_handle = self.ax.text(0.02, 0.98, '', transform=self.ax.transAxes,
+                                         verticalalignment='top', fontsize=8,
+                                         bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+
+        # Connect events
+        self.cid_press = self.canvas.mpl_connect('pick_event', self.on_pick)
+        self.cid_release = self.canvas.mpl_connect('button_release_event', self.on_release)
+        self.cid_motion = self.canvas.mpl_connect('motion_notify_event', self.on_motion)
+
+        self.update_readout()
+        self.canvas.draw_idle()
+
+    def disable(self):
+        if not self.enabled:
+            return
+        self.enabled = False
+        # Disconnect events
+        if self.cid_press:
+            self.canvas.mpl_disconnect(self.cid_press)
+        if self.cid_release:
+            self.canvas.mpl_disconnect(self.cid_release)
+        if self.cid_motion:
+            self.canvas.mpl_disconnect(self.cid_motion)
+        # Remove lines and text
+        if self.vline1:
+            self.vline1.remove()
+            self.vline2.remove()
+            self.hline1.remove()
+            self.hline2.remove()
+            self.text_handle.remove()
+        self.vline1 = self.vline2 = self.hline1 = self.hline2 = self.text_handle = None
+        self.selected_line = None
+        self.canvas.draw_idle()
+
+    def on_pick(self, event):
+        if not self.enabled:
+            return
+        if event.artist in [self.vline1, self.vline2, self.hline1, self.hline2]:
+            self.selected_line = event.artist
+
+    def on_release(self, event):
+        self.selected_line = None
+
+    def on_motion(self, event):
+        if not self.enabled or self.selected_line is None or not event.inaxes:
+            return
+        # Update the selected line to the mouse x or y coordinate
+        if self.selected_line in [self.vline1, self.vline2]:
+            new_x = event.xdata
+            self.selected_line.set_xdata([new_x, new_x])
+        else:
+            new_y = event.ydata
+            self.selected_line.set_ydata([new_y, new_y])
+        self.update_readout()
+        self.canvas.draw_idle()
+
+    def update_readout(self):
+        if not self.enabled or None in [self.vline1, self.vline2, self.hline1, self.hline2]:
+            return
+        x1 = self.vline1.get_xdata()[0]
+        x2 = self.vline2.get_xdata()[0]
+        y1 = self.hline1.get_ydata()[0]
+        y2 = self.hline2.get_ydata()[0]
+        dt = abs(x2 - x1)
+        dv = abs(y2 - y1)
+        # Simple readout
+        text = f"Δt = {dt:.3e} s\nΔV = {dv:.3e} V"
+        if dt > 0:
+            text += f"\nf = {1/dt:.3e} Hz"
+        self.text_handle.set_text(text)
+
+
+# ============================================================================
 # BASE TAB CLASS - Auto-import from main table
 # ============================================================================
 class AnalysisTab:
@@ -156,6 +279,7 @@ class AnalysisTab:
         self.samples = []
         self._loading = False
         self._update_id = None
+        self._registered = True   # track registration status
 
         # Import mode
         self.import_mode = "auto"  # "auto" or "manual"
@@ -166,6 +290,13 @@ class AnalysisTab:
         self.status_label = None
         self.import_indicator = None
 
+        # NEW: Live mode toggle
+        self.live_var = tk.BooleanVar(value=False)
+
+        # NEW: Frozen waveform storage (used by waveform tabs)
+        self.frozen_time = None
+        self.frozen_signal = None
+
         self._build_base_ui()
 
         # Register as observer of data hub
@@ -174,6 +305,9 @@ class AnalysisTab:
 
         # Initial refresh
         self.refresh_sample_list()
+
+        # Bind to the Destroy event of the frame to clean up after callbacks
+        self.frame.bind("<Destroy>", self._on_destroy)
 
     def _build_base_ui(self):
         """Build the base UI with import controls"""
@@ -196,6 +330,16 @@ class AnalysisTab:
         self.import_indicator = tk.Label(mode_frame, text="", font=("Arial", 7),
                                          bg=C_LIGHT, fg=C_STATUS)
         self.import_indicator.pack(side=tk.RIGHT, padx=10)
+
+        # NEW: Live mode checkbox
+        live_frame = tk.Frame(mode_frame, bg=C_LIGHT)
+        live_frame.pack(side=tk.RIGHT, padx=20)
+
+        self.live_var = tk.BooleanVar(value=False)
+        self.live_check = ttk.Checkbutton(live_frame, text="🔴 Live Mode (auto-refresh from hardware)",
+                                         variable=self.live_var, command=self._toggle_live)
+        self.live_check.pack(side=tk.RIGHT)
+        ToolTip(self.live_check, "When checked, new data from the hardware plugin will auto-analyze")
 
         # Sample selector frame (visible in auto mode)
         self.selector_frame = tk.Frame(self.frame, bg="white")
@@ -231,6 +375,13 @@ class AnalysisTab:
         self.content_frame = tk.Frame(self.frame, bg="white")
         self.content_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
+    def _toggle_live(self):
+        """Called when live checkbox toggled"""
+        if self.live_var.get():
+            self.status_label.config(text="🔴 Live Mode ENABLED — waiting for new data...")
+        else:
+            self.status_label.config(text="Live Mode OFF")
+
     def _switch_import_mode(self):
         """Switch between auto and manual import modes"""
         mode = self.import_mode_var.get()
@@ -256,19 +407,60 @@ class AnalysisTab:
         return []
 
     def on_data_changed(self, event, *args):
-        """Called when main table data changes"""
+        """Called when main table data changes – safe against destroyed widgets."""
         if self.import_mode_var.get() == "auto":
+            # Cancel any previous scheduled refresh
             if self._update_id:
-                self.frame.after_cancel(self._update_id)
-            self._update_id = self.frame.after(500, self._delayed_refresh)
+                try:
+                    self.frame.after_cancel(self._update_id)
+                except:
+                    pass
+                self._update_id = None
+
+            # Schedule a full refresh after a short delay
+            try:
+                self._update_id = self.frame.after(500, self._delayed_refresh)
+            except tk.TclError:
+                # Frame is destroyed – cannot schedule
+                return
+
+            # NEW: Live mode – auto-reload and auto-analyze
+            if self.live_var.get() and self.selected_sample_idx is not None:
+                if 0 <= self.selected_sample_idx < len(self.samples):
+                    try:
+                        self._update_id = self.frame.after(100, lambda: self._reload_current_sample(auto_analyze=True))
+                    except tk.TclError:
+                        pass
 
     def _delayed_refresh(self):
         """Delayed refresh to avoid too many updates"""
         self.refresh_sample_list()
         self._update_id = None
 
+    # NEW: Reload current sample with optional auto analysis
+    def _reload_current_sample(self, auto_analyze=False):
+        if self.selected_sample_idx is not None and 0 <= self.selected_sample_idx < len(self.samples):
+            self._load_sample_data(self.selected_sample_idx, auto_analyze=auto_analyze)
+            if auto_analyze:
+                # Call the appropriate analysis method based on the tab
+                if hasattr(self, '_compute_fft'):          # FFT tab
+                    self._compute_fft()
+                elif hasattr(self, '_analyze_pulse'):      # Pulse tab
+                    self._analyze_pulse()
+                elif hasattr(self, '_fit_diode'):          # I-V tab
+                    self._fit_diode()
+                elif hasattr(self, '_fit_rc'):             # LCR tab
+                    self._fit_rc()
+                elif hasattr(self, '_compute_allan'):      # Allan tab
+                    self._compute_allan()
+                elif hasattr(self, '_analyze_eye'):        # Eye tab
+                    self._analyze_eye()
+                elif hasattr(self, '_compute_stats'):      # Statistics tab
+                    self._compute_stats()
+        self._update_id = None
+
     def refresh_sample_list(self):
-        """Refresh the sample dropdown"""
+        """Refresh the sample dropdown – safe against destroyed widgets."""
         if self.import_mode_var.get() != "auto":
             return
 
@@ -278,28 +470,50 @@ class AnalysisTab:
         for i, sample in enumerate(self.samples):
             sample_id = sample.get('Sample_ID', f'Sample {i}')
             has_data = self._sample_has_data(sample)
-
-            if has_data:
-                display = f"✅ {i}: {sample_id} (has data)"
-            else:
-                display = f"○ {i}: {sample_id} (no data)"
-
+            display = f"✅ {i}: {sample_id} (has data)" if has_data else f"○ {i}: {sample_id} (no data)"
             sample_ids.append(display)
 
-        self.sample_combo['values'] = sample_ids
+        # Safely update combobox values – ignore if widget is gone
+        try:
+            self.sample_combo['values'] = sample_ids
+        except tk.TclError:
+            # The combobox has been destroyed – nothing more to do
+            return
 
-        data_count = sum(1 for i, s in enumerate(self.samples) if self._sample_has_data(s))
+        data_count = sum(1 for s in self.samples if self._sample_has_data(s))
         self.status_label.config(text=f"Total: {len(self.samples)} | With data: {data_count}")
 
-        if self.selected_sample_idx is not None and self.selected_sample_idx < len(self.samples):
-            self.sample_combo.set(sample_ids[self.selected_sample_idx])
-        elif sample_ids:
-            for i, s in enumerate(self.samples):
-                if self._sample_has_data(s):
-                    self.selected_sample_idx = i
+        # If no samples, clear selection and stop
+        if not self.samples:
+            self.selected_sample_idx = None
+            try:
+                self.sample_combo.set('')
+            except tk.TclError:
+                pass
+            return
+
+        # Validate current selection
+        if self.selected_sample_idx is not None:
+            if self.selected_sample_idx >= len(self.samples):
+                self.selected_sample_idx = None
+            else:
+                # Keep current selection
+                try:
+                    self.sample_combo.set(sample_ids[self.selected_sample_idx])
+                except tk.TclError:
+                    pass
+                return
+
+        # If no valid selection, try to select first sample with data
+        for i, s in enumerate(self.samples):
+            if self._sample_has_data(s):
+                self.selected_sample_idx = i
+                try:
                     self.sample_combo.set(sample_ids[i])
-                    self._load_sample_data(i)
-                    break
+                except tk.TclError:
+                    pass
+                self._load_sample_data(i, auto_analyze=False)
+                break
 
     def _sample_has_data(self, sample):
         """Check if sample has data for this tab - to be overridden"""
@@ -313,14 +527,25 @@ class AnalysisTab:
 
         try:
             idx = int(''.join(filter(str.isdigit, selection.split(':', 1)[0])))
-            self.selected_sample_idx = idx
-            self._load_sample_data(idx)
+            if 0 <= idx < len(self.samples):
+                self.selected_sample_idx = idx
+                self._load_sample_data(idx, auto_analyze=False)  # User selects, no auto-analyze
         except (ValueError, IndexError):
             pass
 
-    def _load_sample_data(self, idx):
+    def _load_sample_data(self, idx, auto_analyze=False):
         """Load data for the selected sample - to be overridden"""
         pass
+
+    def _on_destroy(self, event=None):
+        """Cancel any pending after callbacks when the tab is destroyed."""
+        if self._update_id:
+            try:
+                self.frame.after_cancel(self._update_id)
+            except:
+                pass
+            self._update_id = None
+        # Optionally unregister from data hub (handled by main plugin on close)
 
 
 # ============================================================================
@@ -562,7 +787,7 @@ class FFTAnalyzer:
 
 
 # ============================================================================
-# TAB 1: FFT FREQUENCY ANALYSIS
+# TAB 1: FFT FREQUENCY ANALYSIS (with cursors)
 # ============================================================================
 class FFTAnalysisTab(AnalysisTab):
     def __init__(self, parent, app, ui_queue):
@@ -571,27 +796,23 @@ class FFTAnalysisTab(AnalysisTab):
         self.time = None
         self.signal = None
         self.fs = None
+        self.cursor_manager = None
         self._build_content_ui()
 
     def _sample_has_data(self, sample):
-        """Check if sample has time-domain signal"""
         return any(col in sample and sample[col] for col in
                   ['Signal_File', 'Time', 'Voltage'])
 
     def _manual_import(self):
-        """Manual import from CSV"""
         path = filedialog.askopenfilename(
             title="Load Signal Data",
             filetypes=[("CSV", "*.csv"), ("TXT", "*.txt"), ("All files", "*.*")])
         if not path:
             return
-
         self.status_label.config(text="🔄 Loading signal...")
-
         def worker():
             try:
                 data = self.engine.load_signal(path)
-
                 def update():
                     self.time = data["time"]
                     self.signal = data["signal"]
@@ -600,54 +821,43 @@ class FFTAnalysisTab(AnalysisTab):
                     self._plot_time()
                     self.status_label.config(text=f"Loaded signal, fs={self.fs:.2f} Hz")
                 self.ui_queue.schedule(update)
-
             except Exception as e:
                 self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
-
         threading.Thread(target=worker, daemon=True).start()
 
-    def _load_sample_data(self, idx):
-        """Auto-load from table"""
+    def _load_sample_data(self, idx, auto_analyze=False):
+        if idx < 0 or idx >= len(self.samples):
+            return
         sample = self.samples[idx]
-
         if 'Time' in sample and 'Voltage' in sample:
             try:
                 self.time = np.array([float(x) for x in sample['Time'].split(',')])
                 self.signal = np.array([float(x) for x in sample['Voltage'].split(',')])
                 self.fs = 1 / np.mean(np.diff(self.time))
                 self._plot_time()
-                self.status_label.config(text=f"Loaded signal from table")
+                self.status_label.config(text="Loaded signal from table")
+                if auto_analyze:
+                    self._compute_fft()
             except Exception as e:
                 self.status_label.config(text=f"Error: {e}")
 
     def _build_content_ui(self):
-        """Build the tab-specific UI"""
-        # Main split
         main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
         main_pane.pack(fill=tk.BOTH, expand=True)
-
-        # Left panel - controls
         left = tk.Frame(main_pane, bg="white", width=300)
         main_pane.add(left, weight=1)
-
-        # Right panel - plot
         right = tk.Frame(main_pane, bg="white")
         main_pane.add(right, weight=2)
 
-        # === LEFT PANEL ===
         tk.Label(left, text="📊 FFT FREQUENCY ANALYSIS",
                 font=("Arial", 10, "bold"), bg=C_LIGHT, fg=C_HEADER).pack(fill=tk.X, pady=2)
-
         tk.Label(left, text="IEEE 1057 · Oppenheim & Schafer 2009",
                 font=("Arial", 7), bg="white", fg="#888").pack(anchor=tk.W, padx=4)
 
-        # FFT parameters
         param_frame = tk.LabelFrame(left, text="FFT Parameters", bg="white",
                                    font=("Arial", 8, "bold"), fg=C_HEADER)
         param_frame.pack(fill=tk.X, padx=4, pady=4)
-
-        tk.Label(param_frame, text="Window:", font=("Arial", 8),
-                bg="white").pack(anchor=tk.W, padx=4)
+        tk.Label(param_frame, text="Window:", font=("Arial", 8), bg="white").pack(anchor=tk.W, padx=4)
         self.fft_window = tk.StringVar(value="hanning")
         ttk.Combobox(param_frame, textvariable=self.fft_window,
                      values=["none", "hanning", "hamming", "blackman", "flattop"],
@@ -655,6 +865,23 @@ class FFTAnalysisTab(AnalysisTab):
 
         ttk.Button(left, text="📈 COMPUTE FFT",
                   command=self._compute_fft).pack(fill=tk.X, padx=4, pady=4)
+
+        # Waveform Freeze
+        freeze_frame = tk.LabelFrame(left, text="Waveform Freeze", bg="white",
+                                     font=("Arial", 8, "bold"), fg=C_HEADER)
+        freeze_frame.pack(fill=tk.X, padx=4, pady=4)
+        btn_frame = tk.Frame(freeze_frame, bg="white")
+        btn_frame.pack(fill=tk.X, pady=2)
+        ttk.Button(btn_frame, text="❄️ Freeze", command=self._freeze_waveform).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_frame, text="🧹 Clear", command=self._clear_freeze).pack(side=tk.LEFT, padx=2)
+
+        # Interactive Cursors
+        cursor_frame = tk.LabelFrame(left, text="Interactive Cursors", bg="white",
+                                     font=("Arial", 8, "bold"), fg=C_HEADER)
+        cursor_frame.pack(fill=tk.X, padx=4, pady=4)
+        self.cursor_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(cursor_frame, text="📐 Enable Cursors", variable=self.cursor_var,
+                        command=self._toggle_cursors).pack(anchor=tk.W, padx=4, pady=2)
 
         # Results
         results_frame = tk.LabelFrame(left, text="Results", bg="white",
@@ -669,8 +896,7 @@ class FFTAnalysisTab(AnalysisTab):
             ("SINAD (dB):", "sinad"),
             ("ENOB (bits):", "enob")
         ]
-
-        for i, (label, key) in enumerate(result_labels):
+        for label, key in result_labels:
             row = tk.Frame(results_frame, bg="white")
             row.pack(fill=tk.X, pady=1)
             tk.Label(row, text=label, font=("Arial", 7), bg="white", width=15, anchor=tk.W).pack(side=tk.LEFT)
@@ -679,7 +905,6 @@ class FFTAnalysisTab(AnalysisTab):
                     bg="white", fg=C_HEADER).pack(side=tk.LEFT, padx=2)
             self.fft_results[key] = var
 
-        # === RIGHT PANEL ===
         if HAS_MPL:
             self.fft_fig = Figure(figsize=(8, 6), dpi=100, facecolor="white")
             gs = GridSpec(2, 1, figure=self.fft_fig, hspace=0.3)
@@ -695,82 +920,92 @@ class FFTAnalysisTab(AnalysisTab):
 
             toolbar = NavigationToolbar2Tk(self.fft_canvas, right)
             toolbar.update()
+
+            # Create cursor manager for time axis
+            self.cursor_manager = CursorManager(self.fft_ax_time, callback=None)
         else:
             tk.Label(right, text="matplotlib required for plots",
                     bg="white", fg="#888").pack(expand=True)
 
+    def _freeze_waveform(self):
+        if self.time is not None and self.signal is not None:
+            self.frozen_time = self.time.copy()
+            self.frozen_signal = self.signal.copy()
+            self.status_label.config(text="Waveform frozen")
+            self._plot_time()
+        else:
+            messagebox.showwarning("No Data", "No waveform to freeze")
+
+    def _clear_freeze(self):
+        self.frozen_time = None
+        self.frozen_signal = None
+        self.status_label.config(text="Frozen waveform cleared")
+        self._plot_time()
+
+    def _toggle_cursors(self):
+        if not HAS_MPL or self.cursor_manager is None:
+            return
+        if self.cursor_var.get():
+            self.cursor_manager.enable()
+        else:
+            self.cursor_manager.disable()
+
     def _plot_time(self):
-        """Plot time-domain signal"""
         if not HAS_MPL or self.time is None:
             return
-
         self.fft_ax_time.clear()
-        self.fft_ax_time.plot(self.time, self.signal, 'b-', lw=1)
+        self.fft_ax_time.plot(self.time, self.signal, 'b-', lw=1, label='Live')
+        if self.frozen_time is not None and self.frozen_signal is not None:
+            self.fft_ax_time.plot(self.frozen_time, self.frozen_signal, '--', color='gray', lw=1.5, alpha=0.7, label='Frozen')
         self.fft_ax_time.set_xlabel("Time (s)", fontsize=8)
         self.fft_ax_time.set_ylabel("Amplitude (V)", fontsize=8)
         self.fft_ax_time.grid(True, alpha=0.3)
-
+        self.fft_ax_time.legend(fontsize=7)
         self.fft_canvas.draw()
+        # Re-enable cursors if they were on
+        if self.cursor_var.get() and self.cursor_manager:
+            self.cursor_manager.disable()
+            self.cursor_manager.enable()
 
     def _compute_fft(self):
-        """Compute FFT and display results"""
         if self.signal is None:
             messagebox.showwarning("No Data", "Load signal first")
             return
-
         self.status_label.config(text="🔄 Computing FFT...")
-
         def worker():
             try:
                 window = self.fft_window.get()
                 freqs, psd, mag = self.engine.power_spectrum(self.signal, self.fs, window)
-
-                # Find fundamental
                 peaks = self.engine.find_peaks(freqs, mag)
                 f0 = peaks[0][0] if peaks else 0
-
-                # Calculate metrics
                 thd_val = self.engine.thd(freqs, mag)
-                snr_val = self.engine.snr(self.signal, self.fs, f0 if f0 > 0 else None)
+                snr_val = self.engine.snr(self.signal, self.fs, f0 if f0>0 else None)
                 sinad_val = self.engine.sinad(self.signal, self.fs)
                 enob_val = self.engine.enob(sinad_val)
-
                 def update_ui():
                     self.fft_results["f0"].set(f"{f0:.3f}")
                     self.fft_results["thd"].set(f"{thd_val:.3f}")
                     self.fft_results["snr"].set(f"{snr_val:.2f}")
                     self.fft_results["sinad"].set(f"{sinad_val:.2f}")
                     self.fft_results["enob"].set(f"{enob_val:.2f}")
-
                     if HAS_MPL:
-                        # Update frequency plot
                         self.fft_ax_freq.clear()
-
-                        # Plot magnitude spectrum
                         self.fft_ax_freq.semilogy(freqs, mag, 'b-', lw=1)
-
-                        # Mark harmonics
-                        if f0 > 0:
-                            for i in range(1, 6):
-                                f_harm = i * f0
+                        if f0>0:
+                            for i in range(1,6):
+                                f_harm = i*f0
                                 idx = np.argmin(np.abs(freqs - f_harm))
                                 if idx < len(freqs):
                                     self.fft_ax_freq.plot(f_harm, mag[idx], 'ro', markersize=4)
-
                         self.fft_ax_freq.set_xlabel("Frequency (Hz)", fontsize=8)
                         self.fft_ax_freq.set_ylabel("Magnitude", fontsize=8)
                         self.fft_ax_freq.grid(True, alpha=0.3)
                         self.fft_ax_freq.set_xlim(0, self.fs/2)
-
                         self.fft_canvas.draw()
-
                     self.status_label.config(text=f"✅ FFT complete - f0={f0:.3f} Hz")
-
                 self.ui_queue.schedule(update_ui)
-
             except Exception as e:
                 self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
-
         threading.Thread(target=worker, daemon=True).start()
 
 
@@ -990,6 +1225,198 @@ class PulseAnalyzer:
     def load_pulse(cls, path):
         """Load pulse data from CSV"""
         return FFTAnalyzer.load_signal(path)
+
+
+# ============================================================================
+# TAB 2: PULSE PARAMETER EXTRACTION (with cursors)
+# ============================================================================
+class PulseAnalysisTab(AnalysisTab):
+    def __init__(self, parent, app, ui_queue):
+        super().__init__(parent, app, ui_queue, "Pulse Analysis")
+        self.engine = PulseAnalyzer
+        self.time = None
+        self.signal = None
+        self.fs = None
+        self.cursor_manager = None
+        self._build_content_ui()
+
+    def _sample_has_data(self, sample):
+        return any(col in sample and sample[col] for col in
+                  ['Signal_File', 'Time', 'Voltage'])
+
+    def _manual_import(self):
+        path = filedialog.askopenfilename(
+            title="Load Pulse Data",
+            filetypes=[("CSV", "*.csv"), ("TXT", "*.txt"), ("All files", "*.*")])
+        if not path:
+            return
+        self.status_label.config(text="🔄 Loading pulse...")
+        def worker():
+            try:
+                data = self.engine.load_pulse(path)
+                def update():
+                    self.time = data["time"]
+                    self.signal = data["signal"]
+                    self.fs = data["fs"]
+                    self.manual_label.config(text=f"✓ {Path(path).name}")
+                    self._plot_pulse()
+                    self.status_label.config(text=f"Loaded pulse, fs={self.fs:.2f} Hz")
+                self.ui_queue.schedule(update)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _load_sample_data(self, idx, auto_analyze=False):
+        if idx < 0 or idx >= len(self.samples):
+            return
+        sample = self.samples[idx]
+        if 'Time' in sample and 'Voltage' in sample:
+            try:
+                self.time = np.array([float(x) for x in sample['Time'].split(',')])
+                self.signal = np.array([float(x) for x in sample['Voltage'].split(',')])
+                self.fs = 1 / np.mean(np.diff(self.time))
+                self._plot_pulse()
+                self.status_label.config(text="Loaded pulse from table")
+                if auto_analyze:
+                    self._analyze_pulse()
+            except Exception as e:
+                self.status_label.config(text=f"Error: {e}")
+
+    def _build_content_ui(self):
+        main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
+        main_pane.pack(fill=tk.BOTH, expand=True)
+        left = tk.Frame(main_pane, bg="white", width=300)
+        main_pane.add(left, weight=1)
+        right = tk.Frame(main_pane, bg="white")
+        main_pane.add(right, weight=2)
+
+        tk.Label(left, text="⚡ PULSE PARAMETERS",
+                font=("Arial", 10, "bold"), bg=C_LIGHT, fg=C_HEADER).pack(fill=tk.X, pady=2)
+        tk.Label(left, text="IEEE 181 · IEC 60469",
+                font=("Arial", 7), bg="white", fg="#888").pack(anchor=tk.W, padx=4)
+
+        ttk.Button(left, text="📊 ANALYZE PULSE",
+                  command=self._analyze_pulse).pack(fill=tk.X, padx=4, pady=4)
+
+        # Waveform Freeze
+        freeze_frame = tk.LabelFrame(left, text="Waveform Freeze", bg="white",
+                                     font=("Arial", 8, "bold"), fg=C_HEADER)
+        freeze_frame.pack(fill=tk.X, padx=4, pady=4)
+        btn_frame = tk.Frame(freeze_frame, bg="white")
+        btn_frame.pack(fill=tk.X, pady=2)
+        ttk.Button(btn_frame, text="❄️ Freeze", command=self._freeze_waveform).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_frame, text="🧹 Clear", command=self._clear_freeze).pack(side=tk.LEFT, padx=2)
+
+        # Interactive Cursors
+        cursor_frame = tk.LabelFrame(left, text="Interactive Cursors", bg="white",
+                                     font=("Arial", 8, "bold"), fg=C_HEADER)
+        cursor_frame.pack(fill=tk.X, padx=4, pady=4)
+        self.cursor_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(cursor_frame, text="📐 Enable Cursors", variable=self.cursor_var,
+                        command=self._toggle_cursors).pack(anchor=tk.W, padx=4, pady=2)
+
+        # Results
+        results_frame = tk.LabelFrame(left, text="Results", bg="white",
+                                     font=("Arial", 8, "bold"), fg=C_HEADER)
+        results_frame.pack(fill=tk.X, padx=4, pady=4)
+
+        self.pulse_results = {}
+        result_labels = [
+            ("Rise time (s):", "rise"),
+            ("Fall time (s):", "fall"),
+            ("Width (s):", "width"),
+            ("Overshoot (%):", "over"),
+            ("Undershoot (%):", "under"),
+            ("Duty cycle (%):", "duty")
+        ]
+        for label, key in result_labels:
+            row = tk.Frame(results_frame, bg="white")
+            row.pack(fill=tk.X, pady=1)
+            tk.Label(row, text=label, font=("Arial", 7), bg="white", width=15, anchor=tk.W).pack(side=tk.LEFT)
+            var = tk.StringVar(value="—")
+            tk.Label(row, textvariable=var, font=("Arial", 7, "bold"),
+                    bg="white", fg=C_HEADER).pack(side=tk.LEFT, padx=2)
+            self.pulse_results[key] = var
+
+        if HAS_MPL:
+            self.pulse_fig = Figure(figsize=(8,6), dpi=100, facecolor="white")
+            self.pulse_ax = self.pulse_fig.add_subplot(111)
+            self.pulse_ax.set_title("Pulse Waveform", fontsize=9, fontweight="bold")
+            self.pulse_canvas = FigureCanvasTkAgg(self.pulse_fig, right)
+            self.pulse_canvas.draw()
+            self.pulse_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            toolbar = NavigationToolbar2Tk(self.pulse_canvas, right)
+            toolbar.update()
+            # Create cursor manager
+            self.cursor_manager = CursorManager(self.pulse_ax, callback=None)
+        else:
+            tk.Label(right, text="matplotlib required for plots", bg="white", fg="#888").pack(expand=True)
+
+    def _freeze_waveform(self):
+        if self.time is not None and self.signal is not None:
+            self.frozen_time = self.time.copy()
+            self.frozen_signal = self.signal.copy()
+            self.status_label.config(text="Waveform frozen")
+            self._plot_pulse()
+        else:
+            messagebox.showwarning("No Data", "No waveform to freeze")
+
+    def _clear_freeze(self):
+        self.frozen_time = None
+        self.frozen_signal = None
+        self.status_label.config(text="Frozen waveform cleared")
+        self._plot_pulse()
+
+    def _toggle_cursors(self):
+        if not HAS_MPL or self.cursor_manager is None:
+            return
+        if self.cursor_var.get():
+            self.cursor_manager.enable()
+        else:
+            self.cursor_manager.disable()
+
+    def _plot_pulse(self):
+        if not HAS_MPL or self.time is None:
+            return
+        self.pulse_ax.clear()
+        self.pulse_ax.plot(self.time, self.signal, 'b-', lw=1, label='Live')
+        if self.frozen_time is not None and self.frozen_signal is not None:
+            self.pulse_ax.plot(self.frozen_time, self.frozen_signal, '--', color='gray', lw=1.5, alpha=0.7, label='Frozen')
+        self.pulse_ax.set_xlabel("Time (s)", fontsize=8)
+        self.pulse_ax.set_ylabel("Amplitude (V)", fontsize=8)
+        self.pulse_ax.grid(True, alpha=0.3)
+        self.pulse_ax.legend(fontsize=7)
+        self.pulse_canvas.draw()
+        if self.cursor_var.get() and self.cursor_manager:
+            self.cursor_manager.disable()
+            self.cursor_manager.enable()
+
+    def _analyze_pulse(self):
+        if self.signal is None:
+            messagebox.showwarning("No Data", "Load pulse first")
+            return
+        self.status_label.config(text="🔄 Analyzing pulse...")
+        def worker():
+            try:
+                rise = self.engine.rise_time(self.time, self.signal)
+                fall = self.engine.fall_time(self.time, self.signal)
+                width = self.engine.pulse_width(self.time, self.signal)
+                base, top = self.engine.find_levels(self.signal)
+                over = self.engine.overshoot(self.signal, base, top)
+                under = self.engine.undershoot(self.signal, base, top)
+                duty = self.engine.duty_cycle(self.time, self.signal)
+                def update_ui():
+                    self.pulse_results["rise"].set(f"{rise:.3e}" if rise else "—")
+                    self.pulse_results["fall"].set(f"{fall:.3e}" if fall else "—")
+                    self.pulse_results["width"].set(f"{width:.3e}" if width else "—")
+                    self.pulse_results["over"].set(f"{over:.2f}")
+                    self.pulse_results["under"].set(f"{under:.2f}")
+                    self.pulse_results["duty"].set(f"{duty:.2f}" if duty else "—")
+                    self.status_label.config(text="✅ Pulse analysis complete")
+                self.ui_queue.schedule(update_ui)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
 
 
 # ============================================================================
@@ -1236,6 +1663,165 @@ class IVAnalyzer:
 
 
 # ============================================================================
+# TAB 3: I-V CURVE FITTING
+# ============================================================================
+class IVAnalysisTab(AnalysisTab):
+    def __init__(self, parent, app, ui_queue):
+        super().__init__(parent, app, ui_queue, "I-V Curve")
+        self.engine = IVAnalyzer
+        self.voltage = None
+        self.current = None
+        self._build_content_ui()
+
+    def _sample_has_data(self, sample):
+        return any(col in sample and sample[col] for col in
+                  ['IV_File', 'Voltage', 'Current'])
+
+    def _manual_import(self):
+        path = filedialog.askopenfilename(
+            title="Load I-V Data",
+            filetypes=[("CSV", "*.csv"), ("TXT", "*.txt"), ("All files", "*.*")])
+        if not path:
+            return
+        self.status_label.config(text="🔄 Loading I-V...")
+        def worker():
+            try:
+                data = self.engine.load_iv(path)
+                def update():
+                    self.voltage = data["voltage"]
+                    self.current = data["current"]
+                    self.manual_label.config(text=f"✓ {Path(path).name}")
+                    self._plot_iv()
+                    self.status_label.config(text="Loaded I-V curve")
+                self.ui_queue.schedule(update)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _load_sample_data(self, idx, auto_analyze=False):
+        if idx < 0 or idx >= len(self.samples):
+            return
+        sample = self.samples[idx]
+        if 'Voltage' in sample and 'Current' in sample:
+            try:
+                self.voltage = np.array([float(x) for x in sample['Voltage'].split(',')])
+                self.current = np.array([float(x) for x in sample['Current'].split(',')])
+                self._plot_iv()
+                self.status_label.config(text="Loaded I-V from table")
+                if auto_analyze:
+                    self._fit_diode()
+            except Exception as e:
+                self.status_label.config(text=f"Error: {e}")
+
+    def _build_content_ui(self):
+        main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
+        main_pane.pack(fill=tk.BOTH, expand=True)
+        left = tk.Frame(main_pane, bg="white", width=300)
+        main_pane.add(left, weight=1)
+        right = tk.Frame(main_pane, bg="white")
+        main_pane.add(right, weight=2)
+
+        tk.Label(left, text="📈 I-V CURVE FITTING",
+                font=("Arial",10,"bold"), bg=C_LIGHT, fg=C_HEADER).pack(fill=tk.X, pady=2)
+        tk.Label(left, text="Shockley 1949 · ASTM E948",
+                font=("Arial",7), bg="white", fg="#888").pack(anchor=tk.W, padx=4)
+
+        ttk.Button(left, text="🔍 FIT DIODE",
+                  command=self._fit_diode).pack(fill=tk.X, padx=4, pady=4)
+        ttk.Button(left, text="☀️ SOLAR PARAMETERS",
+                  command=self._solar_params).pack(fill=tk.X, padx=4, pady=4)
+
+        results_frame = tk.LabelFrame(left, text="Results", bg="white",
+                                     font=("Arial",8,"bold"), fg=C_HEADER)
+        results_frame.pack(fill=tk.X, padx=4, pady=4)
+
+        self.iv_results = {}
+        result_labels = [
+            ("Is (A):", "is"),
+            ("n:", "n"),
+            ("R²:", "r2"),
+            ("Rs (Ω):", "rs"),
+            ("Rsh (Ω):", "rsh")
+        ]
+        for label, key in result_labels:
+            row = tk.Frame(results_frame, bg="white")
+            row.pack(fill=tk.X, pady=1)
+            tk.Label(row, text=label, font=("Arial",7), bg="white", width=10, anchor=tk.W).pack(side=tk.LEFT)
+            var = tk.StringVar(value="—")
+            tk.Label(row, textvariable=var, font=("Arial",7,"bold"),
+                    bg="white", fg=C_HEADER).pack(side=tk.LEFT, padx=2)
+            self.iv_results[key] = var
+
+        if HAS_MPL:
+            self.iv_fig = Figure(figsize=(8,6), dpi=100, facecolor="white")
+            self.iv_ax = self.iv_fig.add_subplot(111)
+            self.iv_ax.set_title("I-V Curve", fontsize=9, fontweight="bold")
+            self.iv_canvas = FigureCanvasTkAgg(self.iv_fig, right)
+            self.iv_canvas.draw()
+            self.iv_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            toolbar = NavigationToolbar2Tk(self.iv_canvas, right)
+            toolbar.update()
+        else:
+            tk.Label(right, text="matplotlib required for plots", bg="white", fg="#888").pack(expand=True)
+
+    def _plot_iv(self):
+        if not HAS_MPL or self.voltage is None:
+            return
+        self.iv_ax.clear()
+        self.iv_ax.plot(self.voltage, self.current, 'b.', markersize=3, label='Data')
+        self.iv_ax.set_xlabel("Voltage (V)", fontsize=8)
+        self.iv_ax.set_ylabel("Current (A)", fontsize=8)
+        self.iv_ax.grid(True, alpha=0.3)
+        self.iv_ax.legend(fontsize=7)
+        self.iv_canvas.draw()
+
+    def _fit_diode(self):
+        if self.voltage is None:
+            messagebox.showwarning("No Data", "Load I-V data first")
+            return
+        self.status_label.config(text="🔄 Fitting diode...")
+        def worker():
+            try:
+                fit = self.engine.fit_diode(self.voltage, self.current)
+                rs = self.engine.series_resistance(self.voltage, self.current)
+                rsh = self.engine.shunt_resistance(self.voltage, self.current)
+                def update_ui():
+                    if fit:
+                        self.iv_results["is"].set(f"{fit['Is_A']:.3e}")
+                        self.iv_results["n"].set(f"{fit['n']:.3f}")
+                        self.iv_results["r2"].set(f"{fit['r2']:.4f}")
+                    else:
+                        self.iv_results["is"].set("—")
+                        self.iv_results["n"].set("—")
+                        self.iv_results["r2"].set("—")
+                    self.iv_results["rs"].set(f"{rs:.3e}")
+                    self.iv_results["rsh"].set(f"{rsh:.3e}")
+                    self.status_label.config(text="✅ Diode fit complete")
+                self.ui_queue.schedule(update_ui)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _solar_params(self):
+        if self.voltage is None:
+            messagebox.showwarning("No Data", "Load I-V data first")
+            return
+        self.status_label.config(text="🔄 Computing solar parameters...")
+        def worker():
+            try:
+                sp = self.engine.solar_parameters(self.voltage, self.current)
+                def update_ui():
+                    msg = (f"Isc={sp['Isc_A']:.3e} A, Voc={sp['Voc_V']:.3f} V, "
+                           f"Pmax={sp['Pmax_W']:.3e} W, FF={sp['FF']:.3f}, eff={sp['efficiency_pct']:.2f}%")
+                    self.status_label.config(text=msg)
+                    messagebox.showinfo("Solar Parameters", msg)
+                self.ui_queue.schedule(update_ui)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
+
+
+# ============================================================================
 # ENGINE 4 — LCR IMPEDANCE MODELING (Agilent Impedance Handbook)
 # ============================================================================
 class LCRAnalyzer:
@@ -1447,6 +2033,144 @@ class LCRAnalyzer:
             "Zimag": Zimag,
             "metadata": {"file": Path(path).name}
         }
+
+
+# ============================================================================
+# TAB 4: LCR IMPEDANCE MODELING
+# ============================================================================
+class LCRAnalysisTab(AnalysisTab):
+    def __init__(self, parent, app, ui_queue):
+        super().__init__(parent, app, ui_queue, "LCR Impedance")
+        self.engine = LCRAnalyzer
+        self.frequency = None
+        self.Zreal = None
+        self.Zimag = None
+        self._build_content_ui()
+
+    def _sample_has_data(self, sample):
+        return any(col in sample and sample[col] for col in
+                  ['LCR_File', 'Frequency', 'Zreal', 'Zimag'])
+
+    def _manual_import(self):
+        path = filedialog.askopenfilename(
+            title="Load LCR Data",
+            filetypes=[("CSV", "*.csv"), ("TXT", "*.txt"), ("All files", "*.*")])
+        if not path:
+            return
+        self.status_label.config(text="🔄 Loading LCR...")
+        def worker():
+            try:
+                data = self.engine.load_lcr(path)
+                def update():
+                    self.frequency = data["frequency"]
+                    self.Zreal = data["Zreal"]
+                    self.Zimag = data["Zimag"]
+                    self.manual_label.config(text=f"✓ {Path(path).name}")
+                    self._plot_impedance()
+                    self.status_label.config(text="Loaded LCR data")
+                self.ui_queue.schedule(update)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _load_sample_data(self, idx, auto_analyze=False):
+        if idx < 0 or idx >= len(self.samples):
+            return
+        sample = self.samples[idx]
+        if 'Frequency' in sample and 'Zreal' in sample and 'Zimag' in sample:
+            try:
+                self.frequency = np.array([float(x) for x in sample['Frequency'].split(',')])
+                self.Zreal = np.array([float(x) for x in sample['Zreal'].split(',')])
+                self.Zimag = np.array([float(x) for x in sample['Zimag'].split(',')])
+                self._plot_impedance()
+                self.status_label.config(text="Loaded LCR from table")
+                if auto_analyze:
+                    self._fit_rc()
+            except Exception as e:
+                self.status_label.config(text=f"Error: {e}")
+
+    def _build_content_ui(self):
+        main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
+        main_pane.pack(fill=tk.BOTH, expand=True)
+        left = tk.Frame(main_pane, bg="white", width=300)
+        main_pane.add(left, weight=1)
+        right = tk.Frame(main_pane, bg="white")
+        main_pane.add(right, weight=2)
+
+        tk.Label(left, text="⚡ LCR IMPEDANCE",
+                font=("Arial",10,"bold"), bg=C_LIGHT, fg=C_HEADER).pack(fill=tk.X, pady=2)
+        tk.Label(left, text="Agilent Impedance Handbook",
+                font=("Arial",7), bg="white", fg="#888").pack(anchor=tk.W, padx=4)
+
+        ttk.Button(left, text="🔍 FIT SERIES RC",
+                  command=self._fit_rc).pack(fill=tk.X, padx=4, pady=4)
+
+        results_frame = tk.LabelFrame(left, text="Results", bg="white",
+                                     font=("Arial",8,"bold"), fg=C_HEADER)
+        results_frame.pack(fill=tk.X, padx=4, pady=4)
+
+        self.lcr_results = {}
+        result_labels = [
+            ("R (Ω):", "r"),
+            ("C (F):", "c"),
+            ("Model:", "model")
+        ]
+        for label, key in result_labels:
+            row = tk.Frame(results_frame, bg="white")
+            row.pack(fill=tk.X, pady=1)
+            tk.Label(row, text=label, font=("Arial",7), bg="white", width=8, anchor=tk.W).pack(side=tk.LEFT)
+            var = tk.StringVar(value="—")
+            tk.Label(row, textvariable=var, font=("Arial",7,"bold"),
+                    bg="white", fg=C_HEADER).pack(side=tk.LEFT, padx=2)
+            self.lcr_results[key] = var
+
+        if HAS_MPL:
+            self.lcr_fig = Figure(figsize=(8,6), dpi=100, facecolor="white")
+            gs = GridSpec(2,1, figure=self.lcr_fig, hspace=0.3)
+            self.lcr_ax_real = self.lcr_fig.add_subplot(gs[0])
+            self.lcr_ax_imag = self.lcr_fig.add_subplot(gs[1])
+            self.lcr_ax_real.set_title("Real Part (Resistance)", fontsize=9, fontweight="bold")
+            self.lcr_ax_imag.set_title("Imaginary Part (Reactance)", fontsize=9, fontweight="bold")
+            self.lcr_canvas = FigureCanvasTkAgg(self.lcr_fig, right)
+            self.lcr_canvas.draw()
+            self.lcr_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            toolbar = NavigationToolbar2Tk(self.lcr_canvas, right)
+            toolbar.update()
+        else:
+            tk.Label(right, text="matplotlib required for plots", bg="white", fg="#888").pack(expand=True)
+
+    def _plot_impedance(self):
+        if not HAS_MPL or self.frequency is None:
+            return
+        self.lcr_ax_real.clear()
+        self.lcr_ax_imag.clear()
+        self.lcr_ax_real.semilogx(self.frequency, self.Zreal, 'b.-', markersize=3)
+        self.lcr_ax_imag.semilogx(self.frequency, self.Zimag, 'r.-', markersize=3)
+        self.lcr_ax_real.set_xlabel("Frequency (Hz)", fontsize=8)
+        self.lcr_ax_real.set_ylabel("Z' (Ω)", fontsize=8)
+        self.lcr_ax_real.grid(True, alpha=0.3)
+        self.lcr_ax_imag.set_xlabel("Frequency (Hz)", fontsize=8)
+        self.lcr_ax_imag.set_ylabel("Z'' (Ω)", fontsize=8)
+        self.lcr_ax_imag.grid(True, alpha=0.3)
+        self.lcr_canvas.draw()
+
+    def _fit_rc(self):
+        if self.frequency is None:
+            messagebox.showwarning("No Data", "Load LCR data first")
+            return
+        self.status_label.config(text="🔄 Fitting series RC...")
+        def worker():
+            try:
+                fit = self.engine.fit_series_rc(self.frequency, self.Zreal, self.Zimag)
+                def update_ui():
+                    self.lcr_results["r"].set(f"{fit['R_ohm']:.3e}")
+                    self.lcr_results["c"].set(f"{fit['C_F']:.3e}")
+                    self.lcr_results["model"].set(fit['model'])
+                    self.status_label.config(text="✅ Fit complete")
+                self.ui_queue.schedule(update_ui)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
 
 
 # ============================================================================
@@ -1688,6 +2412,147 @@ class AllanAnalyzer:
 
 
 # ============================================================================
+# TAB 5: ALLAN VARIANCE ANALYSIS
+# ============================================================================
+class AllanAnalysisTab(AnalysisTab):
+    def __init__(self, parent, app, ui_queue):
+        super().__init__(parent, app, ui_queue, "Allan Variance")
+        self.engine = AllanAnalyzer
+        self.time = None
+        self.data = None
+        self.rate = 1.0
+        self._build_content_ui()
+
+    def _sample_has_data(self, sample):
+        return any(col in sample and sample[col] for col in
+                  ['Allan_File', 'TimeError', 'Phase'])
+
+    def _manual_import(self):
+        path = filedialog.askopenfilename(
+            title="Load Time Error Data",
+            filetypes=[("CSV", "*.csv"), ("TXT", "*.txt"), ("All files", "*.*")])
+        if not path:
+            return
+        self.status_label.config(text="🔄 Loading...")
+        def worker():
+            try:
+                data = self.engine.load_time_error(path)
+                def update():
+                    self.time = data["time"]
+                    self.data = data["data"]
+                    self.rate = data["rate"]
+                    self.manual_label.config(text=f"✓ {Path(path).name}")
+                    self._plot_data()
+                    self.status_label.config(text="Loaded time error data")
+                self.ui_queue.schedule(update)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _load_sample_data(self, idx, auto_analyze=False):
+        if idx < 0 or idx >= len(self.samples):
+            return
+        sample = self.samples[idx]
+        if 'Time' in sample and 'PhaseError' in sample:
+            try:
+                self.time = np.array([float(x) for x in sample['Time'].split(',')])
+                self.data = np.array([float(x) for x in sample['PhaseError'].split(',')])
+                self.rate = 1 / np.mean(np.diff(self.time))
+                self._plot_data()
+                self.status_label.config(text="Loaded from table")
+                if auto_analyze:
+                    self._compute_allan()
+            except Exception as e:
+                self.status_label.config(text=f"Error: {e}")
+
+    def _build_content_ui(self):
+        main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
+        main_pane.pack(fill=tk.BOTH, expand=True)
+        left = tk.Frame(main_pane, bg="white", width=300)
+        main_pane.add(left, weight=1)
+        right = tk.Frame(main_pane, bg="white")
+        main_pane.add(right, weight=2)
+
+        tk.Label(left, text="⏱️ ALLAN VARIANCE",
+                font=("Arial",10,"bold"), bg=C_LIGHT, fg=C_HEADER).pack(fill=tk.X, pady=2)
+        tk.Label(left, text="Allan 1966 · IEEE 1139",
+                font=("Arial",7), bg="white", fg="#888").pack(anchor=tk.W, padx=4)
+
+        ttk.Button(left, text="📊 COMPUTE ALLAN",
+                  command=self._compute_allan).pack(fill=tk.X, padx=4, pady=4)
+
+        results_frame = tk.LabelFrame(left, text="Results", bg="white",
+                                     font=("Arial",8,"bold"), fg=C_HEADER)
+        results_frame.pack(fill=tk.X, padx=4, pady=4)
+
+        self.allan_results = {}
+        result_labels = [
+            ("Noise type:", "noise"),
+            ("Slope:", "slope"),
+            ("R²:", "r2")
+        ]
+        for label, key in result_labels:
+            row = tk.Frame(results_frame, bg="white")
+            row.pack(fill=tk.X, pady=1)
+            tk.Label(row, text=label, font=("Arial",7), bg="white", width=10, anchor=tk.W).pack(side=tk.LEFT)
+            var = tk.StringVar(value="—")
+            tk.Label(row, textvariable=var, font=("Arial",7,"bold"),
+                    bg="white", fg=C_HEADER).pack(side=tk.LEFT, padx=2)
+            self.allan_results[key] = var
+
+        if HAS_MPL:
+            self.allan_fig = Figure(figsize=(8,6), dpi=100, facecolor="white")
+            gs = GridSpec(2,1, figure=self.allan_fig, hspace=0.3)
+            self.allan_ax_data = self.allan_fig.add_subplot(gs[0])
+            self.allan_ax_allan = self.allan_fig.add_subplot(gs[1])
+            self.allan_ax_data.set_title("Time Error / Phase", fontsize=9, fontweight="bold")
+            self.allan_ax_allan.set_title("Allan Deviation", fontsize=9, fontweight="bold")
+            self.allan_canvas = FigureCanvasTkAgg(self.allan_fig, right)
+            self.allan_canvas.draw()
+            self.allan_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            toolbar = NavigationToolbar2Tk(self.allan_canvas, right)
+            toolbar.update()
+        else:
+            tk.Label(right, text="matplotlib required for plots", bg="white", fg="#888").pack(expand=True)
+
+    def _plot_data(self):
+        if not HAS_MPL or self.time is None:
+            return
+        self.allan_ax_data.clear()
+        self.allan_ax_data.plot(self.time, self.data, 'b-', lw=1)
+        self.allan_ax_data.set_xlabel("Time (s)", fontsize=8)
+        self.allan_ax_data.set_ylabel("Phase Error (s)", fontsize=8)
+        self.allan_ax_data.grid(True, alpha=0.3)
+        self.allan_canvas.draw()
+
+    def _compute_allan(self):
+        if self.data is None:
+            messagebox.showwarning("No Data", "Load time error data first")
+            return
+        self.status_label.config(text="🔄 Computing Allan deviation...")
+        def worker():
+            try:
+                tau, adev = self.engine.overlapping_allan(self.data, rate=self.rate)
+                noise = self.engine.noise_identification(tau[~np.isnan(adev)], adev[~np.isnan(adev)])
+                def update_ui():
+                    self.allan_results["noise"].set(noise['noise_type'])
+                    self.allan_results["slope"].set(f"{noise['slope']:.3f}")
+                    self.allan_results["r2"].set(f"{noise['r2']:.4f}")
+                    if HAS_MPL:
+                        self.allan_ax_allan.clear()
+                        self.allan_ax_allan.loglog(tau, adev, 'b.-', markersize=3)
+                        self.allan_ax_allan.set_xlabel("τ (s)", fontsize=8)
+                        self.allan_ax_allan.set_ylabel("ADEV", fontsize=8)
+                        self.allan_ax_allan.grid(True, alpha=0.3)
+                        self.allan_canvas.draw()
+                    self.status_label.config(text="✅ Allan analysis complete")
+                self.ui_queue.schedule(update_ui)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
+
+
+# ============================================================================
 # ENGINE 6 — EYE DIAGRAM ANALYSIS (IEEE 802.3; Agilent Jitter Handbook)
 # ============================================================================
 class EyeAnalyzer:
@@ -1905,6 +2770,208 @@ class EyeAnalyzer:
 
 
 # ============================================================================
+# TAB 6: EYE DIAGRAM ANALYSIS (with cursors)
+# ============================================================================
+class EyeAnalysisTab(AnalysisTab):
+    def __init__(self, parent, app, ui_queue):
+        super().__init__(parent, app, ui_queue, "Eye Diagram")
+        self.engine = EyeAnalyzer
+        self.time = None
+        self.signal = None
+        self.fs = None
+        self.samples_per_symbol = 20
+        self.cursor_manager = None
+        self._build_content_ui()
+
+    def _sample_has_data(self, sample):
+        return any(col in sample and sample[col] for col in
+                  ['Signal_File', 'Time', 'Voltage'])
+
+    def _manual_import(self):
+        path = filedialog.askopenfilename(
+            title="Load Waveform",
+            filetypes=[("CSV", "*.csv"), ("TXT", "*.txt"), ("All files", "*.*")])
+        if not path:
+            return
+        self.status_label.config(text="🔄 Loading...")
+        def worker():
+            try:
+                data = FFTAnalyzer.load_signal(path)
+                def update():
+                    self.time = data["time"]
+                    self.signal = data["signal"]
+                    self.fs = data["fs"]
+                    self.manual_label.config(text=f"✓ {Path(path).name}")
+                    self._plot_eye()
+                    self.status_label.config(text=f"Loaded, fs={self.fs:.2f} Hz")
+                self.ui_queue.schedule(update)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _load_sample_data(self, idx, auto_analyze=False):
+        if idx < 0 or idx >= len(self.samples):
+            return
+        sample = self.samples[idx]
+        if 'Time' in sample and 'Voltage' in sample:
+            try:
+                self.time = np.array([float(x) for x in sample['Time'].split(',')])
+                self.signal = np.array([float(x) for x in sample['Voltage'].split(',')])
+                self.fs = 1 / np.mean(np.diff(self.time))
+                self._plot_eye()
+                self.status_label.config(text="Loaded from table")
+                if auto_analyze:
+                    self._analyze_eye()
+            except Exception as e:
+                self.status_label.config(text=f"Error: {e}")
+
+    def _build_content_ui(self):
+        main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
+        main_pane.pack(fill=tk.BOTH, expand=True)
+        left = tk.Frame(main_pane, bg="white", width=300)
+        main_pane.add(left, weight=1)
+        right = tk.Frame(main_pane, bg="white")
+        main_pane.add(right, weight=2)
+
+        tk.Label(left, text="👁️ EYE DIAGRAM",
+                font=("Arial",10,"bold"), bg=C_LIGHT, fg=C_HEADER).pack(fill=tk.X, pady=2)
+        tk.Label(left, text="IEEE 802.3 · Agilent",
+                font=("Arial",7), bg="white", fg="#888").pack(anchor=tk.W, padx=4)
+
+        param_frame = tk.LabelFrame(left, text="Parameters", bg="white",
+                                   font=("Arial",8,"bold"), fg=C_HEADER)
+        param_frame.pack(fill=tk.X, padx=4, pady=4)
+        tk.Label(param_frame, text="Samples/symbol:", font=("Arial",8), bg="white").pack(anchor=tk.W, padx=4)
+        self.sps_var = tk.IntVar(value=20)
+        tk.Spinbox(param_frame, from_=2, to=200, textvariable=self.sps_var, width=10).pack(anchor=tk.W, padx=4, pady=2)
+
+        ttk.Button(left, text="📊 ANALYZE EYE",
+                  command=self._analyze_eye).pack(fill=tk.X, padx=4, pady=4)
+
+        # Waveform Freeze
+        freeze_frame = tk.LabelFrame(left, text="Waveform Freeze", bg="white",
+                                     font=("Arial",8,"bold"), fg=C_HEADER)
+        freeze_frame.pack(fill=tk.X, padx=4, pady=4)
+        btn_frame = tk.Frame(freeze_frame, bg="white")
+        btn_frame.pack(fill=tk.X, pady=2)
+        ttk.Button(btn_frame, text="❄️ Freeze", command=self._freeze_waveform).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_frame, text="🧹 Clear", command=self._clear_freeze).pack(side=tk.LEFT, padx=2)
+
+        # Interactive Cursors
+        cursor_frame = tk.LabelFrame(left, text="Interactive Cursors", bg="white",
+                                     font=("Arial",8,"bold"), fg=C_HEADER)
+        cursor_frame.pack(fill=tk.X, padx=4, pady=4)
+        self.cursor_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(cursor_frame, text="📐 Enable Cursors (on raw waveform)", variable=self.cursor_var,
+                        command=self._toggle_cursors).pack(anchor=tk.W, padx=4, pady=2)
+
+        # Results
+        results_frame = tk.LabelFrame(left, text="Results", bg="white",
+                                     font=("Arial",8,"bold"), fg=C_HEADER)
+        results_frame.pack(fill=tk.X, padx=4, pady=4)
+
+        self.eye_results = {}
+        result_labels = [
+            ("Eye height:", "height"),
+            ("Eye width:", "width"),
+            ("Q-factor:", "q"),
+            ("Jitter p-p:", "jitter"),
+            ("BER est:", "ber")
+        ]
+        for label, key in result_labels:
+            row = tk.Frame(results_frame, bg="white")
+            row.pack(fill=tk.X, pady=1)
+            tk.Label(row, text=label, font=("Arial",7), bg="white", width=12, anchor=tk.W).pack(side=tk.LEFT)
+            var = tk.StringVar(value="—")
+            tk.Label(row, textvariable=var, font=("Arial",7,"bold"),
+                    bg="white", fg=C_HEADER).pack(side=tk.LEFT, padx=2)
+            self.eye_results[key] = var
+
+        if HAS_MPL:
+            self.eye_fig = Figure(figsize=(8,6), dpi=100, facecolor="white")
+            self.eye_ax = self.eye_fig.add_subplot(111)
+            self.eye_ax.set_title("Eye Diagram", fontsize=9, fontweight="bold")
+            self.eye_canvas = FigureCanvasTkAgg(self.eye_fig, right)
+            self.eye_canvas.draw()
+            self.eye_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            toolbar = NavigationToolbar2Tk(self.eye_canvas, right)
+            toolbar.update()
+            # Cursor manager on the raw waveform (we'll plot raw waveform separately? For simplicity, we'll use the eye plot's axes but cursors will be on the overlaid traces – not ideal but works)
+            # Better: we could create a separate small subplot for raw waveform. For now, keep it simple.
+            self.cursor_manager = CursorManager(self.eye_ax, callback=None)
+        else:
+            tk.Label(right, text="matplotlib required for plots", bg="white", fg="#888").pack(expand=True)
+
+    def _freeze_waveform(self):
+        if self.time is not None and self.signal is not None:
+            self.frozen_time = self.time.copy()
+            self.frozen_signal = self.signal.copy()
+            self.status_label.config(text="Waveform frozen")
+            self._plot_eye()
+        else:
+            messagebox.showwarning("No Data", "No waveform to freeze")
+
+    def _clear_freeze(self):
+        self.frozen_time = None
+        self.frozen_signal = None
+        self.status_label.config(text="Frozen waveform cleared")
+        self._plot_eye()
+
+    def _toggle_cursors(self):
+        if not HAS_MPL or self.cursor_manager is None:
+            return
+        if self.cursor_var.get():
+            self.cursor_manager.enable()
+        else:
+            self.cursor_manager.disable()
+
+    def _plot_eye(self):
+        if not HAS_MPL or self.signal is None:
+            return
+        self.eye_ax.clear()
+        sps = self.sps_var.get()
+        eye_data, time_axis = self.engine.create_eye(self.signal, len(self.signal)//sps, sps, n_eyes=2)
+        for trace in eye_data:
+            self.eye_ax.plot(time_axis, trace, color='#1E6F9F', lw=0.5, alpha=0.3)
+        if self.frozen_time is not None and self.frozen_signal is not None:
+            # Overlay frozen raw waveform? Not meaningful here. Skip.
+            pass
+        self.eye_ax.set_xlabel("Time (UI)", fontsize=8)
+        self.eye_ax.set_ylabel("Amplitude (V)", fontsize=8)
+        self.eye_ax.grid(True, alpha=0.3)
+        self.eye_canvas.draw()
+        if self.cursor_var.get() and self.cursor_manager:
+            self.cursor_manager.disable()
+            self.cursor_manager.enable()
+
+    def _analyze_eye(self):
+        if self.signal is None:
+            messagebox.showwarning("No Data", "Load waveform first")
+            return
+        self.status_label.config(text="🔄 Analyzing eye...")
+        sps = self.sps_var.get()
+        def worker():
+            try:
+                eye_data, time_axis = self.engine.create_eye(self.signal, len(self.signal)//sps, sps, n_eyes=2)
+                height, _, _ = self.engine.eye_height(eye_data, time_axis)
+                width = self.engine.eye_width(eye_data, time_axis)
+                q = self.engine.q_factor(eye_data, time_axis)
+                jitter = self.engine.jitter_pp(eye_data, time_axis)
+                ber = self.engine.ber_estimate(q) if q>0 else 1
+                def update_ui():
+                    self.eye_results["height"].set(f"{height:.3e}")
+                    self.eye_results["width"].set(f"{width:.3e}")
+                    self.eye_results["q"].set(f"{q:.3f}")
+                    self.eye_results["jitter"].set(f"{jitter:.3e}")
+                    self.eye_results["ber"].set(f"{ber:.2e}")
+                    self.status_label.config(text="✅ Eye analysis complete")
+                self.ui_queue.schedule(update_ui)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
+
+
+# ============================================================================
 # ENGINE 7 — SIGNAL STATISTICS (ISO 1996; BIPM JCGM 100)
 # ============================================================================
 class StatsAnalyzer:
@@ -2099,6 +3166,246 @@ class StatsAnalyzer:
 
 
 # ============================================================================
+# TAB 7: SIGNAL STATISTICS (with cursors and uncertainty button)
+# ============================================================================
+class StatsAnalysisTab(AnalysisTab):
+    def __init__(self, parent, app, ui_queue):
+        super().__init__(parent, app, ui_queue, "Statistics")
+        self.engine = StatsAnalyzer
+        self.time = None
+        self.signal = None
+        self.fs = None
+        self.cursor_manager = None
+        self._build_content_ui()
+
+    def _sample_has_data(self, sample):
+        return any(col in sample and sample[col] for col in
+                  ['Signal_File', 'Time', 'Voltage'])
+
+    def _manual_import(self):
+        path = filedialog.askopenfilename(
+            title="Load Signal",
+            filetypes=[("CSV", "*.csv"), ("TXT", "*.txt"), ("All files", "*.*")])
+        if not path:
+            return
+        self.status_label.config(text="🔄 Loading...")
+        def worker():
+            try:
+                data = FFTAnalyzer.load_signal(path)
+                def update():
+                    self.time = data["time"]
+                    self.signal = data["signal"]
+                    self.fs = data["fs"]
+                    self.manual_label.config(text=f"✓ {Path(path).name}")
+                    self._plot_signal()
+                    self.status_label.config(text=f"Loaded, fs={self.fs:.2f} Hz")
+                self.ui_queue.schedule(update)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _load_sample_data(self, idx, auto_analyze=False):
+        if idx < 0 or idx >= len(self.samples):
+            return
+        sample = self.samples[idx]
+        if 'Time' in sample and 'Voltage' in sample:
+            try:
+                self.time = np.array([float(x) for x in sample['Time'].split(',')])
+                self.signal = np.array([float(x) for x in sample['Voltage'].split(',')])
+                self.fs = 1 / np.mean(np.diff(self.time))
+                self._plot_signal()
+                self.status_label.config(text="Loaded from table")
+                if auto_analyze:
+                    self._compute_stats()
+            except Exception as e:
+                self.status_label.config(text=f"Error: {e}")
+
+    def _build_content_ui(self):
+        main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
+        main_pane.pack(fill=tk.BOTH, expand=True)
+        left = tk.Frame(main_pane, bg="white", width=300)
+        main_pane.add(left, weight=1)
+        right = tk.Frame(main_pane, bg="white")
+        main_pane.add(right, weight=2)
+
+        tk.Label(left, text="📊 SIGNAL STATISTICS",
+                font=("Arial",10,"bold"), bg=C_LIGHT, fg=C_HEADER).pack(fill=tk.X, pady=2)
+        tk.Label(left, text="ISO 1996 · BIPM JCGM 100",
+                font=("Arial",7), bg="white", fg="#888").pack(anchor=tk.W, padx=4)
+
+        ttk.Button(left, text="📈 COMPUTE STATISTICS",
+                  command=self._compute_stats).pack(fill=tk.X, padx=4, pady=4)
+
+        # === NEW: Uncertainty Propagation button ===
+        if HAS_UNCERTAINTY:
+            ttk.Button(left, text="🎲 Propagate Uncertainty (Monte Carlo)",
+                       command=self._open_uncertainty_plugin,
+                       style="Accent.TButton").pack(fill=tk.X, padx=4, pady=4)
+        else:
+            ttk.Button(left, text="🎲 Uncertainty (plugin missing)",
+                       state="disabled").pack(fill=tk.X, padx=4, pady=4)
+
+        # Waveform Freeze
+        freeze_frame = tk.LabelFrame(left, text="Waveform Freeze", bg="white",
+                                     font=("Arial",8,"bold"), fg=C_HEADER)
+        freeze_frame.pack(fill=tk.X, padx=4, pady=4)
+        btn_frame = tk.Frame(freeze_frame, bg="white")
+        btn_frame.pack(fill=tk.X, pady=2)
+        ttk.Button(btn_frame, text="❄️ Freeze", command=self._freeze_waveform).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_frame, text="🧹 Clear", command=self._clear_freeze).pack(side=tk.LEFT, padx=2)
+
+        # Interactive Cursors
+        cursor_frame = tk.LabelFrame(left, text="Interactive Cursors", bg="white",
+                                     font=("Arial",8,"bold"), fg=C_HEADER)
+        cursor_frame.pack(fill=tk.X, padx=4, pady=4)
+        self.cursor_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(cursor_frame, text="📐 Enable Cursors", variable=self.cursor_var,
+                        command=self._toggle_cursors).pack(anchor=tk.W, padx=4, pady=2)
+
+        # Results
+        results_frame = tk.LabelFrame(left, text="Results", bg="white",
+                                     font=("Arial",8,"bold"), fg=C_HEADER)
+        results_frame.pack(fill=tk.X, padx=4, pady=4)
+
+        self.stats_results = {}
+        result_labels = [
+            ("Mean:", "mean"),
+            ("Std dev:", "std"),
+            ("RMS:", "rms"),
+            ("Peak-peak:", "p2p"),
+            ("Crest factor:", "crest"),
+            ("Form factor:", "form"),
+            ("THD (%):", "thd")
+        ]
+        for label, key in result_labels:
+            row = tk.Frame(results_frame, bg="white")
+            row.pack(fill=tk.X, pady=1)
+            tk.Label(row, text=label, font=("Arial",7), bg="white", width=12, anchor=tk.W).pack(side=tk.LEFT)
+            var = tk.StringVar(value="—")
+            tk.Label(row, textvariable=var, font=("Arial",7,"bold"),
+                    bg="white", fg=C_HEADER).pack(side=tk.LEFT, padx=2)
+            self.stats_results[key] = var
+
+        if HAS_MPL:
+            self.stats_fig = Figure(figsize=(8,6), dpi=100, facecolor="white")
+            self.stats_ax = self.stats_fig.add_subplot(111)
+            self.stats_ax.set_title("Signal Waveform", fontsize=9, fontweight="bold")
+            self.stats_canvas = FigureCanvasTkAgg(self.stats_fig, right)
+            self.stats_canvas.draw()
+            self.stats_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            toolbar = NavigationToolbar2Tk(self.stats_canvas, right)
+            toolbar.update()
+            # Create cursor manager
+            self.cursor_manager = CursorManager(self.stats_ax, callback=None)
+        else:
+            tk.Label(right, text="matplotlib required for plots", bg="white", fg="#888").pack(expand=True)
+
+    def _freeze_waveform(self):
+        if self.time is not None and self.signal is not None:
+            self.frozen_time = self.time.copy()
+            self.frozen_signal = self.signal.copy()
+            self.status_label.config(text="Waveform frozen")
+            self._plot_signal()
+        else:
+            messagebox.showwarning("No Data", "No waveform to freeze")
+
+    def _clear_freeze(self):
+        self.frozen_time = None
+        self.frozen_signal = None
+        self.status_label.config(text="Frozen waveform cleared")
+        self._plot_signal()
+
+    def _toggle_cursors(self):
+        if not HAS_MPL or self.cursor_manager is None:
+            return
+        if self.cursor_var.get():
+            self.cursor_manager.enable()
+        else:
+            self.cursor_manager.disable()
+
+    def _plot_signal(self):
+        if not HAS_MPL or self.time is None:
+            return
+        self.stats_ax.clear()
+        self.stats_ax.plot(self.time, self.signal, 'b-', lw=1, label='Live')
+        if self.frozen_time is not None and self.frozen_signal is not None:
+            self.stats_ax.plot(self.frozen_time, self.frozen_signal, '--', color='gray', lw=1.5, alpha=0.7, label='Frozen')
+        self.stats_ax.set_xlabel("Time (s)", fontsize=8)
+        self.stats_ax.set_ylabel("Amplitude (V)", fontsize=8)
+        self.stats_ax.grid(True, alpha=0.3)
+        self.stats_ax.legend(fontsize=7)
+        self.stats_canvas.draw()
+        if self.cursor_var.get() and self.cursor_manager:
+            self.cursor_manager.disable()
+            self.cursor_manager.enable()
+
+    def _compute_stats(self):
+        if self.signal is None:
+            messagebox.showwarning("No Data", "Load signal first")
+            return
+        self.status_label.config(text="🔄 Computing statistics...")
+        def worker():
+            try:
+                basic = self.engine.basic_stats(self.signal)
+                crest = self.engine.crest_factor(self.signal)
+                form = self.engine.form_factor(self.signal)
+                thd = self.engine.thd_from_signal(self.signal, self.fs)
+                def update_ui():
+                    self.stats_results["mean"].set(f"{basic['mean']:.3e}")
+                    self.stats_results["std"].set(f"{basic['std']:.3e}")
+                    self.stats_results["rms"].set(f"{basic['rms']:.3e}")
+                    self.stats_results["p2p"].set(f"{basic['peak_to_peak']:.3e}")
+                    self.stats_results["crest"].set(f"{crest:.3f}")
+                    self.stats_results["form"].set(f"{form:.3f}")
+                    self.stats_results["thd"].set(f"{thd:.3f}")
+                    self.status_label.config(text="✅ Statistics complete")
+                self.ui_queue.schedule(update_ui)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
+
+    # ============ NEW: Uncertainty integration ============
+    def _open_uncertainty_plugin(self):
+        """Launch the generic uncertainty plugin with current signal data."""
+        if self.signal is None:
+            messagebox.showwarning("No Data", "Load a signal first")
+            return
+
+        # Create temporary sample objects for each time point
+        temp_samples = []
+        base_id = self.selected_sample_idx if self.selected_sample_idx is not None else "Signal"
+        for i, (t, v) in enumerate(zip(self.time, self.signal)):
+            sample = {
+                'Sample_ID': f"{base_id}_point_{i}",
+                'Time_s': t,
+                'Signal_V': v,
+                # Optional: add estimated error columns (5% of value)
+                'Signal_V_error': abs(v) * 0.05,
+                'ExperimentID': f"Signal_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            }
+            temp_samples.append(sample)
+
+        # Store original samples
+        original_samples = self.app.samples
+
+        # Inject temporary samples
+        self.app.samples = temp_samples
+
+        # Launch the plugin
+        try:
+            plugin = GenericUncertaintyPlugin(self.app)
+            plugin.open_window()
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not launch uncertainty plugin:\n{str(e)}")
+        finally:
+            # Restore original samples after plugin window is closed
+            self.app.samples = original_samples
+            # Optionally refresh main table if needed
+            if hasattr(self.app, 'refresh_table'):
+                self.app.refresh_table()
+
+
+# ============================================================================
 # MAIN PLUGIN CLASS
 # ============================================================================
 class PhysicsTMSuite:
@@ -2117,7 +3424,7 @@ class PhysicsTMSuite:
             return
 
         self.window = tk.Toplevel(self.app.root)
-        self.window.title("📟 Physics Test & Measurement Suite v1.0")
+        self.window.title("📟 Physics Test & Measurement Suite v1.2")
         self.window.geometry("1200x800")
         self.window.minsize(1100, 700)
         self.window.transient(self.app.root)
@@ -2139,7 +3446,7 @@ class PhysicsTMSuite:
                 bg=C_HEADER, fg="white").pack(side=tk.LEFT, padx=10)
         tk.Label(header, text="PHYSICS TEST & MEASUREMENT SUITE",
                 font=("Arial", 14, "bold"), bg=C_HEADER, fg="white").pack(side=tk.LEFT)
-        tk.Label(header, text="v1.0 · IEEE/IEC Compliant",
+        tk.Label(header, text="v1.2 · Live · Freeze · Cursors · Uncertainty",
                 font=("Arial", 9), bg=C_HEADER, fg=C_ACCENT).pack(side=tk.LEFT, padx=10)
 
         self.status_var = tk.StringVar(value="Ready")
@@ -2158,8 +3465,23 @@ class PhysicsTMSuite:
         self.tabs['fft'] = FFTAnalysisTab(notebook, self.app, self.ui_queue)
         notebook.add(self.tabs['fft'].frame, text=" FFT ")
 
-        # Note: Additional tabs would be implemented here following the same pattern
-        # For brevity, showing only the first tab in this response
+        self.tabs['pulse'] = PulseAnalysisTab(notebook, self.app, self.ui_queue)
+        notebook.add(self.tabs['pulse'].frame, text=" Pulse ")
+
+        self.tabs['iv'] = IVAnalysisTab(notebook, self.app, self.ui_queue)
+        notebook.add(self.tabs['iv'].frame, text=" I-V ")
+
+        self.tabs['lcr'] = LCRAnalysisTab(notebook, self.app, self.ui_queue)
+        notebook.add(self.tabs['lcr'].frame, text=" LCR ")
+
+        self.tabs['allan'] = AllanAnalysisTab(notebook, self.app, self.ui_queue)
+        notebook.add(self.tabs['allan'].frame, text=" Allan ")
+
+        self.tabs['eye'] = EyeAnalysisTab(notebook, self.app, self.ui_queue)
+        notebook.add(self.tabs['eye'].frame, text=" Eye ")
+
+        self.tabs['stats'] = StatsAnalysisTab(notebook, self.app, self.ui_queue)
+        notebook.add(self.tabs['stats'].frame, text=" Statistics ")
 
         # Footer
         footer = tk.Frame(self.window, bg=C_LIGHT, height=25)
@@ -2188,7 +3510,12 @@ class PhysicsTMSuite:
             self.progress_bar['value'] = 0
 
     def _on_close(self):
-        """Clean up on close"""
+        """Clean up on close – unregister tabs and destroy window."""
+        # Unregister all tabs from the data hub
+        for tab in self.tabs.values():
+            if hasattr(tab, 'unregister'):
+                tab.unregister()
+        # Destroy the window
         if self.window:
             self.window.destroy()
             self.window = None

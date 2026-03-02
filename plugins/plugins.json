@@ -300,6 +300,18 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/sql_console.py?ref_type=heads"
   },
   {
+    "id": "statistical_console",
+    "name": "Statistical Console",
+    "version": "1.0",
+    "description": "Simple statistical commands for data analysis",
+    "author": "Unknown",
+    "category": "add-ons",
+    "field": "General",
+    "icon": "\ud83d\udcca",
+    "requires": [],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/statistical_console.py?ref_type=heads"
+  },
+  {
     "id": "ternary_plotter",
     "name": "Ternary Diagram Plotter",
     "version": "2.0",
@@ -316,9 +328,9 @@
   },
   {
     "id": "toolkit_ai",
-    "name": "Toolkit AI Assistant",
-    "version": "1.0",
-    "description": "Local AI that learns from your workflow and installed components",
+    "name": "Toolkit AI",
+    "version": "2.3",
+    "description": "Full-codebase AI assistant \u2014 deep knowledge of all plugins, schemes, hardware, and workflows!",
     "author": "Unknown",
     "category": "add-ons",
     "field": "General",
@@ -327,10 +339,22 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/toolkit_ai.py?ref_type=heads"
   },
   {
+    "id": "universal_exporter",
+    "name": "Universal Exporter",
+    "version": "2.1",
+    "description": "Export samples, results, or plots to many scientific formats.",
+    "author": "Unknown",
+    "category": "add-ons",
+    "field": "General",
+    "icon": "\ud83d\udcbe",
+    "requires": [],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/add-ons/universal_exporter.py?ref_type=heads"
+  },
+  {
     "id": "electrochemistry_analysis_suite",
     "name": "Electrochemistry Suite",
-    "version": "1.0.0",
-    "description": "CV \u00b7 EIS \u00b7 Tafel \u00b7 Battery \u00b7 Chrono \u00b7 RDE \u2014 Industry standard methods",
+    "version": "1.2.0",
+    "description": "CV \u00b7 EIS \u00b7 Tafel \u00b7 Battery \u00b7 Chrono \u00b7 RDE \u00b7 DRT \u00b7 MC Uncertainty",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
     "field": "Electrochemistry",
@@ -339,7 +363,8 @@
       "numpy",
       "pandas",
       "scipy",
-      "matplotlib"
+      "matplotlib",
+      "pyimpspec"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/electrochemistry_analysis_suite.py?ref_type=heads"
   },
@@ -357,6 +382,24 @@
       "bs4"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/museum_import.py?ref_type=heads"
+  },
+  {
+    "id": "advanced_chem_ms_suite",
+    "name": "Advanced Chemometrics & MS",
+    "version": "1.1.0",
+    "description": "PCA/PLS \u00b7 MS Deconvolution \u00b7 AMDIS \u00b7 Spectral Matching",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "field": "Chromatography & Analytical Chemistry",
+    "icon": "\ud83d\udcca",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib",
+      "scikit-learn"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/advanced_chem_ms_suite.py?ref_type=heads"
   },
   {
     "id": "advanced_export",
@@ -404,6 +447,24 @@
       "matplotlib"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/advanced_normative_calculations.py?ref_type=heads"
+  },
+  {
+    "id": "advanced_spectroscopy_suite_compact",
+    "name": "Advanced Spectroscopy Suite",
+    "version": "1.5.0",
+    "description": "Hyper \u00b7 Wizard \u00b7 Apply \u00b7 Batch \u00b7 Kinetics \u00b7 Diagnostics",
+    "author": "Sefy Levy & DeepSeek",
+    "category": "software",
+    "field": "Spectroscopy",
+    "icon": "\u26a1",
+    "requires": [
+      "numpy",
+      "pandas",
+      "scipy",
+      "matplotlib",
+      "joblib"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/advanced_spectroscopy_suite.py?ref_type=heads"
   },
   {
     "id": "ague_hg_mobility",
@@ -460,9 +521,9 @@
   {
     "id": "chromatography_analysis_suite",
     "name": "Chromatography Suite",
-    "version": "1.0.0",
-    "description": "Peak integration \u00b7 Kovats indices \u00b7 AMDIS \u00b7 NMR FID \u00b7 Standard curves \u00b7 Resolution \u00b7 Peak purity \u2014 USP/ICH compliant",
-    "author": "Sefy Levy & Claude",
+    "version": "2.1.0",
+    "description": "Peak integration \u00b7 Kovats indices \u00b7 AMDIS \u00b7 NMR FID \u00b7 Standard curves \u00b7 Resolution \u00b7 Peak purity \u00b7 matchms \u00b7 nmrglue",
+    "author": "Sefy Levy & DeepSeek",
     "category": "software",
     "field": "Chromatography & Analytical Chemistry",
     "icon": "\ud83e\uddea",
@@ -642,8 +703,8 @@
   {
     "id": "physics_test_measurement_suite",
     "name": "Physics TM Suite",
-    "version": "1.0.0",
-    "description": "FFT \u00b7 Pulse \u00b7 I-V \u00b7 LCR \u00b7 Allan \u00b7 Eye \u00b7 Statistics \u2014 IEEE/IEC compliant",
+    "version": "1.2.0",
+    "description": "FFT \u00b7 Pulse \u00b7 I-V \u00b7 LCR \u00b7 Allan \u00b7 Eye \u00b7 Statistics \u2014 Live, Freeze, Cursors, Uncertainty",
     "author": "Sefy Levy & Claude",
     "category": "software",
     "field": "Physics & Test/Measurement",
@@ -759,29 +820,11 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/spatial_kriging.py?ref_type=heads"
   },
   {
-    "id": "spectral_toolbox",
-    "name": "Spectral Processing Toolbox",
-    "version": "2.0",
-    "description": "MATLAB-like spectral analysis: peak detection, baseline correction, smoothing, derivatives, peak fitting",
-    "author": "Sefy Levy / AI Enhanced",
-    "category": "software",
-    "field": "Spectroscopy",
-    "icon": "\ud83d\udcc9",
-    "requires": [
-      "numpy",
-      "scipy",
-      "pybaselines",
-      "lmfit",
-      "matplotlib"
-    ],
-    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/spectral_toolbox.py?ref_type=heads"
-  },
-  {
     "id": "spectroscopy_analysis_suite",
     "name": "Spectroscopy Analysis Suite",
-    "version": "1.0.0",
-    "description": "Library Search \u00b7 Calibration \u00b7 Baseline \u00b7 Peaks \u00b7 MCR \u00b7 Preprocessing \u00b7 Intensity \u2014 ASTM/NIST compliant",
-    "author": "Sefy Levy & Claude",
+    "version": "1.1.0",
+    "description": "Library Search \u00b7 Calibration \u00b7 Baseline \u00b7 Peaks \u00b7 MCR \u00b7 Preprocessing \u00b7 Intensity \u2014 ASTM/NIST compliant + new advanced features",
+    "author": "Sefy Levy & DeepSeek",
     "category": "software",
     "field": "Spectroscopy",
     "icon": "\ud83d\udd2c",
@@ -789,7 +832,8 @@
       "numpy",
       "pandas",
       "scipy",
-      "matplotlib"
+      "matplotlib",
+      "nistchempy"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/spectroscopy_analysis_suite.py?ref_type=heads"
   },
@@ -847,11 +891,11 @@
   {
     "id": "uncertainty_propagation",
     "name": "Uncertainty Propagation",
-    "version": "1.0.2",
-    "description": "Monte Carlo classification, confidence ellipses, error propagation - NOW with Fast Mode & Safe Fallback!",
+    "version": "2.1.0",
+    "description": "Monte Carlo confidence ellipses & error propagation \u2013 now with table write\u2011back",
     "author": "Sefy Levy",
     "category": "software",
-    "field": "Geology & Geochemistry",
+    "field": "General",
     "icon": "\ud83c\udfb2",
     "requires": [
       "numpy",
@@ -950,9 +994,9 @@
   {
     "id": "geophysics_analysis_suite",
     "name": "Geophysics Analysis Suite",
-    "version": "1.0.0",
-    "description": "Seismic \u00b7 ERT \u00b7 Gravity \u00b7 Magnetics \u00b7 MT \u00b7 GPR \u00b7 Attributes \u2014 Industry standard methods",
-    "author": "Sefy Levy & Claude",
+    "version": "2.5.0",
+    "description": "Seismic \u00b7 ERT \u00b7 Gravity \u00b7 Magnetics \u00b7 MT \u00b7 GPR \u00b7 Attributes \u2014 with migration, GIS, time\u2011lapse, joint inversion",
+    "author": "Sefy Levy & DeepSeek",
     "category": "software",
     "field": "Geophysics",
     "icon": "\ud83c\udf0d",
@@ -960,7 +1004,15 @@
       "numpy",
       "pandas",
       "scipy",
-      "matplotlib"
+      "matplotlib",
+      "obspy",
+      "pygimli",
+      "pyproj",
+      "pyvista",
+      "mtpy",
+      "harmonica",
+      "h5py",
+      "folium"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/geophysics_analysis_suite.py?ref_type=heads"
   },
@@ -1174,8 +1226,8 @@
   {
     "id": "chromatography_analytical_unified_suite",
     "name": "Chromatography & Analytical",
-    "version": "1.0.0",
-    "description": "GC \u00b7 HPLC \u00b7 IC \u00b7 MS \u00b7 NMR \u00b7 Plate Readers \u00b7 Flow Cytometry \u00b7 Titrators \u00b7 CE",
+    "version": "1.2.0",
+    "description": "GC \u00b7 HPLC \u00b7 IC \u00b7 MS \u00b7 NMR \u00b7 Plate Readers \u00b7 Flow Cytometry \u00b7 Titrators \u00b7 CE \u00b7 Empower",
     "author": "Analytical Chemistry Team",
     "category": "hardware",
     "field": "General",

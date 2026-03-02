@@ -55,7 +55,8 @@ from pathlib import Path
 import platform
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, Any, Callable, Union
-from enum import Enum  # <--- ADD THIS LINE
+from enum import Enum
+from collections import deque   # <--- for history
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -72,7 +73,7 @@ except ImportError:
 try:
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
-    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
     from matplotlib.patches import Rectangle, Polygon
     HAS_MPL = True
 except ImportError:
@@ -215,6 +216,16 @@ def check_dependencies():
     return deps
 
 DEPS = check_dependencies()
+
+# ============================================================================
+# COLOR PALETTE (for Live tab)
+# ============================================================================
+C_HEADER   = "#1A1A2E"
+C_ACCENT   = "#E94560"
+C_ACCENT2  = "#0F3460"
+C_LIGHT    = "#F8F9FA"
+C_STATUS   = "#28A745"
+C_WARN     = "#DC3545"
 
 # ============================================================================
 # ENUMS - INSTRUMENT CLASSIFICATION
@@ -1618,59 +1629,133 @@ class UniversalFileParser:
             return None
 
     @staticmethod
-    def _parse_csv(filepath: str) -> Optional[Spectrum]:
-        """Parse CSV/ASCII files"""
+    def _parse_csv(filepath: str):
+        """
+        Parse CSV/ASCII files.
+        Returns a single Spectrum if the file has exactly two columns,
+        otherwise returns a list of Spectrum objects (one per column).
+        """
         x = []
-        y = []
+        y_columns = {}          # column index -> list of y values
         metadata = {}
+        header = None
+        delim = None
 
         with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-            for line in f:
+            first = f.readline().strip()
+            if not first:
+                return None
+
+            # Guess delimiter
+            if ',' in first:
+                delim = ','
+            elif '\t' in first:
+                delim = '\t'
+            else:
+                delim = ' '   # fallback, may cause issues
+
+            parts = first.split(delim)
+
+            # Determine if first line is header (contains non‑numeric strings)
+            def is_number(s):
+                try:
+                    float(s)
+                    return True
+                except:
+                    return False
+
+            is_header = not all(is_number(p) for p in parts)
+            if is_header:
+                header = parts
+                data_lines = f.readlines()
+            else:
+                # No header, rewind and read all lines
+                f.seek(0)
+                data_lines = f.readlines()
+
+            for line in data_lines:
                 line = line.strip()
                 if not line:
                     continue
 
-                # Extract metadata
+                # Metadata lines (e.g. # key=value)
                 if line.startswith('#') and '=' in line:
-                    parts = line[1:].split('=', 1)
-                    if len(parts) == 2:
-                        metadata[parts[0].strip()] = parts[1].strip()
+                    kv = line[1:].split('=', 1)
+                    if len(kv) == 2:
+                        metadata[kv[0].strip()] = kv[1].strip()
                     continue
 
-                # Parse data
-                for sep in [',', '\t', ' ']:
-                    parts = line.split(sep)
-                    if len(parts) >= 2:
-                        try:
-                            x.append(float(parts[0]))
-                            y.append(float(parts[1]))
-                            break
-                        except:
-                            continue
+                parts = line.split(delim)
+                if len(parts) < 2:
+                    continue
 
-        if x and y:
-            # Detect technique from metadata
-            technique = InstrumentType.UNKNOWN
-            if 'raman' in filepath.lower() or 'cm-1' in metadata.get('xunits', ''):
-                technique = InstrumentType.RAMAN
-            elif 'ftir' in filepath.lower() or 'ir' in filepath.lower():
-                technique = InstrumentType.FTIR
-            elif 'uv' in filepath.lower() or 'vis' in filepath.lower():
-                technique = InstrumentType.UVVIS
-            elif 'nir' in filepath.lower():
-                technique = InstrumentType.NIR
+                try:
+                    x_val = float(parts[0])
+                except:
+                    continue
 
-            return Spectrum(
+                y_vals = []
+                ok = True
+                for i in range(1, len(parts)):
+                    try:
+                        y_vals.append(float(parts[i]))
+                    except:
+                        ok = False
+                        break
+                if not ok:
+                    continue
+
+                x.append(x_val)
+                for idx, yv in enumerate(y_vals):
+                    col = idx + 1  # columns after the first
+                    y_columns.setdefault(col, []).append(yv)
+
+        if not x or not y_columns:
+            return None
+
+        # Determine technique from filename or metadata
+        tech = InstrumentType.UNKNOWN
+        fname_low = filepath.lower()
+        if 'raman' in fname_low or 'cm-1' in metadata.get('xunits', ''):
+            tech = InstrumentType.RAMAN
+        elif 'ftir' in fname_low or 'ir' in fname_low or 'wavenumber' in fname_low:
+            tech = InstrumentType.FTIR
+        elif 'uv' in fname_low or 'vis' in fname_low:
+            tech = InstrumentType.UVVIS
+        elif 'nir' in fname_low:
+            tech = InstrumentType.NIR
+
+        spectra = []
+        for col, ylist in y_columns.items():
+            # Trim to same length (in case of missing values)
+            min_len = min(len(x), len(ylist))
+            x_use = x[:min_len]
+            y_use = ylist[:min_len]
+
+            # Sample name: use header if available, otherwise fallback
+            if header and col < len(header):
+                sample_id = header[col].strip()
+            else:
+                sample_id = f"{Path(filepath).stem}_col{col}"
+
+            spec = Spectrum(
                 timestamp=datetime.fromtimestamp(os.path.getmtime(filepath)),
-                sample_id=Path(filepath).stem,
+                sample_id=sample_id,
                 instrument="File Import",
-                technique=technique,
-                x_data=np.array(x),
-                y_data=np.array(y),
+                technique=tech,
+                x_data=np.array(x_use),
+                y_data=np.array(y_use),
                 file_source=filepath,
                 metadata=metadata
             )
-        return None
+            # Assign labels
+            if header and len(header) > 0:
+                spec.x_label = header[0].strip()
+            spec.y_label = sample_id
+            spectra.append(spec)
+
+        # Return a single Spectrum if only one column, otherwise the list
+        return spectra if len(spectra) > 1 else spectra[0]
 
     @staticmethod
     def _parse_spa(filepath: str) -> Optional[Spectrum]:
@@ -2424,6 +2509,228 @@ class SpectroscopyPlotEmbedder:
 
 
 # ============================================================================
+# LIVE ACQUISITION TAB
+# ============================================================================
+class LiveAcquisitionTab:
+    """Tab for real‑time acquisition from any connected instrument."""
+
+    def __init__(self, parent, plugin):
+        self.plugin = plugin
+        self.frame = ttk.Frame(parent)
+        self.driver = None          # currently selected instrument driver
+        self.acquiring = False
+        self.current_spectrum = None
+        self.history = deque(maxlen=100)   # rolling history of spectra
+        self._build_ui()
+
+    def _build_ui(self):
+        # Left panel for controls
+        left = tk.Frame(self.frame, bg="white", width=250)
+        left.pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=5)
+
+        # Right panel for plot
+        right = tk.Frame(self.frame, bg="white")
+        right.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+
+        # Instrument selector
+        tk.Label(left, text="Connected Instruments:", font=("Arial", 9, "bold"),
+                 bg="white").pack(anchor=tk.W, pady=5)
+        self.instr_combo = ttk.Combobox(left, state="readonly", width=30)
+        self.instr_combo.pack(fill=tk.X, pady=2)
+        self.instr_combo.bind('<<ComboboxSelected>>', self._on_instrument_selected)
+        self._refresh_instrument_list()
+
+        # Parameter frame (will be populated dynamically)
+        self.param_frame = tk.LabelFrame(left, text="Acquisition Parameters",
+                                         bg="white", font=("Arial", 8, "bold"))
+        self.param_frame.pack(fill=tk.X, pady=10)
+        self.param_widgets = {}   # store parameter entry widgets
+
+        # Start/Stop buttons
+        btn_frame = tk.Frame(left, bg="white")
+        btn_frame.pack(fill=tk.X, pady=5)
+        self.start_btn = tk.Button(btn_frame, text="Start", command=self._start,
+                                    bg=C_STATUS, fg="white", width=10)
+        self.start_btn.pack(side=tk.LEFT, padx=2)
+        self.stop_btn = tk.Button(btn_frame, text="Stop", command=self._stop,
+                                   state=tk.DISABLED, width=10)
+        self.stop_btn.pack(side=tk.LEFT, padx=2)
+
+        # History and snapshot
+        tk.Label(left, text="History", font=("Arial", 8, "bold"),
+                 bg="white").pack(pady=(10,0))
+        self.history_combo = ttk.Combobox(left, values=[], state="readonly", width=30)
+        self.history_combo.pack(fill=tk.X, pady=2)
+        self.history_combo.bind('<<ComboboxSelected>>', self._show_history)
+
+        self.snapshot_btn = tk.Button(left, text="Snapshot to Main Table",
+                                      command=self._snapshot, width=20)
+        self.snapshot_btn.pack(pady=10)
+
+        # Matplotlib plot
+        if HAS_MPL:
+            self.fig = Figure(figsize=(6,4), dpi=90, facecolor="white")
+            self.ax = self.fig.add_subplot(111)
+            self.ax.set_xlabel("Wavelength / Wavenumber")
+            self.ax.set_ylabel("Intensity")
+            self.ax.grid(True, alpha=0.3)
+            self.canvas = FigureCanvasTkAgg(self.fig, right)
+            self.canvas.draw()
+            self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            toolbar = NavigationToolbar2Tk(self.canvas, right)
+            toolbar.update()
+
+        # Update instrument list periodically
+        self._poll_instruments()
+
+    def _refresh_instrument_list(self):
+        """Populate combobox with connected devices."""
+        devices = []
+        for d in self.plugin.connected_devices:
+            if hasattr(d, 'model'):
+                devices.append(f"{d.manufacturer} {d.model}")
+            else:
+                devices.append("Unknown device")
+        self.instr_combo['values'] = devices
+        if devices and not self.instr_combo.get():
+            self.instr_combo.current(0)
+            self._on_instrument_selected()
+
+    def _poll_instruments(self):
+        """Refresh list every 5 seconds."""
+        self._refresh_instrument_list()
+        self.frame.after(5000, self._poll_instruments)
+
+    def _on_instrument_selected(self, event=None):
+        """Handle instrument selection: update parameter controls."""
+        idx = self.instr_combo.current()
+        if idx < 0 or idx >= len(self.plugin.connected_devices):
+            return
+        self.driver = self.plugin.connected_devices[idx]
+        # Clear old parameter widgets
+        for w in self.param_widgets.values():
+            w.destroy()
+        self.param_widgets.clear()
+        # Create new controls based on driver capabilities
+        row = 0
+        # Integration time (common)
+        if hasattr(self.driver, 'integration_time'):
+            tk.Label(self.param_frame, text="Integration (ms):", bg="white",
+                     font=("Arial", 8)).grid(row=row, column=0, sticky=tk.W, pady=2)
+            var = tk.StringVar(value=str(getattr(self.driver, 'integration_time', 100)))
+            entry = tk.Entry(self.param_frame, textvariable=var, width=10)
+            entry.grid(row=row, column=1, sticky=tk.W, padx=5)
+            self.param_widgets['integration_time'] = (var, entry)
+            row += 1
+        # Scans / averages (if applicable)
+        if hasattr(self.driver, 'scans_to_average'):
+            tk.Label(self.param_frame, text="Scans:", bg="white",
+                     font=("Arial", 8)).grid(row=row, column=0, sticky=tk.W, pady=2)
+            var = tk.StringVar(value=str(getattr(self.driver, 'scans_to_average', 1)))
+            entry = tk.Entry(self.param_frame, textvariable=var, width=10)
+            entry.grid(row=row, column=1, sticky=tk.W, padx=5)
+            self.param_widgets['scans'] = (var, entry)
+            row += 1
+        # Laser power (Raman)
+        if hasattr(self.driver, 'laser_power_mW'):
+            tk.Label(self.param_frame, text="Laser power (mW):", bg="white",
+                     font=("Arial", 8)).grid(row=row, column=0, sticky=tk.W, pady=2)
+            var = tk.StringVar(value=str(getattr(self.driver, 'laser_power_mW', 50)))
+            entry = tk.Entry(self.param_frame, textvariable=var, width=10)
+            entry.grid(row=row, column=1, sticky=tk.W, padx=5)
+            self.param_widgets['laser_power'] = (var, entry)
+            row += 1
+        # Add more as needed
+
+    def _update_driver_params(self):
+        """Transfer UI values to driver before acquisition."""
+        if 'integration_time' in self.param_widgets:
+            try:
+                val = int(self.param_widgets['integration_time'][0].get())
+                self.driver.integration_time = val
+                if hasattr(self.driver, 'set_integration_time'):
+                    self.driver.set_integration_time(val)
+            except:
+                pass
+        if 'scans' in self.param_widgets:
+            try:
+                val = int(self.param_widgets['scans'][0].get())
+                self.driver.scans_to_average = val
+            except:
+                pass
+        if 'laser_power' in self.param_widgets:
+            try:
+                val = float(self.param_widgets['laser_power'][0].get())
+                self.driver.laser_power_mW = val
+            except:
+                pass
+
+    def _start(self):
+        if self.driver is None:
+            messagebox.showwarning("No Instrument", "Select an instrument first.")
+            return
+        self.acquiring = True
+        self.start_btn.config(state=tk.DISABLED)
+        self.stop_btn.config(state=tk.NORMAL)
+        # Run acquisition in background thread
+        threading.Thread(target=self._acquisition_loop, daemon=True).start()
+
+    def _stop(self):
+        self.acquiring = False
+        self.start_btn.config(state=tk.NORMAL)
+        self.stop_btn.config(state=tk.DISABLED)
+
+    def _acquisition_loop(self):
+        """Continuous acquisition loop."""
+        while self.acquiring:
+            # Update driver parameters from UI (thread-safe via queue)
+            self.plugin.ui_queue.schedule(self._update_driver_params)
+            # Acquire spectrum
+            spec = self.driver.acquire_spectrum()
+            if spec is not None:
+                self.current_spectrum = spec
+                self.history.append(spec)
+                # Update plot on main thread
+                self.plugin.ui_queue.schedule(self._update_plot)
+                # Update history combobox
+                times = [f"{i+1}" for i in range(len(self.history))]
+                self.plugin.ui_queue.schedule(
+                    lambda: self.history_combo.config(values=times)
+                )
+            # Wait according to integration time
+            time.sleep(max(0.1, getattr(self.driver, 'integration_time', 100) / 1000))
+
+    def _update_plot(self):
+        """Redraw plot with current spectrum."""
+        if self.current_spectrum and HAS_MPL:
+            self.ax.clear()
+            self.ax.plot(self.current_spectrum.x_data, self.current_spectrum.y_data,
+                         color=C_ACCENT, lw=1)
+            self.ax.set_xlabel(self.current_spectrum.x_label)
+            self.ax.set_ylabel(self.current_spectrum.y_label)
+            self.ax.set_title(f"Live: {self.current_spectrum.sample_id}")
+            self.ax.grid(True, alpha=0.3)
+            self.canvas.draw()
+
+    def _show_history(self, event):
+        """Display a previously acquired spectrum from history."""
+        idx = self.history_combo.current()
+        if idx >= 0 and idx < len(self.history):
+            self.current_spectrum = self.history[idx]
+            self._update_plot()
+
+    def _snapshot(self):
+        """Save current spectrum to main table."""
+        if self.current_spectrum is None:
+            return
+        # Convert to dict format expected by data_hub
+        sample = self.current_spectrum.to_dict()
+        # Add to data_hub
+        self.plugin.app.data_hub.add(sample)
+        self.plugin._add_to_log(f"Snapshot: {self.current_spectrum.sample_id}")
+
+
+# ============================================================================
 # MAIN PLUGIN - SPECTROSCOPY UNIFIED SUITE
 # ============================================================================
 class SpectroscopyUnifiedSuitePlugin:
@@ -2477,7 +2784,6 @@ class SpectroscopyUnifiedSuitePlugin:
         self.conn_status = None
         self.instrument_combo = None
         self.tol_label = None
-        self.serial_port_var = None
 
         # All techniques
         self.all_techniques = [
@@ -2730,28 +3036,15 @@ class SpectroscopyUnifiedSuitePlugin:
         self.tree.tag_configure('med',  background='#fff3cd')
         self.tree.tag_configure('low',  background='#f8d7da')
 
-        # ============ LIVE ACQUISITION BAR ============
-        if HAS_SERIAL:
-            live_frame = tk.Frame(self.window, bg="#2c3e50", height=26)
-            live_frame.pack(fill=tk.X)
-            live_frame.pack_propagate(False)
+        # ============ NOTEBOOK WITH TABS (including Live) ============
+        notebook = ttk.Notebook(self.window)
+        notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-            tk.Label(live_frame, text="📡 LIVE ACQUISITION:", font=("Arial", 7, "bold"),
-                    bg="#2c3e50", fg="white").pack(side=tk.LEFT, padx=5)
+        # Live tab
+        self.live_tab = LiveAcquisitionTab(notebook, self)
+        notebook.add(self.live_tab.frame, text=" Live ")
 
-            ports = [p.device for p in serial.tools.list_ports.comports()][:3]
-            if ports:
-                self.serial_port_var = tk.StringVar()
-                port_combo = ttk.Combobox(live_frame, textvariable=self.serial_port_var,
-                                          values=ports, width=12, state="readonly")
-                port_combo.pack(side=tk.LEFT, padx=2)
-                port_combo.current(0)
-
-                ttk.Button(live_frame, text="Connect", width=8,
-                          command=self._connect_serial).pack(side=tk.LEFT, padx=2)
-
-                ttk.Button(live_frame, text="Acquire", width=8,
-                          command=self._acquire_live).pack(side=tk.LEFT, padx=2)
+        # Other analysis tabs could be added here later, but for now just Live.
 
         # ============ STATUS BAR ============
         status = tk.Frame(self.window, bg="#34495e", height=24)
@@ -2883,21 +3176,6 @@ class SpectroscopyUnifiedSuitePlugin:
 
         threading.Thread(target=connect_thread, daemon=True).start()
 
-    def _connect_serial(self):
-        """Connect to serial port"""
-        if not hasattr(self, 'serial_port_var'):
-            return
-
-        port = self.serial_port_var.get()
-        try:
-            # Just test connection
-            ser = serial.Serial(port, 9600, timeout=1)
-            ser.close()
-            self.conn_status.config(fg="#2ecc71")
-            self._update_status(f"✅ Connected to {port}")
-        except Exception as e:
-            messagebox.showerror("Connection Error", str(e))
-
     # ============================================================================
     # FILE IMPORT METHODS
     # ============================================================================
@@ -2933,39 +3211,46 @@ class SpectroscopyUnifiedSuitePlugin:
         self.import_btn.config(state='disabled')
 
         def parse_thread():
-            spec = SpectroscopyParserFactory.parse_file(path)
+            result = SpectroscopyParserFactory.parse_file(path)
 
             def update_ui():
                 self.import_btn.config(state='normal')
-                if spec:
-                    self.spectra.append(spec)
-                    self.current_spectrum = spec
-
-                    # Auto-detect peaks
-                    if HAS_SCIPY:
-                        spec.find_peaks(spec.technique)
-
-                    self._update_tree()
-                    self.file_count_var.set(f"{len(self.spectra)} files")
-                    self.count_label.config(text=f"📊 {len(self.spectra)} spectra")
-                    self.file_label.config(text=Path(path).name[:30])
-                    self._add_to_log(f"✅ Imported: {spec.technique.value} - {spec.sample_id}")
-
-                    # Plot
-                    if self.plot_embedder:
-                        self.plot_embedder.plot_spectrum(spec)
-
-                    # Update peak label
-                    if spec.peaks:
-                        peak_str = ", ".join([f"{p:.1f}" for p in spec.peaks[:6]])
-                        self.peak_label.config(text=f"⚡ {len(spec.peaks)} peaks: {peak_str}{'...' if len(spec.peaks)>6 else ''}")
-                    else:
-                        self.peak_label.config(text="⚡ No peaks detected")
-
-                    self._update_status(f"✅ Loaded: {Path(path).name}", "#27ae60")
-                else:
+                if result is None:
                     self._add_to_log(f"❌ Failed to parse: {Path(path).name}")
                     self._update_status("❌ Parse failed", "#e74c3c")
+                    return
+
+                # Handle both single spectrum and list of spectra
+                if isinstance(result, list):
+                    for spec in result:
+                        self.spectra.append(spec)
+                        if HAS_SCIPY:
+                            spec.find_peaks(spec.technique)
+                    self.current_spectrum = result[0] if result else None
+                else:
+                    self.spectra.append(result)
+                    self.current_spectrum = result
+                    if HAS_SCIPY:
+                        result.find_peaks(result.technique)
+
+                # Update UI
+                self._update_tree()
+                self.count_label.config(text=f"📊 {len(self.spectra)} spectra")
+                self.file_label.config(text=Path(path).name[:30])
+                self._add_to_log(f"✅ Imported from {Path(path).name}")
+
+                # Plot the current spectrum
+                if self.current_spectrum and self.plot_embedder:
+                    self.plot_embedder.plot_spectrum(self.current_spectrum)
+
+                # Update peak label
+                if self.current_spectrum and self.current_spectrum.peaks:
+                    peak_str = ", ".join([f"{p:.1f}" for p in self.current_spectrum.peaks[:6]])
+                    self.peak_label.config(text=f"⚡ {len(self.current_spectrum.peaks)} peaks: {peak_str}{'...' if len(self.current_spectrum.peaks)>6 else ''}")
+                else:
+                    self.peak_label.config(text="⚡ No peaks detected")
+
+                self._update_status(f"✅ Loaded: {Path(path).name}", "#27ae60")
 
             self.ui_queue.schedule(update_ui)
 
@@ -2985,25 +3270,71 @@ class SpectroscopyUnifiedSuitePlugin:
             count = 0
             for ext in ['*.csv', '*.txt', '*.spa', '*.wdf', '*.jdx', '*.dx', '*.dpt', '*.ngs']:
                 for filepath in Path(folder).glob(ext):
-                    spec = SpectroscopyParserFactory.parse_file(str(filepath))
-                    if spec:
-                        self.spectra.append(spec)
+                    res = SpectroscopyParserFactory.parse_file(str(filepath))
+                    if res is None:
+                        continue
+                    if isinstance(res, list):
+                        for spec in res:
+                            self.spectra.append(spec)
+                            if HAS_SCIPY:
+                                spec.find_peaks(spec.technique)
+                        count += len(res)
+                    else:
+                        self.spectra.append(res)
                         if HAS_SCIPY:
-                            spec.find_peaks(spec.technique)
+                            res.find_peaks(res.technique)
                         count += 1
 
             def update_ui():
                 self._update_tree()
                 self.file_count_var.set(f"{len(self.spectra)} files")
                 self.count_label.config(text=f"📊 {len(self.spectra)} spectra")
-                self._add_to_log(f"📁 Batch imported: {count} files from {Path(folder).name}")
-                self._update_status(f"✅ Imported {count} files", "#27ae60")
+                self._add_to_log(f"📁 Batch imported: {count} spectra from {Path(folder).name}")
+                self._update_status(f"✅ Imported {count} spectra", "#27ae60")
                 self.import_btn.config(state='normal')
                 self.batch_btn.config(state='normal')
 
             self.ui_queue.schedule(update_ui)
 
         threading.Thread(target=batch_thread, daemon=True).start()
+
+    def _import_peak_list(self, path=None):
+        """
+        Import a CSV containing peak assignments (Sample, Peak_cm-1, Assignment)
+        and send it directly to the main data table.
+        """
+        if not path:
+            path = filedialog.askopenfilename(
+                title="Select peak list CSV",
+                filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+            )
+            if not path:
+                return
+
+        try:
+            df = pd.read_csv(path)
+            # Check required columns
+            required = {'Sample', 'Peak_cm-1', 'Assignment'}
+            if not required.issubset(df.columns):
+                missing = required - set(df.columns)
+                messagebox.showerror(
+                    "Invalid Format",
+                    f"File must contain columns: {', '.join(required)}\nMissing: {', '.join(missing)}"
+                )
+                return
+
+            # Convert to list of dicts for data_hub
+            records = df.to_dict(orient='records')
+            self.app.data_hub.add_samples(records)
+            self.app.samples = self.app.data_hub.get_all()
+            if hasattr(self.app.center, '_refresh'):
+                self.app.center._refresh()
+
+            self._add_to_log(f"📋 Imported {len(records)} peak assignments from {Path(path).name}")
+            self._update_status(f"✅ Peak list loaded: {len(records)} rows", "#27ae60")
+
+        except Exception as e:
+            messagebox.showerror("Import Error", f"Failed to read file:\n{str(e)}")
 
     def _import_pptx(self):
         """Open the offline PPTX spectrum digitizer dialog."""
@@ -3028,73 +3359,9 @@ class SpectroscopyUnifiedSuitePlugin:
             return
         PPTXImportDialog(self.window, self)
 
-    def _acquire_live(self):
-        """Acquire live spectrum from connected instrument"""
-        # Find which instrument is connected
-        driver = None
-        for d in self.connected_devices:
-            if d is not None:
-                driver = d
-                break
-
-        if not driver:
-            # Demo mode - create synthetic spectrum
-            technique = self.technique_var.get()
-            if "Raman" in technique:
-                x = np.linspace(100, 2000, 1024)
-                y = (0.8 * np.exp(-((x - 464)**2)/200) +
-                     0.4 * np.exp(-((x - 1086)**2)/300) +
-                     0.3 * np.exp(-((x - 670)**2)/250) +
-                     0.1 * np.random.normal(0, 0.02, len(x)))
-                tech = InstrumentType.RAMAN
-                name = "Raman (Live)"
-            elif "FTIR" in technique:
-                x = np.linspace(400, 4000, 1800)
-                y = (0.6 * np.exp(-((x - 1084)**2)/2000) +
-                     0.4 * np.exp(-((x - 798)**2)/1500) +
-                     0.1 * np.random.normal(0, 0.02, len(x)))
-                tech = InstrumentType.FTIR
-                name = "FTIR (Live)"
-            else:
-                x = np.linspace(350, 800, 450)
-                y = (0.8 * np.exp(-((x - 500)**2)/5000) +
-                     0.5 * np.exp(-((x - 660)**2)/3000) +
-                     0.1 * np.random.normal(0, 0.01, len(x)))
-                tech = InstrumentType.UVVIS
-                name = "UV-Vis (Live)"
-
-            spec = Spectrum(
-                timestamp=datetime.now(),
-                sample_id=f"LIVE_{datetime.now().strftime('%H%M%S')}",
-                instrument=name,
-                technique=tech,
-                x_data=x,
-                y_data=y
-            )
-            spec.find_peaks(tech)
-
-            self.spectra.append(spec)
-            self.current_spectrum = spec
-            self._update_tree()
-            self.count_label.config(text=f"📊 {len(self.spectra)} spectra")
-            self.plot_embedder.plot_spectrum(spec)
-            self._add_to_log(f"✅ Acquired live spectrum")
-
-        else:
-            # Use real driver
-            def acquire_thread():
-                if hasattr(driver, 'acquire_spectrum'):
-                    spec = driver.acquire_spectrum()
-                    if spec:
-                        spec.find_peaks(spec.technique)
-                        self.spectra.append(spec)
-                        self.current_spectrum = spec
-                        self.ui_queue.schedule(self._update_tree)
-                        self.ui_queue.schedule(lambda: self.count_label.config(text=f"📊 {len(self.spectra)} spectra"))
-                        self.ui_queue.schedule(lambda: self.plot_embedder.plot_spectrum(spec))
-                        self.ui_queue.schedule(lambda: self._add_to_log(f"✅ Acquired live spectrum"))
-
-            threading.Thread(target=acquire_thread, daemon=True).start()
+    # ============================================================================
+    # ANALYSIS METHODS
+    # ============================================================================
 
     def _update_tree(self):
         """Refresh the spectra browser (top-right list)."""
@@ -3281,6 +3548,8 @@ class SpectroscopyUnifiedSuitePlugin:
         """
         Send spectra to main table - ONE row per spectrum.
         Columns are created dynamically from the dictionary keys.
+        The full spectral data (x and y arrays) are stored as JSON strings
+        in columns named after the axis labels (e.g. "Wavenumber (cm⁻¹)", "Absorbance").
         """
         if not self.spectra:
             messagebox.showwarning("No Data", "No spectra to send")
@@ -3310,15 +3579,13 @@ class SpectroscopyUnifiedSuitePlugin:
                 row["Date"] = spec.timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
             # STORE FULL SPECTRUM DATA as JSON strings
+            # Use the axis labels as column names
             if spec.x_data is not None:
-                # Convert numpy array to list and store as JSON
-                row["X_Data"] = json.dumps(spec.x_data.tolist())
+                col_x = spec.x_label.strip() if spec.x_label else "X_Data"
+                row[col_x] = json.dumps(spec.x_data.tolist())
             if spec.y_data is not None:
-                row["Y_Data"] = json.dumps(spec.y_data.tolist())
-            if spec.x_label:
-                row["X_Label"] = spec.x_label
-            if spec.y_label:
-                row["Y_Label"] = spec.y_label
+                col_y = spec.y_label.strip() if spec.y_label else "Y_Data"
+                row[col_y] = json.dumps(spec.y_data.tolist())
 
             # Peak information
             if spec.peaks:

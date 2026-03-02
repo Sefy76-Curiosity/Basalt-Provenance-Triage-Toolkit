@@ -1,0 +1,918 @@
+{
+  "field_groups": {
+    "general": {
+      "SampleID": {
+        "standard": "SampleID",
+        "variations": [
+          "SampleID", "Sample_ID", "Sample Id", "ID", "Sample", "sample_id",
+          "Sample #", "Specimen", "Specimen_ID", "Sample Number", "Sample No",
+          "Sample-Id", "SampleId", "SAMPLE_ID", "SAMPLE ID", "Sample id",
+          "sample id", "sample-id", "sample number", "sample no", "SAMPLE NO",
+          "Sample#", "SAMPLE#", "sample#", "SAMPLE NUMBER", "SAMPLE NUMBER",
+          "id", "Id", "iD"
+        ],
+        "display_name": "Sample ID",
+        "data_type": "string",
+        "units": null,
+        "description": "Unique identifier for the sample"
+      },
+      "InjectionID": {
+        "standard": "InjectionID",
+        "variations": [
+          "InjID", "InjectionID", "Injection Id", "Injection", "Inj",
+          "INJECTION_ID", "Injection #", "Run", "RunID", "Run ID",
+          "Acquisition ID", "Acq ID", "Seq ID", "Sequence ID"
+        ],
+        "display_name": "Injection ID",
+        "data_type": "string",
+        "units": null,
+        "description": "Identifier for a specific injection or run"
+      },
+      "Method": {
+        "standard": "Method",
+        "variations": [
+          "Method", "METHOD", "Method Name", "Method_File", "Method File",
+          "Acq Method", "Acquisition Method", "Processing Method",
+          "Instrument Method", "LC Method", "GC Method", "MS Method",
+          "Method ID", "MethodId"
+        ],
+        "display_name": "Method",
+        "data_type": "string",
+        "units": null,
+        "description": "Instrument method or file name"
+      },
+      "Date": {
+        "standard": "Date",
+        "variations": [
+          "Date", "Analysis_Date", "Collection_Date", "Sampling_Date",
+          "Date Collected", "Collection Date", "Analysis Date", "Sampling Date",
+          "DATE", "date", "Sample Date", "Sample_Date", "Acquisition Date",
+          "Acquisition_Date", "Run Date", "Run_Date", "AnalysisDate"
+        ],
+        "display_name": "Date",
+        "data_type": "date",
+        "units": null,
+        "description": "Date of analysis or collection"
+      },
+      "Notes": {
+        "standard": "Notes",
+        "variations": [
+          "Notes", "notes", "NOTE", "Note", "Comments", "comment",
+          "Description", "Remarks", "REMARKS", "Comment", "COMMENTS",
+          "Sample Notes", "Sample_Notes", "Analysis Notes", "Analysis_Notes",
+          "Field Notes", "Field_Notes", "NOTES", "NOTE", "Note", "备注"
+        ],
+        "display_name": "Notes",
+        "data_type": "string",
+        "units": null,
+        "description": "Free-text notes or comments"
+      },
+      "DataType": {
+        "standard": "DataType",
+        "variations": [
+          "DataType", "Data Type", "Type", "Record Type", "Kind",
+          "Sample Type", "Injection Type", "Calibration Type"
+        ],
+        "display_name": "Data Type",
+        "data_type": "string",
+        "units": null,
+        "description": "Categorizes the row (e.g., Trace, AlkaneRI, Calibration)"
+      }
+    },
+    "chromatography": {
+      "RetentionTime_min": {
+        "standard": "RetentionTime_min",
+        "variations": [
+          "RTime_min", "RT", "Retention Time", "RetentionTime", "RetTime",
+          "tR", "TR", "RT [min]", "R.Time", "retention_time", "Time_min",
+          "Time", "RT (min)", "RT(min)", "RT min", "RT_min", "RTmin",
+          "Retention Time (min)", "Retention Time min", "RetTime_min",
+          "RetTime (min)", "R.T.", "R.T. (min)", "R.Time (min)"
+        ],
+        "display_name": "Retention Time (min)",
+        "data_type": "float",
+        "units": "min",
+        "description": "Time at which a peak elutes"
+      },
+      "Height": {
+        "standard": "Height",
+        "variations": [
+          "IntHeight_mAU", "Height", "Peak Height", "height", "HEIGHT",
+          "Intensity", "Signal", "Intensity_mAU", "Intensity (mAU)",
+          "Peak Height (mAU)", "Height (mAU)", "Height mAU", "Height_mAU",
+          "Y", "mV", "mAU", "AU", "Absorbance", "Response"
+        ],
+        "display_name": "Height",
+        "data_type": "float",
+        "units": "mAU",
+        "description": "Peak height in detector units"
+      },
+      "Area": {
+        "standard": "Area",
+        "variations": [
+          "IntArea_mAU", "Area", "Peak Area", "area", "AREA",
+          "Area (mAU*min)", "Area mAU*min", "Area_mAU", "Area_mAU*min",
+          "Peak Area (mAU*s)", "Area (counts)", "Counts", "Integrated Area",
+          "Absorbance*time", "Peak Area (μV*s)", "μV*s"
+        ],
+        "display_name": "Area",
+        "data_type": "float",
+        "units": "mAU·min",
+        "description": "Integrated peak area"
+      },
+      "Width_min": {
+        "standard": "Width_min",
+        "variations": [
+          "Width_min", "Width", "Peak Width", "width", "WIDTH",
+          "Width (min)", "Width min", "Width_min", "Peak Width (min)",
+          "Base Width", "Width at base", "Half Width", "Peak width at half height",
+          "W(1/2)", "W50", "FWHM", "FWHM (min)"
+        ],
+        "display_name": "Width (min)",
+        "data_type": "float",
+        "units": "min",
+        "description": "Peak width at half height or base"
+      },
+      "TailingFactor": {
+        "standard": "TailingFactor",
+        "variations": [
+          "TailFact", "Tailing", "Tailing Factor", "USP Tailing", "Tf",
+          "Tailing factor", "TAILING", "Asymmetry", "Peak asymmetry",
+          "USP Tailing Factor", "EP Tailing", "Tailing (USP)", "Tailing factor (USP)",
+          "T.F.", "TF", "Tailing_Factor", "TailingFactor"
+        ],
+        "display_name": "Tailing Factor",
+        "data_type": "float",
+        "units": null,
+        "description": "USP tailing factor (a+b)/2a"
+      },
+      "Plates": {
+        "standard": "Plates",
+        "variations": [
+          "Plates", "PLATES", "Theoretical Plates", "Plate Count", "N",
+          "USP Plate Count", "EP Plate Count", "Number of plates",
+          "Theoretical plates (USP)", "Plates (USP)", "Plates_USP",
+          "Efficiency", "Column efficiency", "N (plates)", "N_plates"
+        ],
+        "display_name": "Plates",
+        "data_type": "float",
+        "units": null,
+        "description": "Number of theoretical plates"
+      },
+      "Resolution": {
+        "standard": "Resolution",
+        "variations": [
+          "Resol", "Resolution", "RESOLUTION", "Rs", "USP Resolution",
+          "Peak resolution", "Resolution (USP)", "Resolution_USP",
+          "Res", "R_s", "Rs (USP)"
+        ],
+        "display_name": "Resolution",
+        "data_type": "float",
+        "units": null,
+        "description": "Resolution between two peaks"
+      },
+      "SignalToNoise": {
+        "standard": "SignalToNoise",
+        "variations": [
+          "S2N", "S/N", "Signal/Noise", "Signal to Noise", "SNR",
+          "Signal-to-noise ratio", "Signal/Noise Ratio", "S/N Ratio",
+          "SN", "S_N", "S2N_ratio"
+        ],
+        "display_name": "S/N",
+        "data_type": "float",
+        "units": null,
+        "description": "Signal-to-noise ratio"
+      },
+      "IntegrationType": {
+        "standard": "IntegrationType",
+        "variations": [
+          "IntType", "Integration Type", "Integration", "Peak Type",
+          "Peak Code", "Integration Code", "BB", "VB", "VV", "BV",
+          "Manual", "Auto", "Integration flag"
+        ],
+        "display_name": "Integration Type",
+        "data_type": "string",
+        "units": null,
+        "description": "Peak integration code (BB, VB, etc.)"
+      },
+      "Compound": {
+        "standard": "Compound",
+        "variations": [
+          "Analyte", "Compound", "Name", "Component", "Peak Name",
+          "Substance", "Chemical", "Analyte Name", "Compound Name",
+          "ID", "Peak ID", "Compound_ID", "Analyte_ID", "Component Name",
+          "Substance Name", "Chemical Name", "CAS Name"
+        ],
+        "display_name": "Compound",
+        "data_type": "string",
+        "units": null,
+        "description": "Name of the compound or analyte"
+      },
+      "CAS": {
+        "standard": "CAS",
+        "variations": [
+          "CAS_Num", "CAS Number", "CAS No", "CAS#", "CAS",
+          "CAS RN", "CAS Registry Number", "CAS #", "CAS_No",
+          "CAS_NUM", "CAS_num", "cas", "CASRN"
+        ],
+        "display_name": "CAS",
+        "data_type": "string",
+        "units": null,
+        "description": "Chemical Abstracts Service number"
+      },
+      "Concentration_ppm": {
+        "standard": "Concentration_ppm",
+        "variations": [
+          "Conc_ppm", "Concentration", "Conc", "Amount", "Amount (ppm)",
+          "Concentration (ppm)", "Conc (ppm)", "ppm", "Concentration_ppm",
+          "Amount_ppm", "Value", "Calc Conc", "Calculated Concentration",
+          "Concentration (mg/L)", "mg/L", "μg/mL", "ppb", "Concentration_ppb"
+        ],
+        "display_name": "Conc. (ppm)",
+        "data_type": "float",
+        "units": "ppm",
+        "description": "Concentration in parts per million"
+      },
+      "AreaPercent": {
+        "standard": "AreaPercent",
+        "variations": [
+          "AreaPct", "Area %", "Area Percent", "Area Percentage",
+          "Peak Area %", "Percent Area", "Area%", "% Area",
+          "Area_Percent", "Area_Pct", "Area_%"
+        ],
+        "display_name": "Area %",
+        "data_type": "float",
+        "units": "%",
+        "description": "Peak area as a percentage of total area"
+      }
+    },
+    "mass_spectrometry": {
+      "mz": {
+        "standard": "mz",
+        "variations": [
+          "mz", "m/z", "Mass/Charge", "Mass-to-charge", "Mass",
+          "Ion", "Peak m/z", "mz_value", "MZ", "mz (Da)", "mz Da",
+          "m/z (Th)", "Thomson", "Mass (m/z)", "Precursor m/z",
+          "Product m/z", "Fragment m/z", "mz1", "mz2"
+        ],
+        "display_name": "m/z",
+        "data_type": "float",
+        "units": "Th",
+        "description": "Mass-to-charge ratio"
+      },
+      "Intensity_MS": {
+        "standard": "Intensity_MS",
+        "variations": [
+          "Intensity", "Abundance", "Counts", "Ion Intensity", "CPS",
+          "Absolute Intensity", "Relative Intensity", "Rel. Int.",
+          "Intensity (%)", "Abundance (%)", "Counts per second",
+          "Signal", "Peak Height", "Peak Intensity", "Ion Count",
+          "Total Ion Count", "TIC", "Base Peak Intensity", "BPI"
+        ],
+        "display_name": "Intensity",
+        "data_type": "float",
+        "units": "counts",
+        "description": "Mass spectral peak intensity"
+      },
+      "ScanNumber": {
+        "standard": "ScanNumber",
+        "variations": [
+          "Scan", "Scan Number", "Scan#", "Scan #", "Scan No",
+          "Scan_Number", "ScanNum", "Spectrum number", "Frame",
+          "Cycle", "Experiment", "Index"
+        ],
+        "display_name": "Scan Number",
+        "data_type": "integer",
+        "units": null,
+        "description": "Sequential scan or spectrum number"
+      },
+      "RetentionTime_MS_min": {
+        "standard": "RetentionTime_MS_min",
+        "variations": [
+          "RT", "Retention Time", "RetTime", "Time", "Scan Time",
+          "Acquisition Time", "RT (min)", "Retention time (min)",
+          "R.Time", "tR", "Time_min"
+        ],
+        "display_name": "Retention Time (min)",
+        "data_type": "float",
+        "units": "min",
+        "description": "Retention time for LC-MS or GC-MS"
+      },
+      "PrecursorMass": {
+        "standard": "PrecursorMass",
+        "variations": [
+          "Precursor m/z", "Precursor", "Parent m/z", "Parent",
+          "MS1 m/z", "Isolation m/z", "Precursor Mass", "PrecursorMz",
+          "precursor_mz", "precursorMz"
+        ],
+        "display_name": "Precursor m/z",
+        "data_type": "float",
+        "units": "Th",
+        "description": "Mass-to-charge of the precursor ion"
+      },
+      "CollisionEnergy": {
+        "standard": "CollisionEnergy",
+        "variations": [
+          "Collision Energy", "CE", "Collision Energy (eV)", "eV",
+          "CollisionEnergy", "NCE", "Normalized CE", "HCD Energy",
+          "Fragmentation energy", "Activation energy"
+        ],
+        "display_name": "Collision Energy (eV)",
+        "data_type": "float",
+        "units": "eV",
+        "description": "Collision energy for MS/MS"
+      },
+      "ActivationType": {
+        "standard": "ActivationType",
+        "variations": [
+          "Activation", "Activation Type", "Fragmentation mode",
+          "CID", "HCD", "ETD", "ECD", "PQD", "SID", "IRMPD"
+        ],
+        "display_name": "Activation Type",
+        "data_type": "string",
+        "units": null,
+        "description": "Type of ion activation (CID, HCD, etc.)"
+      },
+      "MSLevel": {
+        "standard": "MSLevel",
+        "variations": [
+          "MS Level", "MSLevel", "MsLevel", "MS stage",
+          "MS1", "MS2", "MSn", "Spectrum type"
+        ],
+        "display_name": "MS Level",
+        "data_type": "integer",
+        "units": null,
+        "description": "MS level (1 for MS, 2 for MS/MS, etc.)"
+      },
+      "Polarity": {
+        "standard": "Polarity",
+        "variations": [
+          "Polarity", "Ion mode", "Ionization mode", "Positive",
+          "Negative", "+", "-", "pos", "neg", "ESI+", "ESI-"
+        ],
+        "display_name": "Polarity",
+        "data_type": "string",
+        "units": null,
+        "description": "Ionization polarity (positive/negative)"
+      },
+      "Ionization": {
+        "standard": "Ionization",
+        "variations": [
+          "Ionization", "Ionization Type", "Ion Source",
+          "ESI", "APCI", "APPI", "MALDI", "EI", "CI", "FAB",
+          "LSIMS", "nanoESI", "DESI", "DART"
+        ],
+        "display_name": "Ionization",
+        "data_type": "string",
+        "units": null,
+        "description": "Ionization technique"
+      }
+    },
+    "nmr": {
+      "FID": {
+        "standard": "FID",
+        "variations": [
+          "fid", "FID", "Free induction decay", "Time domain data",
+          "Raw data", "Signal"
+        ],
+        "display_name": "FID",
+        "data_type": "complex_array",
+        "units": null,
+        "description": "Free induction decay time-domain data"
+      },
+      "DwellTime_us": {
+        "standard": "DwellTime_us",
+        "variations": [
+          "dwell", "Dwell time", "Dwell (µs)", "dwell_time",
+          "Sampling interval", "dw", "DW"
+        ],
+        "display_name": "Dwell Time (µs)",
+        "data_type": "float",
+        "units": "µs",
+        "description": "Time between sampled points in FID"
+      },
+      "SpectrometerFrequency_MHz": {
+        "standard": "SpectrometerFrequency_MHz",
+        "variations": [
+          "SF", "sfrq", "Spectrometer frequency", "Observe frequency",
+          "1H frequency", "MHz", "SFO1", "SFO2"
+        ],
+        "display_name": "Spectrometer Frequency (MHz)",
+        "data_type": "float",
+        "units": "MHz",
+        "description": "Basic spectrometer frequency"
+      },
+      "SpectralWidth_Hz": {
+        "standard": "SpectralWidth_Hz",
+        "variations": [
+          "SW", "sw", "Spectral width", "SW_h", "SWH",
+          "Sweep width", "Bandwidth"
+        ],
+        "display_name": "Spectral Width (Hz)",
+        "data_type": "float",
+        "units": "Hz",
+        "description": "Spectral width in Hz"
+      },
+      "Nucleus": {
+        "standard": "Nucleus",
+        "variations": [
+          "nucleus", "Observed nucleus", "1H", "13C", "15N",
+          "19F", "31P", "Nuclei"
+        ],
+        "display_name": "Nucleus",
+        "data_type": "string",
+        "units": null,
+        "description": "Observed nucleus (e.g., 1H, 13C)"
+      },
+      "Temperature_K": {
+        "standard": "Temperature_K",
+        "variations": [
+          "Temperature", "Temp", "Sample temperature", "TE",
+          "Temp (K)", "Temperature (K)"
+        ],
+        "display_name": "Temperature (K)",
+        "data_type": "float",
+        "units": "K",
+        "description": "Sample temperature in Kelvin"
+      },
+      "PulseSequence": {
+        "standard": "PulseSequence",
+        "variations": [
+          "Pulse sequence", "Sequence", "PULPROG", "Experiment",
+          "Pulse program", "Method"
+        ],
+        "display_name": "Pulse Sequence",
+        "data_type": "string",
+        "units": null,
+        "description": "Name of the pulse sequence used"
+      },
+      "Solvent": {
+        "standard": "Solvent",
+        "variations": [
+          "Solvent", "SOLVENT", "NMR solvent", "Deuterated solvent",
+          "D2O", "CDCl3", "DMSO", "Acetone", "Methanol"
+        ],
+        "display_name": "Solvent",
+        "data_type": "string",
+        "units": null,
+        "description": "NMR solvent"
+      }
+    },
+    "geochemistry": {
+      "SiO2_wt": {
+        "standard": "SiO2_wt",
+        "variations": [
+          "SiO2", "SiO2_wt", "SiO2_pct", "SiO2 %", "Silica", "SiO2 (%)",
+          "SiO2 (wt%)", "sio2", "SiO₂", "SiO₂_wt", "SiO₂_pct", "SiO₂ %",
+          "SiO₂ (wt%)", "SiO₂ (%)", "SILICA", "silica", "SiO2 wt%",
+          "SiO2 wt %", "SiO2 weight %", "SiO2 weight percent",
+          "SiO2 (percent)", "SiO2 percent", "SiO2 PCT", "SiO2 pct",
+          "SiO2_%", "Silicon dioxide", "Silicon Dioxide"
+        ],
+        "display_name": "SiO₂ (wt%)",
+        "data_type": "float",
+        "units": "wt%",
+        "description": "Silicon dioxide weight percent"
+      },
+      "TiO2_wt": {
+        "standard": "TiO2_wt",
+        "variations": [
+          "TiO2", "TiO2_wt", "TiO2_pct", "TiO2 %", "Titanium dioxide", "TiO2 (%)",
+          "TiO2 (wt%)", "tio2", "TiO₂", "TiO₂_wt", "TiO₂_pct", "TiO₂ %",
+          "TiO₂ (wt%)", "TiO₂ (%)", "TITANIUM DIOXIDE", "titanium dioxide",
+          "TiO2 wt%", "TiO2 wt %", "TiO2 weight %", "TiO2 weight percent",
+          "TiO2 (percent)", "TiO2 percent", "TiO2 PCT", "TiO2 pct",
+          "TiO2_%", "Titania", "TITANIA", "titania"
+        ],
+        "display_name": "TiO₂ (wt%)",
+        "data_type": "float",
+        "units": "wt%",
+        "description": "Titanium dioxide weight percent"
+      },
+      "Al2O3_wt": {
+        "standard": "Al2O3_wt",
+        "variations": [
+          "Al2O3", "Al2O3_wt", "Al2O3_pct", "Al2O3 %", "Alumina", "Al2O3 (%)",
+          "Al2O3 (wt%)", "al2o3", "Al₂O₃", "Al₂O₃_wt", "Al₂O₃_pct", "Al₂O₃ %",
+          "Al₂O₃ (wt%)", "Al₂O₃ (%)", "ALUMINA", "alumina", "Al2O3 wt%",
+          "Al2O3 wt %", "Al2O3 weight %", "Al2O3 weight percent",
+          "Al2O3 (percent)", "Al2O3 percent", "Al2O3 PCT", "Al2O3 pct",
+          "Al2O3_%", "Aluminum oxide", "Aluminium oxide"
+        ],
+        "display_name": "Al₂O₃ (wt%)",
+        "data_type": "float",
+        "units": "wt%",
+        "description": "Aluminum oxide weight percent"
+      },
+      "Fe2O3_T_wt": {
+        "standard": "Fe2O3_T_wt",
+        "variations": [
+          "Fe2O3_T_wt", "Fe2O3_T", "Fe2O3_total", "Total Fe as Fe2O3",
+          "Fe2O3 (total)", "Total Fe2O3", "Fe2O3 Total", "Fe2O3T",
+          "Fe2O3_TOTAL", "Fe2O3 total", "Total iron as Fe2O3"
+        ],
+        "display_name": "Total Fe as Fe₂O₃ (wt%)",
+        "data_type": "float",
+        "units": "wt%",
+        "description": "Total iron expressed as Fe₂O₃ weight percent"
+      },
+      "FeO_wt": {
+        "standard": "FeO_wt",
+        "variations": [
+          "FeO", "FeO_wt", "FeO_pct", "FeO %", "Ferrous oxide", "FeO (%)",
+          "FeO (wt%)", "feo", "FeO", "FeO_wt", "FeO_pct", "FeO %",
+          "FeO (wt%)", "FeO (%)", "FERROUS OXIDE", "ferrous oxide",
+          "FeO wt%", "FeO wt %", "FeO weight %", "FeO weight percent",
+          "FeO (percent)", "FeO percent", "FeO PCT", "FeO pct",
+          "Iron(II) oxide", "Iron (II) oxide"
+        ],
+        "display_name": "FeO (wt%)",
+        "data_type": "float",
+        "units": "wt%",
+        "description": "Ferrous oxide weight percent"
+      },
+      "MgO_wt": {
+        "standard": "MgO_wt",
+        "variations": [
+          "MgO", "MgO_wt", "MgO_pct", "MgO %", "Magnesia", "MgO (%)",
+          "MgO (wt%)", "mgo", "MgO", "MgO_wt", "MgO_pct", "MgO %",
+          "MgO (wt%)", "MgO (%)", "MAGNESIA", "magnesia", "MgO wt%",
+          "MgO wt %", "MgO weight %", "MgO weight percent",
+          "MgO (percent)", "MgO percent", "MgO PCT", "MgO pct",
+          "Magnesium oxide", "Magnesium Oxide"
+        ],
+        "display_name": "MgO (wt%)",
+        "data_type": "float",
+        "units": "wt%",
+        "description": "Magnesium oxide weight percent"
+      },
+      "CaO_wt": {
+        "standard": "CaO_wt",
+        "variations": [
+          "CaO", "CaO_wt", "CaO_pct", "CaO %", "Lime", "CaO (%)",
+          "CaO (wt%)", "cao", "CaO", "CaO_wt", "CaO_pct", "CaO %",
+          "CaO (wt%)", "CaO (%)", "LIME", "lime", "CaO wt%",
+          "CaO wt %", "CaO weight %", "CaO weight percent",
+          "CaO (percent)", "CaO percent", "CaO PCT", "CaO pct",
+          "Calcium oxide", "Calcium Oxide"
+        ],
+        "display_name": "CaO (wt%)",
+        "data_type": "float",
+        "units": "wt%",
+        "description": "Calcium oxide weight percent"
+      },
+      "Na2O_wt": {
+        "standard": "Na2O_wt",
+        "variations": [
+          "Na2O", "Na2O_wt", "Na2O_pct", "Na2O %", "Soda", "Na2O (%)",
+          "Na2O (wt%)", "na2o", "Na₂O", "Na₂O_wt", "Na₂O_pct", "Na₂O %",
+          "Na₂O (wt%)", "Na₂O (%)", "SODA", "soda", "Na2O wt%",
+          "Na2O wt %", "Na2O weight %", "Na2O weight percent",
+          "Na2O (percent)", "Na2O percent", "Na2O PCT", "Na2O pct",
+          "Sodium oxide", "Sodium Oxide"
+        ],
+        "display_name": "Na₂O (wt%)",
+        "data_type": "float",
+        "units": "wt%",
+        "description": "Sodium oxide weight percent"
+      },
+      "K2O_wt": {
+        "standard": "K2O_wt",
+        "variations": [
+          "K2O", "K2O_wt", "K2O_pct", "K2O %","K2O%", "Potash", "K2O (%)",
+          "K2O (wt%)", "k2o", "K₂O", "K₂O_wt", "K₂O_pct", "K₂O %",
+          "K₂O (wt%)", "K₂O (%)", "POTASH", "potash", "K2O wt%",
+          "K2O wt %", "K2O weight %", "K2O weight percent",
+          "K2O (percent)", "K2O percent", "K2O PCT", "K2O pct",
+          "Potassium oxide", "Potassium Oxide"
+        ],
+        "display_name": "K₂O (wt%)",
+        "data_type": "float",
+        "units": "wt%",
+        "description": "Potassium oxide weight percent"
+      },
+      "P2O5_wt": {
+        "standard": "P2O5_wt",
+        "variations": [
+          "P2O5", "P2O5_wt", "P2O5_pct", "P2O5 %", "Phosphorus pentoxide", "P2O5 (%)",
+          "P2O5 (wt%)", "p2o5", "P₂O₅", "P₂O₅_wt", "P₂O₅_pct", "P₂O₅ %",
+          "P₂O₅ (wt%)", "P₂O₅ (%)", "PHOSPHORUS PENTOXIDE", "phosphorus pentoxide",
+          "P2O5 wt%", "P2O5 wt %", "P2O5 weight %", "P2O5 weight percent",
+          "P2O5 (percent)", "P2O5 percent", "P2O5 PCT", "P2O5 pct",
+          "Phosphoric anhydride", "Phosphoric Anhydride"
+        ],
+        "display_name": "P₂O₅ (wt%)",
+        "data_type": "float",
+        "units": "wt%",
+        "description": "Phosphorus pentoxide weight percent"
+      },
+      "MnO_wt": {
+        "standard": "MnO_wt",
+        "variations": [
+          "MnO", "MnO_wt", "MnO_pct", "MnO %", "Manganese oxide", "MnO (%)",
+          "MnO (wt%)", "mno", "MnO", "MnO_wt", "MnO_pct", "MnO %",
+          "MnO (wt%)", "MnO (%)", "MANGANESE OXIDE", "manganese oxide",
+          "MnO wt%", "MnO wt %", "MnO weight %", "MnO weight percent",
+          "MnO (percent)", "MnO percent", "MnO PCT", "MnO pct",
+          "Manganous oxide", "Manganous Oxide"
+        ],
+        "display_name": "MnO (wt%)",
+        "data_type": "float",
+        "units": "wt%",
+        "description": "Manganese oxide weight percent"
+      },
+      "Zr_ppm": {
+        "standard": "Zr_ppm",
+        "variations": [
+          "Zr", "Zr_ppm", "Zirconium", "ZR", "zr", "Zr (ppm)", "Zr ppm",
+          "Zr_conc", "Zr_concentration", "Zr Concentration", "Zr concentration",
+          "Zr (PPM)", "Zr PPM", "ZR (PPM)", "ZR PPM", "Zr-ppm", "Zr_ppm",
+          "Zirconium (ppm)", "Zirconium ppm", "Zirconium_ppm", "[Zr]", "Zr]",
+          "Zr(ppm)", "Zr ppm)", "Zr, ppm"
+        ],
+        "display_name": "Zr (ppm)",
+        "data_type": "float",
+        "units": "ppm",
+        "description": "Zirconium concentration in ppm"
+      },
+      "Nb_ppm": {
+        "standard": "Nb_ppm",
+        "variations": [
+          "Nb", "Nb_ppm", "Niobium", "NB", "nb", "Nb (ppm)", "Nb ppm",
+          "Nb_conc", "Nb_concentration", "Nb Concentration", "Nb concentration",
+          "Nb (PPM)", "Nb PPM", "NB (PPM)", "NB PPM", "Nb-ppm", "Nb_ppm",
+          "Niobium (ppm)", "Niobium ppm", "Niobium_ppm", "[Nb]", "Nb]",
+          "Nb(ppm)", "Nb ppm)", "Nb, ppm"
+        ],
+        "display_name": "Nb (ppm)",
+        "data_type": "float",
+        "units": "ppm",
+        "description": "Niobium concentration in ppm"
+      },
+      "Ba_ppm": {
+        "standard": "Ba_ppm",
+        "variations": [
+          "Ba", "Ba_ppm", "Barium", "BA", "ba", "Ba (ppm)", "Ba ppm",
+          "Ba_conc", "Ba_concentration", "Ba Concentration", "Ba concentration",
+          "Ba (PPM)", "Ba PPM", "BA (PPM)", "BA PPM", "Ba-ppm", "Ba_ppm",
+          "Barium (ppm)", "Barium ppm", "Barium_ppm", "[Ba]", "Ba]",
+          "Ba(ppm)", "Ba ppm)", "Ba, ppm"
+        ],
+        "display_name": "Ba (ppm)",
+        "data_type": "float",
+        "units": "ppm",
+        "description": "Barium concentration in ppm"
+      },
+      "La_ppm": {
+        "standard": "La_ppm",
+        "variations": [
+          "La", "La_ppm", "Lanthanum", "LA", "la", "La (ppm)", "La ppm",
+          "La_conc", "La_concentration", "La Concentration", "La concentration",
+          "La (PPM)", "La PPM", "LA (PPM)", "LA PPM", "La-ppm", "La_ppm",
+          "Lanthanum (ppm)", "Lanthanum ppm", "Lanthanum_ppm", "[La]", "La]",
+          "La(ppm)", "La ppm)", "La, ppm"
+        ],
+        "display_name": "La (ppm)",
+        "data_type": "float",
+        "units": "ppm",
+        "description": "Lanthanum concentration in ppm"
+      },
+      "Ce_ppm": {
+        "standard": "Ce_ppm",
+        "variations": [
+          "Ce", "Ce_ppm", "Cerium", "CE", "ce", "Ce (ppm)", "Ce ppm",
+          "Ce_conc", "Ce_concentration", "Ce Concentration", "Ce concentration",
+          "Ce (PPM)", "Ce PPM", "CE (PPM)", "CE PPM", "Ce-ppm", "Ce_ppm",
+          "Cerium (ppm)", "Cerium ppm", "Cerium_ppm", "[Ce]", "Ce]",
+          "Ce(ppm)", "Ce ppm)", "Ce, ppm"
+        ],
+        "display_name": "Ce (ppm)",
+        "data_type": "float",
+        "units": "ppm",
+        "description": "Cerium concentration in ppm"
+      },
+      "Yb_ppm": {
+        "standard": "Yb_ppm",
+        "variations": [
+          "Yb", "Yb_ppm", "Ytterbium", "YB", "yb", "Yb (ppm)", "Yb ppm",
+          "Yb_conc", "Yb_concentration", "Yb Concentration", "Yb concentration",
+          "Yb (PPM)", "Yb PPM", "YB (PPM)", "YB PPM", "Yb-ppm", "Yb_ppm",
+          "Ytterbium (ppm)", "Ytterbium ppm", "Ytterbium_ppm", "[Yb]", "Yb]",
+          "Yb(ppm)", "Yb ppm)", "Yb, ppm"
+        ],
+        "display_name": "Yb (ppm)",
+        "data_type": "float",
+        "units": "ppm",
+        "description": "Ytterbium concentration in ppm"
+      },
+      "CIA_Value": {
+        "standard": "CIA_Value",
+        "variations": [
+          "CIA_Value", "CIA", "Chemical Index of Alteration",
+          "CIA index", "CIA value", "CIA (Chemical Index of Alteration)",
+          "Chemical Index of Alteration (CIA)", "CIA score",
+          "Alteration index", "Weathering index (CIA)"
+        ],
+        "display_name": "CIA",
+        "data_type": "float",
+        "units": null,
+        "description": "Chemical Index of Alteration"
+      },
+      "δ13C": {
+        "standard": "δ13C",
+        "variations": [
+          "d13C", "δ13C", "delta13C", "C13", "C-13", "δ13C (‰)", "d13C (‰)",
+          "δ13C permil", "d13C permil", "delta13C (‰)", "13C/12C",
+          "δ13C vs VPDB", "d13C vs VPDB", "13C", "δ13C-VPDB", "d13C-VPDB",
+          "delta 13C", "δ 13C", "d 13C", "C isotopic composition"
+        ],
+        "display_name": "δ¹³C",
+        "data_type": "float",
+        "units": "‰",
+        "description": "Carbon-13 isotopic composition"
+      },
+      "δ15N": {
+        "standard": "δ15N",
+        "variations": [
+          "d15N", "δ15N", "delta15N", "N15", "N-15", "δ15N (‰)", "d15N (‰)",
+          "δ15N permil", "d15N permil", "delta15N (‰)", "15N/14N",
+          "δ15N vs AIR", "d15N vs AIR", "15N", "δ15N-AIR", "d15N-AIR",
+          "delta 15N", "δ 15N", "d 15N", "N isotopic composition"
+        ],
+        "display_name": "δ¹⁵N",
+        "data_type": "float",
+        "units": "‰",
+        "description": "Nitrogen-15 isotopic composition"
+      }
+    },
+    "plate_readers": {
+      "Well": {
+        "standard": "Well",
+        "variations": [
+          "Well", "WELL", "Well ID", "Well Position", "Well Label",
+          "A1", "B1", "H12", "Row", "Column", "Well Name"
+        ],
+        "display_name": "Well",
+        "data_type": "string",
+        "units": null,
+        "description": "Well identifier in a microplate"
+      },
+      "Absorbance": {
+        "standard": "Absorbance",
+        "variations": [
+          "Abs", "Absorbance", "OD", "Optical Density", "A",
+          "Absorbance (AU)", "OD (AU)", "Abs (AU)"
+        ],
+        "display_name": "Absorbance",
+        "data_type": "float",
+        "units": "AU",
+        "description": "Absorbance value"
+      },
+      "Fluorescence": {
+        "standard": "Fluorescence",
+        "variations": [
+          "FL", "Fluorescence", "RFU", "Relative Fluorescence Units",
+          "Fluorescence intensity", "FL intensity"
+        ],
+        "display_name": "Fluorescence",
+        "data_type": "float",
+        "units": "RFU",
+        "description": "Fluorescence intensity"
+      },
+      "Luminescence": {
+        "standard": "Luminescence",
+        "variations": [
+          "Lum", "Luminescence", "RLU", "Relative Light Units",
+          "Luminescence intensity"
+        ],
+        "display_name": "Luminescence",
+        "data_type": "float",
+        "units": "RLU",
+        "description": "Luminescence signal"
+      },
+      "KineticTime_min": {
+        "standard": "KineticTime_min",
+        "variations": [
+          "Time", "Kinetic Time", "Time (min)", "Elapsed time",
+          "Time point", "Cycle time"
+        ],
+        "display_name": "Time (min)",
+        "data_type": "float",
+        "units": "min",
+        "description": "Time for kinetic measurements"
+      }
+    },
+    "flow_cytometry": {
+      "Event": {
+        "standard": "Event",
+        "variations": [
+          "Event", "Cell", "Particle", "Event #", "Index"
+        ],
+        "display_name": "Event",
+        "data_type": "integer",
+        "units": null,
+        "description": "Event (cell) number"
+      },
+      "FSC": {
+        "standard": "FSC",
+        "variations": [
+          "FSC", "FSC-A", "FSC-H", "FSC-W", "Forward Scatter",
+          "FS", "Forward Scatter Area", "Forward Scatter Height"
+        ],
+        "display_name": "FSC",
+        "data_type": "float",
+        "units": null,
+        "description": "Forward scatter parameter"
+      },
+      "SSC": {
+        "standard": "SSC",
+        "variations": [
+          "SSC", "SSC-A", "SSC-H", "SSC-W", "Side Scatter",
+          "SS", "Side Scatter Area", "Side Scatter Height"
+        ],
+        "display_name": "SSC",
+        "data_type": "float",
+        "units": null,
+        "description": "Side scatter parameter"
+      },
+      "FL1": {
+        "standard": "FL1",
+        "variations": [
+          "FL1", "FL1-A", "FL1-H", "FL1-W", "FITC", "GFP",
+          "Channel 1", "Detector 1"
+        ],
+        "display_name": "FL1",
+        "data_type": "float",
+        "units": null,
+        "description": "Fluorescence channel 1"
+      },
+      "FL2": {
+        "standard": "FL2",
+        "variations": [
+          "FL2", "FL2-A", "FL2-H", "FL2-W", "PE", "mCherry",
+          "Channel 2", "Detector 2"
+        ],
+        "display_name": "FL2",
+        "data_type": "float",
+        "units": null,
+        "description": "Fluorescence channel 2"
+      },
+      "FL3": {
+        "standard": "FL3",
+        "variations": [
+          "FL3", "FL3-A", "FL3-H", "FL3-W", "PerCP", "APC",
+          "Channel 3", "Detector 3"
+        ],
+        "display_name": "FL3",
+        "data_type": "float",
+        "units": null,
+        "description": "Fluorescence channel 3"
+      }
+    },
+    "titration": {
+      "Volume_mL": {
+        "standard": "Volume_mL",
+        "variations": [
+          "Volume", "Vol", "Titrant volume", "V", "Volume (mL)",
+          "mL", "Volume_mL", "Vol_mL"
+        ],
+        "display_name": "Volume (mL)",
+        "data_type": "float",
+        "units": "mL",
+        "description": "Volume of titrant added"
+      },
+      "Signal_mV": {
+        "standard": "Signal_mV",
+        "variations": [
+          "Signal", "Potential", "pH", "mV", "pH value",
+          "Electrode signal", "EMF", "Voltage"
+        ],
+        "display_name": "Signal (mV)",
+        "data_type": "float",
+        "units": "mV",
+        "description": "Measured signal (pH, mV, etc.)"
+      },
+      "Temperature_C": {
+        "standard": "Temperature_C",
+        "variations": [
+          "Temp", "Temperature", "T", "Temperature (C)", "°C"
+        ],
+        "display_name": "Temperature (°C)",
+        "data_type": "float",
+        "units": "°C",
+        "description": "Temperature during titration"
+      },
+      "Endpoint_mL": {
+        "standard": "Endpoint_mL",
+        "variations": [
+          "Endpoint", "EP", "Equivalence point", "Volume at EP",
+          "Endpoint volume", "V_eq"
+        ],
+        "display_name": "Endpoint (mL)",
+        "data_type": "float",
+        "units": "mL",
+        "description": "Volume at the equivalence point"
+      }
+    }
+  }
+}

@@ -39,6 +39,7 @@ PLUGIN_INFO = {
 # ============================================================================
 # PREVENT DOUBLE REGISTRATION
 # ============================================================================
+# Silence ObsPy's SciPy deprecation warnings
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import numpy as np
@@ -61,6 +62,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, Any, Callable, Union
 import warnings
 warnings.filterwarnings('ignore')
+
 
 # ============================================================================
 # OPTIONAL SCIENTIFIC IMPORTS
@@ -85,6 +87,20 @@ except ImportError:
 # ============================================================================
 # GEOPHYSICS-SPECIFIC IMPORTS
 # ============================================================================
+# PATCH scipy.integrate BEFORE obspy imports it
+try:
+    import scipy.integrate
+    # Add deprecated function aliases if they don't exist
+    if not hasattr(scipy.integrate, 'trapz') and hasattr(scipy.integrate, 'trapezoid'):
+        scipy.integrate.trapz = scipy.integrate.trapezoid
+    if not hasattr(scipy.integrate, 'simps') and hasattr(scipy.integrate, 'simpson'):
+        scipy.integrate.simps = scipy.integrate.simpson
+    if not hasattr(scipy.integrate, 'cumtrapz') and hasattr(scipy.integrate, 'cumulative_trapezoid'):
+        scipy.integrate.cumtrapz = scipy.integrate.cumulative_trapezoid
+except ImportError:
+    pass
+
+# Now import obspy
 try:
     import obspy
     from obspy import read, Stream, Trace
@@ -104,7 +120,6 @@ try:
     HAS_MODBUS = True
 except ImportError:
     HAS_MODBUS = False
-
 # ============================================================================
 # CROSS-PLATFORM CHECK
 # ============================================================================

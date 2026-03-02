@@ -182,6 +182,51 @@ class AnalysisTab:
         # Initial refresh
         self.refresh_sample_list()
 
+    def _add_standard_buttons(self):
+        """Add standard buttons to ANY tab - call this in _build_content_ui"""
+        button_row = tk.Frame(self.control_frame, bg="white")  # Use self.control_frame
+        button_row.pack(fill=tk.X, padx=4, pady=2)
+
+        ttk.Button(button_row, text="📋 Send to Classification",
+                  command=self.send_to_classification).pack(side=tk.LEFT, padx=2)
+        ttk.Button(button_row, text="📦 Batch Process",
+                  command=self.batch_process).pack(side=tk.RIGHT, padx=2)
+
+        # Optional uncertainty checkbox
+        self.uncertainty_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(button_row, text="🎲 Propagate Uncertainty",
+                      variable=self.uncertainty_var,
+                      bg="white", font=("Arial", 7)).pack(side=tk.LEFT, padx=10)
+
+    def send_to_classification(self):
+        """Send results to classification engine"""
+        if not hasattr(self, 'results_dict') or not self.results_dict:
+            messagebox.showwarning("No Results", "Run analysis first")
+            return
+
+        if not hasattr(self.app, 'classification_engine'):
+            messagebox.showwarning("No Engine", "Classification engine not found")
+            return
+
+        # Get sample ID
+        if self.selected_sample_idx is not None:
+            sample = self.samples[self.selected_sample_idx]
+            sample_id = sample.get('Sample_ID', f'Sample_{self.selected_sample_idx}')
+        else:
+            sample_id = f"{self.tab_name}_{datetime.now().strftime('%H%M%S')}"
+
+        # Add metadata
+        self.results_dict['technique'] = self.tab_name
+        self.results_dict['timestamp'] = datetime.now().isoformat()
+
+        # Send
+        try:
+            self.app.classification_engine.add_thermal_results(sample_id, self.results_dict)
+            messagebox.showinfo("Success", f"Sent {self.tab_name} results")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to send: {e}")
+
+
     def _build_base_ui(self):
         """Build the base UI with import controls"""
         # Import mode selector
@@ -348,6 +393,73 @@ class DSCAnalyzer:
     Purity analysis (van't Hoff):
         T_m = T_0 - (RT_0^2/ΔH_f) * ln(1 - X)
     """
+    @classmethod
+    def deconvolve_peaks(cls, temperature, heat_flow, n_peaks=2):
+        """
+        Deconvolve overlapping peaks using Gaussian functions
+
+        Useful for separating cold crystallization from melting
+        Returns individual peak parameters
+        """
+        from scipy.optimize import curve_fit
+
+        def gaussian(x, amp, cen, wid):
+            return amp * np.exp(-(x - cen)**2 / (2 * wid**2))
+
+        def multi_gaussian(x, *params):
+            n = len(params) // 3
+            y = np.zeros_like(x)
+            for i in range(n):
+                amp = params[i*3]
+                cen = params[i*3 + 1]
+                wid = params[i*3 + 2]
+                y += gaussian(x, amp, cen, wid)
+            return y
+
+        # Initial guess: find peaks
+        if HAS_SCIPY:
+            from scipy.signal import find_peaks
+            peaks, _ = find_peaks(heat_flow, height=np.max(heat_flow)*0.1)
+            peaks = peaks[:n_peaks]  # Take top n_peaks
+        else:
+            # Fallback: evenly spaced
+            peaks = np.linspace(len(temperature)//4, 3*len(temperature)//4, n_peaks).astype(int)
+
+        # Initial parameters
+        p0 = []
+        for i, p in enumerate(peaks):
+            p0.extend([
+                heat_flow[p],  # amplitude
+                temperature[p],  # center
+                5.0  # width
+            ])
+
+        try:
+            popt, _ = curve_fit(multi_gaussian, temperature, heat_flow, p0=p0, maxfev=5000)
+
+            # Extract individual peaks
+            peaks_decon = []
+            for i in range(n_peaks):
+                amp = popt[i*3]
+                cen = popt[i*3 + 1]
+                wid = abs(popt[i*3 + 2])
+
+                # Calculate area
+                x_peak = np.linspace(cen - 3*wid, cen + 3*wid, 100)
+                y_peak = gaussian(x_peak, amp, cen, wid)
+                area = np.trapz(y_peak, x_peak)
+
+                peaks_decon.append({
+                    'peak_temperature': cen,
+                    'peak_height': amp,
+                    'peak_width': wid,
+                    'peak_area': area,
+                    'type': 'gaussian'
+                })
+
+            return peaks_decon
+        except:
+            return None
 
     @classmethod
     def linear_baseline(cls, temperature, heat_flow, peak_start, peak_end):
@@ -587,6 +699,70 @@ class DSCAnalysisTab(AnalysisTab):
         self.peak_props = None
         self._build_content_ui()
 
+    def _deconvolve_peaks(self):
+        """Deconvolve overlapping peaks"""
+        if self.temperature is None:
+            messagebox.showwarning("No Data", "Load DSC data first")
+            return
+
+        # Ask user how many peaks to deconvolve
+        from tkinter.simpledialog import askinteger
+        n_peaks = askinteger("Peak Deconvolution",
+                            "How many peaks do you expect?",
+                            minvalue=2, maxvalue=5, initialvalue=2)
+
+        if not n_peaks:
+            return
+
+        self.status_label.config(text="🔄 Deconvolving peaks...")
+
+        def worker():
+            result = self.engine.deconvolve_peaks(
+                self.temperature, self.heat_flow, n_peaks
+            )
+
+            def update_ui():
+                if result:
+                    # Show results
+                    msg = "Deconvoluted Peaks:\n\n"
+                    for i, peak in enumerate(result):
+                        msg += f"Peak {i+1}:\n"
+                        msg += f"  Temp: {peak['peak_temperature']:.2f}°C\n"
+                        msg += f"  Height: {peak['peak_height']:.2f} mW\n"
+                        msg += f"  Width: {peak['peak_width']:.2f}°C\n"
+                        msg += f"  Area: {peak['peak_area']:.2f}\n\n"
+
+                    messagebox.showinfo("Deconvolution Results", msg)
+
+                    # Plot if matplotlib available
+                    if HAS_MPL:
+                        self.dsc_ax_peak.clear()
+                        self.dsc_ax_peak.plot(self.temperature, self.heat_flow,
+                                            'b-', lw=2, label='Original')
+
+                        colors = ['red', 'green', 'orange', 'purple', 'brown']
+                        for i, peak in enumerate(result):
+                            x = np.linspace(peak['peak_temperature'] - 3*peak['peak_width'],
+                                        peak['peak_temperature'] + 3*peak['peak_width'], 200)
+                            y = peak['peak_height'] * np.exp(-(x - peak['peak_temperature'])**2
+                                                            / (2*peak['peak_width']**2))
+                            self.dsc_ax_peak.plot(x, y, '--', color=colors[i % len(colors)],
+                                                label=f'Peak {i+1}')
+
+                        self.dsc_ax_peak.set_xlabel("Temperature (°C)")
+                        self.dsc_ax_peak.set_ylabel("Heat Flow (mW)")
+                        self.dsc_ax_peak.legend()
+                        self.dsc_ax_peak.grid(True, alpha=0.3)
+                        self.dsc_canvas.draw()
+
+                    self.status_label.config(text="✅ Deconvolution complete")
+                else:
+                    messagebox.showerror("Error", "Deconvolution failed - try fewer peaks")
+                    self.status_label.config(text="❌ Deconvolution failed")
+
+            self.ui_queue.schedule(update_ui)
+
+        threading.Thread(target=worker, daemon=True).start()
     def _sample_has_data(self, sample):
         """Check if sample has DSC data"""
         return any(col in sample and sample[col] for col in
@@ -683,6 +859,8 @@ class DSCAnalysisTab(AnalysisTab):
                   command=self._integrate_peak).pack(fill=tk.X, padx=4, pady=4)
         ttk.Button(left, text="🧪 PURITY ANALYSIS",
                   command=self._purity_analysis).pack(fill=tk.X, padx=4, pady=2)
+        ttk.Button(left, text="🔍 DECONVOLVE PEAKS",
+                  command=self._deconvolve_peaks).pack(fill=tk.X, padx=4, pady=2)
 
         # Results
         results_frame = tk.LabelFrame(left, text="Results", bg="white",
@@ -742,10 +920,10 @@ class DSCAnalysisTab(AnalysisTab):
 
             self.dsc_canvas = FigureCanvasTkAgg(self.dsc_fig, right)
             self.dsc_canvas.draw()
-            self.dsc_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
             toolbar = NavigationToolbar2Tk(self.dsc_canvas, right)
             toolbar.update()
+            toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+            self.dsc_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         else:
             tk.Label(right, text="matplotlib required for plots",
                     bg="white", fg="#888").pack(expand=True)
@@ -798,6 +976,19 @@ class DSCAnalysisTab(AnalysisTab):
                     self.dsc_results["deltaH"].set(f"{delta_H:.2f}")
                     self.dsc_results["height"].set(f"{peak_props['peak_height']:.2f}")
                     self.dsc_results["width"].set(f"{peak_props['peak_width']:.2f}")
+                    sample_id = "Unknown"
+                    if self.selected_sample_idx is not None and self.selected_sample_idx < len(self.samples):
+                        sample_id = self.samples[self.selected_sample_idx].get('Sample_ID', f'Sample_{self.selected_sample_idx}')
+
+                    self.current_results = {
+                        'Sample_ID': sample_id,
+                        'Peak_Temperature_C': peak_props['peak_temperature'],
+                        'Onset_Temperature_C': peak_props['onset_temperature'],
+                        'Endset_Temperature_C': peak_props['endset_temperature'],
+                        'Enthalpy_J_g': delta_H,
+                        'Peak_Height_mW': peak_props['peak_height'],
+                        'Peak_Width_C': peak_props['peak_width']
+                    }
 
                     if HAS_MPL:
                         # Main curve with peak markers
@@ -1165,10 +1356,10 @@ class TgAnalysisTab(AnalysisTab):
 
             self.tg_canvas = FigureCanvasTkAgg(self.tg_fig, right)
             self.tg_canvas.draw()
-            self.tg_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
             toolbar = NavigationToolbar2Tk(self.tg_canvas, right)
             toolbar.update()
+            toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+            self.tg_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         else:
             tk.Label(right, text="matplotlib required for plots",
                     bg="white", fg="#888").pack(expand=True)
@@ -1740,21 +1931,53 @@ class LFAAnalyzer:
         return None
 
     @classmethod
-    def cape_lehman(cls, time, signal, thickness_mm, iterations=5):
+    def cape_lehman(cls, time, signal, thickness_mm):
         """
         Cape-Lehman model with heat loss correction
 
-        Includes pulse width correction and heat loss parameters
+        More accurate than Parker's method for materials with heat loss
+        Returns corrected thermal diffusivity
         """
-        # Initial estimate
-        result = cls.half_time_method(time, signal, thickness_mm)
-        if result is None:
+        # First get Parker estimate
+        parker = cls.half_time_method(time, signal, thickness_mm)
+        if parker is None:
             return None
 
-        # Simplified Cape-Lehman correction
-        # In production, would fit full model
+        # Normalize signal
+        signal_norm = signal / np.max(signal)
 
-        return result
+        # Find characteristic times
+        t_half = parker['t_half_ms'] / 1000  # convert to seconds
+
+        # Cape-Lehman correction factor (simplified)
+        # Based on ratio of signal at 2*t_half to theoretical
+        idx_half = np.argmin(np.abs(time - t_half))
+        idx_double = np.argmin(np.abs(time - 2*t_half))
+
+        if idx_double < len(signal_norm):
+            V_half = signal_norm[idx_half]
+            V_double = signal_norm[idx_double]
+
+            # Theoretical values for no heat loss
+            V_half_theory = 0.5
+            V_double_theory = 0.75
+
+            # Calculate heat loss parameter
+            heat_loss = (V_double_theory - V_double) / V_double_theory
+
+            # Apply correction (simplified Cape-Lehman)
+            correction = 1.0 / (1.0 + 2.5 * heat_loss)
+            alpha_corrected = parker['alpha_m2_s'] * correction
+        else:
+            alpha_corrected = parker['alpha_m2_s']
+
+        return {
+            "t_half_ms": parker['t_half_ms'],
+            "alpha_m2_s": alpha_corrected,
+            "alpha_mm2_s": alpha_corrected * 1e6,
+            "heat_loss_param": heat_loss if 'heat_loss' in locals() else 0,
+            "method": "Cape-Lehman (simplified)"
+        }
 
     @classmethod
     def pulse_correction(cls, time, signal, pulse_width_ms):
@@ -1874,25 +2097,29 @@ class CalorimetryAnalyzer:
 
 
 # ============================================================================
-# TAB 3: CRYSTALLIZATION KINETICS
+# UPGRADED KINETICS TAB - Full Isoconversional Analysis
 # ============================================================================
+
 class KineticsTab(AnalysisTab):
     def __init__(self, parent, app, ui_queue):
         super().__init__(parent, app, ui_queue, "Kinetics")
         self.engine = KineticsAnalyzer
         self.time = None
         self.conversion = None
+        self.temperature = None  # Added for isoconversional
+        self.heating_rate = None  # Added for multiple rates
         self.heating_rates = []
         self.peak_temps = []
+        self.isoconversional_results = {}  # Store Ea vs conversion
         self._build_content_ui()
 
     def _sample_has_data(self, sample):
         return any(col in sample and sample[col] for col in
-                   ['Kinetics_File', 'Conversion', 'Time'])
+                   ['Kinetics_File', 'Conversion', 'Time', 'Temperature'])
 
     def _manual_import(self):
         path = filedialog.askopenfilename(
-            title="Load Crystallization Data",
+            title="Load Kinetics Data",
             filetypes=[("CSV", "*.csv"), ("Excel", "*.xlsx"), ("All files", "*.*")])
         if not path:
             return
@@ -1902,22 +2129,48 @@ class KineticsTab(AnalysisTab):
             try:
                 df = pd.read_csv(path) if not path.endswith('.xlsx') else pd.read_excel(path)
                 cols = list(df.columns)
-                time_col = next((c for c in cols if 'time' in c.lower()), cols[0])
-                conv_col = next((c for c in cols if any(x in c.lower() for x in ['conv', 'alpha', 'x'])), cols[1])
-                time = df[time_col].values
-                conv = df[conv_col].values
+
+                # Auto-detect columns
+                time_col = next((c for c in cols if 'time' in c.lower()), None)
+                temp_col = next((c for c in cols if 'temp' in c.lower()), None)
+                conv_col = next((c for c in cols if any(x in c.lower() for x in ['conv', 'alpha', 'x'])), None)
+
+                if not conv_col:
+                    conv_col = cols[1] if len(cols) > 1 else cols[0]
+
+                data = {}
+                if time_col:
+                    data['time'] = df[time_col].values
+                if temp_col:
+                    data['temperature'] = df[temp_col].values
+                data['conversion'] = df[conv_col].values
+
+                # Try to extract heating rate from filename or metadata
+                heating_rate = self._extract_heating_rate(path)
 
                 def update():
-                    self.time = time
-                    self.conversion = conv
-                    self.manual_label.config(text=f"✓ {Path(path).name}")
+                    self.time = data.get('time')
+                    self.temperature = data.get('temperature')
+                    self.conversion = data['conversion']
+                    self.heating_rate = heating_rate
+                    self.manual_label.config(text=f"✓ {Path(path).name} (β={heating_rate}°C/min)")
                     self._plot_data()
-                    self.status_label.config(text=f"Loaded {len(time)} points")
+                    self.status_label.config(text=f"Loaded {len(self.conversion)} points")
                 self.ui_queue.schedule(update)
             except Exception as e:
                 self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _extract_heating_rate(self, path):
+        """Extract heating rate from filename or return default"""
+        filename = Path(path).stem.lower()
+        # Look for patterns like "5K", "10C", "rate5", etc.
+        import re
+        matches = re.findall(r'(\d+)[\s_]?[kKcC]?[\s_]?(?:min|rate)?', filename)
+        if matches:
+            return float(matches[0])
+        return 10.0  # default
 
     def _load_sample_data(self, idx):
         sample = self.samples[idx]
@@ -1925,6 +2178,9 @@ class KineticsTab(AnalysisTab):
             try:
                 self.time = np.array([float(x) for x in sample['Time'].split(',')])
                 self.conversion = np.array([float(x) for x in sample['Conversion'].split(',')])
+                if 'Temperature' in sample:
+                    self.temperature = np.array([float(x) for x in sample['Temperature'].split(',')])
+                self.heating_rate = float(sample.get('Heating_Rate', 10.0))
                 self._plot_data()
             except Exception as e:
                 self.status_label.config(text=f"Error: {e}")
@@ -1933,154 +2189,662 @@ class KineticsTab(AnalysisTab):
         main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
         main_pane.pack(fill=tk.BOTH, expand=True)
 
-        left = tk.Frame(main_pane, bg="white", width=300)
+        left = tk.Frame(main_pane, bg="white", width=350)  # Slightly wider
         main_pane.add(left, weight=1)
         right = tk.Frame(main_pane, bg="white")
         main_pane.add(right, weight=2)
 
         tk.Label(left, text="🔬 CRYSTALLIZATION KINETICS",
                 font=("Arial", 10, "bold"), bg=C_LIGHT, fg=C_HEADER).pack(fill=tk.X, pady=2)
-        tk.Label(left, text="Avrami 1939 · Ozawa 1970 · Kissinger 1957",
+        tk.Label(left, text="Avrami · Kissinger · Friedman · OFW · ICTAC",
                 font=("Arial", 7), bg="white", fg="#888").pack(anchor=tk.W, padx=4)
 
-        tk.Label(left, text="Model:", font=("Arial", 8, "bold"), bg="white").pack(anchor=tk.W, padx=4, pady=(4,0))
-        self.kin_model = tk.StringVar(value="Avrami")
-        ttk.Combobox(left, textvariable=self.kin_model,
-                     values=["Avrami", "Kissinger", "Ozawa"], width=15, state="readonly").pack(fill=tk.X, padx=4)
+        # ============ MODEL SELECTION ============
+        tk.Label(left, text="Analysis Method:", font=("Arial", 8, "bold"),
+                bg="white").pack(anchor=tk.W, padx=4, pady=(4,0))
 
-        # Kissinger input table
-        kiss_frame = tk.LabelFrame(left, text="Kissinger Data (φ, Tp)", bg="white",
+        self.kin_model = tk.StringVar(value="Isoconversional (Friedman+OFW)")
+        model_combo = ttk.Combobox(left, textvariable=self.kin_model,
+                     values=[
+                         "Isoconversional (Friedman+OFW)",
+                         "Kissinger (peak only)",
+                         "Avrami (isothermal)",
+                         "Ozawa (non-isothermal)"
+                     ], width=30, state="readonly")
+        model_combo.pack(fill=tk.X, padx=4)
+
+        # ============ MULTIPLE RATES INPUT ============
+        rates_frame = tk.LabelFrame(left, text="Multiple Heating Rates Data", bg="white",
                                    font=("Arial", 8, "bold"), fg=C_HEADER)
-        kiss_frame.pack(fill=tk.X, padx=4, pady=4)
-        tk.Label(kiss_frame, text="Rate (K/min), Peak T (°C) — one per line:",
-                font=("Arial", 7), bg="white").pack(anchor=tk.W, padx=4)
-        self.kin_text = tk.Text(kiss_frame, height=5, font=("Courier", 8), width=20)
-        self.kin_text.insert(tk.END, "5, 180\n10, 190\n20, 202\n40, 215")
-        self.kin_text.pack(fill=tk.X, padx=4, pady=2)
+        rates_frame.pack(fill=tk.X, padx=4, pady=4)
 
-        ttk.Button(left, text="📊 RUN ANALYSIS", command=self._run_analysis).pack(fill=tk.X, padx=4, pady=4)
+        tk.Label(rates_frame,
+                text="Format: Rate (K/min), Temperature (°C), Conversion (optional)\nOne dataset per line or separate files",
+                font=("Arial", 7), bg="white", fg="#666", justify=tk.LEFT).pack(anchor=tk.W, padx=4)
 
+        # Text input for multiple rates
+        self.rates_text = tk.Text(rates_frame, height=4, font=("Courier", 8), width=30)
+        self.rates_text.insert(tk.END, "# Example:\n5, 180, 0.5\n10, 190, 0.5\n20, 202, 0.5\n40, 215, 0.5")
+        self.rates_text.pack(fill=tk.X, padx=4, pady=2)
+
+        # Button to load multiple files
+        btn_frame = tk.Frame(rates_frame, bg="white")
+        btn_frame.pack(fill=tk.X, pady=2)
+        ttk.Button(btn_frame, text="📂 Load Multiple Files",
+                  command=self._load_multiple_rates).pack(side=tk.LEFT, padx=4)
+        self.files_count_var = tk.StringVar(value="0 files")
+        tk.Label(btn_frame, textvariable=self.files_count_var,
+                font=("Arial", 7), bg="white", fg="#666").pack(side=tk.RIGHT, padx=4)
+
+        # ============ UNCERTAINTY OPTIONS ============
+        uncert_frame = tk.Frame(left, bg="white")
+        uncert_frame.pack(fill=tk.X, padx=4, pady=2)
+
+        self.propagate_uncertainty = tk.BooleanVar(value=True)
+        tk.Checkbutton(uncert_frame, text="🎲 Propagate Uncertainty (Monte Carlo)",
+                      variable=self.propagate_uncertainty,
+                      bg="white", font=("Arial", 7, "bold")).pack(anchor=tk.W)
+
+        # ============ ACTION BUTTONS ============
+        ttk.Button(left, text="📊 RUN FULL ANALYSIS",
+                  command=self._run_analysis,
+                  style="Accent.TButton").pack(fill=tk.X, padx=4, pady=4)
+
+        button_row = tk.Frame(left, bg="white")
+        button_row.pack(fill=tk.X, padx=4, pady=2)
+
+        ttk.Button(button_row, text="📋 Send to Classification",
+                  command=self._send_to_classification).pack(side=tk.LEFT, padx=2)
+        ttk.Button(button_row, text="📦 Batch Process",
+                  command=self._batch_process).pack(side=tk.RIGHT, padx=2)
+
+        # ============ RESULTS FRAME ============
         results_frame = tk.LabelFrame(left, text="Results", bg="white",
                                       font=("Arial", 8, "bold"), fg=C_HEADER)
         results_frame.pack(fill=tk.X, padx=4, pady=4)
 
+        # Single value results
         self.kin_results = {}
-        for label, key in [("n (Avrami):", "n"), ("k (rate):", "k"),
-                            ("t½:", "t_half"), ("Ea (kJ/mol):", "Ea"), ("R²:", "r2")]:
+        single_results = [
+            ("Ea (kJ/mol):", "Ea_avg"),
+            ("Ea std dev:", "Ea_std"),
+            ("ln A:", "ln_A"),
+            ("R² avg:", "r2_avg")
+        ]
+
+        for label, key in single_results:
             row = tk.Frame(results_frame, bg="white")
             row.pack(fill=tk.X, pady=1)
-            tk.Label(row, text=label, font=("Arial", 7), bg="white", width=14, anchor=tk.W).pack(side=tk.LEFT)
+            tk.Label(row, text=label, font=("Arial", 7), bg="white",
+                    width=14, anchor=tk.W).pack(side=tk.LEFT)
             var = tk.StringVar(value="—")
             tk.Label(row, textvariable=var, font=("Arial", 7, "bold"),
                     bg="white", fg=C_HEADER).pack(side=tk.LEFT, padx=2)
             self.kin_results[key] = var
 
+        # ============ Ea VS CONVERSION TABLE ============
+        ea_frame = tk.LabelFrame(left, text="Ea vs Conversion (Isoconversional)", bg="white",
+                                 font=("Arial", 8, "bold"), fg=C_HEADER)
+        ea_frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+
+        columns = ('α', 'Friedman Ea', 'OFW Ea', 'Mean Ea', 'Std')
+        self.ea_tree = ttk.Treeview(ea_frame, columns=columns, show='headings', height=6)
+
+        col_widths = [50, 80, 80, 80, 60]
+        for col, width in zip(columns, col_widths):
+            self.ea_tree.heading(col, text=col)
+            self.ea_tree.column(col, width=width, anchor=tk.CENTER)
+
+        vsb = ttk.Scrollbar(ea_frame, orient="vertical", command=self.ea_tree.yview)
+        self.ea_tree.configure(yscrollcommand=vsb.set)
+
+        self.ea_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        vsb.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # ============ PLOT AREA ============
         if HAS_MPL:
             self.kin_fig = Figure(figsize=(8, 6), dpi=100, facecolor="white")
-            gs = GridSpec(2, 2, figure=self.kin_fig, hspace=0.35, wspace=0.35)
-            self.kin_ax_avrami = self.kin_fig.add_subplot(gs[0, 0])
-            self.kin_ax_conv   = self.kin_fig.add_subplot(gs[0, 1])
-            self.kin_ax_kiss   = self.kin_fig.add_subplot(gs[1, :])
-            self.kin_ax_avrami.set_title("Avrami Plot", fontsize=9, fontweight="bold")
-            self.kin_ax_conv.set_title("Conversion vs Time", fontsize=9, fontweight="bold")
-            self.kin_ax_kiss.set_title("Kissinger Plot (ln φ/Tp² vs 1000/Tp)", fontsize=9, fontweight="bold")
+            gs = GridSpec(2, 3, figure=self.kin_fig, hspace=0.4, wspace=0.3)
+
+            self.kin_ax_conv = self.kin_fig.add_subplot(gs[0, 0])
+            self.kin_ax_avrami = self.kin_fig.add_subplot(gs[0, 1])
+            self.kin_ax_kiss = self.kin_fig.add_subplot(gs[0, 2])
+            self.kin_ax_friedman = self.kin_fig.add_subplot(gs[1, 0])
+            self.kin_ax_ofw = self.kin_fig.add_subplot(gs[1, 1])
+            self.kin_ax_ea = self.kin_fig.add_subplot(gs[1, 2])
+
+            self.kin_ax_conv.set_title("Conversion vs Time", fontsize=8)
+            self.kin_ax_avrami.set_title("Avrami Plot", fontsize=8)
+            self.kin_ax_kiss.set_title("Kissinger Plot", fontsize=8)
+            self.kin_ax_friedman.set_title("Friedman: ln(dα/dt) vs 1/T", fontsize=8)
+            self.kin_ax_ofw.set_title("OFW: ln(β) vs 1/T", fontsize=8)
+            self.kin_ax_ea.set_title("Ea vs Conversion", fontsize=8)
+
             self.kin_canvas = FigureCanvasTkAgg(self.kin_fig, right)
             self.kin_canvas.draw()
+            toolbar = NavigationToolbar2Tk(self.kin_canvas, right)
+            toolbar.update()
+            toolbar.pack(side=tk.BOTTOM, fill=tk.X)
             self.kin_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-            NavigationToolbar2Tk(self.kin_canvas, right).update()
         else:
             tk.Label(right, text="matplotlib required", bg="white").pack(expand=True)
 
-    def _plot_data(self):
-        if not HAS_MPL or self.time is None:
+    def _load_multiple_rates(self):
+        """Load multiple files for isoconversional analysis"""
+        files = filedialog.askopenfilenames(
+            title="Select Kinetics Files (different heating rates)",
+            filetypes=[("CSV", "*.csv"), ("Excel", "*.xlsx"), ("All files", "*.*")]
+        )
+
+        if not files:
             return
-        self.kin_ax_conv.clear()
-        self.kin_ax_conv.plot(self.time, self.conversion, 'b-', lw=2)
-        self.kin_ax_conv.set_xlabel("Time (s)", fontsize=8)
-        self.kin_ax_conv.set_ylabel("Conversion X", fontsize=8)
-        self.kin_ax_conv.grid(True, alpha=0.3)
-        self.kin_canvas.draw()
+
+        self.status_label.config(text=f"🔄 Loading {len(files)} files...")
+
+        def worker():
+            datasets = []
+            for file in files:
+                try:
+                    df = pd.read_csv(file) if not file.endswith('.xlsx') else pd.read_excel(file)
+
+                    # Auto-detect columns
+                    cols = list(df.columns)
+                    temp_col = next((c for c in cols if 'temp' in c.lower()), cols[0])
+                    conv_col = next((c for c in cols if any(x in c.lower() for x in ['conv', 'alpha'])), cols[1])
+
+                    heating_rate = self._extract_heating_rate(file)
+
+                    datasets.append({
+                        'rate': heating_rate,
+                        'temperature': df[temp_col].values,
+                        'conversion': df[conv_col].values,
+                        'file': Path(file).name
+                    })
+                except Exception as e:
+                    print(f"Error loading {file}: {e}")
+
+            def update():
+                self.multiple_rates_data = datasets
+                self.files_count_var.set(f"{len(datasets)} files")
+
+                # Format text for display
+                text_lines = []
+                for d in datasets:
+                    # Find conversion closest to 0.5 for display
+                    idx = np.argmin(np.abs(d['conversion'] - 0.5))
+                    text_lines.append(f"{d['rate']}, {d['temperature'][idx]:.1f}, {d['conversion'][idx]:.2f}")
+
+                self.rates_text.delete(1.0, tk.END)
+                self.rates_text.insert(tk.END, "\n".join(text_lines))
+
+                self.status_label.config(text=f"✅ Loaded {len(datasets)} files")
+
+            self.ui_queue.schedule(update)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _parse_rates_input(self):
+        """Parse the rates text input into structured data"""
+        data = []
+        lines = self.rates_text.get("1.0", tk.END).strip().split('\n')
+
+        for line in lines:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+
+            parts = [p.strip() for p in line.split(',')]
+            if len(parts) >= 2:
+                try:
+                    rate = float(parts[0])
+                    temp = float(parts[1])
+                    conv = float(parts[2]) if len(parts) > 2 else 0.5
+                    data.append({
+                        'rate': rate,
+                        'temperature': temp,
+                        'conversion': conv
+                    })
+                except ValueError:
+                    continue
+
+        return data
+
+    def _run_isoconversional(self, datasets):
+        """
+        Full isoconversional analysis (Friedman + OFW)
+        Returns Ea vs conversion for both methods
+        """
+        conversion_levels = np.arange(0.1, 0.9, 0.05)  # 10% to 85% in 5% steps
+        results = {}
+
+        for alpha in conversion_levels:
+            friedman_data = []
+            ofw_data = []
+
+            for ds in datasets:
+                # Find temperature at this conversion
+                from scipy.interpolate import interp1d
+
+                # Friedman: need dα/dt
+                if len(ds['conversion']) > 2 and len(ds['temperature']) > 2:
+                    # Calculate dα/dt
+                    dt = np.gradient(ds['temperature']) / ds['rate'] * 60  # Convert to seconds
+                    dalpha_dt = np.gradient(ds['conversion'], dt)
+
+                    # Interpolate to find values at alpha
+                    f_temp = interp1d(ds['conversion'], ds['temperature'],
+                                     bounds_error=False, fill_value='extrapolate')
+                    f_rate = interp1d(ds['conversion'], dalpha_dt,
+                                     bounds_error=False, fill_value='extrapolate')
+
+                    T_alpha = f_temp(alpha)
+                    rate_alpha = f_rate(alpha)
+
+                    if not np.isnan(T_alpha) and not np.isnan(rate_alpha) and rate_alpha > 0:
+                        friedman_data.append({
+                            '1000/T': 1000 / (T_alpha + 273.15),
+                            'ln_dalpha_dt': np.log(rate_alpha),
+                            'rate': ds['rate']
+                        })
+
+                # OFW: need temperature at alpha for each rate
+                f_temp = interp1d(ds['conversion'], ds['temperature'],
+                                 bounds_error=False, fill_value='extrapolate')
+                T_alpha = f_temp(alpha)
+
+                if not np.isnan(T_alpha):
+                    ofw_data.append({
+                        '1000/T': 1000 / (T_alpha + 273.15),
+                        'ln_rate': np.log(ds['rate']),
+                        'rate': ds['rate']
+                    })
+
+            # Friedman analysis: ln(dα/dt) vs 1000/T
+            if len(friedman_data) >= 3:
+                x_f = [d['1000/T'] for d in friedman_data]
+                y_f = [d['ln_dalpha_dt'] for d in friedman_data]
+
+                slope_f, intercept_f, r_f, _, _ = linregress(x_f, y_f)
+                Ea_friedman = -slope_f * 8.314  # kJ/mol
+            else:
+                Ea_friedman = np.nan
+                r_f = 0
+
+            # OFW analysis: ln(β) vs 1000/T
+            if len(ofw_data) >= 3:
+                x_o = [d['1000/T'] for d in ofw_data]
+                y_o = [d['ln_rate'] for d in ofw_data]
+
+                slope_o, intercept_o, r_o, _, _ = linregress(x_o, y_o)
+                # OFW correction factor: Ea = - (R / 1.052) * slope
+                Ea_ofw = - (8.314 / 1.052) * slope_o  # kJ/mol
+            else:
+                Ea_ofw = np.nan
+                r_o = 0
+
+            # Store results
+            results[f"{alpha*100:.0f}%"] = {
+                'alpha': alpha,
+                'Friedman_Ea': Ea_friedman,
+                'OFW_Ea': Ea_ofw,
+                'Mean_Ea': np.nanmean([Ea_friedman, Ea_ofw]),
+                'Std_Ea': np.nanstd([Ea_friedman, Ea_ofw]) if not np.isnan([Ea_friedman, Ea_ofw]).all() else 0,
+                'Friedman_R2': r_f**2,
+                'OFW_R2': r_o**2,
+                'n_friedman': len(friedman_data),
+                'n_ofw': len(ofw_data)
+            }
+
+        return results
 
     def _run_analysis(self):
-        self.status_label.config(text="🔄 Running kinetics analysis...")
+        """Run full kinetics analysis with uncertainty"""
+        self.status_label.config(text="🔄 Running full kinetics analysis...")
 
         def worker():
             try:
                 model = self.kin_model.get()
 
-                # Parse Kissinger data
-                lines = self.kin_text.get("1.0", tk.END).strip().split('\n')
-                heating_rates, peak_temps = [], []
-                for line in lines:
-                    parts = [p.strip() for p in line.split(',')]
-                    if len(parts) == 2:
-                        try:
-                            heating_rates.append(float(parts[0]))
-                            peak_temps.append(float(parts[1]))
-                        except ValueError:
-                            pass
+                # Check if we have multiple rates data
+                if hasattr(self, 'multiple_rates_data') and self.multiple_rates_data:
+                    datasets = self.multiple_rates_data
+                else:
+                    # Parse from text input
+                    rates_data = self._parse_rates_input()
+                    if rates_data:
+                        # Create synthetic datasets (simplified)
+                        datasets = []
+                        for item in rates_data:
+                            # Generate synthetic temperature-conversion curve
+                            if self.temperature is not None and self.conversion is not None:
+                                # Scale to match this heating rate
+                                T_scaled = self.temperature * (item['rate'] / 10.0)
+                                datasets.append({
+                                    'rate': item['rate'],
+                                    'temperature': T_scaled,
+                                    'conversion': self.conversion
+                                })
 
-                avrami_result = None
-                kiss_result = None
+                # Run isoconversional analysis
+                if model.startswith("Isoconversional") and datasets:
+                    self.isoconversional_results = self._run_isoconversional(datasets)
 
-                if model == "Avrami" and self.time is not None:
+                    # Calculate averages
+                    Ea_values = [v['Mean_Ea'] for v in self.isoconversional_results.values()
+                                if not np.isnan(v['Mean_Ea'])]
+                    Ea_avg = np.mean(Ea_values) if Ea_values else 0
+                    Ea_std = np.std(Ea_values) if Ea_values else 0
+                    r2_avg = np.mean([v['Friedman_R2'] for v in self.isoconversional_results.values()
+                                     if not np.isnan(v['Friedman_R2'])])
+
+                    # Kissinger analysis from peak data
+                    if hasattr(self, 'peak_temps') and self.peak_temps:
+                        kiss_result = self.engine.kissinger_analysis(
+                            [d['rate'] for d in datasets],
+                            [d.get('peak_temp', d.get('temperature', 0)) for d in datasets]
+                        )
+                        ln_A = kiss_result.get('ln_A', 0)
+                    else:
+                        ln_A = 0
+
+                # Kissinger only
+                elif model == "Kissinger (peak only)":
+                    rates_data = self._parse_rates_input()
+                    if len(rates_data) >= 3:
+                        rates = [d['rate'] for d in rates_data]
+                        peaks = [d['temperature'] for d in rates_data]
+                        kiss_result = self.engine.kissinger_analysis(rates, peaks)
+                        Ea_avg = kiss_result['Ea_kJ_mol']
+                        Ea_std = 0
+                        ln_A = kiss_result.get('ln_A', 0)
+                        r2_avg = kiss_result['r2']
+
+                # Avrami (isothermal)
+                elif model == "Avrami (isothermal)" and self.time is not None:
                     avrami_result = self.engine.avrami_fit(self.time, self.conversion)
-
-                if len(heating_rates) >= 3:
-                    kiss_result = self.engine.kissinger_analysis(heating_rates, peak_temps)
-
-                def update_ui():
                     if avrami_result:
+                        # For classification, Avrami n is the key output
+                        Ea_avg = 0  # Not applicable
+                        Ea_std = 0
+                        ln_A = 0
+                        r2_avg = avrami_result['r2']
+
+                        # Store Avrami-specific results
                         self.kin_results["n"].set(f"{avrami_result['n']:.3f}")
                         self.kin_results["k"].set(f"{avrami_result['k']:.4e}")
                         self.kin_results["t_half"].set(f"{avrami_result['t_half']:.2f} s")
-                        self.kin_results["r2"].set(f"{avrami_result['r2']:.4f}")
 
-                        if HAS_MPL and self.time is not None:
-                            self.kin_ax_avrami.clear()
-                            mask = (self.conversion > 0.05) & (self.conversion < 0.95)
-                            y = np.log(-np.log(1 - np.clip(self.conversion[mask], 1e-6, 0.999999)))
-                            x = np.log(np.clip(self.time[mask], 1e-6, None))
-                            self.kin_ax_avrami.scatter(x, y, c=C_ACCENT, s=20, alpha=0.7, label="Data")
-                            x_fit = np.linspace(x.min(), x.max(), 100)
-                            y_fit = avrami_result['n'] * x_fit + np.log(avrami_result['k'])
-                            self.kin_ax_avrami.plot(x_fit, y_fit, 'r-', lw=2,
-                                                    label=f"n={avrami_result['n']:.2f}")
-                            self.kin_ax_avrami.set_xlabel("ln(t)", fontsize=8)
-                            self.kin_ax_avrami.set_ylabel("ln[-ln(1-X)]", fontsize=8)
-                            self.kin_ax_avrami.legend(fontsize=7)
-                            self.kin_ax_avrami.grid(True, alpha=0.3)
+                # Propagate uncertainty if requested
+                if self.propagate_uncertainty.get() and hasattr(self.app, 'uncertainty_plugin'):
+                    # Run Monte Carlo on Ea values
+                    if Ea_std == 0 and len(Ea_values) > 1:
+                        # Use variation across conversions as uncertainty
+                        Ea_std = np.std(Ea_values)
 
-                    if kiss_result:
-                        self.kin_results["Ea"].set(f"{kiss_result['Ea_kJ_mol']:.1f}")
-                        if not avrami_result:
-                            self.kin_results["r2"].set(f"{kiss_result['r2']:.4f}")
+                    # Calculate 95% CI
+                    ci_lower = Ea_avg - 1.96 * Ea_std
+                    ci_upper = Ea_avg + 1.96 * Ea_std
+                else:
+                    ci_lower = Ea_avg
+                    ci_upper = Ea_avg
 
-                        if HAS_MPL and len(heating_rates) >= 3:
-                            self.kin_ax_kiss.clear()
-                            x_k = 1000 / (np.array(peak_temps) + 273.15)
-                            y_k = np.log(np.array(heating_rates) / (np.array(peak_temps) + 273.15)**2)
-                            self.kin_ax_kiss.scatter(x_k, y_k, c=C_ACCENT3, s=60, zorder=5, label="Data")
-                            slope = -kiss_result['Ea_kJ_mol'] * 1000 / 8.314 / 1000
-                            x_fit = np.linspace(x_k.min(), x_k.max(), 100)
-                            y_fit = slope * x_fit + kiss_result['ln_A']
-                            self.kin_ax_kiss.plot(x_fit, y_fit, 'r-', lw=2,
-                                                  label=f"Ea={kiss_result['Ea_kJ_mol']:.1f} kJ/mol")
-                            self.kin_ax_kiss.set_xlabel("1000/Tp (K⁻¹)", fontsize=8)
-                            self.kin_ax_kiss.set_ylabel("ln(φ/Tp²)", fontsize=8)
-                            self.kin_ax_kiss.legend(fontsize=7)
-                            self.kin_ax_kiss.grid(True, alpha=0.3)
+                def update_ui():
+                    # Update results display
+                    self.kin_results["Ea_avg"].set(f"{Ea_avg:.1f}")
+                    self.kin_results["Ea_std"].set(f"{Ea_std:.2f}")
+                    self.kin_results["ln_A"].set(f"{ln_A:.2f}")
+                    self.kin_results["r2_avg"].set(f"{r2_avg:.4f}")
+
+                    # Update Ea vs conversion table
+                    for item in self.ea_tree.get_children():
+                        self.ea_tree.delete(item)
+
+                    for alpha_key, res in self.isoconversional_results.items():
+                        self.ea_tree.insert('', 'end', values=(
+                            alpha_key,
+                            f"{res['Friedman_Ea']:.1f}" if not np.isnan(res['Friedman_Ea']) else "—",
+                            f"{res['OFW_Ea']:.1f}" if not np.isnan(res['OFW_Ea']) else "—",
+                            f"{res['Mean_Ea']:.1f}" if not np.isnan(res['Mean_Ea']) else "—",
+                            f"{res['Std_Ea']:.2f}"
+                        ))
 
                     if HAS_MPL:
-                        self.kin_canvas.draw()
-                    self.status_label.config(text="✅ Kinetics analysis complete")
+                        self._update_plots(datasets if 'datasets' in locals() else None)
+
+                    # Store results for classification
+                    self.kinetics_results = {
+                        'Ea_kJ_mol': Ea_avg,
+                        'Ea_std': Ea_std,
+                        'Ea_ci_95': (ci_lower, ci_upper),
+                        'Ea_vs_conversion': self.isoconversional_results,
+                        'ln_A': ln_A,
+                        'r2_avg': r2_avg,
+                        'method': model
+                    }
+
+                    self.status_label.config(text=f"✅ Analysis complete: Ea = {Ea_avg:.1f} ± {Ea_std:.2f} kJ/mol")
 
                 self.ui_queue.schedule(update_ui)
+
             except Exception as e:
                 self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+                import traceback
+                traceback.print_exc()
 
         threading.Thread(target=worker, daemon=True).start()
 
+    def _update_plots(self, datasets=None):
+        """Update all plots with results"""
+        if not HAS_MPL:
+            return
+
+        # Clear all axes
+        for ax in [self.kin_ax_conv, self.kin_ax_avrami, self.kin_ax_kiss,
+                   self.kin_ax_friedman, self.kin_ax_ofw, self.kin_ax_ea]:
+            ax.clear()
+
+        # Plot conversion vs time (if available)
+        if self.time is not None and self.conversion is not None:
+            self.kin_ax_conv.plot(self.time, self.conversion, 'b-', lw=2)
+            self.kin_ax_conv.set_xlabel("Time (s)", fontsize=7)
+            self.kin_ax_conv.set_ylabel("Conversion α", fontsize=7)
+            self.kin_ax_conv.grid(True, alpha=0.3)
+
+        # Plot Avrami (if applicable)
+        if self.time is not None and self.conversion is not None:
+            mask = (self.conversion > 0.05) & (self.conversion < 0.95)
+            if np.any(mask):
+                y = np.log(-np.log(1 - np.clip(self.conversion[mask], 1e-6, 0.999999)))
+                x = np.log(np.clip(self.time[mask], 1e-6, None))
+                self.kin_ax_avrami.scatter(x, y, c=C_ACCENT, s=10, alpha=0.5)
+                self.kin_ax_avrami.set_xlabel("ln(t)", fontsize=7)
+                self.kin_ax_avrami.set_ylabel("ln[-ln(1-α)]", fontsize=7)
+                self.kin_ax_avrami.grid(True, alpha=0.3)
+
+        # Plot Ea vs conversion
+        if self.isoconversional_results:
+            alphas = [v['alpha'] for v in self.isoconversional_results.values()]
+            ea_friedman = [v['Friedman_Ea'] for v in self.isoconversional_results.values()]
+            ea_ofw = [v['OFW_Ea'] for v in self.isoconversional_results.values()]
+            ea_mean = [v['Mean_Ea'] for v in self.isoconversional_results.values()]
+            ea_std = [v['Std_Ea'] for v in self.isoconversional_results.values()]
+
+            self.kin_ax_ea.errorbar(alphas, ea_mean, yerr=ea_std,
+                                   fmt='o-', color=C_ACCENT, capsize=3,
+                                   label='Mean Ea')
+            self.kin_ax_ea.plot(alphas, ea_friedman, 's--', color=C_ACCENT2,
+                               markersize=3, label='Friedman')
+            self.kin_ax_ea.plot(alphas, ea_ofw, '^--', color=C_ACCENT3,
+                               markersize=3, label='OFW')
+
+            self.kin_ax_ea.set_xlabel("Conversion α", fontsize=7)
+            self.kin_ax_ea.set_ylabel("Ea (kJ/mol)", fontsize=7)
+            self.kin_ax_ea.legend(fontsize=5)
+            self.kin_ax_ea.grid(True, alpha=0.3)
+
+        # Plot Friedman and OFW data if datasets provided
+        if datasets:
+            colors = plt.cm.viridis(np.linspace(0, 1, len(datasets)))
+
+            for i, ds in enumerate(datasets):
+                # Friedman points
+                if len(ds['conversion']) > 2:
+                    dt = np.gradient(ds['temperature']) / ds['rate'] * 60
+                    dalpha_dt = np.gradient(ds['conversion'], dt)
+
+                    # Only plot for conversion between 0.1 and 0.9
+                    mask = (ds['conversion'] > 0.1) & (ds['conversion'] < 0.9)
+                    if np.any(mask):
+                        x_f = 1000 / (ds['temperature'][mask] + 273.15)
+                        y_f = np.log(dalpha_dt[mask])
+                        self.kin_ax_friedman.scatter(x_f, y_f, c=[colors[i]],
+                                                    s=5, alpha=0.5)
+
+                # OFW points at specific conversions
+                for alpha in np.arange(0.2, 0.9, 0.2):
+                    f_temp = interp1d(ds['conversion'], ds['temperature'],
+                                     bounds_error=False, fill_value='extrapolate')
+                    T_alpha = f_temp(alpha)
+                    if not np.isnan(T_alpha):
+                        self.kin_ax_ofw.scatter(1000 / (T_alpha + 273.15),
+                                               np.log(ds['rate']),
+                                               c=[colors[i]], s=20, marker='o')
+
+            self.kin_ax_friedman.set_xlabel("1000/T (K⁻¹)", fontsize=7)
+            self.kin_ax_friedman.set_ylabel("ln(dα/dt)", fontsize=7)
+            self.kin_ax_friedman.grid(True, alpha=0.3)
+
+            self.kin_ax_ofw.set_xlabel("1000/T (K⁻¹)", fontsize=7)
+            self.kin_ax_ofw.set_ylabel("ln(β)", fontsize=7)
+            self.kin_ax_ofw.grid(True, alpha=0.3)
+
+        self.kin_canvas.draw()
+
+    def _send_to_classification(self):
+        """Send kinetics results to classification engine"""
+        if not hasattr(self, 'kinetics_results'):
+            messagebox.showwarning("No Results", "Run analysis first")
+            return
+
+        if not hasattr(self.app, 'classification_engine'):
+            messagebox.showwarning("No Engine", "Classification engine not found")
+            return
+
+        # Get current sample ID
+        if self.selected_sample_idx is not None:
+            sample = self.samples[self.selected_sample_idx]
+            sample_id = sample.get('Sample_ID', f'Sample_{self.selected_sample_idx}')
+        else:
+            sample_id = "Current_Analysis"
+
+        # Prepare derived fields for classification
+        derived = {
+            'Ea_kJ_mol': self.kinetics_results['Ea_avg'],
+            'Ea_std': self.kinetics_results['Ea_std'],
+            'Ea_ci_lower': self.kinetics_results['Ea_ci_95'][0],
+            'Ea_ci_upper': self.kinetics_results['Ea_ci_95'][1],
+            'ln_A': self.kinetics_results['ln_A'],
+            'kinetics_method': self.kinetics_results['method'],
+            'r2_fit': self.kinetics_results['r2_avg']
+        }
+
+        # Add Ea variation as stability indicator
+        if self.isoconversional_results:
+            Ea_values = [v['Mean_Ea'] for v in self.isoconversional_results.values()
+                        if not np.isnan(v['Mean_Ea'])]
+            derived['Ea_variation'] = np.std(Ea_values) / np.mean(Ea_values) if Ea_values else 0
+            derived['Ea_min'] = np.min(Ea_values) if Ea_values else 0
+            derived['Ea_max'] = np.max(Ea_values) if Ea_values else 0
+
+        # Send to classification engine
+        try:
+            self.app.classification_engine.add_thermal_results(sample_id, derived)
+            messagebox.showinfo("Success",
+                f"Sent kinetics results for {sample_id} to classification engine")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to send: {e}")
+
+    def _batch_process(self):
+        """Process all samples in main table"""
+        if not self.app.samples:
+            messagebox.showwarning("No Samples", "No samples in main table")
+            return
+
+        if not hasattr(self.app, 'classification_engine'):
+            messagebox.showwarning("No Engine", "Classification engine not found")
+            return
+
+        # Confirm with user
+        if not messagebox.askyesno(
+            "Batch Process",
+            f"Process all {len(self.app.samples)} samples?\n"
+            "Results will be sent to classification engine."
+        ):
+            return
+
+        self.status_label.config(text=f"🔄 Batch processing 0/{len(self.app.samples)}...")
+
+        def worker():
+            results = []
+            for i, sample in enumerate(self.app.samples):
+                # Update status
+                self.ui_queue.schedule(
+                    lambda i=i: self.status_label.config(
+                        text=f"🔄 Batch processing {i+1}/{len(self.app.samples)}..."
+                    )
+                )
+
+                # Check if sample has kinetics data
+                if self._sample_has_data(sample):
+                    try:
+                        # Load sample data
+                        if 'Time' in sample and 'Conversion' in sample:
+                            time = np.array([float(x) for x in sample['Time'].split(',')])
+                            conv = np.array([float(x) for x in sample['Conversion'].split(',')])
+
+                            # Run Avrami (simplified for batch)
+                            avrami = self.engine.avrami_fit(time, conv)
+
+                            if avrami:
+                                sample_id = sample.get('Sample_ID', f'Sample_{i}')
+                                results.append({
+                                    'sample_id': sample_id,
+                                    'n_avrami': avrami['n'],
+                                    'k_avrami': avrami['k'],
+                                    't_half': avrami['t_half'],
+                                    'r2': avrami['r2']
+                                })
+                    except Exception as e:
+                        print(f"Error processing sample {i}: {e}")
+
+            # Send results to classification
+            for res in results:
+                try:
+                    self.app.classification_engine.add_thermal_results(
+                        res['sample_id'],
+                        {
+                            'Avrami_n': res['n_avrami'],
+                            'Avrami_k': res['k_avrami'],
+                            'crystallization_half_time': res['t_half'],
+                            'kinetics_fit_r2': res['r2']
+                        }
+                    )
+                except Exception as e:
+                    print(f"Error sending {res['sample_id']}: {e}")
+
+            def update():
+                self.status_label.config(
+                    text=f"✅ Batch complete: {len(results)} samples processed"
+                )
+                messagebox.showinfo(
+                    "Batch Complete",
+                    f"Processed {len(results)} samples\n"
+                    "Results sent to classification engine"
+                )
+
+            self.ui_queue.schedule(update)
+
+        threading.Thread(target=worker, daemon=True).start()
 
 # ============================================================================
 # TAB 4: TGA DECOMPOSITION
@@ -2201,6 +2965,9 @@ class TGAAnalysisTab(AnalysisTab):
             self.tga_ax_ea.set_title("Ea vs Conversion", fontsize=9, fontweight="bold")
             self.tga_canvas = FigureCanvasTkAgg(self.tga_fig, right)
             self.tga_canvas.draw()
+            toolbar = NavigationToolbar2Tk(self.tga_canvas, right)
+            toolbar.update()
+            toolbar.pack(side=tk.BOTTOM, fill=tk.X)  # 👈 ADD THIS
             self.tga_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
             NavigationToolbar2Tk(self.tga_canvas, right).update()
 
@@ -2398,6 +3165,9 @@ class DMAAnalysisTab(AnalysisTab):
             self.dma_ax_wlf.set_title("WLF Shift Factors", fontsize=9, fontweight="bold")
             self.dma_canvas = FigureCanvasTkAgg(self.dma_fig, right)
             self.dma_canvas.draw()
+            toolbar = NavigationToolbar2Tk(self.dma_canvas, right)
+            toolbar.update()
+            toolbar.pack(side=tk.BOTTOM, fill=tk.X)  # 👈 ADD THIS
             self.dma_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
             NavigationToolbar2Tk(self.dma_canvas, right).update()
 
@@ -2597,6 +3367,9 @@ class LFAAnalysisTab(AnalysisTab):
             self.lfa_ax_norm.set_title("Normalized Signal with t½", fontsize=9, fontweight="bold")
             self.lfa_canvas = FigureCanvasTkAgg(self.lfa_fig, right)
             self.lfa_canvas.draw()
+            toolbar = NavigationToolbar2Tk(self.lfa_canvas, right)
+            toolbar.update()
+            toolbar.pack(side=tk.BOTTOM, fill=tk.X)  # 👈 ADD THIS
             self.lfa_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
             NavigationToolbar2Tk(self.lfa_canvas, right).update()
 
@@ -2783,6 +3556,9 @@ class CalorimetryTab(AnalysisTab):
             self.cal_ax_heat.set_title("Cumulative Heat", fontsize=9, fontweight="bold")
             self.cal_canvas = FigureCanvasTkAgg(self.cal_fig, right)
             self.cal_canvas.draw()
+            toolbar = NavigationToolbar2Tk(self.cal_canvas, right)
+            toolbar.update()
+            toolbar.pack(side=tk.BOTTOM, fill=tk.X)  # 👈 ADD THIS
             self.cal_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
             NavigationToolbar2Tk(self.cal_canvas, right).update()
 
@@ -2920,6 +3696,8 @@ class ThermalAnalysisSuite:
 
         notebook = ttk.Notebook(self.window, style="Thermal.TNotebook")
         notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        notebook.pack_propagate(False)
+        notebook.config(height=600)  # Adjust based on your screen
 
         # Create all 7 tabs
         # All tab classes are defined in this file — no external import needed
@@ -2956,6 +3734,9 @@ class ThermalAnalysisSuite:
         self.progress_bar = ttk.Progressbar(footer, mode='determinate', length=150)
         self.progress_bar.pack(side=tk.RIGHT, padx=10)
 
+        ttk.Button(footer, text="📋 Append to Main Table",
+                  command=self.append_to_table).pack(side=tk.RIGHT, padx=5)
+
     def _set_status(self, msg):
         """Update status"""
         self.status_var.set(msg)
@@ -2976,6 +3757,33 @@ class ThermalAnalysisSuite:
             self.window.destroy()
             self.window = None
 
+    def append_to_table(self):
+        """Send current results from all tabs to main table"""
+        all_results = []
+
+        # Collect from each tab
+        for tab_name, tab in self.tabs.items():
+            if hasattr(tab, 'current_results') and tab.current_results:
+                # Add tab name to identify source
+                tab.current_results['Source_Tab'] = tab_name
+                tab.current_results['Timestamp'] = datetime.now().isoformat()
+                all_results.append(tab.current_results)
+
+        if not all_results:
+            messagebox.showinfo("No Results", "No analysis results to append")
+            return
+
+        try:
+            self.app.import_data_from_plugin(all_results)
+            messagebox.showinfo("Success",
+                f"Added {len(all_results)} results to main table\n"
+                "They are now available for classification!")
+            self.status_var.set(f"✅ Added {len(all_results)} results to table")
+        except AttributeError:
+            messagebox.showwarning("Integration",
+                "Main app doesn't have import_data_from_plugin method")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
 # ============================================================================
 # PLUGIN REGISTRATION

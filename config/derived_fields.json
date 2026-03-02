@@ -1,0 +1,64 @@
+{
+  "fields": [
+    {
+      "name": "Tg_normalized",
+      "requires": ["Tg_C", "SiO2_pct"],
+      "formula": "Tg_C / (SiO2_pct * 10)",
+      "description": "Glass transition normalized to silica"
+    },
+    {
+      "name": "crystallization_mechanism",
+      "requires": ["Avrami_n"],
+      "formula": "1 if Avrami_n < 2 else 2 if Avrami_n < 3 else 3",
+      "description": "1=surface, 2=plate-like, 3=3D growth"
+    },
+    {
+      "name": "thermal_stability_index",
+      "requires": ["decomposition_onset_C", "melting_point_C"],
+      "formula": "(decomposition_onset_C - 25) / (melting_point_C - 25)",
+      "description": "Higher = more thermally stable"
+    },
+    {
+      "name": "NBO_T_from_Tg",
+      "requires": ["Tg_C"],
+      "formula": "(Tg_C - 500) / 200",
+      "description": "Non-bridging oxygen per tetrahedron (melt polymerization)"
+    },
+    {
+      "name": "cooling_rate_estimate",
+      "requires": ["Tg_C", "Tm_C"],
+      "formula": "1000 / (Tm_C - Tg_C)",
+      "description": "Relative cooling rate for volcanic rocks"
+    },
+    {
+      "name": "activation_energy_ratio",
+      "requires": ["Ea_low_temp", "Ea_high_temp"],
+      "formula": "Ea_low_temp / Ea_high_temp",
+      "description": ">1 = changing decomposition mechanism"
+    },
+    {
+      "name": "crystallinity_index",
+      "requires": ["delta_H_J_g", "delta_H_100pct_J_g"],
+      "formula": "delta_H_J_g / delta_H_100pct_J_g * 100",
+      "description": "Percent crystallinity from DSC"
+    },
+    {
+      "name": "thermal_diffusivity_anisotropy",
+      "requires": ["alpha_parallel", "alpha_perpendicular"],
+      "formula": "alpha_parallel / alpha_perpendicular",
+      "description": ">1 = anisotropic fabric"
+    },
+    {
+      "name": "decomposition_complexity",
+      "requires": ["n_decomposition_steps"],
+      "formula": "n_decomposition_steps",
+      "description": "Number of TGA mass loss steps"
+    },
+    {
+      "name": "firing_temperature_proxy",
+      "requires": ["thermal_expansion_onset_C"],
+      "formula": "thermal_expansion_onset_C - 50",
+      "description": "Estimated ceramic firing temperature"
+    }
+  ]
+}

@@ -60,7 +60,7 @@
   "geophysics_analysis_suite": true,
   "gis_3d_viewer_pro": true,
   "data_validation_filter": true,
-  "google_earth_pro": false,
+  "google_earth_pro": true,
   "quartz_gis_pro": true,
   "spatial_kriging": true,
   "ague_hg_mobility": true,
@@ -85,5 +85,12 @@
   "publication_layouts": true,
   "scripting_console": true,
   "solution_chemistry_analysis_suite": true,
-  "thermal_analysis_suite": true
+  "thermal_analysis_suite": true,
+  "toolkit_ai": true,
+  "advanced_spectroscopy_suite": true,
+  "statistical_console": false,
+  "advanced_spectroscopy_suite_single_user": true,
+  "universal_exporter": false,
+  "advanced_spectroscopy_suite_compact": false,
+  "advanced_chem_ms_suite": true
 }

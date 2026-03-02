@@ -5,7 +5,9 @@ SPECTROSCOPY ANALYSIS SUITE v1.0 - COMPLETE PRODUCTION RELEASE
 ✓ Industry-standard algorithms (fully cited methods)
 ✓ Auto-import from main table (seamless spectrometer integration)
 ✓ Manual file import (standalone mode)
-✓ ALL 7 TABS fully implemented (no stubs, no placeholders)
+✓ ALL 7 ORIGINAL TABS fully implemented (no stubs, no placeholders)
+✓ NEW FEATURES: QC Pass/Fail, System Validation, Contaminant ID, Overlay Comparison,
+                Interactive Annotations, Statistics, Hyphenated Support
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 TAB 1: Spectral Library Search  - Dot product, Euclidean, Mahalanobis (Stein & Scott 1994; NIST 17)
@@ -15,6 +17,11 @@ TAB 4: Peak Fitting              - Voigt, Pseudo-Voigt, Thompson-Cox-Hastings (A
 TAB 5: Mixture Analysis (MCR-ALS) - Alternating least squares, constraints (Tauler 1995; MCR-ALS)
 TAB 6: Spectral Preprocessing    - SNV, MSC, derivatives, Savitzky-Golay (Barnes 1989; SavGol 1964)
 TAB 7: Intensity Correction      - NIST SRM-based radiometric calibration (NIST SRM 2241-2243)
+TAB 8: QC Pass/Fail              - Compare against reference, pass/fail decision (NEW)
+TAB 9: System Validation         - SNR, peak positions vs NIST specs (NEW)
+TAB 10: Contaminant ID           - Iterative subtraction library search (NEW)
+TAB 11: Spectra Comparison       - Overlay, difference plots, multi-sample (NEW)
+TAB 12: Statistics               - Mean, std, variance of replicates (NEW)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
@@ -24,10 +31,10 @@ PLUGIN_INFO = {
     "category": "software",
     "field": "Spectroscopy",
     "icon": "🔬",
-    "version": "1.0.0",
-    "author": "Sefy Levy & Claude",
-    "description": "Library Search · Calibration · Baseline · Peaks · MCR · Preprocessing · Intensity — ASTM/NIST compliant",
-    "requires": ["numpy", "pandas", "scipy", "matplotlib"],
+    "version": "1.1.0",
+    "author": "Sefy Levy & DeepSeek",
+    "description": "Library Search · Calibration · Baseline · Peaks · MCR · Preprocessing · Intensity — ASTM/NIST compliant + new advanced features",
+    "requires": ["numpy", "pandas", "scipy", "matplotlib", "nistchempy"],
     "optional": ["scikit-learn", "lmfit", "pybaselines"],
     "window_size": "1200x800"
 }
@@ -40,6 +47,7 @@ import threading
 import queue
 import os
 import re
+import time
 import json
 import warnings
 from pathlib import Path
@@ -50,6 +58,12 @@ warnings.filterwarnings("ignore")
 # ============================================================================
 # OPTIONAL IMPORTS
 # ============================================================================
+try:
+    import nistchempy
+    HAS_NIST = True
+except ImportError:
+    HAS_NIST = False
+    print("⚠️ nistchempy not installed. Install with: pip install nistchempy")
 try:
     import matplotlib
     matplotlib.use("TkAgg")
@@ -401,6 +415,92 @@ class AnalysisTab:
 
 
 # ============================================================================
+# NEW BASE CLASS FOR MULTI-SAMPLE SELECTION (used in Spectra Comparison, Statistics)
+# ============================================================================
+class MultiSelectAnalysisTab(AnalysisTab):
+    """Extends AnalysisTab to allow selection of multiple samples from a listbox."""
+
+    def __init__(self, parent, app, ui_queue, tab_name):
+        super().__init__(parent, app, ui_queue, tab_name)
+        # Override the selector frame: replace combo with a listbox + buttons
+        self.selector_frame.pack_forget()  # remove the old single-select combo
+
+        self.multi_selector_frame = tk.Frame(self.frame, bg="white")
+        self.multi_selector_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Left side: listbox with scrollbar
+        list_frame = tk.Frame(self.multi_selector_frame, bg="white")
+        list_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        tk.Label(list_frame, text=f"{self.tab_name} - Select Multiple Samples:",
+                font=("Arial", 9, "bold"), bg="white").pack(anchor=tk.W)
+
+        self.sample_listbox = tk.Listbox(list_frame, selectmode=tk.EXTENDED,
+                                         height=10, exportselection=False)
+        scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL,
+                                   command=self.sample_listbox.yview)
+        self.sample_listbox.configure(yscrollcommand=scrollbar.set)
+        self.sample_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Right side: control buttons
+        btn_frame = tk.Frame(self.multi_selector_frame, bg="white")
+        btn_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=5)
+
+        ttk.Button(btn_frame, text="🔄 Refresh", command=self._refresh_multi_list).pack(pady=2)
+        ttk.Button(btn_frame, text="✅ Load Selected", command=self._load_selected_samples).pack(pady=2)
+        ttk.Button(btn_frame, text="Select All", command=self._select_all).pack(pady=2)
+        ttk.Button(btn_frame, text="Clear All", command=self._clear_selection).pack(pady=2)
+
+        # Store loaded data for selected samples
+        self.selected_data = []  # list of (wavelength, intensity, sample_id)
+
+        self._refresh_multi_list()
+
+    def _refresh_multi_list(self):
+        if self.import_mode_var.get() != "auto":
+            return
+        self.samples = self.get_samples()
+        self.sample_listbox.delete(0, tk.END)
+        for i, sample in enumerate(self.samples):
+            sample_id = sample.get('Sample_ID', f'Sample {i}')
+            has_data = self._sample_has_data(sample)
+            display = f"{i}: {sample_id}" + (" (has data)" if has_data else " (no data)")
+            self.sample_listbox.insert(tk.END, display)
+            if not has_data:
+                self.sample_listbox.itemconfig(tk.END, fg="gray")
+
+    def _select_all(self):
+        self.sample_listbox.selection_set(0, tk.END)
+
+    def _clear_selection(self):
+        self.sample_listbox.selection_clear(0, tk.END)
+
+    def _load_selected_samples(self):
+        selected_indices = self.sample_listbox.curselection()
+        if not selected_indices:
+            messagebox.showwarning("No Selection", "Select at least one sample.")
+            return
+        self.selected_data = []
+        for idx in selected_indices:
+            sample = self.samples[idx]
+            x_col, y_col, xv, yv = self._ftir_cols(sample)
+            if xv is not None and yv is not None:
+                self.selected_data.append({
+                    'wavelength': np.array(xv, dtype=float),
+                    'intensity': np.array(yv, dtype=float),
+                    'sample_id': sample.get('Sample_ID', f'Sample {idx}'),
+                    'index': idx
+                })
+        self.status_label.config(text=f"Loaded {len(self.selected_data)} samples")
+        self._on_samples_loaded()
+
+    def _on_samples_loaded(self):
+        """Override in subclass to handle the loaded data."""
+        pass
+
+
+# ============================================================================
 # ENGINE 1 — SPECTRAL LIBRARY SEARCH (Stein & Scott 1994; NIST 17)
 # ============================================================================
 class LibrarySearchEngine:
@@ -542,16 +642,381 @@ class LibrarySearchEngine:
 
 
 # ============================================================================
+# ENGINE 1B — NIST WEBBOOK SPECTRAL LIBRARY
+# ============================================================================
+class NISTWebbookEngine:
+    """
+    NIST Chemistry WebBook spectral library integration.
+    Fetches IR, UV-Vis, and Raman spectra from NIST's free online database.
+    Uses nistchempy package which handles the web scraping.
+    """
+
+    # Cache for downloaded spectra to avoid repeated web requests
+    _cache = {}
+    _cache_dir = Path.home() / '.spectroscopy_cache' / 'nist'
+
+    # Rate limiting - respect NIST's servers
+    _last_request_time = 0
+    REQUEST_DELAY = 2.0  # seconds between requests
+
+    @classmethod
+    def _rate_limit(cls):
+        """Ensure we don't hammer NIST's servers"""
+        import time
+        now = time.time()
+        time_since_last = now - cls._last_request_time
+        if time_since_last < cls.REQUEST_DELAY:
+            time.sleep(cls.REQUEST_DELAY - time_since_last)
+        cls._last_request_time = time.time()
+
+    @classmethod
+    def ensure_cache_dir(cls):
+        """Create cache directory if it doesn't exist"""
+        cls._cache_dir.mkdir(parents=True, exist_ok=True)
+
+    @classmethod
+    def search_compound(cls, query, library_type='ir', use_cache=True):
+        """Search for a compound in NIST Webbook."""
+        if not HAS_NIST:
+            return {'error': 'nistchempy not installed'}
+
+        try:
+            cls.ensure_cache_dir()
+            cls._rate_limit()
+
+            # Try cache first - but only if we're okay with dict results
+            cache_key = f"{query}_{library_type}"
+            cache_file = cls._cache_dir / f"{cache_key.replace(' ', '_')}.json"
+
+            if use_cache and cache_file.exists():
+                with open(cache_file, 'r') as f:
+                    cached = json.load(f)
+                    if cached.get('timestamp', 0) > time.time() - 30*24*3600:
+                        # Return cached dicts
+                        return cached.get('results', [])
+
+            # Search NIST - returns a single NistSearch object
+            import nistchempy
+            result = nistchempy.run_search(query, search_type='name')
+
+            # Get compounds from the result
+            compounds = []
+            if hasattr(result, 'compounds'):
+                compounds = result.compounds
+            elif hasattr(result, 'results'):
+                compounds = result.results
+            else:
+                # If it's a single compound object
+                compounds = [result] if result else []
+
+            # Cache results as dicts
+            if use_cache:
+                with open(cache_file, 'w') as f:
+                    serializable_results = []
+                    for r in compounds:
+                        try:
+                            serializable_results.append({
+                                'name': getattr(r, 'name', ''),
+                                'formula': getattr(r, 'formula', ''),
+                                'cas': getattr(r, 'cas_rn', ''),
+                                'mw': getattr(r, 'mol_weight', 0),
+                                '_is_dict': False  # Flag that this came from object
+                            })
+                        except:
+                            pass
+
+                    json.dump({
+                        'timestamp': time.time(),
+                        'results': serializable_results
+                    }, f)
+
+            return compounds  # Return original objects
+
+        except Exception as e:
+            return {'error': str(e)}
+
+    @classmethod
+    def get_spectrum(cls, compound_name, library_type='ir'):
+        """Download spectrum from NIST"""
+        if not HAS_NIST:
+            return None
+
+        try:
+            import nistchempy
+            cls._rate_limit()
+
+            # Search for compound
+            result = nistchempy.run_search(compound_name, search_type='name')
+
+            # Get compound object
+            if hasattr(result, 'compounds') and result.compounds:
+                compound = result.compounds[0]
+            else:
+                return None
+
+            # STEP 1: Call the download method to populate the data
+            if library_type == 'ir':
+                compound.get_ir_spectra()  # This populates ir_specs
+                spectra = compound.ir_specs
+            elif library_type == 'uvvis':
+                compound.get_uv_spectra()  # This populates uv_specs
+                spectra = compound.uv_specs
+            else:
+                return None
+
+            if not spectra:
+                return None
+
+            # Use first spectrum
+            spectrum = spectra[0]
+
+            return {
+                'name': compound.name,
+                'formula': compound.formula,
+                'wavelength': np.array(spectrum.x),
+                'intensity': np.array(spectrum.y),
+                'source': 'NIST Webbook'
+            }
+
+        except Exception as e:
+            print(f"NIST error: {e}")
+            return None
+
+    @classmethod
+    def batch_match(cls, spectra, library_type='ir', max_per_sample=3):
+        """
+        Automatically match multiple spectra against NIST.
+        Respects rate limits and uses caching.
+
+        Args:
+            spectra: List of Spectrum objects
+            library_type: 'ir', 'uvvis', 'ms'
+            max_per_sample: Max compounds to try per spectrum
+
+        Returns:
+            List of best matches for each spectrum
+        """
+        if not HAS_NIST:
+            return [{'error': 'nistchempy not installed'} for _ in spectra]
+
+        results = []
+
+        for i, spec in enumerate(spectra):
+            print(f"Processing {i+1}/{len(spectra)}: {spec.sample_id}")
+
+            # Try to guess compound name from sample_id
+            candidates = []
+            if spec.sample_id:
+                # Clean up sample_id (remove numbers, underscores)
+                name = re.sub(r'[0-9_]+', '', spec.sample_id).strip()
+                if name and len(name) > 2:
+                    candidates.append(name)
+
+            # Add common fallbacks if nothing found
+            if not candidates:
+                candidates = ['acetone', 'ethanol', 'benzene', 'water']
+
+            best_match = None
+            best_score = 0
+
+            for name in candidates[:max_per_sample]:
+                try:
+                    spec_data = cls.get_spectrum(name, library_type)
+                    if spec_data:
+                        # Align and match
+                        from scipy.interpolate import interp1d
+                        from scipy.spatial.distance import cosine
+
+                        f = interp1d(spec_data['wavelength'], spec_data['intensity'],
+                                   kind='linear', bounds_error=False, fill_value=0)
+                        lib_int = f(spec.x_data)
+
+                        similarity = 1 - cosine(spec.y_data, lib_int)
+
+                        if similarity > best_score:
+                            best_score = similarity
+                            best_match = {
+                                'name': spec_data['name'],
+                                'similarity': similarity * 100,
+                                'formula': spec_data.get('formula', ''),
+                                'cas': spec_data.get('cas', ''),
+                                'source': 'NIST'
+                            }
+
+                            # Stop if very good match
+                            if similarity > 0.95:
+                                break
+
+                except Exception as e:
+                    print(f"Error matching {name}: {e}")
+
+            results.append({
+                'sample_id': spec.sample_id,
+                'match': best_match,
+                'score': best_score * 100 if best_match else 0
+            })
+
+        return results
+
+    @classmethod
+    def batch_match_from_results(cls, spectra_with_results, library_type='ir'):
+        """
+        Automatically match spectra against NIST using existing Top Matches.
+
+        Args:
+            spectra_with_results: List of dicts containing:
+                - 'spectrum': Spectrum object
+                - 'matches': list of match dicts from library search (with 'name' field)
+            library_type: 'ir', 'uvvis', 'ms'
+
+        Returns:
+            List of NIST matches for each spectrum
+        """
+        if not HAS_NIST:
+            return [{'error': 'nistchempy not installed'} for _ in spectra_with_results]
+
+        results = []
+
+        for item in spectra_with_results:
+            spec = item['spectrum']
+            matches = item.get('matches', [])
+
+            print(f"Processing {spec.sample_id} - trying top matches...")
+
+            best_nist_match = None
+            best_score = 0
+
+            # Try each top match from library search
+            for match in matches[:3]:  # Try top 3 matches
+                compound_name = match.get('name', '')
+                if not compound_name:
+                    continue
+
+                try:
+                    # Download NIST spectrum for this compound
+                    spec_data = cls.get_spectrum(compound_name, library_type)
+                    if not spec_data:
+                        continue
+
+                    # Align and match
+                    from scipy.interpolate import interp1d
+                    from scipy.spatial.distance import cosine
+
+                    f = interp1d(spec_data['wavelength'], spec_data['intensity'],
+                            kind='linear', bounds_error=False, fill_value=0)
+                    nist_int = f(spec.x_data)
+
+                    # Calculate similarity
+                    similarity = 1 - cosine(spec.y_data, nist_int)
+
+                    if similarity > best_score:
+                        best_score = similarity
+                        best_nist_match = {
+                            'name': spec_data['name'],
+                            'similarity': similarity * 100,
+                            'formula': spec_data.get('formula', ''),
+                            'cas': spec_data.get('cas', ''),
+                            'source': 'NIST',
+                            'original_match': compound_name,
+                            'original_score': match.get('similarity', 0)
+                        }
+
+                        # If very good match, stop searching
+                        if similarity > 0.95:
+                            break
+
+                except Exception as e:
+                    print(f"Error getting NIST spectrum for {compound_name}: {e}")
+                    continue
+
+            results.append({
+                'sample_id': spec.sample_id,
+                'nist_match': best_nist_match,
+                'status': 'found' if best_nist_match else 'not_found'
+            })
+
+        return results
+
+    @classmethod
+    def search_and_match(cls, query_wl, query_int, query_name=None,
+                        library_type='ir', top_n=5):
+        """Search NIST for a compound and match against query spectrum."""
+        if not HAS_NIST:
+            return {'error': 'nistchempy not installed'}
+
+        results = []
+
+        # If we have a compound name, try it first
+        if query_name:
+            compound_data = cls.get_spectrum(query_name, library_type)
+            if compound_data:
+                from scipy.interpolate import interp1d
+                from scipy.spatial.distance import cosine
+
+                f = interp1d(compound_data['wavelength'], compound_data['intensity'],
+                           kind='linear', bounds_error=False, fill_value=0)
+                lib_int_aligned = f(query_wl)
+                similarity = 1 - cosine(query_int, lib_int_aligned)
+
+                results.append({
+                    'name': compound_data['name'],
+                    'similarity': similarity * 100,
+                    'formula': compound_data.get('formula', ''),
+                    'cas': compound_data.get('cas', ''),
+                    'source': 'NIST',
+                    'metadata': compound_data
+                })
+
+        results.sort(key=lambda x: x['similarity'], reverse=True)
+        return results[:top_n]
+
+    @classmethod
+    def get_compound_info(cls, name):
+        """Get detailed information about a compound"""
+        if not HAS_NIST:
+            return {'error': 'nistchempy not installed'}
+
+        try:
+            cls._rate_limit()
+            import nistchempy
+            results = nistchempy.run_search(name)
+            if results:
+                compound = results[0]
+                return {
+                    'name': compound.name,
+                    'formula': compound.formula if hasattr(compound, 'formula') else '',
+                    'mw': compound.molecular_weight if hasattr(compound, 'molecular_weight') else 0,
+                    'cas': compound.cas if hasattr(compound, 'cas') else '',
+                    'inchi': compound.inchi if hasattr(compound, 'inchi') else '',
+                    'inchikey': compound.inchikey if hasattr(compound, 'inchikey') else '',
+                    'smiles': compound.smiles if hasattr(compound, 'smiles') else ''
+                }
+            return {}
+        except Exception as e:
+            return {'error': str(e)}
+
+
+# ============================================================================
 # TAB 1: SPECTRAL LIBRARY SEARCH
 # ============================================================================
 class LibrarySearchTab(AnalysisTab):
     def __init__(self, parent, app, ui_queue):
         super().__init__(parent, app, ui_queue, "Library Search")
         self.engine = LibrarySearchEngine
+        self.nist_engine = NISTWebbookEngine
         self.query_wl = None
         self.query_int = None
         self.library = []
         self.results = []
+        self.nist_cache = {}
+
+        # Set NIST status
+        if HAS_NIST:
+            self.nist_engine.ensure_cache_dir()
+            self.nist_status = "✅ NIST Webbook available"
+        else:
+            self.nist_status = "⚠️ NIST not installed (pip install nistchempy)"
+
         self._build_content_ui()
 
     def _sample_has_data(self, sample):
@@ -570,17 +1035,19 @@ class LibrarySearchTab(AnalysisTab):
         def worker():
             try:
                 df = pd.read_csv(path)
-                wl_patterns  = ['wavenumber', 'wave_number', 'wavenum', 'cm-1', 'cm^-1',
-                                 'wavelength', 'wl', 'nm', 'frequency']
+                wl_patterns = ['wavenumber', 'wave_number', 'wavenum', 'cm-1', 'cm^-1',
+                              'wavelength', 'wl', 'nm', 'frequency']
                 int_patterns = ['absorbance', 'abs', 'transmittance', 'trans', '%t',
-                                 'intensity', 'reflectance', 'refl', 'signal']
+                               'intensity', 'reflectance', 'refl', 'signal']
+
                 def _fc(patterns, fb):
                     for c in df.columns:
-                        cl = c.lower().replace(' ','_').replace('(','').replace(')','')
+                        cl = c.lower().replace(' ', '_').replace('(', '').replace(')', '')
                         if any(p in cl for p in patterns):
                             return c
                     return df.columns[fb]
-                wl_col  = _fc(wl_patterns, 0)
+
+                wl_col = _fc(wl_patterns, 0)
                 int_col = _fc(int_patterns, 1)
 
                 def update():
@@ -612,63 +1079,216 @@ class LibrarySearchTab(AnalysisTab):
                 self.status_label.config(text=f"Error loading sample: {e}")
 
     def _build_content_ui(self):
+        """Redesigned UI with three logical panels"""
+
+        # Main container with three columns
         main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
         main_pane.pack(fill=tk.BOTH, expand=True)
 
-        left = tk.Frame(main_pane, bg="white", width=300)
+        # ============ LEFT PANEL: QUERY & PARAMETERS ============
+        left = tk.Frame(main_pane, bg="white", width=280)
         main_pane.add(left, weight=1)
+
+        # Query Spectrum Section
+        query_frame = tk.LabelFrame(left, text="📊 Query Spectrum",
+                                   bg="white", font=("Arial", 9, "bold"),
+                                   fg=C_HEADER, padx=8, pady=4)
+        query_frame.pack(fill=tk.X, padx=8, pady=5)
+
+        # Spectrum info (shows when loaded)
+        self.query_info = tk.Label(query_frame, text="No spectrum loaded",
+                                  font=("Arial", 8), bg="white", fg="#888",
+                                  anchor=tk.W, height=2)
+        self.query_info.pack(fill=tk.X, pady=2)
+
+        # Manual load button (already in base class, but we'll show status here)
+
+        # Parameters Section
+        param_frame = tk.LabelFrame(left, text="⚙️ Search Parameters",
+                                   bg="white", font=("Arial", 9, "bold"),
+                                   fg=C_HEADER, padx=8, pady=4)
+        param_frame.pack(fill=tk.X, padx=8, pady=5)
+
+        # Similarity Metric
+        metric_row = tk.Frame(param_frame, bg="white")
+        metric_row.pack(fill=tk.X, pady=3)
+        tk.Label(metric_row, text="Similarity Metric:", font=("Arial", 8),
+                bg="white", width=15, anchor=tk.W).pack(side=tk.LEFT)
+        self.search_metric = tk.StringVar(value="Dot Product")
+        ttk.Combobox(metric_row, textvariable=self.search_metric,
+                     values=["Dot Product", "Euclidean", "Mahalanobis",
+                            "Pearson Correlation", "Contrast Angle"],
+                     width=15, state="readonly").pack(side=tk.RIGHT)
+
+        # Library Source
+        library_row = tk.Frame(param_frame, bg="white")
+        library_row.pack(fill=tk.X, pady=3)
+        tk.Label(library_row, text="Library Source:", font=("Arial", 8),
+                bg="white", width=15, anchor=tk.W).pack(side=tk.LEFT)
+        self.lib_selector = ttk.Combobox(library_row,
+                                         values=["Built-in Demo", "NIST Webbook", "Custom"],
+                                         width=15, state="readonly")
+        self.lib_selector.pack(side=tk.RIGHT)
+        self.lib_selector.set("Built-in Demo")
+        self.lib_selector.bind('<<ComboboxSelected>>', self._on_library_change)
+
+        # Search button
+        ttk.Button(param_frame, text="🔎 SEARCH LIBRARY",
+                  command=self._search, width=25).pack(pady=8)
+
+        # ============ MIDDLE PANEL: NIST WEBBOOK ============
+        middle = tk.Frame(main_pane, bg="white", width=300)
+        main_pane.add(middle, weight=1)
+
+        # NIST Section Header
+        nist_header = tk.Frame(middle, bg=C_HEADER, height=28)
+        nist_header.pack(fill=tk.X, padx=8, pady=(5,0))
+        nist_header.pack_propagate(False)
+
+        tk.Label(nist_header, text="🔬 NIST WEBBOOK",
+                font=("Arial", 9, "bold"), bg=C_HEADER, fg="white").pack(side=tk.LEFT, padx=8)
+
+        # Status indicator
+        nist_status = tk.Label(nist_header, text="●" if HAS_NIST else "○",
+                              font=("Arial", 10),
+                              bg=C_HEADER, fg=C_STATUS if HAS_NIST else C_WARN)
+        nist_status.pack(side=tk.RIGHT, padx=8)
+
+        # NIST Main Frame
+        nist_frame = tk.Frame(middle, bg="white", relief=tk.SOLID, bd=1)
+        nist_frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=(0,5))
+
+        # Status message
+        status_msg = tk.Label(nist_frame, text=self.nist_status,
+                             font=("Arial", 7), bg="#f8f9fa", fg=C_HEADER,
+                             anchor=tk.W, padx=5, pady=2)
+        status_msg.pack(fill=tk.X)
+
+        # Search Panel
+        search_panel = tk.Frame(nist_frame, bg="white", padx=8, pady=5)
+        search_panel.pack(fill=tk.X)
+
+        # Row 1: Spectrum type
+        type_row = tk.Frame(search_panel, bg="white")
+        type_row.pack(fill=tk.X, pady=2)
+        tk.Label(type_row, text="Spectrum type:", font=("Arial", 8, "bold"),
+                bg="white", width=12, anchor=tk.W).pack(side=tk.LEFT)
+        self.nist_type = tk.StringVar(value="IR")
+        ttk.Combobox(type_row, textvariable=self.nist_type,
+                     values=["IR", "UV-Vis", "MS"], width=8,
+                     state="readonly").pack(side=tk.RIGHT)
+
+        # Row 2: Compound search
+        compound_row = tk.Frame(search_panel, bg="white")
+        compound_row.pack(fill=tk.X, pady=2)
+        tk.Label(compound_row, text="Compound:", font=("Arial", 8, "bold"),
+                bg="white", width=12, anchor=tk.W).pack(side=tk.LEFT)
+        self.nist_compound = tk.StringVar()
+        ttk.Entry(compound_row, textvariable=self.nist_compound,
+                 width=18).pack(side=tk.RIGHT)
+
+        # Row 3: Action buttons
+        btn_row = tk.Frame(search_panel, bg="white")
+        btn_row.pack(fill=tk.X, pady=4)
+
+        ttk.Button(btn_row, text="🔍 Search",
+                  command=self._search_nist, width=10).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_row, text="📥 Download & Match",
+                  command=self._download_and_match, width=15).pack(side=tk.RIGHT)
+
+        # Results Frame
+        results_frame = tk.LabelFrame(nist_frame, text="Search Results",
+                                     bg="white", font=("Arial", 8, "bold"),
+                                     padx=5, pady=5)
+        results_frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+
+        # Listbox with scrollbar
+        list_container = tk.Frame(results_frame, bg="white")
+        list_container.pack(fill=tk.BOTH, expand=True)
+
+        self.nist_listbox = tk.Listbox(list_container, height=6,
+                                       font=("Courier", 8),
+                                       selectmode=tk.SINGLE,
+                                       relief=tk.SUNKEN, bd=1)
+        scrollbar = ttk.Scrollbar(list_container, orient=tk.VERTICAL,
+                                  command=self.nist_listbox.yview)
+        self.nist_listbox.configure(yscrollcommand=scrollbar.set)
+
+        self.nist_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.nist_listbox.bind('<<ListboxSelect>>', self._on_nist_select)
+
+        # Compound Info Display
+        info_frame = tk.Frame(nist_frame, bg="#f8f9fa", height=50)
+        info_frame.pack(fill=tk.X, padx=8, pady=(0,8))
+        info_frame.pack_propagate(False)
+
+        self.nist_info = tk.Label(info_frame, text="Select a compound to view details",
+                                  font=("Arial", 7), bg="#f8f9fa", fg=C_HEADER,
+                                  wraplength=250, justify=tk.LEFT, anchor=tk.W)
+        self.nist_info.pack(fill=tk.BOTH, padx=5, pady=5)
+
+        # ============ RIGHT PANEL: RESULTS & PLOTS ============
         right = tk.Frame(main_pane, bg="white")
         main_pane.add(right, weight=2)
 
-        tk.Label(left, text="🔍 SPECTRAL LIBRARY SEARCH",
-                font=("Arial", 10, "bold"), bg=C_LIGHT, fg=C_HEADER).pack(fill=tk.X, pady=2)
-        tk.Label(left, text="Stein & Scott 1994 · NIST 17",
-                font=("Arial", 7), bg="white", fg="#888").pack(anchor=tk.W, padx=4)
+        # Top Matches Tree
+        tree_frame = tk.LabelFrame(right, text="🏆 Top Matches",
+                                   bg="white", font=("Arial", 9, "bold"),
+                                   fg=C_HEADER, padx=5, pady=5)
+        tree_frame.pack(fill=tk.X, padx=8, pady=5)
 
-        tk.Label(left, text="Similarity Metric:", font=("Arial", 8, "bold"),
-                bg="white").pack(anchor=tk.W, padx=4, pady=(4,0))
-        self.search_metric = tk.StringVar(value="Dot Product")
-        ttk.Combobox(left, textvariable=self.search_metric,
-                     values=["Dot Product", "Euclidean", "Mahalanobis",
-                            "Pearson Correlation", "Contrast Angle"],
-                     width=20, state="readonly").pack(fill=tk.X, padx=4)
+        self.search_tree = ttk.Treeview(tree_frame,
+                                        columns=("Rank", "Compound", "Similarity", "Source"),
+                                        show="headings", height=5)
 
-        tk.Label(left, text="Library:", font=("Arial", 8, "bold"),
-                bg="white").pack(anchor=tk.W, padx=4, pady=(4,0))
-        self.lib_selector = ttk.Combobox(left, values=["NIST MS", "Raman DB", "Custom"],
-                                         width=20, state="readonly")
-        self.lib_selector.pack(fill=tk.X, padx=4)
-        self.lib_selector.set("Custom")
+        self.search_tree.heading("Rank", text="Rank")
+        self.search_tree.heading("Compound", text="Compound")
+        self.search_tree.heading("Similarity", text="Similarity")
+        self.search_tree.heading("Source", text="Source")
 
-        ttk.Button(left, text="🔎 SEARCH LIBRARY",
-                  command=self._search).pack(fill=tk.X, padx=4, pady=4)
+        self.search_tree.column("Rank", width=50, anchor=tk.CENTER)
+        self.search_tree.column("Compound", width=180)
+        self.search_tree.column("Similarity", width=80, anchor=tk.CENTER)
+        self.search_tree.column("Source", width=80, anchor=tk.CENTER)
 
-        tree_frame = tk.LabelFrame(left, text="Top Matches", bg="white",
-                                   font=("Arial", 8, "bold"), fg=C_HEADER)
-        tree_frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+        tree_scroll = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL,
+                                    command=self.search_tree.yview)
+        self.search_tree.configure(yscrollcommand=tree_scroll.set)
 
-        self.search_tree = ttk.Treeview(tree_frame, columns=("Rank", "Compound", "Similarity"),
-                                       show="headings", height=8)
-        for col, w in [("Rank", 40), ("Compound", 120), ("Similarity", 70)]:
-            self.search_tree.heading(col, text=col)
-            self.search_tree.column(col, width=w, anchor=tk.CENTER)
-        self.search_tree.pack(fill=tk.BOTH, expand=True)
+        self.search_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
+        # Plot Area
         if HAS_MPL:
-            self.search_fig = Figure(figsize=(8, 6), dpi=100, facecolor="white")
-            gs = GridSpec(2, 1, figure=self.search_fig, hspace=0.3)
+            plot_frame = tk.LabelFrame(right, text="📈 Spectral Comparison",
+                                       bg="white", font=("Arial", 9, "bold"),
+                                       fg=C_HEADER, padx=5, pady=5)
+            plot_frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=5)
+
+            self.search_fig = Figure(figsize=(8, 5), dpi=100, facecolor="white")
+            gs = GridSpec(2, 1, figure=self.search_fig, hspace=0.25)
             self.search_ax_query = self.search_fig.add_subplot(gs[0])
             self.search_ax_match = self.search_fig.add_subplot(gs[1])
 
             self.search_ax_query.set_title("Query Spectrum", fontsize=9, fontweight="bold")
             self.search_ax_match.set_title("Best Match Overlay", fontsize=9, fontweight="bold")
 
-            self.search_canvas = FigureCanvasTkAgg(self.search_fig, right)
+            self.search_canvas = FigureCanvasTkAgg(self.search_fig, plot_frame)
             self.search_canvas.draw()
             self.search_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-            NavigationToolbar2Tk(self.search_canvas, right).update()
-        else:
-            tk.Label(right, text="matplotlib required", bg="white").pack(expand=True)
+
+            toolbar = NavigationToolbar2Tk(self.search_canvas, plot_frame)
+            toolbar.update()
+
+    def _on_library_change(self, event=None):
+        """Handle library source change"""
+        lib = self.lib_selector.get()
+        if lib == "NIST Webbook" and not HAS_NIST:
+            messagebox.showwarning("NIST Unavailable",
+                                 "nistchempy not installed.\n\nRun: pip install nistchempy")
+            self.lib_selector.set("Built-in Demo")
 
     def _plot_query(self):
         if not HAS_MPL or self.query_wl is None:
@@ -679,11 +1299,199 @@ class LibrarySearchTab(AnalysisTab):
         self.search_ax_query.set_xlabel("Wavelength (nm)", fontsize=8)
         self.search_ax_query.set_ylabel("Intensity", fontsize=8)
         self.search_ax_query.grid(True, alpha=0.3)
+
+        # Update query info
+        self.query_info.config(text=f"✓ {len(self.query_wl)} points | Range: {self.query_wl[0]:.1f}-{self.query_wl[-1]:.1f} nm")
+
         self.search_canvas.draw()
 
-    def _search(self):
+    def _search_nist(self):
+        """Search NIST for compounds"""
+        compound = self.nist_compound.get().strip()
+        if not compound:
+            messagebox.showwarning("No Query", "Enter a compound name")
+            return
+
+        if not HAS_NIST:
+            messagebox.showerror("NIST Unavailable",
+                            "nistchempy not installed.\n\nRun: pip install nistchempy")
+            return
+
+        self.status_label.config(text=f"🔍 Searching NIST for '{compound}'...")
+        self.nist_listbox.delete(0, tk.END)
+        self.nist_listbox.insert(tk.END, "⏳ Searching...")
+
+        # Clear previous results storage
+        self.nist_results = []  # Add this to store results
+
+        def worker():
+            try:
+                results = self.nist_engine.search_compound(
+                    compound,
+                    library_type=self.nist_type.get().lower()
+                )
+
+                def update_ui():
+                    self.nist_listbox.delete(0, tk.END)
+                    self.nist_results = []  # Reset storage
+
+                    if isinstance(results, dict) and 'error' in results:
+                        self.nist_info.config(text=f"❌ {results['error']}")
+                        return
+
+                    if not results:
+                        self.nist_listbox.insert(tk.END, "No matches found")
+                        self.nist_info.config(text="No compounds found")
+                        return
+
+                    for i, res in enumerate(results[:15]):
+                        name = getattr(res, 'name', 'Unknown')
+                        formula = getattr(res, 'formula', '')
+
+                        display = f"{name}"
+                        if formula:
+                            display += f" [{formula}]"
+
+                        self.nist_listbox.insert(tk.END, display)
+                        self.nist_results.append(res)  # Store result in list
+
+                    self.nist_info.config(text=f"Found {len(results)} compounds. Select one and click Download.")
+                    self.status_label.config(text="✅ NIST search complete")
+
+                self.ui_queue.schedule(update_ui)
+
+            except Exception as e:
+                self.ui_queue.schedule(
+                    lambda: messagebox.showerror("NIST Error", str(e))
+                )
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _download_and_match(self):
+        """Download spectrum from NIST and match against query"""
         if self.query_wl is None:
             messagebox.showwarning("No Data", "Load query spectrum first")
+            return
+
+        selection = self.nist_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("No Selection", "Select a compound from the list first")
+            return
+
+        idx = selection[0]
+
+        # Get the stored result object
+        if not hasattr(self, 'nist_results') or idx >= len(self.nist_results):
+            messagebox.showerror("Error", "Result data not found. Please search again.")
+            return
+
+        compound_obj = self.nist_results[idx]
+        compound_name = getattr(compound_obj, 'name', 'Unknown')
+
+        self.status_label.config(text=f"📥 Downloading {compound_name} from NIST...")
+        self.nist_info.config(text=f"⏳ Downloading...")
+
+        def worker():
+            try:
+                spec_data = self.nist_engine.get_spectrum(
+                    compound_obj,  # Pass the object directly
+                    library_type=self.nist_type.get().lower()
+                )
+
+                if spec_data is None:
+                    self.ui_queue.schedule(
+                        lambda: messagebox.showerror("Download Failed",
+                                                f"No spectrum found for {compound_name}")
+                    )
+                    return
+
+                # Align and match
+                from scipy.interpolate import interp1d
+                from scipy.spatial.distance import cosine
+
+                f = interp1d(spec_data['wavelength'], spec_data['intensity'],
+                            kind='linear', bounds_error=False, fill_value=0)
+                lib_int_aligned = f(self.query_wl)
+
+                similarity = 1 - cosine(self.query_int, lib_int_aligned)
+
+                result = {
+                    'name': spec_data['name'],
+                    'similarity': similarity * 100,
+                    'formula': spec_data.get('formula', ''),
+                    'cas': spec_data.get('cas', ''),
+                    'source': 'NIST',
+                    'metadata': spec_data
+                }
+
+                def update_ui():
+                    # Add to results tree
+                    for row in self.search_tree.get_children():
+                        self.search_tree.delete(row)
+
+                    self.search_tree.insert("", 0, values=(
+                        1, result['name'], f"{result['similarity']:.1f}%", "NIST"
+                    ))
+
+                    # Show info
+                    info = f"{result['name']}"
+                    if result.get('formula'):
+                        info += f" | {result['formula']}"
+                    if result.get('cas'):
+                        info += f" | CAS: {result['cas']}"
+                    self.nist_info.config(text=info)
+
+                    # Plot overlay
+                    if HAS_MPL:
+                        self.search_ax_match.clear()
+                        self.search_ax_match.plot(self.query_wl, self.query_int,
+                                                'b-', lw=1.5, label="Query", alpha=0.7)
+                        self.search_ax_match.plot(self.query_wl, lib_int_aligned,
+                                                'r--', lw=1.5, label=f"NIST: {result['name']}")
+                        self.search_ax_match.set_xlabel("Wavelength (nm)", fontsize=8)
+                        self.search_ax_match.set_ylabel("Intensity", fontsize=8)
+                        self.search_ax_match.legend(fontsize=7, loc='upper right')
+                        self.search_ax_match.grid(True, alpha=0.3)
+                        self.search_canvas.draw()
+
+                    self.status_label.config(
+                        text=f"✅ NIST match: {result['similarity']:.1f}% similarity"
+                    )
+
+                self.ui_queue.schedule(update_ui)
+
+            except Exception as e:
+                self.ui_queue.schedule(
+                    lambda: messagebox.showerror("NIST Error", str(e))
+                )
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_nist_select(self, event):
+        """Show info about selected NIST compound"""
+        selection = self.nist_listbox.curselection()
+        if not selection:
+            return
+
+        idx = selection[0]
+        item_text = self.nist_listbox.get(idx)
+
+        if "No matches" in item_text or "Searching" in item_text:
+            return
+
+        compound = item_text.split('[')[0].strip()
+        self.nist_info.config(text=f"Selected: {compound}\nClick 'Download & Match' to fetch spectrum")
+
+    def _search(self):
+        """Search the selected library"""
+        if self.query_wl is None:
+            messagebox.showwarning("No Data", "Load query spectrum first")
+            return
+
+        lib_source = self.lib_selector.get()
+
+        if lib_source == "NIST Webbook":
+            self._search_nist()
             return
 
         self.status_label.config(text="🔄 Searching library...")
@@ -709,13 +1517,17 @@ class LibrarySearchTab(AnalysisTab):
                 self.results = results
 
                 def update_ui():
+                    # Clear existing
                     for row in self.search_tree.get_children():
                         self.search_tree.delete(row)
+
+                    # Add results
                     for i, r in enumerate(results, 1):
                         self.search_tree.insert("", tk.END, values=(
-                            i, r['name'], f"{r['similarity']:.1f}%"
+                            i, r['name'], f"{r['similarity']:.1f}%", "Built-in"
                         ))
 
+                    # Plot best match
                     if HAS_MPL and results:
                         best = results[0]
                         lib_entry = next((e for e in self.library if e['name'] == best['name']), None)
@@ -730,7 +1542,7 @@ class LibrarySearchTab(AnalysisTab):
                                                     'r--', lw=1.5, label=f"Match: {best['name']}")
                             self.search_ax_match.set_xlabel("Wavelength (nm)", fontsize=8)
                             self.search_ax_match.set_ylabel("Intensity", fontsize=8)
-                            self.search_ax_match.legend(fontsize=7)
+                            self.search_ax_match.legend(fontsize=7, loc='upper right')
                             self.search_ax_match.grid(True, alpha=0.3)
                             self.search_canvas.draw()
 
@@ -761,7 +1573,6 @@ class LibrarySearchTab(AnalysisTab):
                 'metadata': {'cas': f"123-45-{i}", 'class': 'organic'}
             })
         return library
-
 
 # ============================================================================
 # ENGINE 2 — QUANTITATIVE CALIBRATION (ASTM E1655; Martens & Næs 1989)
@@ -1290,6 +2101,24 @@ class BaselineEngine:
             'intensity':  df[int_col].values
         }
 
+    # === NEW FEATURE: Hyphenated data loading (TGA-IR, GC-IR) ===
+    @classmethod
+    def load_hyphenated_data(cls, path):
+        """
+        Load hyphenated technique data (e.g., TGA-IR, GC-IR) where each column is a spectrum.
+        Expects first column as wavelength/wavenumber, subsequent columns as spectra.
+        Returns: wavelengths, spectra_matrix (rows = samples, columns = wavelengths)
+        """
+        df = pd.read_csv(path)
+        wavelengths = df.iloc[:, 0].values
+        spectra = df.iloc[:, 1:].values.T  # samples × wavelengths
+        sample_names = df.columns[1:].tolist()
+        return {
+            'wavelengths': wavelengths,
+            'spectra': spectra,
+            'sample_names': sample_names
+        }
+
 
 # ============================================================================
 # TAB 3: BASELINE CORRECTION
@@ -1698,7 +2527,7 @@ class PeakFittingEngine:
 
 
 # ============================================================================
-# TAB 4: PEAK FITTING
+# TAB 4: PEAK FITTING (with interactive annotations)
 # ============================================================================
 class PeakFittingTab(AnalysisTab):
     def __init__(self, parent, app, ui_queue):
@@ -1836,12 +2665,16 @@ class PeakFittingTab(AnalysisTab):
             self.peak_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
             NavigationToolbar2Tk(self.peak_canvas, right).update()
 
+            # === NEW FEATURE: Interactive annotations ===
+            self.peak_canvas.mpl_connect('pick_event', self._on_pick)
+            self.peak_ax_spectrum.set_picker(5)  # 5 points tolerance
+
     def _plot_spectrum(self):
         if not HAS_MPL or self.wavelength is None:
             return
         self.peak_ax_spectrum.clear()
-        self.peak_ax_spectrum.plot(self.wavelength, self.intensity,
-                                 color='b', lw=1.5)
+        line, = self.peak_ax_spectrum.plot(self.wavelength, self.intensity,
+                                 color='b', lw=1.5, picker=True)
         # Mark peaks
         for peak in self.peaks:
             self.peak_ax_spectrum.axvline(peak, color='r', ls='--', lw=1, alpha=0.5)
@@ -1849,6 +2682,31 @@ class PeakFittingTab(AnalysisTab):
         self.peak_ax_spectrum.set_ylabel("Intensity", fontsize=8)
         self.peak_ax_spectrum.grid(True, alpha=0.3)
         self.peak_canvas.draw()
+
+    # === NEW FEATURE: Pick event handler ===
+    def _on_pick(self, event):
+        if event.artist is not self.peak_ax_spectrum:
+            return
+        # Get the nearest peak
+        if self.wavelength is None:
+            return
+        x_click = event.mouseevent.xdata
+        if x_click is None:
+            return
+        # Find nearest detected peak
+        if len(self.peaks) == 0:
+            return
+        distances = np.abs(np.array(self.peaks) - x_click)
+        nearest_idx = np.argmin(distances)
+        if distances[nearest_idx] < (self.wavelength[-1] - self.wavelength[0]) * 0.05:  # within 5% of range
+            peak_pos = self.peaks[nearest_idx]
+            # Display annotation
+            self.peak_ax_spectrum.annotate(f'{peak_pos:.1f} nm',
+                                           xy=(peak_pos, self.intensity[np.argmin(np.abs(self.wavelength - peak_pos))]),
+                                           xytext=(10, 10), textcoords='offset points',
+                                           bbox=dict(boxstyle='round,pad=0.3', fc='yellow', alpha=0.5),
+                                           arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0'))
+            self.peak_canvas.draw_idle()
 
     def _find_peaks_auto(self):
         if self.wavelength is None:
@@ -2239,6 +3097,10 @@ class MCRALSTab(AnalysisTab):
         tk.Checkbutton(param_frame, text="Non-negative spectra",
                       variable=self.mcr_nonneg_s, bg="white").pack(anchor=tk.W, padx=4)
 
+        # === NEW FEATURE: Button to load hyphenated data (TGA-IR, GC-IR) ===
+        ttk.Button(left, text="📂 Load Hyphenated (TGA/GC-IR)",
+                  command=self._load_hyphenated).pack(fill=tk.X, padx=4, pady=2)
+
         ttk.Button(left, text="🔬 RUN MCR-ALS",
                   command=self._run_mcr).pack(fill=tk.X, padx=4, pady=4)
 
@@ -2272,6 +3134,28 @@ class MCRALSTab(AnalysisTab):
             self.mcr_canvas.draw()
             self.mcr_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
             NavigationToolbar2Tk(self.mcr_canvas, right).update()
+
+    # === NEW FEATURE: Load hyphenated data ===
+    def _load_hyphenated(self):
+        path = filedialog.askopenfilename(
+            title="Load Hyphenated Data (TGA-IR, GC-IR)",
+            filetypes=[("CSV", "*.csv"), ("TXT", "*.txt"), ("All files", "*.*")])
+        if not path:
+            return
+        self.status_label.config(text="🔄 Loading hyphenated data...")
+        def worker():
+            try:
+                data = BaselineEngine.load_hyphenated_data(path)
+                def update():
+                    self.wavelengths = data['wavelengths']
+                    self.D = data['spectra']
+                    self.manual_label.config(text=f"✓ {Path(path).name}")
+                    self._plot_mixtures()
+                    self.status_label.config(text=f"Loaded {self.D.shape[0]} spectra from hyphenated data")
+                self.ui_queue.schedule(update)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
 
     def _plot_mixtures(self):
         if not HAS_MPL or self.D is None:
@@ -2893,7 +3777,942 @@ class IntensityCorrectionTab(AnalysisTab):
 
 
 # ============================================================================
-# MAIN PLUGIN CLASS
+# NEW FEATURE: TAB 8 — QC PASS/FAIL
+# ============================================================================
+class QCPassFailTab(AnalysisTab):
+    """Compares sample against a reference spectrum and gives pass/fail based on similarity."""
+
+    def __init__(self, parent, app, ui_queue):
+        super().__init__(parent, app, ui_queue, "QC Pass/Fail")
+        self.engine = LibrarySearchEngine  # reuse similarity metrics
+        self.sample_wl = None
+        self.sample_int = None
+        self.ref_wl = None
+        self.ref_int = None
+        self.threshold = 90.0  # default pass threshold (%)
+        self.result = None
+        self._build_content_ui()
+
+    def _sample_has_data(self, sample):
+        return self._sample_has_ftir_data(sample)
+
+    def _manual_import(self):
+        # For sample
+        path = filedialog.askopenfilename(title="Load Sample Spectrum")
+        if path:
+            self._load_spectrum(path, is_sample=True)
+        # For reference
+        path = filedialog.askopenfilename(title="Load Reference Spectrum")
+        if path:
+            self._load_spectrum(path, is_sample=False)
+
+    def _load_spectrum(self, path, is_sample=True):
+        def worker():
+            try:
+                data = BaselineEngine.load_spectrum(path)
+                def update():
+                    if is_sample:
+                        self.sample_wl = data['wavelength']
+                        self.sample_int = data['intensity']
+                        self.sample_label.config(text=f"Sample: {Path(path).name}")
+                    else:
+                        self.ref_wl = data['wavelength']
+                        self.ref_int = data['intensity']
+                        self.ref_label.config(text=f"Reference: {Path(path).name}")
+                    self.status_label.config(text=f"Loaded {'sample' if is_sample else 'reference'}")
+                self.ui_queue.schedule(update)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _load_sample_data(self, idx):
+        sample = self.samples[idx]
+        x_col, y_col, xv, yv = self._ftir_cols(sample)
+        if xv is not None:
+            self.sample_wl = np.array(xv)
+            self.sample_int = np.array(yv)
+            if hasattr(self, 'sample_label'):  # ← guard added
+                self.sample_label.config(text=f"Sample: {sample.get('Sample_ID', f'Sample {idx}')}")
+            self._plot_sample()
+
+    def _build_content_ui(self):
+        main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
+        main_pane.pack(fill=tk.BOTH, expand=True)
+
+        left = tk.Frame(main_pane, bg="white", width=300)
+        main_pane.add(left, weight=1)
+        right = tk.Frame(main_pane, bg="white")
+        main_pane.add(right, weight=2)
+
+        tk.Label(left, text="✅ QC PASS/FAIL",
+                font=("Arial", 10, "bold"), bg=C_LIGHT, fg=C_HEADER).pack(fill=tk.X, pady=2)
+
+        # Reference selection
+        ref_frame = tk.LabelFrame(left, text="Reference Spectrum", bg="white",
+                                  font=("Arial", 8, "bold"))
+        ref_frame.pack(fill=tk.X, padx=4, pady=4)
+
+        self.ref_label = tk.Label(ref_frame, text="No reference loaded", bg="white", fg="#888")
+        self.ref_label.pack(padx=4, pady=2)
+        ttk.Button(ref_frame, text="Load Reference", command=lambda: self._manual_import_ref()).pack(pady=2)
+
+        # Sample info
+        sample_frame = tk.LabelFrame(left, text="Sample Spectrum", bg="white",
+                                     font=("Arial", 8, "bold"))
+        sample_frame.pack(fill=tk.X, padx=4, pady=4)
+
+        self.sample_label = tk.Label(sample_frame, text="No sample loaded", bg="white", fg="#888")
+        self.sample_label.pack(padx=4, pady=2)
+
+        # Threshold
+        thresh_frame = tk.Frame(left, bg="white")
+        thresh_frame.pack(fill=tk.X, padx=4, pady=4)
+        tk.Label(thresh_frame, text="Pass threshold (%):", bg="white").pack(side=tk.LEFT)
+        self.thresh_var = tk.StringVar(value="90")
+        ttk.Entry(thresh_frame, textvariable=self.thresh_var, width=5).pack(side=tk.LEFT, padx=2)
+
+        # Metric
+        metric_frame = tk.Frame(left, bg="white")
+        metric_frame.pack(fill=tk.X, padx=4, pady=4)
+        tk.Label(metric_frame, text="Similarity metric:", bg="white").pack(side=tk.LEFT)
+        self.metric_var = tk.StringVar(value="Dot Product")
+        ttk.Combobox(metric_frame, textvariable=self.metric_var,
+                     values=["Dot Product", "Euclidean", "Pearson Correlation", "Contrast Angle"],
+                     width=15, state="readonly").pack(side=tk.LEFT, padx=2)
+
+        ttk.Button(left, text="🔍 RUN QC CHECK", command=self._run_qc).pack(fill=tk.X, padx=4, pady=4)
+
+        # Result display
+        result_frame = tk.LabelFrame(left, text="QC Result", bg="white",
+                                     font=("Arial", 8, "bold"))
+        result_frame.pack(fill=tk.X, padx=4, pady=4)
+
+        self.qc_result_var = tk.StringVar(value="—")
+        self.qc_detail_var = tk.StringVar(value="")
+
+        tk.Label(result_frame, textvariable=self.qc_result_var,
+                font=("Arial", 14, "bold"), bg="white").pack(pady=5)
+        tk.Label(result_frame, textvariable=self.qc_detail_var,
+                font=("Arial", 8), bg="white", fg="#555").pack()
+
+        if HAS_MPL:
+            self.qc_fig = Figure(figsize=(8, 5), dpi=100, facecolor="white")
+            self.qc_ax = self.qc_fig.add_subplot(111)
+            self.qc_ax.set_title("Sample vs Reference", fontsize=9)
+            self.qc_canvas = FigureCanvasTkAgg(self.qc_fig, right)
+            self.qc_canvas.draw()
+            self.qc_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            NavigationToolbar2Tk(self.qc_canvas, right).update()
+
+    def _manual_import_ref(self):
+        path = filedialog.askopenfilename(title="Load Reference Spectrum")
+        if path:
+            self._load_spectrum(path, is_sample=False)
+
+    def _plot_sample(self):
+        if not HAS_MPL or self.sample_wl is None:
+            return
+        if not hasattr(self, 'qc_ax') or self.qc_ax is None:  # ← guard added
+            return
+        self.qc_ax.clear()
+        if self.ref_wl is not None:
+            self.qc_ax.plot(self.ref_wl, self.ref_int, 'g--', lw=1.5, label="Reference", alpha=0.7)
+        self.qc_ax.plot(self.sample_wl, self.sample_int, 'b-', lw=1.5, label="Sample")
+        self.qc_ax.set_xlabel("Wavelength (nm)", fontsize=8)
+        self.qc_ax.set_ylabel("Intensity", fontsize=8)
+        self.qc_ax.legend(fontsize=7)
+        self.qc_ax.grid(True, alpha=0.3)
+        self.qc_canvas.draw()
+
+    def _run_qc(self):
+        if self.sample_wl is None or self.ref_wl is None:
+            messagebox.showwarning("Missing Data", "Load both sample and reference spectra.")
+            return
+        try:
+            threshold = float(self.thresh_var.get())
+        except:
+            messagebox.showerror("Invalid threshold", "Enter a number.")
+            return
+
+        # Align reference to sample wavelengths
+        from scipy.interpolate import interp1d
+        f = interp1d(self.ref_wl, self.ref_int, kind='linear', bounds_error=False, fill_value=0)
+        ref_aligned = f(self.sample_wl)
+
+        # Compute similarity
+        metric_map = {
+            "Dot Product": "dot_product",
+            "Euclidean": "euclidean",
+            "Pearson Correlation": "pearson",
+            "Contrast Angle": "contrast_angle"
+        }
+        metric = metric_map.get(self.metric_var.get(), "dot_product")
+
+        if metric == "dot_product":
+            sim = self.engine.dot_product(self.sample_int, ref_aligned) * 100
+        elif metric == "euclidean":
+            dist = self.engine.euclidean_distance(self.sample_int, ref_aligned)
+            sim = max(0, 100 - dist * 10)
+        elif metric == "pearson":
+            corr = self.engine.pearson_correlation(self.sample_int, ref_aligned)
+            sim = (corr + 1) * 50
+        elif metric == "contrast_angle":
+            angle = self.engine.spectral_contrast_angle(self.sample_int, ref_aligned)
+            sim = max(0, 100 - angle)
+        else:
+            sim = 0
+
+        passed = sim >= threshold
+        self.qc_result_var.set(f"{'✅ PASS' if passed else '❌ FAIL'} (Similarity: {sim:.1f}%)")
+        self.qc_detail_var.set(f"Threshold: {threshold}% | Metric: {self.metric_var.get()}")
+
+        # Update plot with pass/fail indication
+        if HAS_MPL:
+            self.qc_ax.clear()
+            self.qc_ax.plot(self.ref_wl, self.ref_int, 'g--', lw=1.5, label="Reference", alpha=0.7)
+            self.qc_ax.plot(self.sample_wl, self.sample_int, 'b-', lw=1.5, label="Sample")
+            self.qc_ax.set_xlabel("Wavelength (nm)", fontsize=8)
+            self.qc_ax.set_ylabel("Intensity", fontsize=8)
+            self.qc_ax.set_title(f"QC Result: {'PASS' if passed else 'FAIL'} ({sim:.1f}%)",
+                                color=C_STATUS if passed else C_WARN)
+            self.qc_ax.legend(fontsize=7)
+            self.qc_ax.grid(True, alpha=0.3)
+            self.qc_canvas.draw()
+
+        self.status_label.config(text=f"QC check complete: {sim:.1f}% similarity")
+
+
+# ============================================================================
+# NEW FEATURE: TAB 9 — SYSTEM VALIDATION (SNR, peak positions)
+# ============================================================================
+class SystemValidationTab(AnalysisTab):
+    """Validates system performance against known reference (e.g., polystyrene)."""
+
+    def __init__(self, parent, app, ui_queue):
+        super().__init__(parent, app, ui_queue, "System Validation")
+        self.engine = LibrarySearchEngine  # for peak matching
+        self.sample_wl = None
+        self.sample_int = None
+        self.ref_wl = None
+        self.ref_int = None
+        self.expected_peaks = []  # list of expected peak positions (from NIST specs)
+        self.tolerance = 5.0  # cm-1 or nm tolerance
+        self._build_content_ui()
+
+    def _sample_has_data(self, sample):
+        return self._sample_has_ftir_data(sample)
+
+    def _manual_import(self):
+        # Load sample
+        path = filedialog.askopenfilename(title="Load Spectrum to Validate")
+        if path:
+            self._load_spectrum(path, is_sample=True)
+        # Load reference (optional, but can be used for comparison)
+        path = filedialog.askopenfilename(title="Load Reference Spectrum (optional)")
+        if path:
+            self._load_spectrum(path, is_sample=False)
+
+    def _load_spectrum(self, path, is_sample=True):
+        def worker():
+            try:
+                data = BaselineEngine.load_spectrum(path)
+                def update():
+                    if is_sample:
+                        self.sample_wl = data['wavelength']
+                        self.sample_int = data['intensity']
+                        self.sample_label.config(text=f"Sample: {Path(path).name}")
+                        self._find_peaks_in_sample()
+                    else:
+                        self.ref_wl = data['wavelength']
+                        self.ref_int = data['intensity']
+                        self.ref_label.config(text=f"Reference: {Path(path).name}")
+                    self.status_label.config(text=f"Loaded {'sample' if is_sample else 'reference'}")
+                self.ui_queue.schedule(update)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _load_sample_data(self, idx):
+        sample = self.samples[idx]
+        x_col, y_col, xv, yv = self._ftir_cols(sample)
+        if xv is not None:
+            self.sample_wl = np.array(xv)
+            self.sample_int = np.array(yv)
+            if hasattr(self, 'sample_label'):
+                self.sample_label.config(text=f"Sample: {sample.get('Sample_ID', f'Sample {idx}')}")
+            self._find_peaks_in_sample()
+
+    def _build_content_ui(self):
+        main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
+        main_pane.pack(fill=tk.BOTH, expand=True)
+
+        left = tk.Frame(main_pane, bg="white", width=300)
+        main_pane.add(left, weight=1)
+        right = tk.Frame(main_pane, bg="white")
+        main_pane.add(right, weight=2)
+
+        tk.Label(left, text="🔧 SYSTEM VALIDATION",
+                font=("Arial", 10, "bold"), bg=C_LIGHT, fg=C_HEADER).pack(fill=tk.X, pady=2)
+
+        # Sample info
+        sample_frame = tk.LabelFrame(left, text="Sample Spectrum", bg="white",
+                                     font=("Arial", 8, "bold"))
+        sample_frame.pack(fill=tk.X, padx=4, pady=4)
+
+        self.sample_label = tk.Label(sample_frame, text="No sample loaded", bg="white", fg="#888")
+        self.sample_label.pack(padx=4, pady=2)
+        ttk.Button(sample_frame, text="Load Sample", command=lambda: self._manual_import_sample()).pack(pady=2)
+
+        # Reference (optional)
+        ref_frame = tk.LabelFrame(left, text="Reference Spectrum (optional)", bg="white",
+                                  font=("Arial", 8, "bold"))
+        ref_frame.pack(fill=tk.X, padx=4, pady=4)
+
+        self.ref_label = tk.Label(ref_frame, text="No reference loaded", bg="white", fg="#888")
+        self.ref_label.pack(padx=4, pady=2)
+        ttk.Button(ref_frame, text="Load Reference", command=lambda: self._manual_import_ref()).pack(pady=2)
+
+        # Expected peaks (NIST specs)
+        peak_frame = tk.LabelFrame(left, text="Expected Peaks (NIST)", bg="white",
+                                   font=("Arial", 8, "bold"))
+        peak_frame.pack(fill=tk.X, padx=4, pady=4)
+
+        self.peak_listbox = tk.Listbox(peak_frame, height=5)
+        self.peak_listbox.pack(fill=tk.X, padx=4, pady=2)
+        # Pre-populate with polystyrene peaks (example)
+        self.expected_peaks = [1601, 1493, 1452, 1028, 907, 698]  # cm-1
+        for p in self.expected_peaks:
+            self.peak_listbox.insert(tk.END, f"{p} cm⁻¹")
+        tk.Button(peak_frame, text="Set from Reference", command=self._set_peaks_from_ref).pack(pady=2)
+
+        # Tolerance
+        tol_frame = tk.Frame(left, bg="white")
+        tol_frame.pack(fill=tk.X, padx=4, pady=4)
+        tk.Label(tol_frame, text="Tolerance (cm⁻¹/nm):", bg="white").pack(side=tk.LEFT)
+        self.tol_var = tk.StringVar(value="5")
+        ttk.Entry(tol_frame, textvariable=self.tol_var, width=5).pack(side=tk.LEFT, padx=2)
+
+        ttk.Button(left, text="🔍 VALIDATE SYSTEM", command=self._validate).pack(fill=tk.X, padx=4, pady=4)
+
+        # Results
+        result_frame = tk.LabelFrame(left, text="Validation Results", bg="white",
+                                     font=("Arial", 8, "bold"))
+        result_frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+
+        self.snr_var = tk.StringVar(value="SNR: —")
+        self.peak_status_var = tk.StringVar(value="Peak positions: —")
+        tk.Label(result_frame, textvariable=self.snr_var, bg="white", anchor=tk.W).pack(fill=tk.X, padx=4, pady=2)
+        tk.Label(result_frame, textvariable=self.peak_status_var, bg="white", anchor=tk.W).pack(fill=tk.X, padx=4, pady=2)
+
+        if HAS_MPL:
+            self.val_fig = Figure(figsize=(8, 5), dpi=100, facecolor="white")
+            self.val_ax = self.val_fig.add_subplot(111)
+            self.val_ax.set_title("Validation Spectrum", fontsize=9)
+            self.val_canvas = FigureCanvasTkAgg(self.val_fig, right)
+            self.val_canvas.draw()
+            self.val_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            NavigationToolbar2Tk(self.val_canvas, right).update()
+
+    def _manual_import_sample(self):
+        path = filedialog.askopenfilename(title="Load Sample Spectrum")
+        if path:
+            self._load_spectrum(path, is_sample=True)
+
+    def _manual_import_ref(self):
+        path = filedialog.askopenfilename(title="Load Reference Spectrum")
+        if path:
+            self._load_spectrum(path, is_sample=False)
+
+    def _set_peaks_from_ref(self):
+        if self.ref_wl is None:
+            messagebox.showwarning("No Reference", "Load a reference spectrum first.")
+            return
+        # Find peaks in reference
+        from scipy.signal import find_peaks
+        peaks, _ = find_peaks(self.ref_int, prominence=0.05)
+        peak_positions = self.ref_wl[peaks]
+        # Take the most prominent ones (simplified)
+        self.expected_peaks = peak_positions[:10].tolist()
+        self.peak_listbox.delete(0, tk.END)
+        for p in self.expected_peaks:
+            self.peak_listbox.insert(tk.END, f"{p:.1f}")
+
+    def _find_peaks_in_sample(self):
+        if self.sample_wl is None:
+            return
+        from scipy.signal import find_peaks
+        peaks, _ = find_peaks(self.sample_int, prominence=0.05)
+        self.sample_peak_positions = self.sample_wl[peaks]
+        if HAS_MPL and hasattr(self, 'val_ax'):
+            self._plot_spectrum()
+
+    def _plot_spectrum(self):
+        if not HAS_MPL or self.sample_wl is None:
+            return
+        if not hasattr(self, 'val_ax') or self.val_ax is None:
+            return
+        self.val_ax.clear()
+        self.val_ax.plot(self.sample_wl, self.sample_int, 'b-', lw=1.5)
+        if hasattr(self, 'sample_peak_positions'):
+            for p in self.sample_peak_positions:
+                self.val_ax.axvline(p, color='r', ls='--', lw=0.5, alpha=0.7)
+        if self.ref_wl is not None:
+            self.val_ax.plot(self.ref_wl, self.ref_int, 'g--', lw=1, alpha=0.7, label="Reference")
+        self.val_ax.set_xlabel("Wavenumber (cm⁻¹)", fontsize=8)
+        self.val_ax.set_ylabel("Intensity", fontsize=8)
+        self.val_ax.grid(True, alpha=0.3)
+        self.val_ax.legend()
+        self.val_canvas.draw()
+
+    def _validate(self):
+        if self.sample_wl is None:
+            messagebox.showwarning("No Data", "Load a sample spectrum.")
+            return
+
+        # Compute SNR
+        signal_region = self.sample_int
+        noise_region = self.sample_int[-100:]  # assume last 100 points are noise
+        snr = np.mean(signal_region) / np.std(noise_region) if np.std(noise_region) > 0 else 0
+        self.snr_var.set(f"SNR: {snr:.2f}")
+
+        # Peak validation
+        try:
+            tolerance = float(self.tol_var.get())
+        except:
+            tolerance = 5.0
+
+        # Find peaks in sample if not already done
+        if not hasattr(self, 'sample_peak_positions'):
+            self._find_peaks_in_sample()
+
+        matches = []
+        for exp in self.expected_peaks:
+            found = False
+            for samp in self.sample_peak_positions:
+                if abs(samp - exp) <= tolerance:
+                    matches.append((exp, samp, abs(samp - exp)))
+                    found = True
+                    break
+            if not found:
+                matches.append((exp, None, None))
+
+        # Build summary
+        peak_text = "Peak positions:\n"
+        for exp, samp, diff in matches:
+            if samp is not None:
+                peak_text += f"  ✓ {exp:.1f} → {samp:.1f} (Δ={diff:.2f})\n"
+            else:
+                peak_text += f"  ✗ {exp:.1f} not found\n"
+
+        # Also check if any extra peaks (could indicate contamination)
+        extra_peaks = [p for p in self.sample_peak_positions if all(abs(p - e) > tolerance for e in self.expected_peaks)]
+        if extra_peaks:
+            peak_text += f"  ⚠ Extra peaks: {', '.join([f'{p:.1f}' for p in extra_peaks[:5]])}\n"
+
+        self.peak_status_var.set(peak_text)
+
+        # Update plot with annotations
+        if HAS_MPL and hasattr(self, 'val_ax'):
+            self.val_ax.clear()
+            self.val_ax.plot(self.sample_wl, self.sample_int, 'b-', lw=1.5, label="Sample")
+            for exp, samp, diff in matches:
+                if samp is not None:
+                    self.val_ax.axvline(samp, color='g', ls='-', lw=1, alpha=0.7)
+                    self.val_ax.text(samp, self.sample_int.max()*0.9, f'{exp:.0f}', rotation=90, fontsize=6)
+                else:
+                    self.val_ax.axvline(exp, color='r', ls='--', lw=1, alpha=0.5)
+            if self.ref_wl is not None:
+                self.val_ax.plot(self.ref_wl, self.ref_int, 'g--', lw=1, alpha=0.7, label="Reference")
+            self.val_ax.set_xlabel("Wavenumber (cm⁻¹)", fontsize=8)
+            self.val_ax.set_ylabel("Intensity", fontsize=8)
+            self.val_ax.set_title(f"Validation: SNR={snr:.1f}")
+            self.val_ax.grid(True, alpha=0.3)
+            self.val_ax.legend()
+            self.val_canvas.draw()
+
+        self.status_label.config(text=f"Validation complete. SNR={snr:.2f}")
+# ============================================================================
+# NEW FEATURE: TAB 10 — CONTAMINANT ID (Iterative subtraction)
+# ============================================================================
+class ContaminantIDTab(AnalysisTab):
+    """Iteratively subtracts identified components to find residuals."""
+
+    def __init__(self, parent, app, ui_queue):
+        super().__init__(parent, app, ui_queue, "Contaminant ID")
+        self.engine = LibrarySearchEngine
+        self.sample_wl = None
+        self.sample_int = None
+        self.library = []  # spectral library
+        self.residual = None
+        self.components = []  # list of identified components
+        self.max_components = 5
+        self._build_content_ui()
+
+    def _sample_has_data(self, sample):
+        return self._sample_has_ftir_data(sample)
+
+    def _manual_import(self):
+        path = filedialog.askopenfilename(title="Load Sample Spectrum")
+        if path:
+            self._load_spectrum(path)
+
+    def _load_spectrum(self, path):
+        def worker():
+            try:
+                data = BaselineEngine.load_spectrum(path)
+                def update():
+                    self.sample_wl = data['wavelength']
+                    self.sample_int = data['intensity']
+                    self.manual_label.config(text=f"Sample: {Path(path).name}")
+                    self.residual = self.sample_int.copy()
+                    self.components = []
+                    self._update_plot()
+                self.ui_queue.schedule(update)
+            except Exception as e:
+                self.ui_queue.schedule(lambda: messagebox.showerror("Error", str(e)))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _load_sample_data(self, idx):
+        sample = self.samples[idx]
+        x_col, y_col, xv, yv = self._ftir_cols(sample)
+        if xv is not None:
+            self.sample_wl = np.array(xv)
+            self.sample_int = np.array(yv)
+            self.residual = self.sample_int.copy()
+            self.components = []
+            if HAS_MPL and hasattr(self, 'cont_ax_orig'):  # ← guard
+                self._update_plot()
+            self.status_label.config(text=f"Loaded sample from table")
+
+    def _build_content_ui(self):
+        main_pane = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
+        main_pane.pack(fill=tk.BOTH, expand=True)
+
+        left = tk.Frame(main_pane, bg="white", width=350)
+        main_pane.add(left, weight=1)
+        right = tk.Frame(main_pane, bg="white")
+        main_pane.add(right, weight=2)
+
+        tk.Label(left, text="🧪 CONTAMINANT ID (Iterative Subtraction)",
+                font=("Arial", 10, "bold"), bg=C_LIGHT, fg=C_HEADER).pack(fill=tk.X, pady=2)
+
+        # Library source
+        lib_frame = tk.LabelFrame(left, text="Library Source", bg="white",
+                                  font=("Arial", 8, "bold"))
+        lib_frame.pack(fill=tk.X, padx=4, pady=4)
+
+        tk.Label(lib_frame, text="Library:", bg="white").pack(anchor=tk.W, padx=4)
+        self.lib_source = tk.StringVar(value="Built-in Demo")
+        ttk.Combobox(lib_frame, textvariable=self.lib_source,
+                     values=["Built-in Demo", "Custom CSV"], width=15).pack(fill=tk.X, padx=4, pady=2)
+        ttk.Button(lib_frame, text="Load Library", command=self._load_library).pack(pady=2)
+
+        # Parameters
+        param_frame = tk.LabelFrame(left, text="Parameters", bg="white",
+                                    font=("Arial", 8, "bold"))
+        param_frame.pack(fill=tk.X, padx=4, pady=4)
+
+        tk.Label(param_frame, text="Max components:", bg="white").grid(row=0, column=0, sticky=tk.W, padx=4)
+        self.max_comp_var = tk.StringVar(value="5")
+        ttk.Entry(param_frame, textvariable=self.max_comp_var, width=5).grid(row=0, column=1, padx=4)
+
+        tk.Label(param_frame, text="Residual threshold:", bg="white").grid(row=1, column=0, sticky=tk.W, padx=4)
+        self.thresh_var = tk.StringVar(value="0.05")
+        ttk.Entry(param_frame, textvariable=self.thresh_var, width=5).grid(row=1, column=1, padx=4)
+        tk.Label(param_frame, text="(fraction of max)", bg="white", font=("Arial", 7)).grid(row=1, column=2)
+
+        tk.Label(param_frame, text="Similarity metric:", bg="white").grid(row=2, column=0, sticky=tk.W, padx=4)
+        self.metric_var = tk.StringVar(value="Dot Product")
+        ttk.Combobox(param_frame, textvariable=self.metric_var,
+                     values=["Dot Product", "Euclidean", "Pearson Correlation"],
+                     width=15, state="readonly").grid(row=2, column=1, columnspan=2, padx=4)
+
+        ttk.Button(left, text="🔍 IDENTIFY COMPONENTS", command=self._identify).pack(fill=tk.X, padx=4, pady=4)
+
+        # Components list
+        comp_frame = tk.LabelFrame(left, text="Identified Components", bg="white",
+                                   font=("Arial", 8, "bold"))
+        comp_frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+
+        self.comp_listbox = tk.Listbox(comp_frame, height=8)
+        self.comp_listbox.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+
+        if HAS_MPL:
+            self.cont_fig = Figure(figsize=(8, 6), dpi=100, facecolor="white")
+            gs = GridSpec(2, 1, figure=self.cont_fig, hspace=0.3)
+            self.cont_ax_orig = self.cont_fig.add_subplot(gs[0])
+            self.cont_ax_resid = self.cont_fig.add_subplot(gs[1])
+            self.cont_ax_orig.set_title("Original Spectrum", fontsize=9)
+            self.cont_ax_resid.set_title("Residual After Subtractions", fontsize=9)
+
+            self.cont_canvas = FigureCanvasTkAgg(self.cont_fig, right)
+            self.cont_canvas.draw()
+            self.cont_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            NavigationToolbar2Tk(self.cont_canvas, right).update()
+
+    def _load_library(self):
+        if self.lib_source.get() == "Custom CSV":
+            path = filedialog.askopenfilename(title="Load Spectral Library",
+                                              filetypes=[("CSV", "*.csv"), ("JSON", "*.json")])
+            if path:
+                try:
+                    self.library = LibrarySearchEngine.load_spectral_library(path)
+                    self.status_label.config(text=f"Loaded {len(self.library)} library entries")
+                except Exception as e:
+                    messagebox.showerror("Error", str(e))
+        else:
+            # Generate demo library
+            self.library = self._generate_demo_library()
+            self.status_label.config(text="Using built-in demo library")
+
+    def _generate_demo_library(self):
+        # Similar to LibrarySearchTab's demo library
+        library = []
+        base_wl = np.linspace(200, 800, 300)
+        compounds = ["Benzene", "Toluene", "Ethanol", "Acetone", "Water", "Phenol", "Naphthalene"]
+        for i, name in enumerate(compounds):
+            intensity = np.zeros_like(base_wl)
+            for j in range(np.random.randint(2, 5)):
+                center = np.random.uniform(250, 750)
+                width = np.random.uniform(20, 80)
+                intensity += np.exp(-((base_wl - center) / width) ** 2) * np.random.uniform(0.5, 1.0)
+            intensity += np.random.normal(0, 0.02, len(base_wl))
+            library.append({
+                'wl': base_wl,
+                'int': intensity,
+                'name': name,
+                'metadata': {}
+            })
+        return library
+
+    def _update_plot(self):
+        if not HAS_MPL or self.sample_wl is None or not hasattr(self, 'cont_ax_orig'):  # ← guard
+            return
+        self.cont_ax_orig.clear()
+        self.cont_ax_orig.plot(self.sample_wl, self.sample_int, 'b-', lw=1.5)
+        self.cont_ax_orig.set_xlabel("Wavelength (nm)", fontsize=8)
+        self.cont_ax_orig.set_ylabel("Intensity", fontsize=8)
+        self.cont_ax_orig.grid(True, alpha=0.3)
+
+        self.cont_ax_resid.clear()
+        self.cont_ax_resid.plot(self.sample_wl, self.residual, 'r-', lw=1.5)
+        self.cont_ax_resid.set_xlabel("Wavelength (nm)", fontsize=8)
+        self.cont_ax_resid.set_ylabel("Residual", fontsize=8)
+        self.cont_ax_resid.grid(True, alpha=0.3)
+
+        self.cont_canvas.draw()
+
+    def _identify(self):
+        if self.sample_wl is None:
+            messagebox.showwarning("No Data", "Load a sample spectrum first.")
+            return
+        if not self.library:
+            self._load_library()  # ensure library is loaded
+        try:
+            max_comp = int(self.max_comp_var.get())
+            threshold = float(self.thresh_var.get())
+        except:
+            messagebox.showerror("Invalid parameters", "Enter numbers.")
+            return
+
+        metric_map = {
+            "Dot Product": "dot_product",
+            "Euclidean": "euclidean",
+            "Pearson Correlation": "pearson"
+        }
+        metric = metric_map.get(self.metric_var.get(), "dot_product")
+
+        self.status_label.config(text="🔄 Identifying components...")
+        self.comp_listbox.delete(0, tk.END)
+
+        def worker():
+            residual = self.sample_int.copy()
+            components = []
+            iteration = 0
+            max_residual = np.max(np.abs(self.sample_int))
+            while iteration < max_comp:
+                # Search library against residual
+                results = self.engine.search_library(self.sample_wl, residual, self.library,
+                                                      metric=metric, top_n=1)
+                if not results:
+                    break
+                best = results[0]
+                # Find the library spectrum that matches
+                lib_entry = next((e for e in self.library if e['name'] == best['name']), None)
+                if lib_entry is None:
+                    break
+                # Align
+                lib_int_aligned = self.engine.align_wavelengths(self.sample_wl, lib_entry['int'], lib_entry['wl'])
+                # Estimate contribution (scale factor)
+                # Simple: scale to minimize residual
+                scale = np.dot(residual, lib_int_aligned) / np.dot(lib_int_aligned, lib_int_aligned)
+                if scale <= 0:
+                    # Negative contribution doesn't make sense; skip
+                    # But maybe component is not present; break?
+                    break
+                # Subtract
+                residual = residual - scale * lib_int_aligned
+                residual = np.maximum(residual, 0)  # non-negative constraint
+                components.append({
+                    'name': best['name'],
+                    'similarity': best['similarity'],
+                    'scale': scale
+                })
+                iteration += 1
+                # Check stopping criterion
+                if np.max(np.abs(residual)) < threshold * max_residual:
+                    break
+
+            def update_ui():
+                self.residual = residual
+                self.components = components
+                for comp in components:
+                    self.comp_listbox.insert(tk.END, f"{comp['name']} (sim={comp['similarity']:.1f}%, scale={comp['scale']:.3f})")
+                self._update_plot()
+                self.status_label.config(text=f"Identified {len(components)} components")
+
+            self.ui_queue.schedule(update_ui)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+
+# ============================================================================
+# NEW FEATURE: TAB 11 — SPECTRA COMPARISON (Overlay, difference)
+# ============================================================================
+class SpectraComparisonTab(MultiSelectAnalysisTab):
+    """Overlay multiple spectra, with difference plots and synchronized zoom."""
+
+    def __init__(self, parent, app, ui_queue):
+        super().__init__(parent, app, ui_queue, "Spectra Comparison")
+        self.normalize = False
+        self.diff_mode = False
+        self.reference_idx = 0  # index in selected_data for difference reference
+        self._build_content_ui()
+
+    def _build_content_ui(self):
+        # Unpack the multi_selector_frame (packed in base class)
+        self.multi_selector_frame.pack_forget()
+
+        # Create a horizontal PanedWindow
+        paned = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
+        paned.pack(fill=tk.BOTH, expand=True)
+
+        # Left pane – controls (sample list + options)
+        left = tk.Frame(paned, bg="white", width=350)
+        paned.add(left, weight=1)
+
+        # Repack the multi_selector_frame into the left pane
+        self.multi_selector_frame.pack(in_=left, fill=tk.BOTH, expand=True)
+
+        # Add extra options to the left pane (inside multi_selector_frame, we need to create them)
+        # The base class's multi_selector_frame already has a listbox and a btn_frame.
+        # We'll add an options frame below the listbox.
+        # First, get the listbox parent (which is list_frame inside multi_selector_frame)
+        # We'll create a new frame inside multi_selector_frame for options.
+        options_frame = tk.Frame(self.multi_selector_frame, bg="white")
+        options_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
+
+        self.norm_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(options_frame, text="Normalize", variable=self.norm_var,
+                      command=self._update_plot, bg="white").pack(anchor=tk.W)
+
+        self.diff_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(options_frame, text="Show Difference", variable=self.diff_var,
+                      command=self._update_plot, bg="white").pack(anchor=tk.W)
+
+        tk.Label(options_frame, text="Reference for diff:", bg="white").pack(anchor=tk.W, pady=(10,0))
+        self.ref_combo = ttk.Combobox(options_frame, state="readonly", width=20)
+        self.ref_combo.pack(anchor=tk.W, pady=2)
+        self.ref_combo.bind('<<ComboboxSelected>>', self._update_plot)
+
+        # Right pane – plot
+        right = tk.Frame(paned, bg="white")
+        paned.add(right, weight=3)
+
+        if HAS_MPL:
+            self.comp_fig = Figure(figsize=(8, 6), dpi=100, facecolor="white")
+            self.comp_ax = self.comp_fig.add_subplot(111)
+            self.comp_ax.set_title("Spectra Overlay", fontsize=10)
+            self.comp_canvas = FigureCanvasTkAgg(self.comp_fig, right)
+            self.comp_canvas.draw()
+            self.comp_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+            toolbar = NavigationToolbar2Tk(self.comp_canvas, right)
+            toolbar.update()
+
+    def _on_samples_loaded(self):
+        """Called after samples are loaded from the listbox."""
+        # Populate reference combo with sample IDs
+        names = [d['sample_id'] for d in self.selected_data]
+        if hasattr(self, 'ref_combo'):
+            self.ref_combo['values'] = names
+            if names:
+                self.ref_combo.current(0)
+        self._update_plot()
+
+    def _update_plot(self, event=None):
+        if not HAS_MPL or not self.selected_data:
+            return
+        if not hasattr(self, 'comp_ax') or self.comp_ax is None:
+            return
+        self.comp_ax.clear()
+        colors = PLOT_COLORS * (len(self.selected_data) // len(PLOT_COLORS) + 1)
+
+        if self.diff_var.get() and len(self.selected_data) >= 2:
+            # Show difference spectra relative to reference
+            ref_idx = self.ref_combo.current() if hasattr(self, 'ref_combo') else 0
+            if ref_idx < 0 or ref_idx >= len(self.selected_data):
+                ref_idx = 0
+            ref = self.selected_data[ref_idx]
+            for i, data in enumerate(self.selected_data):
+                if i == ref_idx:
+                    continue
+                # Align to reference wavelengths (interpolate)
+                from scipy.interpolate import interp1d
+                f = interp1d(data['wavelength'], data['intensity'], kind='linear',
+                             bounds_error=False, fill_value=0)
+                int_aligned = f(ref['wavelength'])
+                diff = int_aligned - ref['intensity']
+                self.comp_ax.plot(ref['wavelength'], diff, color=colors[i],
+                                  lw=1.5, label=f"{data['sample_id']} - Ref")
+            self.comp_ax.set_ylabel("Difference Intensity", fontsize=8)
+            self.comp_ax.set_title("Difference Spectra", fontsize=9)
+        else:
+            # Overlay
+            for i, data in enumerate(self.selected_data):
+                y = data['intensity']
+                if self.norm_var.get():
+                    y = y / np.max(np.abs(y))
+                self.comp_ax.plot(data['wavelength'], y, color=colors[i],
+                                  lw=1.5, label=data['sample_id'])
+            self.comp_ax.set_ylabel("Intensity (normalized)" if self.norm_var.get() else "Intensity", fontsize=8)
+            self.comp_ax.set_title("Spectra Overlay", fontsize=9)
+
+        self.comp_ax.set_xlabel("Wavelength (nm)", fontsize=8)
+        self.comp_ax.legend(fontsize=7)
+        self.comp_ax.grid(True, alpha=0.3)
+        self.comp_canvas.draw()
+
+# ============================================================================
+# NEW FEATURE: TAB 12 — STATISTICS (mean, std, variance of replicates)
+# ============================================================================
+class StatisticsTab(MultiSelectAnalysisTab):
+    """Compute mean, standard deviation, variance from multiple spectra."""
+
+    def __init__(self, parent, app, ui_queue):
+        super().__init__(parent, app, ui_queue, "Statistics")
+        self.mean = None
+        self.std = None
+        self.variance = None
+        self.wavelengths = None
+        self._build_content_ui()
+
+    def _build_content_ui(self):
+        # Unpack the multi_selector_frame (packed in base class)
+        self.multi_selector_frame.pack_forget()
+
+        # Create a horizontal PanedWindow
+        paned = ttk.PanedWindow(self.content_frame, orient=tk.HORIZONTAL)
+        paned.pack(fill=tk.BOTH, expand=True)
+
+        # Left pane – controls (sample list + buttons)
+        left = tk.Frame(paned, bg="white", width=350)
+        paned.add(left, weight=1)
+
+        # Repack the multi_selector_frame into the left pane
+        self.multi_selector_frame.pack(in_=left, fill=tk.BOTH, expand=True)
+
+        # Add extra buttons to the left pane (already inside multi_selector_frame, but ensure they exist)
+        # The base class already created a btn_frame with "Compute Statistics" and "Export CSV".
+        # If not, we can add them here. But they should already be present.
+        # To be safe, we can create a new button frame if needed.
+        # For now, we assume the base class provided them.
+
+        # Right pane – plot
+        right = tk.Frame(paned, bg="white")
+        paned.add(right, weight=3)
+
+        if HAS_MPL:
+            self.stat_fig = Figure(figsize=(9, 6), dpi=100, facecolor="white")
+            gs = GridSpec(2, 1, figure=self.stat_fig, hspace=0.3)
+            self.stat_ax_mean = self.stat_fig.add_subplot(gs[0])
+            self.stat_ax_std = self.stat_fig.add_subplot(gs[1])
+
+            self.stat_ax_mean.set_title("Mean Spectrum", fontsize=9)
+            self.stat_ax_std.set_title("Standard Deviation", fontsize=9)
+
+            self.stat_canvas = FigureCanvasTkAgg(self.stat_fig, right)
+            self.stat_canvas.draw()
+            self.stat_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+            toolbar = NavigationToolbar2Tk(self.stat_canvas, right)
+            toolbar.update()
+
+    def _compute_stats(self):
+        if len(self.selected_data) < 2:
+            messagebox.showwarning("Insufficient Data", "Select at least 2 samples.")
+            return
+
+        # Ensure all spectra have same wavelength grid? We'll interpolate to first.
+        ref_wl = self.selected_data[0]['wavelength']
+        intensities = []
+        for data in self.selected_data:
+            if not np.array_equal(data['wavelength'], ref_wl):
+                from scipy.interpolate import interp1d
+                f = interp1d(data['wavelength'], data['intensity'], kind='linear',
+                             bounds_error=False, fill_value=0)
+                int_aligned = f(ref_wl)
+            else:
+                int_aligned = data['intensity']
+            intensities.append(int_aligned)
+
+        arr = np.array(intensities)
+        self.mean = np.mean(arr, axis=0)
+        self.std = np.std(arr, axis=0, ddof=1)
+        self.variance = np.var(arr, axis=0, ddof=1)
+        self.wavelengths = ref_wl
+
+        if HAS_MPL:
+            self.stat_ax_mean.clear()
+            self.stat_ax_mean.plot(self.wavelengths, self.mean, 'b-', lw=1.5)
+            self.stat_ax_mean.fill_between(self.wavelengths,
+                                            self.mean - self.std,
+                                            self.mean + self.std,
+                                            alpha=0.3, color='b')
+            self.stat_ax_mean.set_xlabel("Wavelength (nm)", fontsize=8)
+            self.stat_ax_mean.set_ylabel("Intensity", fontsize=8)
+            self.stat_ax_mean.grid(True, alpha=0.3)
+
+            self.stat_ax_std.clear()
+            self.stat_ax_std.plot(self.wavelengths, self.std, 'r-', lw=1.5)
+            self.stat_ax_std.set_xlabel("Wavelength (nm)", fontsize=8)
+            self.stat_ax_std.set_ylabel("Standard Deviation", fontsize=8)
+            self.stat_ax_std.grid(True, alpha=0.3)
+
+            self.stat_canvas.draw()
+
+        self.status_label.config(text=f"Statistics computed from {len(self.selected_data)} samples")
+
+    def _export_csv(self):
+        if self.mean is None:
+            messagebox.showwarning("No Data", "Compute statistics first.")
+            return
+        path = filedialog.asksaveasfilename(defaultextension=".csv",
+                                            filetypes=[("CSV", "*.csv")])
+        if not path:
+            return
+        df = pd.DataFrame({
+            'Wavelength': self.wavelengths,
+            'Mean': self.mean,
+            'Std': self.std,
+            'Variance': self.variance,
+            'N': len(self.selected_data)
+        })
+        df.to_csv(path, index=False)
+        self.status_label.config(text=f"Exported to {Path(path).name}")
+
+# ============================================================================
+# MAIN PLUGIN CLASS (updated with new tabs)
 # ============================================================================
 class SpectroscopyAnalysisSuite:
     def __init__(self, main_app):
@@ -2928,7 +4747,7 @@ class SpectroscopyAnalysisSuite:
                 bg=C_HEADER, fg="white").pack(side=tk.LEFT, padx=10)
         tk.Label(header, text="SPECTROSCOPY ANALYSIS SUITE",
                 font=("Arial", 14, "bold"), bg=C_HEADER, fg="white").pack(side=tk.LEFT)
-        tk.Label(header, text="v1.0 · ASTM/NIST Compliant",
+        tk.Label(header, text="v1.0 · ASTM/NIST Compliant + Advanced Features",
                 font=("Arial", 9), bg=C_HEADER, fg=C_ACCENT).pack(side=tk.LEFT, padx=10)
 
         self.status_var = tk.StringVar(value="Ready")
@@ -2942,6 +4761,7 @@ class SpectroscopyAnalysisSuite:
         notebook = ttk.Notebook(self.window, style="Spec.TNotebook")
         notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
+        # Original 7 tabs
         self.tabs['library'] = LibrarySearchTab(notebook, self.app, self.ui_queue)
         notebook.add(self.tabs['library'].frame, text=" Library ")
 
@@ -2963,12 +4783,28 @@ class SpectroscopyAnalysisSuite:
         self.tabs['intensity'] = IntensityCorrectionTab(notebook, self.app, self.ui_queue)
         notebook.add(self.tabs['intensity'].frame, text=" Intensity ")
 
+        # New feature tabs
+        self.tabs['qc'] = QCPassFailTab(notebook, self.app, self.ui_queue)
+        notebook.add(self.tabs['qc'].frame, text=" QC Pass/Fail ")
+
+        self.tabs['validation'] = SystemValidationTab(notebook, self.app, self.ui_queue)
+        notebook.add(self.tabs['validation'].frame, text=" System Validation ")
+
+        self.tabs['contaminant'] = ContaminantIDTab(notebook, self.app, self.ui_queue)
+        notebook.add(self.tabs['contaminant'].frame, text=" Contaminant ID ")
+
+        self.tabs['comparison'] = SpectraComparisonTab(notebook, self.app, self.ui_queue)
+        notebook.add(self.tabs['comparison'].frame, text=" Compare ")
+
+        self.tabs['statistics'] = StatisticsTab(notebook, self.app, self.ui_queue)
+        notebook.add(self.tabs['statistics'].frame, text=" Statistics ")
+
         footer = tk.Frame(self.window, bg=C_LIGHT, height=25)
         footer.pack(fill=tk.X, side=tk.BOTTOM)
         footer.pack_propagate(False)
 
         tk.Label(footer,
-                text="Stein & Scott 1994 · ASTM E1655 · Eilers & Boelens 2005 · ASTM E386 · Tauler 1995 · Savitzky & Golay 1964 · NIST SRM 2241",
+                text="Stein & Scott 1994 · ASTM E1655 · Eilers & Boelens 2005 · ASTM E386 · Tauler 1995 · Savitzky & Golay 1964 · NIST SRM 2241 · QC · Validation · Contaminant ID · Statistics",
                 font=("Arial", 8), bg=C_LIGHT, fg=C_HEADER).pack(side=tk.LEFT, padx=10)
 
         self.progress_bar = ttk.Progressbar(footer, mode='determinate', length=150)
