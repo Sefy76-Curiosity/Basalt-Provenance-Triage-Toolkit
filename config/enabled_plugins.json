@@ -92,5 +92,8 @@
   "advanced_spectroscopy_suite_single_user": true,
   "universal_exporter": false,
   "advanced_spectroscopy_suite_compact": false,
-  "advanced_chem_ms_suite": true
+  "advanced_chem_ms_suite": true,
+  "server_mode": true,
+  "clinical_diagnostics_analysis_suite": true,
+  "arch_isotope_mixing": true
 }

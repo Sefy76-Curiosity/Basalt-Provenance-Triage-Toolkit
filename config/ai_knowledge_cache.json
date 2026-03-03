@@ -30,10 +30,10 @@
       "path": "plugins/hardware/chromatography_analytical_unified_suite.py",
       "stem": "chromatography_analytical_unified_suite"
     },
-    "clinical_molecular_diagnostics_suite": {
-      "id": "clinical_molecular_diagnostics_suite",
-      "name": "Clinical & Molecular Diags",
-      "description": "PCR \u00b7 qPCR \u00b7 dPCR \u00b7 Plate Readers \u00b7 Flow Cytometry \u00b7 ELISA \u00b7 Clinical Chemistry",
+    "clinical_molecular_diagnostics_suite_v2_complete": {
+      "id": "clinical_molecular_diagnostics_suite_v2_complete",
+      "name": "Clinical & Molecular Diags v2.0 Complete",
+      "description": "COMPLETE: PCR/qPCR/dPCR/ELISA/Flow + 8 NEW live devices",
       "icon": "\ud83e\uddec",
       "field": "",
       "category": "hardware",
@@ -250,6 +250,16 @@
       "path": "plugins/software/archaeology_archaeometry_software_suite.py",
       "stem": "archaeology_archaeometry_software_suite"
     },
+    "arch_isotope_mixing": {
+      "id": "arch_isotope_mixing",
+      "name": "Archaeological Isotope Professional",
+      "description": "Complete isotope toolbox: mixing, MCMC, provenance, REE, diet",
+      "icon": "\ud83c\udffa",
+      "field": "Archaeology & Archaeometry",
+      "category": "software",
+      "path": "plugins/software/arch_isotope_mixing.py",
+      "stem": "arch_isotope_mixing"
+    },
     "barcode_scanner_suite": {
       "id": "barcode_scanner_suite",
       "name": "Barcode Scanner Suite",
@@ -273,9 +283,9 @@
     "clinical_diagnostics_suite": {
       "id": "clinical_diagnostics_suite",
       "name": "Clinical Diagnostics Suite",
-      "description": "qPCR \u00b7 \u0394\u0394Ct \u00b7 ELISA \u00b7 Flow Cytometry \u00b7 ddPCR \u00b7 HRM \u00b7 Reference Ranges \u2014 CLSI/ICH compliant",
-      "icon": "\ud83e\uddea",
-      "field": "Molecular Biology & Clinical Diagnostics",
+      "description": "qPCR \u00b7 \u0394\u0394Ct \u00b7 ELISA \u00b7 Flow \u00b7 ddPCR \u00b7 HRM \u00b7 Reference Ranges \u2014 Now with Smart Assistant, Recipes, Publication Tools, Uncertainty Integration",
+      "icon": "\ud83e\uddec\u2728",
+      "field": "Clinical Diagnostics & Molecular Biology",
       "category": "software",
       "path": "plugins/software/clinical_diagnostics_analysis_suite.py",
       "stem": "clinical_diagnostics_analysis_suite"
@@ -480,11 +490,11 @@
       "path": "plugins/software/thermobarometry_suite.py",
       "stem": "thermobarometry_suite"
     },
-    "uncertainty_propagation": {
-      "id": "uncertainty_propagation",
-      "name": "Uncertainty Propagation",
-      "description": "Monte Carlo confidence ellipses & error propagation \u2013 now with table write\u2011back",
-      "icon": "\ud83c\udfb2",
+    "isotope_uncertainty": {
+      "id": "isotope_uncertainty",
+      "name": "Isotope Uncertainty Pro",
+      "description": "TDF-integrated Monte Carlo for mixing models with full uncertainty propagation",
+      "icon": "\ud83d\udcca",
       "field": "General",
       "category": "software",
       "path": "plugins/software/uncertainty_propagation.py",
@@ -579,16 +589,6 @@
       "category": "software",
       "path": "plugins/software/interactive_contouring.py",
       "stem": "interactive_contouring"
-    },
-    "isotope_mixing_models": {
-      "id": "isotope_mixing_models",
-      "name": "Isotope Mixing Models",
-      "description": "Binary/ternary mixing, end-member estimation, Monte Carlo, Bayesian inversion, REE inversion",
-      "icon": "\ud83e\uddea",
-      "field": "",
-      "category": "software",
-      "path": "plugins/software/isotope_mixing_models.py",
-      "stem": "isotope_mixing_models"
     },
     "laicpms_pro": {
       "id": "laicpms_pro",
@@ -849,6 +849,16 @@
       "category": "add-ons",
       "path": "plugins/add-ons/seaborn_plotter.py",
       "stem": "seaborn_plotter"
+    },
+    "server_mode": {
+      "id": "server_mode",
+      "name": "Server Mode (Web Access)",
+      "description": "Start a local web server and use the toolkit from any browser.",
+      "icon": "\ud83c\udf10",
+      "field": "",
+      "category": "add-ons",
+      "path": "plugins/add-ons/server_mode.py",
+      "stem": "server_mode"
     },
     "sql_console": {
       "id": "sql_console",
@@ -4906,5 +4916,5 @@
     "scheme file pearce_mantle_array.json: 'list' object has no attribute 'values'",
     "scheme file soil_salinity_classification__ec_.json: 'list' object has no attribute 'values'"
   ],
-  "timestamp": 1772466460.591867
+  "timestamp": 1772549753.3407688
 }
