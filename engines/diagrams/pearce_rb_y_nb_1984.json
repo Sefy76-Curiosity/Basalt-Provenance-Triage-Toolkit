@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "pearce_rb_y_nb_1984",
+  "diagram_name": "Pearce Rb-Y+Nb Discrimination",
+  "version": "1.0",
+  "author": "Pearce, J.A., Harris, N.B.W. & Tindle, A.G.",
+  "reference": {
+    "citation": "Pearce, J.A., Harris, N.B.W. & Tindle, A.G. (1984). Trace element discrimination diagrams for the tectonic interpretation of granitic rocks. Journal of Petrology, 25(4), 956-983",
+    "doi": "10.1093/petrology/25.4.956",
+    "figure": "Figure 2"
+  },
+  "description": "Rb vs Y+Nb discrimination diagram for granites: VAG, syn-COLG, WPG, ORG",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Rb_ppm", "Y_ppm", "Nb_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "Y_Nb_sum",
+      "formula": "Y_ppm + Nb_ppm",
+      "requires": ["Y_ppm", "Nb_ppm"],
+      "description": "Y + Nb sum"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "Y_Nb_sum",
+      "label": "Y + Nb (ppm)",
+      "scale": "log",
+      "limits": [1, 2000],
+      "major_ticks": [1, 10, 100, 1000],
+      "grid": true
+    },
+    "y": {
+      "field": "Rb_ppm",
+      "label": "Rb (ppm)",
+      "scale": "log",
+      "limits": [1, 1000],
+      "major_ticks": [1, 10, 100, 1000],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "VAG",
+      "type": "polygon",
+      "points": [[1, 1], [55, 1], [55, 200], [1, 200]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.2,
+      "label": "VAG",
+      "tooltip": "Volcanic Arc Granites"
+    },
+    {
+      "name": "syn-COLG",
+      "type": "polygon",
+      "points": [[55, 1], [550, 1], [550, 200], [55, 200]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.2,
+      "label": "syn-COLG",
+      "tooltip": "Syn-Collision Granites"
+    },
+    {
+      "name": "WPG",
+      "type": "polygon",
+      "points": [[550, 1], [2000, 1], [2000, 1000], [550, 1000]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.2,
+      "label": "WPG",
+      "tooltip": "Within-Plate Granites"
+    },
+    {
+      "name": "ORG",
+      "type": "polygon",
+      "points": [[1, 1], [55, 1], [55, 10], [1, 10]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.2,
+      "label": "ORG",
+      "tooltip": "Ocean Ridge Granites"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "ORG upper boundary",
+      "type": "line",
+      "points": [[1, 10], [55, 10]],
+      "color": "black",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.5
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "green"
+  }
+}

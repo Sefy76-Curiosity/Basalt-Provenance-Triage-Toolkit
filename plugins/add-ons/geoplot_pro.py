@@ -30,6 +30,7 @@ import datetime
 import threading
 import warnings
 import matplotlib.font_manager as fm
+from matplotlib.patches import Rectangle
 from mpl_toolkits.mplot3d import Axes3D
 warnings.filterwarnings('ignore')
 
@@ -658,16 +659,15 @@ class GeochemicalDataManager:
 
 class GeochemicalMappingDialog(tk.Toplevel):
     """Unified mapping dialog for major, REE, and trace elements with live preview"""
-    # [EXACTLY AS YOUR ORIGINAL - PRESERVED]
-    # ... (keeping all your original code here)
 
-    def __init__(self, parent, data_manager, callback):
+    def __init__(self, parent, data_manager, callback, elements_config=None):
         super().__init__(parent)
         self.title("Geochemical Column Mapping")
         self.geometry("1000x700")
         self.transient(parent)
         self.data_manager = data_manager
         self.callback = callback
+        self.elements_config = elements_config or {}
 
         self.data_manager.refresh_from_main()
         self.columns = self.data_manager.get_column_list()
@@ -675,6 +675,10 @@ class GeochemicalMappingDialog(tk.Toplevel):
 
         self._create_ui()
         self._update_preview()
+
+        # Auto-detect using config if available
+        if self.elements_config:
+            self.auto_detect_from_config()
 
     def _create_ui(self):
         main = ttk.Frame(self, padding=10)
@@ -994,6 +998,47 @@ class GeochemicalMappingDialog(tk.Toplevel):
                         line += str(val)[:10].ljust(12)
                 self.indices_text.insert(tk.END, line + "\n")
 
+    def auto_detect_from_config(self):
+        """Auto-detect column mappings using chemical_elements.json config"""
+        if not self.elements_config:
+            return
+
+        # Map major elements
+        if 'major' in self.elements_config:
+            for element, config in self.elements_config['major'].items():
+                if element in self.data_manager.major_mappings:
+                    for col in self.columns:
+                        col_lower = col.lower()
+                        # Check against aliases in config
+                        aliases = config.get('aliases', [])
+                        if any(alias.lower() in col_lower for alias in aliases):
+                            self.data_manager.major_mappings[element].set(col)
+                            break
+
+        # Map REE elements
+        if 'ree' in self.elements_config:
+            for element, config in self.elements_config['ree'].items():
+                if element in self.data_manager.ree_mappings:
+                    for col in self.columns:
+                        col_lower = col.lower()
+                        aliases = config.get('aliases', [])
+                        if any(alias.lower() in col_lower for alias in aliases):
+                            self.data_manager.ree_mappings[element].set(col)
+                            break
+
+        # Map trace elements
+        if 'trace' in self.elements_config:
+            for element, config in self.elements_config['trace'].items():
+                if element in self.data_manager.trace_mappings:
+                    for col in self.columns:
+                        col_lower = col.lower()
+                        aliases = config.get('aliases', [])
+                        if any(alias.lower() in col_lower for alias in aliases):
+                            self.data_manager.trace_mappings[element].set(col)
+                            break
+
+        self._update_preview()
+
     def auto_detect_all(self):
         major_keywords = {
             "SiO2": ["sio2", "si", "silica", "sio₂", "sio2_wt"],
@@ -1179,7 +1224,7 @@ class TemplateManager:
                             template_content['name'] = template_key
                         self.templates[template_content['name']] = template_content
                         loaded += 1
-                        print(f"✅ Loaded template: {template_content['name']}")
+
 
             except Exception as e:
                 print(f"⚠️ Error loading {template_file.name}: {e}")
@@ -3097,8 +3142,6 @@ class DigitizerTool(tk.Toplevel):
 
 class PropertyEditor(tk.Toplevel):
     """Floating property editor for plot objects"""
-    # [EXACTLY AS YOUR ORIGINAL - PRESERVED]
-
     def __init__(self, parent, callback):
         super().__init__(parent)
         self.title("Object Properties")
@@ -3251,6 +3294,29 @@ class PropertyEditor(tk.Toplevel):
 
         self.callback()
 
+    def debug_paths(self):
+        """Print all relevant paths for debugging"""
+        print("\n=== PATH DEBUGGING ===")
+        print(f"Current working directory: {Path.cwd()}")
+        print(f"__file__ location: {Path(__file__).absolute()}")
+        print(f"__file__ parent: {Path(__file__).parent}")
+        print(f"__file__ parent.parent: {Path(__file__).parent.parent}")
+
+        if hasattr(self, 'app') and self.app:
+            if hasattr(self.app, 'base_dir'):
+                print(f"app.base_dir: {self.app.base_dir}")
+
+        if hasattr(self, 'base_dir'):
+            print(f"self.base_dir: {self.base_dir}")
+
+        print(f"Diagrams dir: {self.diagrams_dir}")
+        print(f"Diagrams exist: {self.diagrams_dir.exists()}")
+
+        config_path = self.base_dir / "config" / "chemical_elements.json" if hasattr(self, 'base_dir') else Path("N/A")
+        print(f"Config path: {config_path}")
+        print(f"Config exists: {config_path.exists()}")
+        print("=====================\n")
+
 # ============================================================================
 # MAIN PLOTTER CLASS - ENHANCED WITH ALL NEW FEATURES
 # ============================================================================
@@ -3293,10 +3359,53 @@ class UltimatePlotter:
         self.dpi_spin = None
         self.edit_btn = None
         self.main = None
+        self.diagram_combo = None
+        self.diagram_info = None
+        self.tool_notebook = None
 
         self._is_generating = False
         self._settings_locked = False
         self._first_load = True
+
+        # Determine base directory
+        if app and hasattr(app, 'base_dir'):
+            base_dir = Path(app.base_dir)
+        elif hasattr(self, 'frame') and hasattr(self.frame, 'winfo_toplevel'):
+            top = self.frame.winfo_toplevel()
+            if hasattr(top, 'app') and hasattr(top.app, 'base_dir'):
+                base_dir = Path(top.app.base_dir)
+            else:
+                base_dir = Path.cwd()
+        else:
+            base_dir = Path.cwd()
+
+        self.base_dir = base_dir
+
+        #: Path to diagrams folder
+        self.diagrams_dir = base_dir / "engines" / "diagrams"
+
+        # Try alternative paths if not found
+        if not self.diagrams_dir.exists():
+            alt_paths = [
+                Path.cwd() / "engines" / "diagrams",
+                Path(__file__).parent / "engines" / "diagrams",
+                Path(__file__).parent.parent / "engines" / "diagrams",
+                Path(__file__).parent.parent.parent / "engines" / "diagrams"
+            ]
+
+            for alt in alt_paths:
+                if alt.exists():
+                    print(f"✅ Found diagrams at alternative path: {alt}")
+                    self.diagrams_dir = alt
+                    break
+
+        if self.diagrams_dir.exists():
+            json_files = list(self.diagrams_dir.glob("*.json"))
+
+        self.available_diagrams = self.load_available_diagrams()
+
+        #: Selected tectonic diagram
+        self.tectonic_diagram = tk.StringVar(value="Select a diagram...")
 
         self.tm = TemplateManager(app)
 
@@ -3325,31 +3434,26 @@ class UltimatePlotter:
             "AFM Diagram (Irvine)",
             "REE Spider (Chondrite)",
             "Multi-Element Spider (N-MORB)",
-            "Pearce Nb-Y",
-            "Pearce Ta-Yb",
-            "Pearce Rb-Y+Nb",
-            "Whalen A-type",
             "Harker Diagram",
-            "--- Advanced Diagrams ---",
-            "Meschede Zr/Y-Nb/Y",
-            "Shervais V-Ti",
-            "3D Ternary (REE)",
-            "CIPW Norm Bars",
-            "--- NEW v2.0 Diagrams ---",
+            "--- Mineralogy & Petrology ---",
             "Pyroxene Quadrilateral",
             "Feldspar Ternary (An-Ab-Or)",
             "Amphibole Classification",
-            "Th/Yb vs Ta/Yb (Pearce 1983)",
-            "La/Yb vs Th/Yb (Contamination)",
-            "S'CK Granitoid Diagram",
+            "CIPW Norm Bars",
+            "3D Ternary (REE)",
+            "--- Modeling ---",
             "AFC Model",
             "Binary Mixing Model",
             "Rayleigh Fractionation",
+            "--- Statistics ---",
             "K-Means Clustering",
             "PCA Biplot",
             "Compositional Biplot (CLR)",
             "Balance Dendrogram"
         ]
+
+        for diagram_name in self.available_diagrams:
+            self.all_plot_types.append(f"Tectonic: {diagram_name}")
 
         if HAS_SKLEARN:
             self.all_plot_types.extend(["K-Means Clustering", "PCA Biplot"])
@@ -3362,6 +3466,32 @@ class UltimatePlotter:
         if template_names:
             self.template_name.set(template_names[0])
 
+        # Debug paths
+        self.debug_paths()
+
+    def debug_paths(self):
+        """Print all relevant paths for debugging"""
+        print("\n=== PATH DEBUGGING ===")
+        print(f"Current working directory: {Path.cwd()}")
+        print(f"__file__ location: {Path(__file__).absolute()}")
+        print(f"__file__ parent: {Path(__file__).parent}")
+        print(f"__file__ parent.parent: {Path(__file__).parent.parent}")
+
+        if hasattr(self, 'app') and self.app:
+            if hasattr(self.app, 'base_dir'):
+                print(f"app.base_dir: {self.app.base_dir}")
+
+        if hasattr(self, 'base_dir'):
+            print(f"self.base_dir: {self.base_dir}")
+
+        print(f"Diagrams dir: {self.diagrams_dir}")
+        print(f"Diagrams exist: {self.diagrams_dir.exists()}")
+
+        config_path = self.base_dir / "config" / "chemical_elements.json" if hasattr(self, 'base_dir') else Path("N/A")
+        print(f"Config path: {config_path}")
+        print(f"Config exists: {config_path.exists()}")
+        print("=====================\n")
+
     def create_ui(self):
         """Create the plotter interface with geochemical tools"""
         for widget in self.frame.winfo_children():
@@ -3370,103 +3500,147 @@ class UltimatePlotter:
         self.main = ttk.Frame(self.frame)
         self.main.pack(fill=tk.BOTH, expand=True)
 
-        toolbar = ttk.Frame(self.main)
-        toolbar.pack(fill=tk.X, pady=2)
+        # ===== TOP TOOLBAR WITH TABS AND ACTION BUTTONS =====
+        top_toolbar = ttk.Frame(self.main)
+        top_toolbar.pack(fill=tk.X, pady=2)
 
-        ttk.Label(toolbar, text="Plot:").pack(side=tk.LEFT)
-        self.plot_combo = ttk.Combobox(toolbar, textvariable=self.plot_type,
-                    values=self.all_plot_types,
-                    state='readonly', width=25)
+        # Notebook for tabs
+        self.tool_notebook = ttk.Notebook(top_toolbar)
+        self.tool_notebook.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # === TAB 1: Plot ===
+        plot_tab = ttk.Frame(self.tool_notebook)
+        self.tool_notebook.add(plot_tab, text="📊 Plot")
+
+        ttk.Label(plot_tab, text="Plot type:").pack(side=tk.LEFT, padx=5)
+
+        # Filter plot types to exclude tectonic diagrams
+        plot_types_filtered = [p for p in self.all_plot_types
+                              if not p.startswith("Tectonic:")
+                              and not p.startswith("---")]
+        self.plot_combo = ttk.Combobox(plot_tab, textvariable=self.plot_type,
+                    values=plot_types_filtered,
+                    state='readonly', width=30)
         self.plot_combo.pack(side=tk.LEFT, padx=2)
         self.plot_combo.bind('<<ComboboxSelected>>', self._on_plot_type_selected)
 
-        ttk.Label(toolbar, text="Template:").pack(side=tk.LEFT, padx=(10,2))
-        self.template_combo = ttk.Combobox(toolbar, textvariable=self.template_name,
+        # === TAB 2: Diagram (JSON diagrams) ===
+        diagram_tab = ttk.Frame(self.tool_notebook)
+        self.tool_notebook.add(diagram_tab, text="🗺️ Diagram")
+
+        ttk.Label(diagram_tab, text="Tectonic diagram:").pack(side=tk.LEFT, padx=5)
+
+        # Create diagram selection combo - store display names only
+        self.tectonic_diagram = tk.StringVar(value="Select a diagram...")
+
+        self.diagram_combo = ttk.Combobox(diagram_tab,
+                                        textvariable=self.tectonic_diagram,
+                                        state='readonly', width=30)
+        self.diagram_combo.pack(side=tk.LEFT, padx=2)
+        self.diagram_combo.bind('<<ComboboxSelected>>', self._on_diagram_selected)
+
+        # Refresh button to reload diagrams
+        ttk.Button(diagram_tab, text="🔄", width=2,
+                command=self._refresh_diagrams).pack(side=tk.LEFT, padx=2)
+
+        # Diagram info (shows when selected)
+        self.diagram_info = ttk.Label(diagram_tab, text="", font=('Arial', 7))
+        self.diagram_info.pack(side=tk.LEFT, padx=10)
+
+        # === TAB 3: Style ===
+        style_tab = ttk.Frame(self.tool_notebook)
+        self.tool_notebook.add(style_tab, text="🎨 Style")
+
+        ttk.Label(style_tab, text="Template:").pack(side=tk.LEFT, padx=5)
+        self.template_combo = ttk.Combobox(style_tab, textvariable=self.template_name,
                                         values=self.tm.get_template_names(),
-                                        state='readonly', width=20)
+                                        state='readonly', width=15)
         self.template_combo.pack(side=tk.LEFT, padx=2)
         self.template_combo.bind('<<ComboboxSelected>>', self._on_template_selected)
 
-        ttk.Button(toolbar, text="📂 Import",
+        ttk.Button(style_tab, text="📂", width=2,
                   command=self.import_template).pack(side=tk.LEFT, padx=2)
-        ttk.Button(toolbar, text="💾 Save",
-                  command=self.save_current_as_template).pack(side=tk.LEFT, padx=2)
+        ttk.Button(style_tab, text="💾", width=2,
+                  command=self.save_current_as_template).pack(side=tk.LEFT)
 
-        # ENHANCED Tools menu
-        tools_btn = ttk.Menubutton(toolbar, text="🔧 Tools")
-        tools_btn.pack(side=tk.LEFT, padx=5)
-
-        tools_menu = tk.Menu(tools_btn, tearoff=0)
-        tools_btn.config(menu=tools_menu)
-
-        # Geochemistry tools
-        tools_menu.add_command(label="🧪 Geochemical Mapping",
-                              command=self.open_geochemical_mapping)
-        tools_menu.add_command(label="📊 View Indices",
-                              command=self.open_data_viewer)
-        tools_menu.add_separator()
-
-        # NEW v2.0 tools
-        tools_menu.add_command(label="📈 AFC Modeler (Interactive)",
-                              command=self.open_afc_modeler)
-        tools_menu.add_command(label="🧬 Mineral Calculator",
-                              command=self.open_mineral_calculator)
-        tools_menu.add_separator()
-
-        # General tools
-        tools_menu.add_command(label="📊 Column Selector", command=self.open_column_selector)
-        tools_menu.add_command(label="🔄 Batch Processor", command=self.open_batch_processor)
-        tools_menu.add_command(label="📐 Digitizer", command=self.open_digitizer)
-        tools_menu.add_separator()
-        tools_menu.add_command(label="📈 Peak Fitting Options", command=self.show_peak_options)
-        tools_menu.add_command(label="🎨 Color Map", command=self.show_colormap_options)
-        tools_menu.add_separator()
-        tools_menu.add_command(label="📋 Export Settings", command=self.export_settings)
-        tools_menu.add_command(label="📂 Import Settings", command=self.import_settings)
-
-        ttk.Label(toolbar, text="Journal:").pack(side=tk.LEFT, padx=(10,2))
-        self.journal_combo = ttk.Combobox(toolbar, textvariable=self.journal,
+        ttk.Label(style_tab, text="Journal:").pack(side=tk.LEFT, padx=(10,2))
+        self.journal_combo = ttk.Combobox(style_tab, textvariable=self.journal,
                     values=list(JOURNAL_SIZES.keys()),
-                    state='readonly', width=15)
-        self.journal_combo.pack(side=tk.LEFT, padx=2)
+                    state='readonly', width=12)
+        self.journal_combo.pack(side=tk.LEFT)
         self.journal_combo.bind('<<ComboboxSelected>>', lambda e: self.generate_plot())
 
-        ttk.Label(toolbar, text="Norm:").pack(side=tk.LEFT, padx=(10,2))
-        self.norm_combo = ttk.Combobox(toolbar, textvariable=self.normalization,
+        # === TAB 4: Export ===
+        export_tab = ttk.Frame(self.tool_notebook)
+        self.tool_notebook.add(export_tab, text="💾 Export")
+
+        ttk.Label(export_tab, text="Norm:").pack(side=tk.LEFT, padx=5)
+        self.norm_combo = ttk.Combobox(export_tab, textvariable=self.normalization,
                     values=list(REE_NORMALIZATION.keys()),
-                    state='readonly', width=18)
-        self.norm_combo.pack(side=tk.LEFT, padx=2)
+                    state='readonly', width=15)
+        self.norm_combo.pack(side=tk.LEFT)
         self.norm_combo.bind('<<ComboboxSelected>>', lambda e: self.generate_plot())
 
-        ttk.Label(toolbar, text="DPI:").pack(side=tk.LEFT, padx=(10,2))
-        self.dpi_spin = ttk.Spinbox(toolbar, from_=72, to=1200, textvariable=self.dpi,
-                   width=5)
+        ttk.Label(export_tab, text="DPI:").pack(side=tk.LEFT, padx=(10,2))
+        self.dpi_spin = ttk.Spinbox(export_tab, from_=72, to=1200,
+                                   textvariable=self.dpi, width=5)
         self.dpi_spin.pack(side=tk.LEFT)
         self.dpi_spin.bind('<Return>', lambda e: self.generate_plot())
 
-        self.edit_btn = ttk.Checkbutton(toolbar, text="✎ Edit",
+        # === TAB 5: Tools ===
+        tools_tab = ttk.Frame(self.tool_notebook)
+        self.tool_notebook.add(tools_tab, text="🔧 Tools")
+
+        # Tools as buttons in a row
+        ttk.Button(tools_tab, text="🧪 Geochemical Mapping",
+                  command=self.open_geochemical_mapping).pack(side=tk.LEFT, padx=2)
+        ttk.Button(tools_tab, text="📊 View Indices",
+                  command=self.open_data_viewer).pack(side=tk.LEFT, padx=2)
+        ttk.Button(tools_tab, text="📈 AFC Modeler",
+                  command=self.open_afc_modeler).pack(side=tk.LEFT, padx=2)
+        ttk.Button(tools_tab, text="📐 Digitizer",
+                  command=self.open_digitizer).pack(side=tk.LEFT, padx=2)
+        ttk.Button(tools_tab, text="🔄 Batch",
+                  command=self.open_batch_processor).pack(side=tk.LEFT, padx=2)
+
+        # More tools dropdown
+        more_btn = ttk.Menubutton(tools_tab, text="▼ More", width=6)
+        more_btn.pack(side=tk.LEFT, padx=2)
+        more_menu = tk.Menu(more_btn, tearoff=0)
+        more_btn.config(menu=more_menu)
+
+        more_menu.add_command(label="📊 Column Selector", command=self.open_column_selector)
+        more_menu.add_command(label="📈 Peak Fitting Options", command=self.show_peak_options)
+        more_menu.add_command(label="🎨 Color Map", command=self.show_colormap_options)
+        more_menu.add_separator()
+        more_menu.add_command(label="📋 Export Settings", command=self.export_settings)
+        more_menu.add_command(label="📂 Import Settings", command=self.import_settings)
+
+        # ===== ACTION BUTTONS (always visible on right) =====
+        action_frame = ttk.Frame(top_toolbar)
+        action_frame.pack(side=tk.RIGHT, padx=5)
+
+        self.edit_btn = ttk.Checkbutton(action_frame, text="✎ Edit",
                                         command=self.toggle_edit_mode)
-        self.edit_btn.pack(side=tk.LEFT, padx=10)
+        self.edit_btn.pack(side=tk.LEFT, padx=2)
 
-        ttk.Button(toolbar, text="🔄 Generate",
-                  command=self.generate_plot).pack(side=tk.RIGHT, padx=2)
-        ttk.Button(toolbar, text="💾 Export",
-                  command=self.export_figure).pack(side=tk.RIGHT, padx=2)
+        ttk.Button(action_frame, text="💾 Export",
+                  command=self.export_figure).pack(side=tk.LEFT, padx=2)
 
+        # ===== EXTRA CONTROLS (dynamic, below tabs) =====
         self.extra_frame = ttk.Frame(self.main)
         self.extra_frame.pack(fill=tk.X, pady=2)
 
+        # ===== MAIN PLOT AREA =====
         self.plot_frame = ttk.Frame(self.main, relief=tk.SUNKEN, borderwidth=1)
-        self.plot_frame.pack(fill=tk.BOTH, expand=True)
+        self.plot_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 25))  # Add bottom padding
 
-        status_frame = ttk.Frame(self.main, relief=tk.SUNKEN)
-        status_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        # ===== STATUS BAR =====
+        status_frame = ttk.Frame(self.main, relief=tk.SUNKEN, height=30)  # Increased height
+        status_frame.pack(fill=tk.X, side=tk.BOTTOM, before=self.plot_frame)
+        status_frame.pack_propagate(False)  # Prevent shrinking
         self.status = ttk.Label(status_frame, text="Ready - GeoPlot Pro v2.0")
-        self.status.pack(side=tk.LEFT, padx=5)
-
-        self.frame.update_idletasks()
-        self.update_controls()
-        self.frame.after(50, self._initial_generate)
+        self.status.pack(side=tk.LEFT, padx=5, pady=5)  # Increased vertical padding
 
     # ========================================================================
     # NEW: AFC Modeler Dialog
@@ -3514,7 +3688,8 @@ class UltimatePlotter:
                 cmap_name = listbox.get(listbox.curselection()[0])
                 self.colormap.set(cmap_name)
                 # Draw preview
-                preview_frame.delete("all")
+                for widget in preview_frame.winfo_children():
+                    widget.destroy()
                 fig = Figure(figsize=(3, 0.5), dpi=100)
                 ax = fig.add_subplot(111)
                 gradient = np.linspace(0, 1, 256).reshape(1, -1)
@@ -3531,7 +3706,7 @@ class UltimatePlotter:
                   command=lambda: [self.generate_plot(), dialog.destroy()]).pack(pady=10)
 
     # ========================================================================
-    # NEW PLOT GENERATION METHODS
+    # MINERALOGY, MODELING & STATISTICS PLOTS
     # ========================================================================
 
     def generate_pyroxene_plot(self, ax):
@@ -3548,118 +3723,6 @@ class UltimatePlotter:
         """Generate amphibole classification"""
         df = self.geo_manager.df if not self.geo_manager.df.empty else pd.DataFrame()
         self.mineral_plots.plot_amphibole_classification(ax, self.samples, df)
-
-    def generate_th_yb_ta_yb(self, ax):
-        """Generate Th/Yb vs Ta/Yb diagram (Pearce, 1983)"""
-        df = self.geo_manager.df
-
-        if df.empty:
-            ax.text(0.5, 0.5, "No data", ha='center', va='center')
-            return
-
-        if 'Th_ppm' in df.columns and 'Yb_ppm' in df.columns and 'Ta_ppm' in df.columns:
-            th_yb = df['Th_ppm'] / df['Yb_ppm'].replace(0, np.nan)
-            ta_yb = df['Ta_ppm'] / df['Yb_ppm'].replace(0, np.nan)
-
-            mask = (th_yb > 0) & (ta_yb > 0) & (~pd.isna(th_yb)) & (~pd.isna(ta_yb))
-
-            if mask.sum() > 0:
-                # Plot fields
-                for field_name, field in TH_YB_TA_YB_FIELDS.items():
-                    rect = Rectangle((field['Th_Yb'][0], field['Ta_Yb'][0]),
-                                   field['Th_Yb'][1] - field['Th_Yb'][0],
-                                   field['Ta_Yb'][1] - field['Ta_Yb'][0],
-                                   alpha=0.1, color=field['color'], label=field_name)
-                    ax.add_patch(rect)
-
-                ax.scatter(th_yb[mask], ta_yb[mask], c='red', s=15, alpha=0.7,
-                          edgecolors='black', linewidth=0.2, zorder=5)
-
-                ax.set_xscale('log')
-                ax.set_yscale('log')
-                ax.set_xlabel('Th/Yb', fontsize=7)
-                ax.set_ylabel('Ta/Yb', fontsize=7)
-                ax.set_xlim(0.01, 10)
-                ax.set_ylim(0.01, 10)
-                ax.grid(True, alpha=0.2, which='both')
-                ax.legend(loc='best', fontsize=5)
-                ax.set_title('Th/Yb vs Ta/Yb (Pearce, 1983)', fontsize=8)
-        else:
-            ax.text(0.5, 0.5, "Map Th, Ta, Yb first", ha='center', va='center')
-
-    def generate_la_yb_th_yb(self, ax):
-        """Generate La/Yb vs Th/Yb contamination diagram"""
-        df = self.geo_manager.df
-
-        if df.empty:
-            ax.text(0.5, 0.5, "No data", ha='center', va='center')
-            return
-
-        if 'La_ppm' in df.columns and 'Yb_ppm' in df.columns and 'Th_ppm' in df.columns:
-            la_yb = df['La_ppm'] / df['Yb_ppm'].replace(0, np.nan)
-            th_yb = df['Th_ppm'] / df['Yb_ppm'].replace(0, np.nan)
-
-            mask = (la_yb > 0) & (th_yb > 0) & (~pd.isna(la_yb)) & (~pd.isna(th_yb))
-
-            if mask.sum() > 0:
-                # Plot fields
-                for field_name, field in LA_YB_TH_YB_FIELDS.items():
-                    rect = Rectangle((field['La_Yb'][0], field['Th_Yb'][0]),
-                                   field['La_Yb'][1] - field['La_Yb'][0],
-                                   field['Th_Yb'][1] - field['Th_Yb'][0],
-                                   alpha=0.1, color=field['color'], label=field_name)
-                    ax.add_patch(rect)
-
-                ax.scatter(la_yb[mask], th_yb[mask], c='red', s=15, alpha=0.7,
-                          edgecolors='black', linewidth=0.2, zorder=5)
-
-                ax.set_xscale('log')
-                ax.set_yscale('log')
-                ax.set_xlabel('La/Yb', fontsize=7)
-                ax.set_ylabel('Th/Yb', fontsize=7)
-                ax.set_xlim(0.1, 100)
-                ax.set_ylim(0.01, 10)
-                ax.grid(True, alpha=0.2, which='both')
-                ax.legend(loc='best', fontsize=5)
-                ax.set_title('La/Yb vs Th/Yb (Crustal Contamination)', fontsize=8)
-        else:
-            ax.text(0.5, 0.5, "Map La, Th, Yb first", ha='center', va='center')
-
-    def generate_sck_diagram(self, ax):
-        """Generate S'CK diagram for granitoids"""
-        df = self.geo_manager.df
-
-        if df.empty:
-            ax.text(0.5, 0.5, "No data", ha='center', va='center')
-            return
-
-        if all(c in df.columns for c in ['SiO2_wt', 'CaO_wt', 'K2O_wt']):
-            sio2 = df['SiO2_wt'].values
-            cao_k2o = df['CaO_wt'] / (df['CaO_wt'] + df['K2O_wt']).replace(0, np.nan)
-
-            mask = ~(pd.isna(sio2) | pd.isna(cao_k2o) | (cao_k2o == 0))
-
-            if mask.sum() > 0:
-                # Plot fields
-                for field_name, field in SCK_FIELDS.items():
-                    rect = Rectangle((field['SiO2_prime'][0], field['CaO_CaO_K2O'][0]),
-                                   field['SiO2_prime'][1] - field['SiO2_prime'][0],
-                                   field['CaO_CaO_K2O'][1] - field['CaO_CaO_K2O'][0],
-                                   alpha=0.1, color=field['color'], label=field_name)
-                    ax.add_patch(rect)
-
-                ax.scatter(sio2[mask], cao_k2o[mask], c='red', s=15, alpha=0.7,
-                          edgecolors='black', linewidth=0.2, zorder=5)
-
-                ax.set_xlabel("SiO₂' (wt%)", fontsize=7)
-                ax.set_ylabel('CaO/(CaO+K₂O)', fontsize=7)
-                ax.set_xlim(50, 80)
-                ax.set_ylim(0, 1)
-                ax.grid(True, alpha=0.2)
-                ax.legend(loc='best', fontsize=5)
-                ax.set_title("S'CK Granitoid Diagram", fontsize=8)
-        else:
-            ax.text(0.5, 0.5, "Map SiO2, CaO, K2O first", ha='center', va='center')
 
     def generate_afc_model_plot(self, ax):
         """Generate AFC model plot"""
@@ -3697,14 +3760,198 @@ class UltimatePlotter:
     def generate_compositional_biplot(self, ax):
         """Generate compositional biplot"""
         df = self.geo_manager.df
-        elements = REE_ORDER[:8]  # Use first 8 REE
+        elements = REE_ORDER[:8]
         self.coda_viz.plot_compositional_biplot(ax, df, elements)
 
     def generate_balance_dendrogram(self, ax):
         """Generate balance dendrogram"""
         df = self.geo_manager.df
-        elements = REE_ORDER[:8]  # Use first 8 REE
+        elements = REE_ORDER[:8]
         self.coda_viz.plot_balance_dendrogram(ax, df, elements)
+
+    # ============================================================================
+    # IN THE ULTIMATEPLOTTER CLASS (around line 1800, after __init__)
+    # ============================================================================
+
+    def load_available_diagrams(self):
+        """Load list of available tectonic diagrams from JSON files"""
+        diagrams = []
+        try:
+            if hasattr(self, 'diagrams_dir') and self.diagrams_dir.exists():
+                for json_file in self.diagrams_dir.glob("*.json"):
+                    try:
+                        # Try to parse the JSON to get the diagram name
+                        with open(json_file, 'r', encoding='utf-8') as f:
+                            data = json.load(f)
+
+                        # Try different possible field names for the diagram name
+                        diagram_name = (data.get('diagram_name') or
+                                    data.get('scheme_name') or
+                                    data.get('name') or
+                                    json_file.stem)
+
+                        diagrams.append({
+                            'file': json_file.stem,
+                            'display': diagram_name
+                        })
+                    except json.JSONDecodeError as e:
+                        print(f"⚠️ Skipping invalid JSON file: {json_file.name} - {e}")
+                    except Exception as e:
+                        print(f"⚠️ Error loading {json_file.name}: {e}")
+
+                print(f"✅ Found {len(diagrams)} valid diagrams")
+            else:
+                print(f"❌ Diagrams directory does not exist: {self.diagrams_dir}")
+
+                # Try alternative locations
+                alt_paths = [
+                    Path.cwd() / "engines" / "diagrams",
+                    Path(__file__).parent / "engines" / "diagrams",
+                    Path(__file__).parent.parent / "engines" / "diagrams",
+                    Path(__file__).parent.parent.parent / "engines" / "diagrams",
+                    Path.home() / "GeoPlot" / "engines" / "diagrams"
+                ]
+
+                for alt in alt_paths:
+                    if alt.exists():
+                        print(f"✅ Found diagrams at alternative path: {alt}")
+                        self.diagrams_dir = alt
+                        for json_file in alt.glob("*.json"):
+                            try:
+                                with open(json_file, 'r', encoding='utf-8') as f:
+                                    data = json.load(f)
+                                diagram_name = data.get('scheme_name') or data.get('diagram_name') or json_file.stem
+                                diagrams.append({
+                                    'file': json_file.stem,
+                                    'display': diagram_name
+                                })
+                            except json.JSONDecodeError as e:
+                                print(f"⚠️ Skipping invalid JSON file: {json_file.name} - {e}")
+                        break
+        except Exception as e:
+            print(f"Warning: Could not load diagrams: {e}")
+
+        return diagrams
+
+    def render_tectonic_diagram(self, ax, diagram_path, diagram_name):
+        """Render a tectonic diagram from JSON definition"""
+        try:
+            with open(diagram_path, 'r', encoding='utf-8') as f:
+                diagram = json.load(f)
+
+            # Set title
+            ax.set_title(diagram.get('diagram_name', diagram_name),
+                        fontsize=10, fontweight='bold')
+
+            # Setup axes
+            if 'axes' in diagram:
+                axes = diagram['axes']
+
+                # X axis
+                if 'x' in axes:
+                    x_field = axes['x'].get('field', '')
+                    ax.set_xlabel(axes['x'].get('label', x_field), fontsize=8)
+
+                    if 'limits' in axes['x']:
+                        ax.set_xlim(axes['x']['limits'])
+
+                    if axes['x'].get('scale') == 'log':
+                        ax.set_xscale('log')
+
+                # Y axis
+                if 'y' in axes:
+                    y_field = axes['y'].get('field', '')
+                    ax.set_ylabel(axes['y'].get('label', y_field), fontsize=8)
+
+                    if 'limits' in axes['y']:
+                        ax.set_ylim(axes['y']['limits'])
+
+                    if axes['y'].get('scale') == 'log':
+                        ax.set_yscale('log')
+
+            # Draw fields (polygons)
+            if 'fields' in diagram:
+                for field in diagram['fields']:
+                    if field.get('type') == 'polygon' and 'points' in field:
+                        polygon = Polygon(
+                            field['points'],
+                            closed=True,
+                            alpha=field.get('alpha', 0.2),
+                            color=field.get('color', 'gray'),
+                            label=field.get('name', '')
+                        )
+                        ax.add_patch(polygon)
+
+            # Draw reference lines
+            if 'lines' in diagram:
+                for line in diagram['lines']:
+                    if 'points' in line:
+                        x_vals, y_vals = zip(*line['points'])
+                        ax.plot(x_vals, y_vals,
+                            color=line.get('color', 'black'),
+                            linestyle=line.get('linestyle', '--'),
+                            linewidth=line.get('linewidth', 1),
+                            label=line.get('name', ''))
+
+            # Draw reference points
+            if 'reference_points' in diagram:
+                for point in diagram['reference_points']:
+                    if 'coordinates' in point:
+                        x, y = point['coordinates']
+                        ax.scatter(x, y,
+                                marker=point.get('marker', 'o'),
+                                color=point.get('color', 'gold'),
+                                s=point.get('size', 50),
+                                label=point.get('name', ''),
+                                zorder=10)
+
+            # Plot samples if available
+            if not self.geo_manager.df.empty:
+                df = self.geo_manager.df
+
+                # Get required fields from diagram
+                required_fields = diagram.get('requires_fields', [])
+
+                # Check if we have all required fields
+                if all(field in df.columns for field in required_fields):
+                    # For XY plots, use x and y fields from axes
+                    if diagram.get('diagram_type') == 'xy':
+                        x_field = diagram['axes']['x']['field']
+                        y_field = diagram['axes']['y']['field']
+
+                        x_data = df[x_field]
+                        y_data = df[y_field]
+
+                        mask = (x_data > 0) & (y_data > 0) & (~pd.isna(x_data)) & (~pd.isna(y_data))
+
+                        if mask.sum() > 0:
+                            ax.scatter(x_data[mask], y_data[mask],
+                                    c='red', s=20, alpha=0.7,
+                                    edgecolors='black', linewidth=0.3,
+                                    zorder=5, label='Samples')
+
+                            # Add sample labels if few samples
+                            if mask.sum() < 10 and 'Sample_ID' in df.columns:
+                                for idx in df[mask].index:
+                                    sample_id = df.loc[idx, 'Sample_ID']
+                                    if pd.notna(sample_id):
+                                        ax.annotate(str(sample_id)[:4],
+                                                (x_data[idx], y_data[idx]),
+                                                fontsize=5, xytext=(2,2),
+                                                textcoords='offset points')
+
+            # Add legend if there are labeled items
+            if ax.get_legend_handles_labels()[0]:
+                ax.legend(fontsize=6, loc='best')
+
+            # Grid
+            ax.grid(True, alpha=0.2)
+
+        except Exception as e:
+            ax.text(0.5, 0.5, f"Error loading diagram:\n{str(e)}",
+                ha='center', va='center', transform=ax.transAxes,
+                fontsize=8, color='red')
+            print(f"Error rendering tectonic diagram: {e}")
 
     # ========================================================================
     # ENHANCED EXPORT METHOD
@@ -3725,7 +3972,7 @@ class UltimatePlotter:
 
         # Open enhanced export dialog
         dialog = ExportDialog(self.frame.winfo_toplevel(), self.fig, current_settings)
-        self.wait_window(dialog)
+        dialog.wait_window()  # Changed from self.wait_window(dialog)
 
         if hasattr(dialog, 'result_path') and dialog.result_path:
             self.status.config(text=f"✅ Exported to: {Path(dialog.result_path).name}")
@@ -3735,10 +3982,47 @@ class UltimatePlotter:
     # ========================================================================
 
     def open_geochemical_mapping(self):
+        """Open geochemical mapping with chemical_elements.json"""
+        # Load chemical_elements.json for mapping configuration
+        elements_config = {}
+
+        # Use the same base_dir logic
+        config_path = self.base_dir / "config" / "chemical_elements.json"
+
+        # Try alternative paths if not found
+        if not config_path.exists():
+            alt_config_paths = [
+                Path.cwd() / "config" / "chemical_elements.json",
+                Path(__file__).parent / "config" / "chemical_elements.json",
+                Path(__file__).parent.parent / "config" / "chemical_elements.json",
+                Path(__file__).parent.parent.parent / "config" / "chemical_elements.json",
+                Path.home() / "GeoPlot" / "config" / "chemical_elements.json"
+            ]
+
+            for alt in alt_config_paths:
+                if alt.exists():
+                    config_path = alt
+                    break
+
+        try:
+            if config_path.exists():
+                with open(config_path, 'r') as f:
+                    elements_config = json.load(f)
+                messagebox.showinfo("Success", f"Loaded {len(elements_config)} element definitions")
+            else:
+                print(f"⚠️ chemical_elements.json not found at {config_path}")
+                messagebox.showwarning("Config Not Found",
+                                    f"chemical_elements.json not found.\n\nUsing default mapping.\n\nSearched in:\n{self.base_dir / 'config'}")
+        except Exception as e:
+            print(f"⚠️ Error loading chemical elements config: {e}")
+            messagebox.showerror("Error", f"Failed to load config: {e}")
+
+        # Pass config to mapping dialog
         dialog = GeochemicalMappingDialog(
             self.frame.winfo_toplevel(),
             self.geo_manager,
-            self.on_geochemical_mapping_applied
+            self.on_geochemical_mapping_applied,
+            elements_config
         )
         self.status.config(text="Geochemical mapping opened")
 
@@ -3748,6 +4032,68 @@ class UltimatePlotter:
         if not self.geo_manager.df.empty:
             self.samples = self.geo_manager.df.to_dict('records')
         self.generate_plot()
+
+    def _on_diagram_selected(self, event=None):
+        """Handle diagram selection from Diagram tab"""
+        selected_display = self.tectonic_diagram.get()
+        print(f"Selected display: {selected_display}")
+        if selected_display and selected_display != "Select a diagram...":
+            # Find the corresponding file name
+            diagram_file = None
+            diagram_display = selected_display
+            for d in self.available_diagrams:
+                if d['display'] == selected_display:
+                    diagram_file = d['file']
+                    diagram_display = d['display']
+                    break
+
+            if diagram_file:
+                # Store both the display name and filename for later use
+                self.current_diagram_file = diagram_file
+                self.current_diagram_display = diagram_display
+                # Set plot type to the tectonic diagram
+                self.plot_type.set(f"Tectonic: {diagram_display}")
+
+                # Update diagram info
+                diagram_path = self.diagrams_dir / f"{diagram_file}.json"
+                if diagram_path.exists():
+                    try:
+                        with open(diagram_path, 'r') as f:
+                            diagram = json.load(f)
+                        fields = diagram.get('requires_fields', [])
+                        if fields:
+                            self.diagram_info.config(text=f"Requires: {', '.join(fields)}")
+                        else:
+                            self.diagram_info.config(text="Ready")
+
+                        # Try to generate the plot
+                        self.generate_plot()
+
+                    except json.JSONDecodeError as e:
+                        self.diagram_info.config(text=f"Invalid JSON: {str(e)[:30]}")
+                        messagebox.showerror("JSON Error",
+                                            f"The diagram file '{diagram_file}.json' contains invalid JSON.\n\n"
+                                            f"Error: {e}\n\n"
+                                            f"Please check that the file uses double quotes (not single quotes) "
+                                            f"and has no trailing commas.")
+                        print(f"Error loading diagram {diagram_file}: {e}")
+                    except Exception as e:
+                        self.diagram_info.config(text=f"Error loading: {str(e)[:20]}")
+                        print(f"Error loading diagram {diagram_file}: {e}")
+                else:
+                    self.diagram_info.config(text="Diagram file not found")
+                    print(f"File not found: {diagram_path}")
+
+    def _refresh_diagrams(self):
+        """Refresh the list of available diagrams"""
+        self.available_diagrams = self.load_available_diagrams()
+        # Create a list of display names ONLY for the combobox
+        diagram_display_names = ["Select a diagram..."] + [d['display'] for d in self.available_diagrams]
+        self.diagram_combo['values'] = diagram_display_names
+        # Reset to a string, not a dictionary
+        self.tectonic_diagram.set("Select a diagram...")
+        self.diagram_info.config(text="")
+        self.status.config(text=f"Found {len(self.available_diagrams)} diagrams")
 
     def open_data_viewer(self):
         if not hasattr(self, 'data_viewer') or not self.data_viewer or not self.data_viewer.winfo_exists():
@@ -4382,7 +4728,12 @@ class UltimatePlotter:
             samples_spin.bind('<Return>', lambda e: self.generate_plot())
 
         elif self.plot_type.get() in ["K-Means Clustering", "PCA Biplot"]:
-            ttk.Label(self.extra_frame, text="Requires X/Y mapping").pack(side=tk.LEFT, padx=5)
+            ttk.Label(self.extra_frame, text="Requires X/Y mapping").pack()
+
+        elif self.plot_type.get().startswith("Tectonic: "):
+            ttk.Label(self.extra_frame,
+                    text="Tectonic diagram loaded from JSON",
+                    font=('Arial', 8, 'italic')).pack(side=tk.LEFT, padx=5)
 
     def generate_plot(self):
         if not HAS_MPL:
@@ -4430,65 +4781,92 @@ class UltimatePlotter:
         self.create_figure()
 
         try:
-            # Map plot types to generation methods
-            plot_methods = {
-                "Spider Diagram": self.generate_spider,
-                "Ternary Diagram": self.generate_ternary,
-                "Binary Plot": self.generate_binary,
-                "Multi-Peak Fitting": self.generate_peak_fitting,
-                "TAS Diagram (IUGS)": lambda: self.generate_tas_diagram(self.fig.axes[0]),
-                "AFM Diagram (Irvine)": lambda: self.generate_afm_diagram(self.fig.axes[0]),
-                "REE Spider (Chondrite)": lambda: self.generate_ree_spider(self.fig.axes[0]),
-                "Multi-Element Spider (N-MORB)": lambda: self.generate_multi_spider(self.fig.axes[0]),
-                "Pearce Nb-Y": lambda: self.generate_pearce_nb_y(self.fig.axes[0]),
-                "Pearce Ta-Yb": lambda: self.generate_pearce_ta_yb(self.fig.axes[0]),
-                "Pearce Rb-Y+Nb": lambda: self.generate_pearce_rb_y_nb(self.fig.axes[0]),
-                "Whalen A-type": lambda: self.generate_whalen_diagram(self.fig.axes[0]),
-                "Harker Diagram": lambda: self.generate_harker_diagram(self.fig.axes[0]),
-                "Meschede Zr/Y-Nb/Y": lambda: self.generate_meschede_diagram(self.fig.axes[0]),
-                "Shervais V-Ti": lambda: self.generate_shervais_diagram(self.fig.axes[0]),
-                "3D Ternary (REE)": lambda: self.generate_3d_ternary(self.fig.add_subplot(111, projection='3d')),
-                "CIPW Norm Bars": lambda: self.generate_cipw_bars(self.fig.axes[0]),
-                # NEW v2.0 methods
-                "Pyroxene Quadrilateral": lambda: self.generate_pyroxene_plot(self.fig.axes[0]),
-                "Feldspar Ternary (An-Ab-Or)": lambda: self.generate_feldspar_plot(self.fig.axes[0]),
-                "Amphibole Classification": lambda: self.generate_amphibole_plot(self.fig.axes[0]),
-                "Th/Yb vs Ta/Yb (Pearce 1983)": lambda: self.generate_th_yb_ta_yb(self.fig.axes[0]),
-                "La/Yb vs Th/Yb (Contamination)": lambda: self.generate_la_yb_th_yb(self.fig.axes[0]),
-                "S'CK Granitoid Diagram": lambda: self.generate_sck_diagram(self.fig.axes[0]),
-                "AFC Model": lambda: self.generate_afc_model_plot(self.fig.axes[0]),
-                "Binary Mixing Model": lambda: self.generate_mixing_model_plot(self.fig.axes[0]),
-                "Rayleigh Fractionation": lambda: self.generate_rayleigh_plot(self.fig.axes[0]),
-                "K-Means Clustering": lambda: self.generate_kmeans_plot(self.fig.axes[0]),
-                "PCA Biplot": lambda: self.generate_pca_biplot(self.fig.axes[0]),
-                "Compositional Biplot (CLR)": lambda: self.generate_compositional_biplot(self.fig.axes[0]),
-                "Balance Dendrogram": lambda: self.generate_balance_dendrogram(self.fig.axes[0])
-            }
-
-            if current_plot_type in plot_methods:
-                if current_plot_type in ["Spider Diagram", "Ternary Diagram", "Binary Plot", "Multi-Peak Fitting"]:
-                    ax = self.fig.add_subplot(111)
-                    if current_template:
-                        ax = self.tm.apply_style(ax, current_template)
-                    plot_methods[current_plot_type]()
+            # Check if this is a tectonic diagram
+            if current_plot_type.startswith("Tectonic: "):
+                # Use the stored filename, not the display name
+                if hasattr(self, 'current_diagram_file') and self.current_diagram_file:
+                    diagram_file = self.current_diagram_file
+                    diagram_display = self.current_diagram_display
                 else:
-                    # For methods that create their own axes
-                    if current_plot_type == "3D Ternary (REE)":
-                        # Special case for 3D
-                        ax = self.fig.add_subplot(111, projection='3d')
-                        if current_template:
-                            ax = self.tm.apply_style(ax, current_template)
-                        self.generate_3d_ternary(ax)
-                    else:
+                    # Fallback: extract from plot_type (less reliable)
+                    diagram_display = current_plot_type.replace("Tectonic: ", "")
+                    diagram_file = diagram_display.replace(" ", "_").replace("/", "_")
+
+                diagram_path = self.diagrams_dir / f"{diagram_file}.json"
+
+                ax = self.fig.add_subplot(111)
+                if current_template:
+                    ax = self.tm.apply_style(ax, current_template)
+
+                # Add size indicator
+                self.add_size_indicator(ax)
+
+                self.render_tectonic_diagram(ax, diagram_path, diagram_display)
+                ax.set_title(current_plot_type, fontsize=10, fontweight='bold')
+
+            # Map plot types to generation methods
+            else:
+                plot_methods = {
+                    "Spider Diagram": self.generate_spider,
+                    "Ternary Diagram": self.generate_ternary,
+                    "Binary Plot": self.generate_binary,
+                    "Multi-Peak Fitting": self.generate_peak_fitting,
+                    "TAS Diagram (IUGS)": lambda: self.generate_tas_diagram(self.fig.axes[0]),
+                    "AFM Diagram (Irvine)": lambda: self.generate_afm_diagram(self.fig.axes[0]),
+                    "REE Spider (Chondrite)": lambda: self.generate_ree_spider(self.fig.axes[0]),
+                    "Multi-Element Spider (N-MORB)": lambda: self.generate_multi_spider(self.fig.axes[0]),
+                    "Harker Diagram": lambda: self.generate_harker_diagram(self.fig.axes[0]),
+                    "3D Ternary (REE)": lambda: self.generate_3d_ternary(self.fig.add_subplot(111, projection='3d')),
+                    "CIPW Norm Bars": lambda: self.generate_cipw_bars(self.fig.axes[0]),
+                    # NEW v2.0 methods
+                    "Pyroxene Quadrilateral": lambda: self.generate_pyroxene_plot(self.fig.axes[0]),
+                    "Feldspar Ternary (An-Ab-Or)": lambda: self.generate_feldspar_plot(self.fig.axes[0]),
+                    "Amphibole Classification": lambda: self.generate_amphibole_plot(self.fig.axes[0]),
+                    "AFC Model": lambda: self.generate_afc_model_plot(self.fig.axes[0]),
+                    "Binary Mixing Model": lambda: self.generate_mixing_model_plot(self.fig.axes[0]),
+                    "Rayleigh Fractionation": lambda: self.generate_rayleigh_plot(self.fig.axes[0]),
+                    "K-Means Clustering": lambda: self.generate_kmeans_plot(self.fig.axes[0]),
+                    "PCA Biplot": lambda: self.generate_pca_biplot(self.fig.axes[0]),
+                    "Compositional Biplot (CLR)": lambda: self.generate_compositional_biplot(self.fig.axes[0]),
+                    "Balance Dendrogram": lambda: self.generate_balance_dendrogram(self.fig.axes[0])
+                }
+
+                if current_plot_type in plot_methods:
+                    if current_plot_type in ["Spider Diagram", "Ternary Diagram", "Binary Plot", "Multi-Peak Fitting"]:
                         ax = self.fig.add_subplot(111)
                         if current_template:
                             ax = self.tm.apply_style(ax, current_template)
-                        plot_methods[current_plot_type]()
 
-                    # Set title for the plot
-                    ax.set_title(current_plot_type, fontsize=10, fontweight='bold')
-            else:
-                self.generate_multipanel()
+                        # Add size indicator
+                        self.add_size_indicator(ax)
+
+                        plot_methods[current_plot_type]()
+                    else:
+                        # For methods that create their own axes
+                        if current_plot_type == "3D Ternary (REE)":
+                            # Special case for 3D - size indicator might not work well in 3D
+                            ax = self.fig.add_subplot(111, projection='3d')
+                            if current_template:
+                                ax = self.tm.apply_style(ax, current_template)
+                            # Skip size indicator for 3D plots
+                            self.generate_3d_ternary(ax)
+                        else:
+                            ax = self.fig.add_subplot(111)
+                            if current_template:
+                                ax = self.tm.apply_style(ax, current_template)
+
+                            # Add size indicator
+                            self.add_size_indicator(ax)
+
+                            plot_methods[current_plot_type]()
+
+                        # Set title for the plot
+                        ax.set_title(current_plot_type, fontsize=10, fontweight='bold')
+                else:
+                    self.generate_multipanel()
+                    # Add size indicator to each subplot in multi-panel
+                    for ax in self.fig.axes:
+                        self.add_size_indicator(ax)
 
             self.fig.tight_layout()
 
@@ -4531,21 +4909,12 @@ class UltimatePlotter:
                 "AFM Diagram (Irvine)": lambda: self.generate_afm_diagram(self.fig.axes[0]),
                 "REE Spider (Chondrite)": lambda: self.generate_ree_spider(self.fig.axes[0]),
                 "Multi-Element Spider (N-MORB)": lambda: self.generate_multi_spider(self.fig.axes[0]),
-                "Pearce Nb-Y": lambda: self.generate_pearce_nb_y(self.fig.axes[0]),
-                "Pearce Ta-Yb": lambda: self.generate_pearce_ta_yb(self.fig.axes[0]),
-                "Pearce Rb-Y+Nb": lambda: self.generate_pearce_rb_y_nb(self.fig.axes[0]),
-                "Whalen A-type": lambda: self.generate_whalen_diagram(self.fig.axes[0]),
                 "Harker Diagram": lambda: self.generate_harker_diagram(self.fig.axes[0]),
-                "Meschede Zr/Y-Nb/Y": lambda: self.generate_meschede_diagram(self.fig.axes[0]),
-                "Shervais V-Ti": lambda: self.generate_shervais_diagram(self.fig.axes[0]),
                 "3D Ternary (REE)": lambda: self.generate_3d_ternary(self.fig.add_subplot(111, projection='3d')),
                 "CIPW Norm Bars": lambda: self.generate_cipw_bars(self.fig.axes[0]),
                 "Pyroxene Quadrilateral": lambda: self.generate_pyroxene_plot(self.fig.axes[0]),
                 "Feldspar Ternary (An-Ab-Or)": lambda: self.generate_feldspar_plot(self.fig.axes[0]),
                 "Amphibole Classification": lambda: self.generate_amphibole_plot(self.fig.axes[0]),
-                "Th/Yb vs Ta/Yb (Pearce 1983)": lambda: self.generate_th_yb_ta_yb(self.fig.axes[0]),
-                "La/Yb vs Th/Yb (Contamination)": lambda: self.generate_la_yb_th_yb(self.fig.axes[0]),
-                "S'CK Granitoid Diagram": lambda: self.generate_sck_diagram(self.fig.axes[0]),
                 "AFC Model": lambda: self.generate_afc_model_plot(self.fig.axes[0]),
                 "Binary Mixing Model": lambda: self.generate_mixing_model_plot(self.fig.axes[0]),
                 "Rayleigh Fractionation": lambda: self.generate_rayleigh_plot(self.fig.axes[0]),
@@ -4576,39 +4945,37 @@ class UltimatePlotter:
 
     def create_figure(self):
         size = JOURNAL_SIZES.get(self.journal.get(), (8, 6))
-
-        try:
-            if hasattr(self, 'plot_frame') and self.plot_frame.winfo_exists():
-                plot_width = self.plot_frame.winfo_width()
-                plot_height = self.plot_frame.winfo_height()
-
-                if plot_width > 100 and plot_height > 100:
-                    screen_dpi = 100
-                    max_width = plot_width / screen_dpi
-                    max_height = (plot_height - 60) / screen_dpi
-
-                    if max_width > 3 and max_height > 2:
-                        fig_aspect = size[0] / size[1]
-
-                        if max_width / fig_aspect <= max_height:
-                            new_width = max_width
-                            new_height = new_width / fig_aspect
-                        else:
-                            new_height = max_height
-                            new_width = new_height * fig_aspect
-
-                        size = (new_width, new_height)
-
-        except Exception as e:
-            print(f"⚠️ Error sizing figure: {e}")
+        print(f"Creating figure with size: {size} inches")  # Add this line
 
         self.fig = plt.figure(figsize=size, dpi=100)
         self.export_dpi = self.dpi.get()
         return self.fig
 
+    def add_size_indicator(self, ax):
+        """Add a visual indicator of the actual figure dimensions"""
+        from matplotlib.patches import Rectangle
+
+        # Add a faint rectangle showing the actual figure boundaries
+        rect = Rectangle((0, 0), 1, 1, transform=ax.transAxes,
+                        fill=False, edgecolor='gray', linestyle='--',
+                        linewidth=0.5, alpha=0.3)
+        ax.add_patch(rect)
+
+        # Add size text
+        size = self.fig.get_size_inches()
+        ax.text(0.98, 0.98, f"{size[0]:.1f}″ × {size[1]:.1f}″",
+                transform=ax.transAxes, fontsize=7, color='gray',
+                va='top', ha='right', alpha=0.7)
+
     def add_panel_label(self, ax, label):
         ax.text(0.02, 0.98, label, transform=ax.transAxes,
-               fontsize=12, fontweight='bold', va='top', ha='left')
+            fontsize=12, fontweight='bold', va='top', ha='left')
+
+        # Add size indicator
+        size = self.fig.get_size_inches()
+        ax.text(0.98, 0.02, f"{size[0]:.1f}″ × {size[1]:.1f}″",
+            transform=ax.transAxes, fontsize=7, color='gray',
+            va='bottom', ha='right', alpha=0.7)
 
     def generate_spider(self):
         norm_name = self.normalization.get()
@@ -5037,7 +5404,6 @@ class UltimatePlotter:
     def on_property_change(self):
         if self.canvas:
             self.canvas.draw_idle()
-
 # ============================================================================
 # GEOCHEMICAL DATA VIEWER (PRESERVED)
 # ============================================================================
@@ -5222,6 +5588,10 @@ def plot_publication(frame, samples):
 
     plotter = UltimatePlotter(frame, samples, app)
     plotter.create_ui()
+
+    # Load diagrams after UI is created
+    plotter._refresh_diagrams()
+
     return plotter
 
 # ============================================================================

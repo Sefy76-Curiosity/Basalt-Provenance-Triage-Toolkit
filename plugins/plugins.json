@@ -925,8 +925,8 @@
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/thermobarometry_suite.py?ref_type=heads"
   },
   {
-    "id": "isotope_uncertainty",
-    "name": "Isotope Uncertainty Pro",
+    "id": "uncertainty_propagation",
+    "name": "Uncertainty Propagation Pro",
     "version": "3.0.0",
     "description": "TDF-integrated Monte Carlo for mixing models with full uncertainty propagation",
     "author": "Sefy Levy",

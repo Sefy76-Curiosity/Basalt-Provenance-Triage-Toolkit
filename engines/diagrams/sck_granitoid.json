@@ -1,0 +1,106 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "sck_granitoid",
+  "diagram_name": "S'CK Granitoid Classification",
+  "version": "1.0",
+  "author": "Various",
+  "reference": {
+    "citation": "After Chappell & White (1974), Frost et al. (2001)",
+    "description": "SiO₂' vs CaO/(CaO+K₂O) diagram for I, S, and A-type granites"
+  },
+  "description": "Discrimination diagram for granitoid types based on SiO₂' and CaO/(CaO+K₂O) ratio",
+  "diagram_type": "xy",
+
+  "requires_fields": ["SiO2_wt", "CaO_wt", "K2O_wt"],
+
+  "derived_fields": [
+    {
+      "name": "SiO2_prime",
+      "formula": "SiO2_wt",
+      "requires": ["SiO2_wt"],
+      "description": "SiO₂' (wt%)"
+    },
+    {
+      "name": "CaO_CaO_K2O",
+      "formula": "CaO_wt / (CaO_wt + K2O_wt)",
+      "requires": ["CaO_wt", "K2O_wt"],
+      "description": "CaO/(CaO+K₂O) ratio"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "SiO2_prime",
+      "label": "SiO₂' (wt%)",
+      "scale": "linear",
+      "limits": [50, 80],
+      "major_ticks": [50, 55, 60, 65, 70, 75, 80],
+      "grid": true
+    },
+    "y": {
+      "field": "CaO_CaO_K2O",
+      "label": "CaO/(CaO+K₂O)",
+      "scale": "linear",
+      "limits": [0, 1],
+      "major_ticks": [0, 0.2, 0.4, 0.6, 0.8, 1.0],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "I-type",
+      "type": "polygon",
+      "points": [[50, 0.4], [77, 0.4], [77, 1.0], [50, 1.0]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.2,
+      "label": "I-type"
+    },
+    {
+      "name": "S-type",
+      "type": "polygon",
+      "points": [[50, 0.1], [77, 0.1], [77, 0.4], [50, 0.4]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.2,
+      "label": "S-type"
+    },
+    {
+      "name": "A-type",
+      "type": "polygon",
+      "points": [[50, 0], [77, 0], [77, 0.1], [50, 0.1]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.2,
+      "label": "A-type"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "I/S boundary",
+      "type": "line",
+      "points": [[50, 0.4], [77, 0.4]],
+      "color": "black",
+      "linestyle": "-",
+      "linewidth": 0.5,
+      "alpha": 0.3
+    },
+    {
+      "name": "S/A boundary",
+      "type": "line",
+      "points": [[50, 0.1], [77, 0.1]],
+      "color": "black",
+      "linestyle": "-",
+      "linewidth": 0.5,
+      "alpha": 0.3
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red"
+  }
+}

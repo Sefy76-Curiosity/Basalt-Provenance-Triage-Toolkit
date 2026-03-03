@@ -1310,10 +1310,85 @@ class PluginManager(tk.Toplevel):
                     p for p in self.local_plugins_by_category[cat] if p["id"] != pid
                 ]
 
+            self._remove_plugin_from_all_menus(pid, name, info)
             self._refresh_current_tab()
 
         except Exception as e:
             messagebox.showerror("Error", f"Could not uninstall: {e}")
+
+    def _remove_plugin_from_all_menus(self, pid: str, plugin_name: str, info: dict):
+        """Remove plugin from all menus in the main app"""
+        app = self.app
+
+        # 1. Remove from advanced menu
+        if hasattr(app, '_loaded_plugin_info') and pid in app._loaded_plugin_info:
+            del app._loaded_plugin_info[pid]
+
+        # 2. Remove from advanced menu structure
+        if hasattr(app, '_rebuild_advanced_menu'):
+            app._rebuild_advanced_menu()
+
+        # 3. Remove from AI plugins list if applicable
+        if hasattr(app.center, 'ai_plugins'):
+            app.center.ai_plugins = [
+                p for p in app.center.ai_plugins
+                if p[2] != getattr(self, '_current_plugin_instance', None)
+            ]
+            if hasattr(app.center, '_update_ai_dropdown'):
+                app.center._update_ai_dropdown()
+
+        # 4. Remove from console plugins list if applicable
+        if hasattr(app.center, 'console_plugins'):
+            app.center.console_plugins = [
+                p for p in app.center.console_plugins
+                if p[2] != getattr(self, '_current_plugin_instance', None)
+            ]
+            if hasattr(app.center, '_update_console_dropdown'):
+                app.center._update_console_dropdown()
+
+        # 5. Remove from hardware plugins if applicable
+        if hasattr(app, 'hardware_plugins') and pid in app.hardware_plugins:
+            del app.hardware_plugins[pid]
+            if hasattr(app.left, 'remove_hardware_button'):
+                app.left.remove_hardware_button(
+                    name=plugin_name,
+                    icon=info.get('icon', '🔌')
+                )
+
+        # 6. Remove from plot types if applicable
+        if hasattr(app, 'plot_plugin_types'):
+            app.plot_plugin_types = [
+                p for p in app.plot_plugin_types
+                if not (isinstance(p, tuple) and len(p) > 1 and
+                    hasattr(p[1], '__self__') and
+                    getattr(p[1].__self__, '_current_plugin_instance', None) ==
+                    getattr(self, '_current_plugin_instance', None))
+            ]
+            if hasattr(app.center, 'update_plot_types'):
+                app.center.update_plot_types(app.plot_plugin_types)
+
+        # 7. Remove from added plugins set
+        if hasattr(app, '_added_plugins') and pid in app._added_plugins:
+            app._added_plugins.remove(pid)
+
+        # 8. Remove from added AI plugins set
+        if hasattr(app, '_added_ai_plugins'):
+            # Find and remove any AI plugins with this ID
+            to_remove = []
+            for key in app._added_ai_plugins:
+                if key.startswith(f"{pid}_"):
+                    to_remove.append(key)
+            for key in to_remove:
+                app._added_ai_plugins.remove(key)
+
+        # 9. Force refresh of all menus
+        if hasattr(app, 'menu_bar'):
+            # Rebuild advanced menu if it exists
+            if hasattr(app, 'advanced_menu'):
+                app._rebuild_advanced_menu()
+
+            # Refresh UI
+            app.root.update_idletasks()
 
     # ── Helpers ───────────────────────────────────────────────────────
     def _center_window(self):

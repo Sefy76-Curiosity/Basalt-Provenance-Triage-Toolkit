@@ -1,0 +1,159 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "shervais_v_ti_1982",
+  "diagram_name": "Shervais V-Ti Discrimination",
+  "version": "1.0",
+  "author": "Shervais, J.W.",
+  "reference": {
+    "citation": "Shervais, J.W. (1982). Ti-V plots and the petrogenesis of modern and ophiolitic lavas. Earth and Planetary Science Letters, 59(1), 101-118",
+    "doi": "10.1016/0012-821X(82)90120-0",
+    "figure": "Figure 2"
+  },
+  "description": "Ti vs V discrimination diagram for basalts with Ti/V ratio lines",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Ti_ppm", "V_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "Ti_V",
+      "formula": "Ti_ppm / V_ppm",
+      "requires": ["Ti_ppm", "V_ppm"],
+      "description": "Ti/V ratio"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "V_ppm",
+      "label": "V (ppm)",
+      "scale": "log",
+      "limits": [10, 1000],
+      "major_ticks": [10, 100, 1000],
+      "grid": true
+    },
+    "y": {
+      "field": "Ti_ppm",
+      "label": "Ti (ppm)",
+      "scale": "log",
+      "limits": [100, 100000],
+      "major_ticks": [100, 1000, 10000, 100000],
+      "grid": true
+    }
+  },
+
+  "lines": [
+    {
+      "name": "Ti/V = 10",
+      "type": "line",
+      "points": [[10, 100], [1000, 10000]],
+      "color": "gray",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.5
+    },
+    {
+      "name": "Ti/V = 20",
+      "type": "line",
+      "points": [[10, 200], [1000, 20000]],
+      "color": "gray",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.5
+    },
+    {
+      "name": "Ti/V = 50",
+      "type": "line",
+      "points": [[10, 500], [1000, 50000]],
+      "color": "gray",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.5
+    },
+    {
+      "name": "Ti/V = 100",
+      "type": "line",
+      "points": [[10, 1000], [1000, 100000]],
+      "color": "gray",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.5
+    }
+  ],
+
+  "fields": [
+    {
+      "name": "MORB",
+      "type": "polygon",
+      "points": [[200, 8000], [500, 8000], [500, 20000], [200, 20000]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.15,
+      "label": "MORB (Ti/V 20-50)"
+    },
+    {
+      "name": "IAT",
+      "type": "polygon",
+      "points": [[250, 3000], [450, 3000], [450, 8000], [250, 8000]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.15,
+      "label": "IAT (Ti/V 10-20)"
+    },
+    {
+      "name": "BAB",
+      "type": "polygon",
+      "points": [[250, 2000], [400, 2000], [400, 6000], [250, 6000]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.15,
+      "label": "BAB (Ti/V 8-15)"
+    },
+    {
+      "name": "OIB",
+      "type": "polygon",
+      "points": [[150, 15000], [300, 15000], [300, 30000], [150, 30000]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.15,
+      "label": "OIB (Ti/V 50-100)"
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "Ti/V=10",
+      "position": [800, 8000],
+      "fontsize": 6,
+      "rotation": 45,
+      "alpha": 0.5
+    },
+    {
+      "text": "Ti/V=20",
+      "position": [800, 16000],
+      "fontsize": 6,
+      "rotation": 45,
+      "alpha": 0.5
+    },
+    {
+      "text": "Ti/V=50",
+      "position": [800, 40000],
+      "fontsize": 6,
+      "rotation": 45,
+      "alpha": 0.5
+    },
+    {
+      "text": "Ti/V=100",
+      "position": [800, 80000],
+      "fontsize": 6,
+      "rotation": 45,
+      "alpha": 0.5
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "blue"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "pearce_nb_y_1973",
+  "diagram_name": "Pearce Nb-Y Discrimination",
+  "version": "1.0",
+  "author": "Pearce, J.A. & Cann, J.R.",
+  "reference": {
+    "citation": "Pearce, J.A. & Cann, J.R. (1973). Tectonic setting of basic volcanic rocks determined using trace element analyses. Earth and Planetary Science Letters, 19(2), 290-300",
+    "doi": "10.1016/0012-821X(73)90129-5",
+    "figure": "Figure 3"
+  },
+  "description": "Nb-Y discrimination diagram for basalts: VAG+COLG vs WPG",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Nb_ppm", "Y_ppm"],
+
+  "axes": {
+    "x": {
+      "field": "Y_ppm",
+      "label": "Y (ppm)",
+      "scale": "log",
+      "limits": [0.5, 200],
+      "major_ticks": [1, 10, 100],
+      "grid": true
+    },
+    "y": {
+      "field": "Nb_ppm",
+      "label": "Nb (ppm)",
+      "scale": "log",
+      "limits": [0.1, 1000],
+      "major_ticks": [0.1, 1, 10, 100, 1000],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "VAG + COLG",
+      "type": "polygon",
+      "points": [[0.5, 0.1], [65, 0.1], [65, 30], [0.5, 30]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.2,
+      "label": "VAG + COLG",
+      "tooltip": "Volcanic Arc Granites + Collision Granites"
+    },
+    {
+      "name": "WPG",
+      "type": "polygon",
+      "points": [[65, 0.1], [200, 0.1], [200, 1000], [65, 1000]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.2,
+      "label": "WPG",
+      "tooltip": "Within-Plate Granites"
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "VAG+COLG",
+      "position": [10, 1],
+      "fontsize": 8,
+      "color": "#2c3e50",
+      "alpha": 0.7
+    },
+    {
+      "text": "WPG",
+      "position": [100, 100],
+      "fontsize": 8,
+      "color": "#2c3e50",
+      "alpha": 0.7
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_edgewidth": 0.5,
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "lower right",
+    "fontsize": 8
+  }
+}

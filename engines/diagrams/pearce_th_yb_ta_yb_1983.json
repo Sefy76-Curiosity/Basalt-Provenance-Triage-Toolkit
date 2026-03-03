@@ -1,0 +1,106 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "pearce_th_yb_ta_yb_1983",
+  "diagram_name": "Th/Yb vs Ta/Yb Mantle Array",
+  "version": "1.0",
+  "author": "Pearce, J.A.",
+  "reference": {
+    "citation": "Pearce, J.A. (1983). Role of the sub-continental lithosphere in magma genesis at active continental margins. In: Hawkesworth, C.J. & Norry, M.J. (eds) Continental Basalts and Mantle Xenoliths, pp. 230-249",
+    "figure": "Figure 4"
+  },
+  "description": "Th/Yb vs Ta/Yb discrimination showing mantle sources and subduction enrichment",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Th_ppm", "Ta_ppm", "Yb_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "Th_Yb",
+      "formula": "Th_ppm / Yb_ppm",
+      "requires": ["Th_ppm", "Yb_ppm"],
+      "description": "Th/Yb ratio"
+    },
+    {
+      "name": "Ta_Yb",
+      "formula": "Ta_ppm / Yb_ppm",
+      "requires": ["Ta_ppm", "Yb_ppm"],
+      "description": "Ta/Yb ratio"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "Ta_Yb",
+      "label": "Ta/Yb",
+      "scale": "log",
+      "limits": [0.01, 10],
+      "major_ticks": [0.01, 0.1, 1, 10],
+      "grid": true
+    },
+    "y": {
+      "field": "Th_Yb",
+      "label": "Th/Yb",
+      "scale": "log",
+      "limits": [0.01, 10],
+      "major_ticks": [0.01, 0.1, 1, 10],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "MORB",
+      "type": "polygon",
+      "points": [[0.01, 0.01], [0.1, 0.01], [0.1, 0.1], [0.01, 0.1]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.2,
+      "label": "MORB"
+    },
+    {
+      "name": "VAB",
+      "type": "polygon",
+      "points": [[0.01, 0.1], [0.1, 0.1], [0.1, 1.0], [0.01, 1.0]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.2,
+      "label": "VAB"
+    },
+    {
+      "name": "WPB",
+      "type": "polygon",
+      "points": [[0.1, 0.1], [10, 0.1], [10, 10], [0.1, 10]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.2,
+      "label": "WPB"
+    },
+    {
+      "name": "SHO",
+      "type": "polygon",
+      "points": [[0.1, 1.0], [10, 1.0], [10, 10], [0.1, 10]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.2,
+      "label": "SHO"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "Mantle Array",
+      "type": "line",
+      "points": [[0.01, 0.01], [10, 10]],
+      "color": "black",
+      "linestyle": "--",
+      "linewidth": 1,
+      "alpha": 0.7
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red"
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "fitton_nb_zr_y_zr_1997",
+  "diagram_name": "Fitton Nb/Zr vs Y/Zr Basalt Discrimination",
+  "version": "1.0",
+  "author": "Fitton, J.G. et al.",
+  "reference": {
+    "citation": "Fitton, J.G., Saunders, A.D., Norry, M.J., Hardarson, B.S. & Taylor, R.N. (1997). Thermal and chemical structure of the Iceland plume. Earth and Planetary Science Letters, 153(3-4), 197-208",
+    "doi": "10.1016/S0012-821X(97)00170-2",
+    "figure": "Adapted from Nb/Zr–Y/Zr fields discussed in plume vs non-plume basalts"
+  },
+  "description": "Nb/Zr vs Y/Zr discrimination diagram for basalts: N-MORB, E-MORB, OIB, and Arc-related basalts",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Nb_ppm", "Zr_ppm", "Y_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "Nb_Zr",
+      "formula": "Nb_ppm / Zr_ppm",
+      "requires": ["Nb_ppm", "Zr_ppm"],
+      "description": "Nb/Zr ratio"
+    },
+    {
+      "name": "Y_Zr",
+      "formula": "Y_ppm / Zr_ppm",
+      "requires": ["Y_ppm", "Zr_ppm"],
+      "description": "Y/Zr ratio"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "Nb_Zr",
+      "label": "Nb/Zr",
+      "scale": "linear",
+      "limits": [0.0, 0.2],
+      "major_ticks": [0.0, 0.05, 0.10, 0.15, 0.20],
+      "grid": true
+    },
+    "y": {
+      "field": "Y_Zr",
+      "label": "Y/Zr",
+      "scale": "linear",
+      "limits": [0.0, 0.2],
+      "major_ticks": [0.0, 0.05, 0.10, 0.15, 0.20],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "N-MORB",
+      "type": "polygon",
+      "points": [
+        [0.02, 0.06],
+        [0.06, 0.06],
+        [0.06, 0.12],
+        [0.02, 0.12]
+      ],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "N-MORB",
+      "tooltip": "Normal Mid-Ocean Ridge Basalt"
+    },
+    {
+      "name": "E-MORB",
+      "type": "polygon",
+      "points": [
+        [0.06, 0.05],
+        [0.12, 0.05],
+        [0.12, 0.10],
+        [0.06, 0.10]
+      ],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.25,
+      "label": "E-MORB",
+      "tooltip": "Enriched Mid-Ocean Ridge Basalt"
+    },
+    {
+      "name": "OIB",
+      "type": "polygon",
+      "points": [
+        [0.10, 0.03],
+        [0.20, 0.03],
+        [0.20, 0.10],
+        [0.10, 0.10]
+      ],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "OIB",
+      "tooltip": "Ocean Island Basalt"
+    },
+    {
+      "name": "Arc-related",
+      "type": "polygon",
+      "points": [
+        [0.00, 0.08],
+        [0.04, 0.08],
+        [0.04, 0.18],
+        [0.00, 0.18]
+      ],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "Arc-related",
+      "tooltip": "Subduction-related basalts"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "Plume vs Non-plume Trend",
+      "type": "line",
+      "points": [
+        [0.02, 0.12],
+        [0.18, 0.04]
+      ],
+      "color": "black",
+      "linestyle": "--",
+      "linewidth": 1,
+      "alpha": 0.6
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_edgewidth": 0.5,
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper right",
+    "fontsize": 8
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "meschede_zr_y_nb_y_1986",
+  "diagram_name": "Meschede Zr/Y-Nb/Y Discrimination",
+  "version": "1.0",
+  "author": "Meschede, M.",
+  "reference": {
+    "citation": "Meschede, M. (1986). A method of discriminating between different types of mid-ocean ridge basalts and continental tholeiites with the Nb-Zr-Y diagram. Chemical Geology, 56(3-4), 207-218",
+    "doi": "10.1016/0009-2541(86)90004-5",
+    "figure": "Figure 3"
+  },
+  "description": "Zr/Y vs Nb/Y discrimination for basalts: WPA, WPT, VAB, N-MORB, E-MORB",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Zr_ppm", "Y_ppm", "Nb_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "Zr_Y",
+      "formula": "Zr_ppm / Y_ppm",
+      "requires": ["Zr_ppm", "Y_ppm"],
+      "description": "Zr/Y ratio"
+    },
+    {
+      "name": "Nb_Y",
+      "formula": "Nb_ppm / Y_ppm",
+      "requires": ["Nb_ppm", "Y_ppm"],
+      "description": "Nb/Y ratio"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "Zr_Y",
+      "label": "Zr/Y",
+      "scale": "log",
+      "limits": [0.1, 20],
+      "major_ticks": [0.1, 1, 10],
+      "grid": true
+    },
+    "y": {
+      "field": "Nb_Y",
+      "label": "Nb/Y",
+      "scale": "log",
+      "limits": [0.01, 5],
+      "major_ticks": [0.01, 0.1, 1],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "WPA",
+      "type": "polygon",
+      "points": [[0, 0.6], [10, 0.6], [10, 2.0], [6, 2.0], [6, 1.2], [2, 1.2], [2, 0.6], [0, 0.6]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.2,
+      "label": "WPA",
+      "tooltip": "Within-Plate Alkaline"
+    },
+    {
+      "name": "WPT",
+      "type": "polygon",
+      "points": [[2, 0.1], [10, 0.1], [10, 0.6], [2, 0.6]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.2,
+      "label": "WPT",
+      "tooltip": "Within-Plate Tholeiitic"
+    },
+    {
+      "name": "VAB",
+      "type": "polygon",
+      "points": [[0, 0], [4, 0], [4, 0.4], [0, 0.4]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.2,
+      "label": "VAB",
+      "tooltip": "Volcanic Arc Basalt"
+    },
+    {
+      "name": "N-MORB",
+      "type": "polygon",
+      "points": [[0, 0], [4, 0], [4, 0.1], [0, 0.1]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.2,
+      "label": "N-MORB"
+    },
+    {
+      "name": "E-MORB",
+      "type": "polygon",
+      "points": [[4, 0], [10, 0], [10, 0.1], [4, 0.1]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.2,
+      "label": "E-MORB"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red"
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 7
+  }
+}

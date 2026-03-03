@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "pearce_ta_yb_1982",
+  "diagram_name": "Pearce Ta-Yb Discrimination",
+  "version": "1.0",
+  "author": "Pearce, J.A.",
+  "reference": {
+    "citation": "Pearce, J.A. (1982). Trace element characteristics of lavas from destructive plate boundaries. In: Thorpe, R.S. (ed) Andesites, pp. 525-548",
+    "figure": "Figure 4"
+  },
+  "description": "Ta-Yb discrimination diagram for granites: VAG+COLG vs WPG",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Ta_ppm", "Yb_ppm"],
+
+  "axes": {
+    "x": {
+      "field": "Yb_ppm",
+      "label": "Yb (ppm)",
+      "scale": "log",
+      "limits": [0.1, 50],
+      "major_ticks": [0.1, 1, 10],
+      "grid": true
+    },
+    "y": {
+      "field": "Ta_ppm",
+      "label": "Ta (ppm)",
+      "scale": "log",
+      "limits": [0.01, 10],
+      "major_ticks": [0.01, 0.1, 1, 10],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "VAG + COLG",
+      "type": "polygon",
+      "points": [[0.1, 0.01], [2.5, 0.01], [2.5, 2.0], [0.1, 2.0]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.2,
+      "label": "VAG + COLG"
+    },
+    {
+      "name": "WPG",
+      "type": "polygon",
+      "points": [[2.5, 0.01], [50, 0.01], [50, 10], [2.5, 10]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.2,
+      "label": "WPG"
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "VAG+COLG",
+      "position": [0.5, 0.1],
+      "fontsize": 8,
+      "alpha": 0.7
+    },
+    {
+      "text": "WPG",
+      "position": [10, 1],
+      "fontsize": 8,
+      "alpha": 0.7
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "blue",
+    "default_edgecolor": "black"
+  }
+}

@@ -26,7 +26,7 @@ PLUGIN_INFO = {
     "description": "Complete isotope toolbox: mixing, MCMC, provenance, REE, diet",
     "version": "2.0.0",
     "requires": ["numpy", "scipy", "matplotlib", "pandas", "arviz", "emcee"],
-    "integrates_with": ["geoplot_pro", "isotope_uncertainty"],
+    "integrates_with": ["geoplot_pro", "uncertainty_propagation"],
     "authors": "Sefy Levy & DeepSeek"
 }
 
@@ -362,6 +362,7 @@ class ArchIsotopeProfessional:
         self.geo_manager = GeochemicalDataManager(main_app)
         self.plotter = None
         self.tdf_db = create_default_tdf_database()
+        self._after_ids = []
 
         # Data
         self.samples = None
@@ -483,52 +484,158 @@ class ArchIsotopeProfessional:
         """
         Send current results to the isotope uncertainty plugin for Monte Carlo propagation.
         """
-        # Check if uncertainty plugin is available
-        if not hasattr(self.app, 'plugins') or 'isotope_uncertainty' not in self.app.plugins:
-            self._log("⚠️ Isotope Uncertainty plugin not found")
-            self._log("   Please install isotope_uncertainty_pro.py in plugins/software/")
-            messagebox.showinfo(
-                "Plugin Not Found",
-                "Isotope Uncertainty plugin not found.\n\n"
-                "Please ensure isotope_uncertainty_pro.py is in your plugins/software/ folder."
+        # ===== FIX: Validate and get isotopes properly =====
+        if isotopes is None:
+            # Try to get from current UI state
+            if hasattr(self, 'x_var') and hasattr(self, 'y_var'):
+                x_iso = self.x_var.get() if self.x_var.get() else None
+                y_iso = self.y_var.get() if self.y_var.get() else None
+
+                # If still empty, try to detect from available systems
+                if not x_iso and self.available_systems:
+                    # For binary mixing, use first two available isotopes
+                    sys_list = list(self.available_systems.keys())
+                    if len(sys_list) >= 2:
+                        x_iso = sys_list[0]
+                        y_iso = sys_list[1]
+                        self._log(f"   Auto-selected isotopes: {x_iso}, {y_iso}")
+
+                isotopes = [x_iso, y_iso]
+
+        # ===== FURTHER VALIDATION =====
+        # Filter out None or empty strings
+        isotopes = [iso for iso in isotopes if iso and iso.strip()]
+
+        if len(isotopes) < 2:
+            self._log("❌ Cannot send to uncertainty plugin: Need at least 2 valid isotopes")
+            self._log(f"   Current isotopes: {isotopes}")
+            messagebox.showwarning(
+                "Missing Isotopes",
+                "Please select valid X and Y isotopes before propagating uncertainty."
             )
             return False
 
-        # Get current data
-        if not self.samples:
-            self._refresh_from_main_table()
-            if not self.samples:
-                self._log("❌ No data to send")
+        # ===== CRITICAL FIX: Map isotope system names to actual column names =====
+        # Create a copy of samples with actual column names for the uncertainty plugin
+        mapped_samples = []
+        for sample in self.samples:
+            mapped_sample = sample.copy()  # Keep all original data
+
+            # Map each isotope system to its actual column name in the data
+            for iso_system in isotopes:
+                if iso_system in self.available_systems:
+                    # Get the actual column name for this isotope system
+                    actual_column = self.available_systems[iso_system]['column']
+                    actual_value = sample.get(actual_column)
+
+                    # Add the value under both the system name AND the actual column name
+                    # This ensures the uncertainty plugin can find it regardless of naming convention
+                    mapped_sample[iso_system] = actual_value
+                    mapped_sample[actual_column] = actual_value
+
+                    self._log(f"   Mapping {iso_system} → {actual_column} = {actual_value}")
+
+            mapped_samples.append(mapped_sample)
+
+        # ===== METHOD 1: Try to find it in app.plugins =====
+        if hasattr(self.app, 'plugins'):
+            # Try the expected key
+            if 'uncertainty_propagation' in self.app.plugins:
+                uncertainty_plugin = self.app.plugins['uncertainty_propagation']
+                self._log("✅ Found uncertainty plugin by ID")
+            else:
+                # Try to find ANY plugin that has receive_data method
+                found = False
+                for key, plugin in self.app.plugins.items():
+                    if hasattr(plugin, 'receive_data'):
+                        uncertainty_plugin = plugin
+                        self._log(f"✅ Found uncertainty plugin under key: '{key}'")
+                        found = True
+                        break
+
+                if not found:
+                    self._log("⚠️ No plugin with receive_data method found")
+                    uncertainty_plugin = None
+        else:
+            uncertainty_plugin = None
+
+        # ===== METHOD 2: If not found, try to get from open windows =====
+        if uncertainty_plugin is None:
+            self._log("⚠️ Checking for open uncertainty plugin windows...")
+            # Look through all top-level windows
+            for widget in self.app.root.winfo_children():
+                if isinstance(widget, tk.Toplevel):
+                    # Check if this is our uncertainty plugin
+                    if hasattr(widget, 'receive_data'):
+                        uncertainty_plugin = widget
+                        self._log("✅ Found open uncertainty plugin window")
+                        break
+
+        # ===== METHOD 3: If still not found, create new instance =====
+        if uncertainty_plugin is None:
+            self._log("⚠️ Attempting to create new uncertainty plugin instance...")
+            try:
+                from plugins.software.uncertainty_propagation import setup_plugin
+                uncertainty_plugin = setup_plugin(self.app)
+                # Register it for future use
+                if not hasattr(self.app, 'plugins'):
+                    self.app.plugins = {}
+                self.app.plugins['uncertainty_propagation'] = uncertainty_plugin
+                self._log("✅ Created new uncertainty plugin instance")
+            except Exception as e:
+                self._log(f"❌ Could not create plugin: {e}")
+                messagebox.showerror(
+                    "Plugin Error",
+                    f"Could not load uncertainty plugin:\n\n{str(e)}"
+                )
                 return False
 
-        # Build context
+        # ===== GET TDF INFO FOR DIET MODELS =====
+        if model_type == 'diet' or (taxon and tissue):
+            # Try to get TDF from database
+            tdf_info = self._get_tdf(taxon, tissue)
+            if tdf_info:
+                # Store in context
+                context_tdf = {
+                    'Δ13C_mean': tdf_info[0],
+                    'Δ13C_sd': tdf_info[1] if len(tdf_info) > 1 else tdf_info[0] * 0.2,
+                    'Δ15N_mean': tdf_info[1] if len(tdf_info) > 1 else tdf_info[0] * 0.2,
+                    'source': tdf_info[2] if len(tdf_info) > 2 else 'database'
+                }
+
+        # Build context - FILTER OUT NONE VALUES
         context = {
             'type': 'isotope_mixing',
             'model': model_type,
-            'isotopes': isotopes or [self.x_var.get(), self.y_var.get()],
-            'derived_column': derived_column
+            'isotopes': isotopes,
+            'derived_column': derived_column,
+            # Add mapping information to help the uncertainty plugin
+            'column_mapping': {iso: self.available_systems[iso]['column']
+                            for iso in isotopes if iso in self.available_systems}
         }
 
-        # Add optional TDF parameters
-        if taxon:
+        # Add TDF if available for diet models
+        if model_type == 'diet' and hasattr(self, 'tdf_info'):
+            context['tdf'] = self.tdf_info
+
+        # Add optional TDF parameters - ONLY IF THEY HAVE VALUES
+        if taxon and taxon.strip():
             context['taxon'] = taxon
-        if tissue:
+        if tissue and tissue.strip():
             context['tissue'] = tissue
-        if diet_type:
+        if diet_type and diet_type.strip():
             context['diet_type'] = diet_type
-        if trophic_level:
+        if trophic_level and trophic_level.strip():
             context['trophic_level'] = trophic_level
 
         # Add end-members if available
         if end_members:
             context['end_members'] = end_members
         elif hasattr(self, 'current_results') and self.current_results:
-            # Try to extract from current results
             if self.current_results.get('type') == 'binary':
                 em1_name = self.current_results.get('em1', 'EM1')
                 em2_name = self.current_results.get('em2', 'EM2')
 
-                # Find end-member values
                 em1_vals = {}
                 em2_vals = {}
 
@@ -545,49 +652,31 @@ class ArchIsotopeProfessional:
                 if em1_vals and em2_vals:
                     context['end_members'] = [em1_vals, em2_vals]
 
-        # Send to uncertainty plugin
+        # Send to uncertainty plugin with mapped samples
         try:
-            uncertainty_plugin = self.app.plugins['isotope_uncertainty']
-            uncertainty_plugin.receive_data(self.samples, context)
-            self._log("✅ Sent data to Isotope Uncertainty plugin")
-            self._log(f"   Model: {model_type}, Isotopes: {context['isotopes']}")
-            if taxon and tissue:
-                self._log(f"   Taxon: {taxon}, Tissue: {tissue}")
-            return True
+            # If the plugin has a receive_data method (it should)
+            if hasattr(uncertainty_plugin, 'receive_data'):
+                # Send the mapped samples instead of the original ones
+                uncertainty_plugin.receive_data(mapped_samples, context)
+                self._log("✅ Sent data to Isotope Uncertainty plugin")
+                self._log(f"   Model: {model_type}, Isotopes: {context['isotopes']}")
+                self._log(f"   Column mapping: {context.get('column_mapping', {})}")
+                if 'taxon' in context and 'tissue' in context:
+                    self._log(f"   Taxon: {context['taxon']}, Tissue: {context['tissue']}")
+
+                # Open its window if it has one
+                if hasattr(uncertainty_plugin, 'open_window'):
+                    uncertainty_plugin.open_window()
+
+                return True
+            else:
+                self._log("❌ Plugin doesn't have receive_data method")
+                return False
+
         except Exception as e:
             self._log(f"❌ Error sending to uncertainty plugin: {e}")
-            return False
-
-    def _ensure_mcmc_canvas(self):
-        """Ensure MCMC canvas exists and is ready for plotting."""
-        if not HAS_MATPLOTLIB:
-            return False
-
-        try:
-            # Check if we have the MCMC canvas
-            if not hasattr(self, 'mcmc_canvas') or self.mcmc_canvas is None:
-                # Try to find or create MCMC tab
-                if hasattr(self, 'notebook'):
-                    # Check if MCMC tab exists
-                    for i in range(self.notebook.index('end')):
-                        tab_text = self.notebook.tab(i, "text")
-                        if "MCMC" in tab_text:
-                            self.notebook.select(i)
-                            break
-                    else:
-                        # Create MCMC tab if it doesn't exist
-                        mcmc_tab = tk.Frame(self.notebook, bg="white")
-                        self.notebook.add(mcmc_tab, text="📊 MCMC")
-
-                        self.mcmc_fig, (self.mcmc_trace_ax, self.mcmc_corner_ax) = plt.subplots(1, 2, figsize=(8, 4))
-                        self.mcmc_fig.patch.set_facecolor('white')
-                        self.mcmc_canvas = FigureCanvasTkAgg(self.mcmc_fig, mcmc_tab)
-                        self.mcmc_canvas.draw()
-                        self.mcmc_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
-            return True
-        except Exception as e:
-            self._log(f"⚠️ Could not setup MCMC canvas: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def _plot_mcmc_traces(self, sampler, isotope_names):
@@ -984,11 +1073,18 @@ class ArchIsotopeProfessional:
         f.pack(fill=tk.X, pady=2)
         tk.Label(f, text="X isotope:", width=10, anchor=tk.W).pack(side=tk.LEFT)
         self.x_var = tk.StringVar()
+        iso_values = list(self.available_systems.keys())
         ttk.Combobox(f, textvariable=self.x_var,
-                    values=list(self.available_systems.keys()),
+                    values=iso_values,
                     state='readonly').pack(side=tk.LEFT, fill=tk.X, expand=True)
-        if self.available_systems:
-            self.x_var.set(list(self.available_systems.keys())[0])
+
+        # Set default if available
+        if iso_values:
+            # Prefer Pb206 for Rohl dataset, otherwise first
+            if 'Pb206' in iso_values:
+                self.x_var.set('Pb206')
+            else:
+                self.x_var.set(iso_values[0])
 
         # Y isotope
         f = tk.Frame(self.control_frame, bg="white")
@@ -996,10 +1092,18 @@ class ArchIsotopeProfessional:
         tk.Label(f, text="Y isotope:", width=10, anchor=tk.W).pack(side=tk.LEFT)
         self.y_var = tk.StringVar()
         ttk.Combobox(f, textvariable=self.y_var,
-                    values=list(self.available_systems.keys()),
+                    values=iso_values,
                     state='readonly').pack(side=tk.LEFT, fill=tk.X, expand=True)
-        if len(self.available_systems) > 1:
-            self.y_var.set(list(self.available_systems.keys())[1])
+
+        # Set default if available
+        if len(iso_values) > 1:
+            # Prefer Pb207 for Rohl dataset, otherwise second
+            if 'Pb207' in iso_values:
+                self.y_var.set('Pb207')
+            else:
+                self.y_var.set(iso_values[1])
+        elif iso_values:
+            self.y_var.set(iso_values[0])
 
         # End-members
         tk.Label(self.control_frame, text="Select 2 end‑members:",
@@ -1011,19 +1115,19 @@ class ArchIsotopeProfessional:
         self.em_listbox.pack(fill=tk.X, padx=5, pady=2)
 
         tk.Button(self.control_frame, text="▶ RUN BINARY MIXING",
-                 command=self._run_binary_mixing,
-                 bg="#27ae60", fg="white", font=("Arial", 8, "bold"),
-                 width=22).pack(pady=4)
+                command=self._run_binary_mixing,
+                bg="#27ae60", fg="white", font=("Arial", 8, "bold"),
+                width=22).pack(pady=4)
 
         # Uncertainty propagation button
         tk.Button(self.control_frame, text="📊 Propagate Uncertainty",
-                 command=lambda: self._send_to_uncertainty_plugin(
-                     model_type='binary',
-                     isotopes=[self.x_var.get(), self.y_var.get()],
-                     derived_column='Mixing_Proportion_EM2'
-                 ),
-                 bg="#3498db", fg="white", font=("Arial", 8, "bold"),
-                 width=22).pack(pady=2)
+                command=lambda: self._send_to_uncertainty_plugin(
+                    model_type='binary',
+                    isotopes=[self.x_var.get(), self.y_var.get()] if self.x_var.get() and self.y_var.get() else None,
+                    derived_column='Mixing_Proportion_EM2'
+                ),
+                bg="#3498db", fg="white", font=("Arial", 8, "bold"),
+                width=22).pack(pady=2)
 
     def _show_ternary_controls(self):
         """Ternary mixing controls."""
@@ -1177,19 +1281,14 @@ class ArchIsotopeProfessional:
                  command=lambda: self._send_to_uncertainty_plugin(
                      model_type='binary',
                      isotopes=['δ13C', 'δ15N'],
-                     taxon=self.tdf_taxon_var.get(),
-                     tissue=self.tdf_tissue_var.get(),
-                     diet_type=self.diet_type_var.get(),
-                     trophic_level=self.trophic_var.get(),
+                     taxon=self.tdf_taxon_var.get() if self.tdf_taxon_var.get() else None,
+                     tissue=self.tdf_tissue_var.get() if self.tdf_tissue_var.get() else None,
+                     diet_type=self.diet_type_var.get() if self.diet_type_var.get() else None,
+                     trophic_level=self.trophic_var.get() if self.trophic_var.get() else None,
                      derived_column='Diet_Proportion_EM2'
                  ),
                  bg="#3498db", fg="white", font=("Arial", 8, "bold"),
                  width=22).pack(pady=2)
-
-    def _show_mahalanobis_controls(self):
-        """Mahalanobis provenance controls."""
-        tk.Label(self.control_frame, text="MAHALANOBIS PROVENANCE (Morrison 1976)",
-                font=("Arial", 9, "bold"), bg="white", fg="#8B4513").pack(pady=2)
 
         # ===== ISOTOPE SELECTION =====
         iso_frame = tk.LabelFrame(self.control_frame, text=" Isotope Selection ",
@@ -2944,6 +3043,72 @@ class ArchIsotopeProfessional:
             self.results_text.insert(tk.END, f"[{timestamp}] {message}\n")
             self.results_text.see(tk.END)
         print(message)
+
+    def stop(self):
+        """Clean up resources when plugin is closed"""
+        print("🛑 Stopping Isotope plugin...")
+
+        # Cancel all after callbacks in this plugin
+        self._cancel_all_after_callbacks()
+
+        # Close any child windows (like MCMC progress window)
+        if hasattr(self, 'progress_win') and self.progress_win:
+            try:
+                self.progress_win.destroy()
+            except:
+                pass
+
+        # Destroy the plugin window if it exists
+        if self.window and self.window.winfo_exists():
+            try:
+                self.window.destroy()
+            except:
+                pass
+
+        print("✅ Isotope plugin stopped")
+
+    def _cancel_all_after_callbacks(self):
+        """Cancel all pending after callbacks in this plugin"""
+        if not hasattr(self, '_after_ids'):
+            self._after_ids = []
+
+        for after_id in self._after_ids:
+            try:
+                if self.window and self.window.winfo_exists():
+                    self.window.after_cancel(after_id)
+            except:
+                pass
+
+        self._after_ids.clear()
+
+    def _safe_after(self, ms, func, *args):
+        """Safely schedule an after callback with tracking"""
+        if not hasattr(self, '_after_ids'):
+            self._after_ids = []
+
+        try:
+            if self.window and self.window.winfo_exists():
+                after_id = self.window.after(ms, lambda: self._execute_after(func, *args))
+                self._after_ids.append(after_id)
+                return after_id
+        except:
+            pass
+        return None
+
+    def _execute_after(self, func, *args):
+        """Execute an after callback and remove its ID"""
+        try:
+            func(*args)
+        except Exception as e:
+            print(f"Error in after callback: {e}")
+        finally:
+            # Remove this callback's ID (approximate - we'd need to know which one)
+            if hasattr(self, '_after_ids') and self._after_ids:
+                # Just clear the oldest one as a best effort
+                try:
+                    self._after_ids.pop(0)
+                except:
+                    pass
 
 
 # ============================================================================

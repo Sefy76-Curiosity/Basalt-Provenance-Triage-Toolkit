@@ -1,0 +1,358 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "pearce_2008_mantle_array_complete",
+  "scheme_name": "Pearce (2008) Mantle Array with Fractionation Vectors",
+  "version": "1.0",
+  "author": "Pearce, J.A.",
+  "reference": {
+    "citation": "Pearce, J.A. (2008). Lithos, 102(1-2), 14-48",
+    "doi": "10.1016/j.lithos.2007.09.005",
+    "figure": "Figure 5",
+    "url": "https://doi.org/10.1016/j.lithos.2007.09.005"
+  },
+
+  "description": "Th/Yb vs Nb/Yb diagram showing mantle array with fractionation vectors for different tectonic settings",
+
+  "diagram_type": "xy",
+
+  "requires_fields": ["Th_ppm", "Nb_ppm", "Yb_ppm", "La_ppm", "Sm_ppm"],
+
+  "optional_fields": ["Zr_ppm", "Hf_ppm", "Ti_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "Th_Yb",
+      "formula": "Th_ppm / Yb_ppm",
+      "requires": ["Th_ppm", "Yb_ppm"],
+      "units": "ratio",
+      "description": "Thorium/Ytterbium ratio"
+    },
+    {
+      "name": "Nb_Yb",
+      "formula": "Nb_ppm / Yb_ppm",
+      "requires": ["Nb_ppm", "Yb_ppm"],
+      "units": "ratio"
+    },
+    {
+      "name": "La_Sm",
+      "formula": "La_ppm / Sm_ppm",
+      "requires": ["La_ppm", "Sm_ppm"],
+      "units": "ratio"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "Nb_Yb",
+      "label": "Nb/Yb",
+      "label_style": {"fontsize": 12, "fontweight": "bold"},
+      "scale": "log",
+      "limits": [0.01, 100],
+      "tick_format": "%.1f",
+      "major_ticks": [0.01, 0.1, 1, 10, 100],
+      "minor_ticks": true,
+      "grid": true,
+      "grid_style": {"linestyle": "--", "alpha": 0.3, "color": "gray"},
+      "inverted": false
+    },
+    "y": {
+      "field": "Th_Yb",
+      "label": "Th/Yb",
+      "scale": "log",
+      "limits": [0.001, 10],
+      "tick_format": "%.3f",
+      "major_ticks": [0.001, 0.01, 0.1, 1, 10],
+      "inverted": false
+    }
+  },
+
+  "transformations": {
+    "pre_plot": [
+      {
+        "type": "add_constant",
+        "field": "Nb_Yb",
+        "value": 0.001,
+        "condition": "field == 0",
+        "description": "Handle zero values for log scale"
+      }
+    ]
+  },
+
+  "background": {
+    "color": "#f8f9fa",
+    "grid": true,
+    "grid_style": {"linestyle": "--", "alpha": 0.3, "color": "#cccccc"},
+    "border": true,
+    "border_style": {"linewidth": 1, "color": "black"}
+  },
+
+  "fields": [
+    {
+      "name": "N-MORB",
+      "type": "polygon",
+      "polygon": [
+        [0.5, 0.01],
+        [2.0, 0.01],
+        [2.0, 0.08],
+        [0.5, 0.08]
+      ],
+      "closed": true,
+      "color": "#3498db",
+      "alpha": 0.2,
+      "edge_color": null,
+      "edge_width": 0,
+      "hatch": null,
+      "label": "N-MORB",
+      "label_position": "center",
+      "tooltip": "Normal Mid-Ocean Ridge Basalt",
+      "citation": "Sun & McDonough (1989)",
+      "confidence": "high"
+    },
+    {
+      "name": "E-MORB",
+      "type": "polygon",
+      "polygon": [
+        [2.0, 0.08],
+        [6.0, 0.08],
+        [6.0, 0.3],
+        [2.0, 0.3]
+      ],
+      "color": "#2ecc71",
+      "alpha": 0.2,
+      "label": "E-MORB"
+    },
+    {
+      "name": "OIB",
+      "type": "polygon",
+      "polygon": [
+        [6.0, 0.3],
+        [30.0, 0.3],
+        [30.0, 3.0],
+        [6.0, 3.0]
+      ],
+      "color": "#e74c3c",
+      "alpha": 0.2,
+      "label": "OIB"
+    },
+    {
+      "name": "Arc-Related",
+      "type": "polygon",
+      "polygon": [
+        [0.1, 0.1],
+        [1.0, 1.0],
+        [10.0, 10.0],
+        [0.1, 10.0]
+      ],
+      "color": "#f39c12",
+      "alpha": 0.15,
+      "label": "Arc-Related",
+      "confidence": "medium"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "Mantle Array (1σ envelope)",
+      "type": "envelope",
+      "center_line": {
+        "points": [[0.1, 0.01], [100, 10]],
+        "color": "black",
+        "linestyle": "-",
+        "linewidth": 1.5,
+        "zorder": 5
+      },
+      "upper_envelope": {
+        "points": [[0.1, 0.02], [100, 20]],
+        "color": "gray",
+        "linestyle": "--",
+        "linewidth": 0.5
+      },
+      "lower_envelope": {
+        "points": [[0.1, 0.005], [100, 5]],
+        "color": "gray",
+        "linestyle": "--",
+        "linewidth": 0.5
+      },
+      "fill_between": {
+        "enabled": true,
+        "color": "gray",
+        "alpha": 0.1,
+        "label": "±1σ envelope"
+      }
+    },
+    {
+      "name": "MORB-OIB Array",
+      "type": "line",
+      "points": [[0.2, 0.02], [50, 5]],
+      "color": "blue",
+      "linestyle": ":",
+      "linewidth": 1,
+      "zorder": 4,
+      "label": "MORB-OIB Array"
+    }
+  ],
+
+  "vectors": [
+    {
+      "name": "Fractional Crystallization (Ol+Cpx+Plag)",
+      "type": "arrow",
+      "start_point": [2.0, 0.1],
+      "direction": [1.2, 0.8],
+      "length": 0.5,
+      "color": "red",
+      "width": 0.01,
+      "head_width": 0.1,
+      "head_length": 0.1,
+      "label": "FC trend",
+      "label_position": "end",
+      "reference": "Based on partition coefficients from Rollinson (1993)"
+    },
+    {
+      "name": "Partial Melting Trend",
+      "type": "curve",
+      "points": [
+        [0.5, 0.02],
+        [1.0, 0.05],
+        [2.0, 0.12],
+        [5.0, 0.3],
+        [10.0, 0.8]
+      ],
+      "color": "green",
+      "linestyle": "-",
+      "linewidth": 1.5,
+      "label": "Partial melting (F=20%→1%)",
+      "marker_every": 10,
+      "marker": "o",
+      "marker_size": 4
+    }
+  ],
+
+  "points_of_interest": [
+    {
+      "name": "Primitive Mantle",
+      "coordinates": [1.0, 0.1],
+      "marker": "star",
+      "marker_size": 10,
+      "color": "gold",
+      "edge_color": "black",
+      "label": "PM",
+      "zorder": 10
+    },
+    {
+      "name": "Chondrite",
+      "coordinates": [0.25, 0.015],
+      "marker": "diamond",
+      "color": "silver",
+      "label": "C1"
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "Subduction enrichment",
+      "position": [0.5, 5.0],
+      "fontsize": 10,
+      "color": "gray",
+      "rotation": 45,
+      "ha": "center",
+      "va": "center",
+      "bbox": {
+        "boxstyle": "round,pad=0.3",
+        "facecolor": "white",
+        "alpha": 0.7,
+        "edgecolor": "gray"
+      },
+      "arrow": {
+        "xy": [0.5, 5.0],
+        "xytext": [0.8, 3.0],
+        "arrowstyle": "->",
+        "color": "gray"
+      }
+    }
+  ],
+
+  "legend": {
+    "position": "upper left",
+    "frameon": true,
+    "framealpha": 0.9,
+    "fontsize": 9,
+    "ncol": 2,
+    "columnspacing": 1.0,
+    "handlelength": 1.5,
+    "markerscale": 1.0
+  },
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "black",
+    "default_edgecolor": "white",
+    "default_edgewidth": 0.5,
+    "default_alpha": 0.8,
+    "highlight_color": "red",
+    "highlight_size_multiplier": 1.5,
+    "label_fields": ["Sample_ID"],
+    "label_style": {"fontsize": 8, "alpha": 0.7},
+    "label_offset": [5, 5],
+    "error_bars": {
+      "enabled": true,
+      "field_suffix": "_1sigma",
+      "capsize": 2,
+      "elinewidth": 0.5,
+      "color": "gray",
+      "alpha": 0.5
+    }
+  },
+
+  "overlay_options": {
+    "petrogenetic_models": {
+      "enabled": true,
+      "default_color": "purple",
+      "default_linestyle": "--",
+      "default_linewidth": 1.5,
+      "models": ["AFC", "Fractional", "MELTS"]
+    },
+    "reference_samples": {
+      "enabled": true,
+      "data_source": "crm_database",
+      "default_marker": "s",
+      "default_color": "gray",
+      "alpha": 0.5
+    }
+  },
+
+  "export_options": {
+    "dpi": [300, 600, 1200],
+    "formats": ["png", "pdf", "svg", "eps"],
+    "journal_templates": {
+      "nature": {"width": "89mm", "font": "Helvetica", "fontsize": 7},
+      "science": {"width": "87mm", "font": "Arial", "fontsize": 8},
+      "agu": {"width": "174mm", "font": "Times", "fontsize": 9}
+    }
+  },
+
+  "interactivity": {
+    "hover_tooltips": true,
+    "click_select": true,
+    "zoom": true,
+    "pan": true,
+    "reset_view": true,
+    "save_view": true
+  },
+
+  "validation": {
+    "requires_min_samples": 1,
+    "warn_if_log_scale_zero": true,
+    "min_positive_value": 0.0001
+  },
+
+  "provenance": {
+    "created": "2026-03-03",
+    "created_by": "Sefy Levy",
+    "modified": "2026-03-03",
+    "version_history": [
+      {"version": "1.0", "date": "2026-03-03", "changes": "Initial implementation"}
+    ],
+    "source_data": "Compiled from Pearce (2008) and subsequent revisions"
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "whalen_a_type_1987",
+  "diagram_name": "Whalen A-type Granite Discrimination",
+  "version": "1.0",
+  "author": "Whalen, J.B., Currie, K.L. & Chappell, B.W.",
+  "reference": {
+    "citation": "Whalen, J.B., Currie, K.L. & Chappell, B.W. (1987). A-type granites: geochemical characteristics, discrimination and petrogenesis. Contributions to Mineralogy and Petrology, 95(4), 407-419",
+    "doi": "10.1007/BF00402202",
+    "figure": "Figure 4"
+  },
+  "description": "Zr+Nb+Ce+Y vs FeO*/MgO diagram for A-type granite discrimination",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Zr_ppm", "Nb_ppm", "Ce_ppm", "Y_ppm", "FeO_star_wt", "MgO_wt"],
+
+  "derived_fields": [
+    {
+      "name": "Zr_Nb_Ce_Y_sum",
+      "formula": "Zr_ppm + Nb_ppm + Ce_ppm + Y_ppm",
+      "requires": ["Zr_ppm", "Nb_ppm", "Ce_ppm", "Y_ppm"],
+      "description": "Zr+Nb+Ce+Y sum"
+    },
+    {
+      "name": "FeO_MgO",
+      "formula": "FeO_star_wt / MgO_wt",
+      "requires": ["FeO_star_wt", "MgO_wt"],
+      "description": "FeO*/MgO ratio"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "Zr_Nb_Ce_Y_sum",
+      "label": "Zr + Nb + Ce + Y (ppm)",
+      "scale": "log",
+      "limits": [10, 2000],
+      "major_ticks": [10, 100, 1000],
+      "grid": true
+    },
+    "y": {
+      "field": "FeO_MgO",
+      "label": "FeO*/MgO",
+      "scale": "log",
+      "limits": [0.1, 100],
+      "major_ticks": [0.1, 1, 10, 100],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "I & S-type",
+      "type": "polygon",
+      "points": [[10, 0.1], [350, 0.1], [350, 10], [10, 10]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.2,
+      "label": "I & S-type"
+    },
+    {
+      "name": "A-type",
+      "type": "polygon",
+      "points": [[350, 10], [2000, 10], [2000, 100], [350, 100]],
+      "closed": true,
+      "color": "#FFA07A",
+      "alpha": 0.2,
+      "label": "A-type"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "Boundary",
+      "type": "line",
+      "points": [[350, 0.1], [350, 100]],
+      "color": "black",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.5
+    },
+    {
+      "name": "Boundary",
+      "type": "line",
+      "points": [[10, 10], [2000, 10]],
+      "color": "black",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.5
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red"
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 8
+  }
+}

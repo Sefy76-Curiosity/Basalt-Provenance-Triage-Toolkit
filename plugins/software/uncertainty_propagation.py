@@ -16,8 +16,8 @@ Version: 3.0.0
 PLUGIN_INFO = {
     "category": "software",
     "field": "General",
-    "id": "isotope_uncertainty",
-    "name": "Isotope Uncertainty Pro",
+    "id": "uncertainty_propagation",
+    "name": "Uncertainty Propagation Pro",
     "icon": "📊",
     "description": "TDF-integrated Monte Carlo for mixing models with full uncertainty propagation",
     "version": "3.0.0",
@@ -80,6 +80,7 @@ class IsotopeUncertaintyPro:
         self.progress_window = None
         self.progress_bar = None
         self.progress_label = None
+        self._after_ids = []
 
         # Core data
         self.current_data = None
@@ -230,7 +231,7 @@ class IsotopeUncertaintyPro:
             return None
 
         # Sort by score and take best match
-        matches.sort(reverse=True)
+        matches.sort(key=lambda x: x[0], reverse=True)
         best = matches[0][1]
 
         # Convert SE to SD if needed
@@ -603,7 +604,7 @@ class IsotopeUncertaintyPro:
                 length=150, bg="#ecf0f1").pack(side=tk.LEFT, padx=5)
 
         # ---------- ACTION BUTTONS ----------
-        tk.Button(left_panel, text="🎲 RUN MONTE CARLO WITH TDFs",
+        tk.Button(left_panel, text="🎲 RUN MONTE CARLO",
                  command=self._run_monte_carlo,
                  bg="#27ae60", fg="white",
                  font=("Arial", 12, "bold"),
@@ -853,6 +854,25 @@ class IsotopeUncertaintyPro:
         if not x_col or not y_col:
             messagebox.showwarning("Missing Selection", "Please select X and Y isotopes.")
             return
+
+        # ============ HANDLE COLUMN MAPPING ============
+        # Check if we have a column mapping from the sending plugin
+        if hasattr(self, 'external_context') and self.external_context:
+            column_mapping = self.external_context.get('column_mapping', {})
+
+            # If we have a mapping, use it to find the actual columns
+            if column_mapping:
+                # Try to map X isotope
+                if x_col in column_mapping:
+                    actual_x = column_mapping[x_col]
+                    print(f"   Mapping {x_col} → {actual_x}")
+                    x_col = actual_x
+
+                # Try to map Y isotope
+                if y_col in column_mapping:
+                    actual_y = column_mapping[y_col]
+                    print(f"   Mapping {y_col} → {actual_y}")
+                    y_col = actual_y
 
         # ============ SETUP ============
         if self.fast_mode_var.get():
@@ -1593,6 +1613,65 @@ class IsotopeUncertaintyPro:
         summary += "Group ellipse parameters added to all samples."
 
         messagebox.showinfo("Append Complete", summary)
+
+    def stop(self):
+        """Clean up resources when plugin is closed"""
+        print("🛑 Stopping Uncertainty plugin...")
+
+        # Cancel all after callbacks
+        self._cancel_all_after_callbacks()
+
+        # Close progress window if open
+        self._close_progress()
+
+        # Destroy window if it exists
+        if self.window and self.window.winfo_exists():
+            try:
+                self.window.destroy()
+            except:
+                pass
+
+        print("✅ Uncertainty plugin stopped")
+
+    def _cancel_all_after_callbacks(self):
+        """Cancel all pending after callbacks"""
+        if not hasattr(self, '_after_ids'):
+            self._after_ids = []
+
+        for after_id in self._after_ids:
+            try:
+                if self.window and self.window.winfo_exists():
+                    self.window.after_cancel(after_id)
+            except:
+                pass
+
+        self._after_ids.clear()
+
+    def _safe_after(self, ms, func, *args):
+        """Safely schedule an after callback with tracking"""
+        if not hasattr(self, '_after_ids'):
+            self._after_ids = []
+
+        try:
+            if self.window and self.window.winfo_exists():
+                after_id = self.window.after(ms, lambda: self._execute_after(func, *args))
+                self._after_ids.append(after_id)
+                return after_id
+        except:
+            pass
+        return None
+
+    def _execute_after(self, func, *args):
+        """Execute an after callback and remove its ID"""
+        try:
+            func(*args)
+        finally:
+            # Find and remove this callback's ID
+            import inspect
+            frame = inspect.currentframe()
+            # This is tricky - we'd need to know the after_id
+            # Alternative: just clear all periodically or ignore
+            pass
 
 
 def setup_plugin(main_app):

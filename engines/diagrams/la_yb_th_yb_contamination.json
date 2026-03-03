@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "la_yb_th_yb_contamination",
+  "diagram_name": "La/Yb vs Th/Yb Crustal Contamination",
+  "version": "1.0",
+  "author": "Various",
+  "reference": {
+    "citation": "Compiled from Pearce (1983), Taylor & McLennan (1985)",
+    "description": "La/Yb vs Th/Yb diagram showing mantle array and crustal contamination trends"
+  },
+  "description": "La/Yb vs Th/Yb diagram for identifying crustal contamination in basalts",
+  "diagram_type": "xy",
+
+  "requires_fields": ["La_ppm", "Th_ppm", "Yb_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "La_Yb",
+      "formula": "La_ppm / Yb_ppm",
+      "requires": ["La_ppm", "Yb_ppm"],
+      "description": "La/Yb ratio"
+    },
+    {
+      "name": "Th_Yb",
+      "formula": "Th_ppm / Yb_ppm",
+      "requires": ["Th_ppm", "Yb_ppm"],
+      "description": "Th/Yb ratio"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "La_Yb",
+      "label": "La/Yb",
+      "scale": "log",
+      "limits": [0.1, 100],
+      "major_ticks": [0.1, 1, 10, 100],
+      "grid": true
+    },
+    "y": {
+      "field": "Th_Yb",
+      "label": "Th/Yb",
+      "scale": "log",
+      "limits": [0.01, 10],
+      "major_ticks": [0.01, 0.1, 1, 10],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "Mantle Array",
+      "type": "polygon",
+      "points": [[0.5, 0.1], [2, 0.1], [2, 0.5], [0.5, 0.5]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.2,
+      "label": "Mantle Array"
+    },
+    {
+      "name": "Lower Crust",
+      "type": "polygon",
+      "points": [[2, 0.5], [5, 0.5], [5, 2], [2, 2]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.2,
+      "label": "Lower Crust"
+    },
+    {
+      "name": "Upper Crust",
+      "type": "polygon",
+      "points": [[5, 2], [20, 2], [20, 10], [5, 10]],
+      "closed": true,
+      "color": "#B22222",
+      "alpha": 0.2,
+      "label": "Upper Crust"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "Mantle-Crust Mixing Trend",
+      "type": "line",
+      "points": [[1, 0.2], [10, 5]],
+      "color": "black",
+      "linestyle": ":",
+      "linewidth": 1,
+      "alpha": 0.5
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red"
+  }
+}

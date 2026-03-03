@@ -642,6 +642,24 @@ class ScientificToolkit:
         """Handle application closing"""
         self._is_closing = True
 
+        # Stop plugins first
+        if hasattr(self, 'plugins'):
+            for plugin_name, plugin in self.plugins.items():
+                if hasattr(plugin, 'stop'):
+                    try:
+                        plugin.stop()
+                        print(f"✅ Stopped plugin: {plugin_name}")
+                    except Exception as e:
+                        print(f"⚠️ Error stopping plugin {plugin_name}: {e}")
+
+        # Stop auto-save
+        if hasattr(self, 'auto_save') and self.auto_save:
+            self.auto_save.stop()
+
+        # Cancel ALL pending after callbacks
+        self._cancel_all_tk_callbacks()
+
+        # Check for unsaved changes
         if hasattr(self, 'data_hub') and self.data_hub.has_unsaved_changes():
             response = messagebox.askyesnocancel(
                 "Unsaved Changes",
@@ -655,10 +673,104 @@ class ScientificToolkit:
                     self._is_closing = False
                     return
 
-        if hasattr(self, 'auto_save') and self.auto_save:
-            self.auto_save.stop()
+        # Final callback cleanup
+        self._cancel_all_tk_callbacks()
 
+        # Destroy root
         self.root.destroy()
+
+    def _cancel_all_tk_callbacks(self):
+        """Aggressively cancel all pending Tkinter after callbacks"""
+        try:
+            if not hasattr(self, 'root') or not self.root:
+                return
+
+            # Method 1: Try to get all after IDs from Tkinter
+            try:
+                after_ids = self.root.tk.call('after', 'info')
+                for after_id in after_ids:
+                    try:
+                        self.root.after_cancel(after_id)
+                        print(f"Cancelled callback: {after_id}")
+                    except Exception as e:
+                        print(f"Could not cancel {after_id}: {e}")
+            except Exception as e:
+                print(f"Could not get after info: {e}")
+
+            # Method 2: Track and cancel any stored after_ids
+            if hasattr(self, '_after_ids'):
+                for after_id in self._after_ids[:]:  # Use copy
+                    try:
+                        self.root.after_cancel(after_id)
+                    except:
+                        pass
+                self._after_ids.clear()
+
+        except Exception as e:
+            print(f"Error cancelling callbacks: {e}")
+
+    def _on_closing(self):
+        """Handle application closing"""
+        print("🛑 Application closing...")
+        self._is_closing = True
+
+        # Stop all plugins first
+        if hasattr(self, 'plugins'):
+            plugin_list = list(self.plugins.items())  # Create list to avoid modification during iteration
+            for plugin_name, plugin in plugin_list:
+                if hasattr(plugin, 'stop'):
+                    try:
+                        print(f"Stopping plugin: {plugin_name}")
+                        plugin.stop()
+                    except Exception as e:
+                        print(f"⚠️ Error stopping plugin {plugin_name}: {e}")
+                elif hasattr(plugin, 'on_closing'):
+                    try:
+                        plugin.on_closing()
+                    except Exception as e:
+                        print(f"⚠️ Error in plugin {plugin_name} on_closing: {e}")
+
+        # Stop auto-save
+        if hasattr(self, 'auto_save') and self.auto_save:
+            try:
+                self.auto_save.stop()
+            except Exception as e:
+                print(f"⚠️ Error stopping auto-save: {e}")
+
+        # Cancel ALL pending after callbacks
+        self._cancel_all_tk_callbacks()
+
+        # Check for unsaved changes
+        if hasattr(self, 'data_hub') and self.data_hub.has_unsaved_changes():
+            response = messagebox.askyesnocancel(
+                "Unsaved Changes",
+                "You have unsaved changes.\n\nYes: Save now\nNo: Exit without saving\nCancel: Stay"
+            )
+            if response is None:  # Cancel
+                self._is_closing = False
+                return
+            elif response:  # Yes
+                if not self.project_manager.save_project():
+                    self._is_closing = False
+                    return
+
+        # Final callback cleanup
+        self._cancel_all_tk_callbacks()
+
+        # Destroy root
+        try:
+            self.root.destroy()
+        except Exception as e:
+            print(f"Error destroying root: {e}")
+            import os
+            os._exit(0)  # Force exit if normal destruction fails
+
+    def _register_after_callback(self, after_id):
+        """Register an after callback ID for later cleanup"""
+        if not hasattr(self, '_after_ids'):
+            self._after_ids = []
+        self._after_ids.append(after_id)
+        return after_id
 
     def _open_settings(self):
         dialog = SettingsDialog(self.root, self.settings)
@@ -1153,6 +1265,7 @@ class ScientificToolkit:
 
     def _check_unsaved_changes(self):
         """Check for unsaved changes and update indicator"""
+        # CRITICAL: Check if we're closing and don't reschedule
         if self._is_closing:
             return
 
@@ -1162,6 +1275,7 @@ class ScientificToolkit:
             else:
                 self.unsaved_indicator.configure(text="○", bootstyle="secondary")
 
+        # Only reschedule if we're not closing
         if not self._is_closing:
             self.root.after(2000, self._check_unsaved_changes)
 
@@ -1267,6 +1381,14 @@ class ScientificToolkit:
                             inst = module.register_plugin(self)
                         elif hasattr(module, 'setup_plugin'):
                             inst = module.setup_plugin(self)
+                        if inst:
+                            # Store a reference to the plugin instance with its ID
+                            if not hasattr(self, '_plugin_instances'):
+                                self._plugin_instances = {}
+                            self._plugin_instances[plugin_id] = inst
+
+                            # Also store on the instance for menu cleanup
+                            inst._plugin_id = plugin_id
                         if inst:
                             self.hardware_plugins[plugin_id] = {'instance': inst, 'info': info, 'file': py_file}
                             if hasattr(self, 'left'):

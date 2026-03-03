@@ -835,14 +835,19 @@ T-Test: {col}
         self.output.config(state=tk.DISABLED)
         self._print_welcome()
 
+# In statistical_console.py - replace the register_plugin function:
+
 def register_plugin(main_app):
     """Register this plugin"""
     plugin = StatisticalConsolePlugin(main_app)
 
-    if hasattr(main_app.center, 'add_console_plugin'):
-        main_app.center.add_console_plugin(
-            console_name="Statistics",
-            console_icon="📊",
-            console_instance=plugin
+    # Add as a dedicated tab, not to console dropdown
+    if hasattr(main_app.center, 'add_tab_plugin'):
+        main_app.center.add_tab_plugin(
+            plugin_id=PLUGIN_INFO['id'],
+            plugin_name=PLUGIN_INFO['name'],
+            plugin_icon=PLUGIN_INFO['icon'],
+            plugin_instance=plugin
         )
-    return None
+
+    return plugin  # Return the instance, not None
