@@ -470,6 +470,12 @@ class ReferenceDatabase:
                 if code in ref:
                     mean = ref[code]['mean']
                     sd = ref[code]['sd']
+
+                    # Handle case where sd is None (single specimen)
+                    if sd is None or sd == 0:
+                        # Use a default CV of 5% if no SD available
+                        sd = mean * 0.05
+
                     # Simple probability based on normal distribution
                     z = abs(value - mean) / sd
                     prob = math.exp(-0.5 * z**2) / (sd * math.sqrt(2 * math.pi))

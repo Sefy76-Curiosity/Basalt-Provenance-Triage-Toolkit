@@ -1,187 +1,3899 @@
 {
   "metadata": {
-    "name": "Zooarchaeology Reference Measurements",
+    "name": "Zooarchaeology Reference Measurements (from zoolog R package)",
     "version": "1.0",
-    "source": "Compiled from von den Driesch (1976), zoolog R package, and published reference collections",
-    "last_updated": "2024-01-15",
-    "taxa": ["Sheep (Ovis aries)", "Goat (Capra hircus)", "Cattle (Bos taurus)", "Pig (Sus scrofa domesticus)", "Red Deer (Cervus elaphus)", "Roe Deer (Capreolus capreolus)", "Horse (Equus caballus)", "Dog (Canis familiaris)"]
+    "source": "Compiled from zoolog R package references including: Uerpmann, Davis, Clutton, Basel, Nieto, Albarella, Hongo, Haifa, Johnstone, Steppan, Degerbol, Russell, Nottingham",
+    "last_updated": "2024-03-04",
+    "taxa": [
+      "Bos taurus (Nieto)",
+      "Bos taurus (Basel)",
+      "Bos taurus (Johnstone)",
+      "Bos primigenius (Degerbol)",
+      "Bos primigenius (Steppan)",
+      "Ovis aries (Davis)",
+      "Ovis aries (Clutton)",
+      "Ovis orientalis (Basel)",
+      "Ovis orientalis (Uerpmann)",
+      "Capra hircus (Basel)",
+      "Capra hircus (Clutton)",
+      "Capra aegagrus (Uerpmann)",
+      "Sus domesticus (Albarella)",
+      "Sus scrofa (Basel)",
+      "Sus scrofa (Hongo)",
+      "Sus scrofa (Payne)",
+      "Cervus elaphus (Basel)",
+      "Dama mesopotamica (Haifa)",
+      "Gazella gazella (Haifa)",
+      "Equus asinus (Haifa)",
+      "Equus caballus (Johnstone)",
+      "Oryctolagus cuniculus (Nottingham)",
+      "Canis lupus (Russell)",
+      " Combined Set"
+    ]
   },
   "references": {
-    "Sheep (Ovis aries)": {
-      "GL": {"mean": 150.2, "sd": 8.3, "n": 156, "min": 132, "max": 172},
-      "GLI": {"mean": 148.5, "sd": 8.1, "n": 142, "min": 130, "max": 168},
-      "GLm": {"mean": 146.8, "sd": 7.9, "n": 138, "min": 128, "max": 165},
-      "Bp": {"mean": 40.3, "sd": 3.2, "n": 148, "min": 34, "max": 48},
-      "Bd": {"mean": 35.2, "sd": 2.9, "n": 152, "min": 29, "max": 42},
-      "Dp": {"mean": 28.5, "sd": 2.4, "n": 126, "min": 23, "max": 34},
-      "Dd": {"mean": 26.8, "sd": 2.3, "n": 130, "min": 22, "max": 32},
-      "SD": {"mean": 17.5, "sd": 1.8, "n": 158, "min": 14, "max": 22},
-      "SLC": {"mean": 32.4, "sd": 2.9, "n": 112, "min": 26, "max": 39},
-      "GLP": {"mean": 42.1, "sd": 3.8, "n": 118, "min": 34, "max": 51},
-      "LG": {"mean": 31.8, "sd": 2.7, "n": 115, "min": 26, "max": 38},
-      "BG": {"mean": 27.6, "sd": 2.5, "n": 115, "min": 22, "max": 34},
-      "GLC": {"mean": 62.4, "sd": 5.1, "n": 98, "min": 52, "max": 74},
-      "BT": {"mean": 32.1, "sd": 2.8, "n": 105, "min": 26, "max": 39},
-      "BFp": {"mean": 38.2, "sd": 3.3, "n": 95, "min": 31, "max": 46},
-      "BFd": {"mean": 33.5, "sd": 2.9, "n": 102, "min": 27, "max": 40},
-      "LA": {"mean": 30.8, "sd": 2.6, "n": 88, "min": 25, "max": 37},
-      "DC": {"mean": 21.3, "sd": 2.1, "n": 92, "min": 17, "max": 26},
-      "BFP": {"mean": 44.5, "sd": 4.1, "n": 78, "min": 36, "max": 54},
-      "GC": {"mean": 52.6, "sd": 4.8, "n": 85, "min": 43, "max": 63}
+    "Bos taurus (Nieto)": {
+      "GL": {
+        "mean": 208.0,
+        "sd": null,
+        "n": 1,
+        "min": 208.0,
+        "max": 208.0
+      },
+      "GLc": {
+        "mean": 234.0,
+        "sd": null,
+        "n": 1,
+        "min": 234.0,
+        "max": 234.0
+      },
+      "Bp": {
+        "mean": 25.0,
+        "sd": null,
+        "n": 1,
+        "min": 25.0,
+        "max": 25.0
+      },
+      "Dp": {
+        "mean": 28.8,
+        "sd": null,
+        "n": 1,
+        "min": 28.8,
+        "max": 28.8
+      },
+      "SD": {
+        "mean": 20.3,
+        "sd": null,
+        "n": 1,
+        "min": 20.3,
+        "max": 20.3
+      },
+      "Bd": {
+        "mean": 22.0,
+        "sd": null,
+        "n": 1,
+        "min": 22.0,
+        "max": 22.0
+      },
+      "BT": {
+        "mean": 68.3,
+        "sd": null,
+        "n": 1,
+        "min": 68.3,
+        "max": 68.3
+      },
+      "HTC": {
+        "mean": 30.4,
+        "sd": null,
+        "n": 1,
+        "min": 30.4,
+        "max": 30.4
+      },
+      "Dd": {
+        "mean": 23.2,
+        "sd": null,
+        "n": 1,
+        "min": 23.2,
+        "max": 23.2
+      },
+      "BFp": {
+        "mean": 67.0,
+        "sd": null,
+        "n": 1,
+        "min": 67.0,
+        "max": 67.0
+      },
+      "BFd": {
+        "mean": 65.3,
+        "sd": null,
+        "n": 1,
+        "min": 65.3,
+        "max": 65.3
+      },
+      "GLl": {
+        "mean": 62.0,
+        "sd": null,
+        "n": 1,
+        "min": 62.0,
+        "max": 62.0
+      },
+      "GLpe": {
+        "mean": 35.8,
+        "sd": null,
+        "n": 1,
+        "min": 35.8,
+        "max": 35.8
+      }
     },
-    "Goat (Capra hircus)": {
-      "GL": {"mean": 145.3, "sd": 7.8, "n": 142, "min": 128, "max": 165},
-      "GLI": {"mean": 143.6, "sd": 7.6, "n": 135, "min": 126, "max": 162},
-      "GLm": {"mean": 141.9, "sd": 7.5, "n": 128, "min": 124, "max": 160},
-      "Bp": {"mean": 38.5, "sd": 3.1, "n": 138, "min": 32, "max": 46},
-      "Bd": {"mean": 33.8, "sd": 2.8, "n": 142, "min": 28, "max": 40},
-      "Dp": {"mean": 27.2, "sd": 2.3, "n": 118, "min": 22, "max": 33},
-      "Dd": {"mean": 25.6, "sd": 2.2, "n": 122, "min": 21, "max": 31},
-      "SD": {"mean": 16.8, "sd": 1.7, "n": 145, "min": 13, "max": 21},
-      "SLC": {"mean": 31.2, "sd": 2.8, "n": 105, "min": 25, "max": 38},
-      "GLP": {"mean": 40.3, "sd": 3.6, "n": 108, "min": 32, "max": 49},
-      "LG": {"mean": 30.1, "sd": 2.6, "n": 106, "min": 24, "max": 36},
-      "BG": {"mean": 26.2, "sd": 2.4, "n": 106, "min": 21, "max": 32},
-      "GLC": {"mean": 59.8, "sd": 5.0, "n": 92, "min": 49, "max": 71},
-      "BT": {"mean": 30.5, "sd": 2.7, "n": 98, "min": 25, "max": 37},
-      "BFp": {"mean": 36.4, "sd": 3.2, "n": 88, "min": 29, "max": 44},
-      "BFd": {"mean": 31.8, "sd": 2.8, "n": 95, "min": 26, "max": 38},
-      "LA": {"mean": 29.2, "sd": 2.5, "n": 82, "min": 24, "max": 35},
-      "DC": {"mean": 20.1, "sd": 2.0, "n": 86, "min": 16, "max": 25},
-      "BFP": {"mean": 42.3, "sd": 4.0, "n": 72, "min": 34, "max": 52},
-      "GC": {"mean": 50.2, "sd": 4.6, "n": 78, "min": 41, "max": 60}
+    "Bos taurus (Basel)": {
+      "SLC": {
+        "mean": 65.89,
+        "sd": null,
+        "n": 1,
+        "min": 65.89,
+        "max": 65.89
+      },
+      "GLP": {
+        "mean": 83.01,
+        "sd": null,
+        "n": 1,
+        "min": 83.01,
+        "max": 83.01
+      },
+      "LG": {
+        "mean": 66.91,
+        "sd": null,
+        "n": 1,
+        "min": 66.91,
+        "max": 66.91
+      },
+      "BG": {
+        "mean": 58.07,
+        "sd": null,
+        "n": 1,
+        "min": 58.07,
+        "max": 58.07
+      },
+      "Bd": {
+        "mean": 26.17,
+        "sd": null,
+        "n": 1,
+        "min": 26.17,
+        "max": 26.17
+      },
+      "BT": {
+        "mean": 85.23,
+        "sd": null,
+        "n": 1,
+        "min": 85.23,
+        "max": 85.23
+      },
+      "SD": {
+        "mean": 26.29,
+        "sd": null,
+        "n": 1,
+        "min": 26.29,
+        "max": 26.29
+      },
+      "Bp": {
+        "mean": 33.03,
+        "sd": null,
+        "n": 1,
+        "min": 33.03,
+        "max": 33.03
+      },
+      "BFp": {
+        "mean": 83.91,
+        "sd": null,
+        "n": 1,
+        "min": 83.91,
+        "max": 83.91
+      },
+      "BFd": {
+        "mean": 77.15,
+        "sd": null,
+        "n": 1,
+        "min": 77.15,
+        "max": 77.15
+      },
+      "DPA": {
+        "mean": 78.92,
+        "sd": null,
+        "n": 1,
+        "min": 78.92,
+        "max": 78.92
+      },
+      "SDO": {
+        "mean": 66.11,
+        "sd": null,
+        "n": 1,
+        "min": 66.11,
+        "max": 66.11
+      },
+      "DD": {
+        "mean": 31.95,
+        "sd": null,
+        "n": 1,
+        "min": 31.95,
+        "max": 31.95
+      },
+      "LA": {
+        "mean": 87.59,
+        "sd": null,
+        "n": 1,
+        "min": 87.59,
+        "max": 87.59
+      },
+      "DC": {
+        "mean": 54.93,
+        "sd": null,
+        "n": 1,
+        "min": 54.93,
+        "max": 54.93
+      },
+      "GLl": {
+        "mean": 82.36,
+        "sd": null,
+        "n": 1,
+        "min": 82.36,
+        "max": 82.36
+      },
+      "GLm": {
+        "mean": 73.28,
+        "sd": null,
+        "n": 1,
+        "min": 73.28,
+        "max": 73.28
+      },
+      "Dl": {
+        "mean": 48.21,
+        "sd": null,
+        "n": 1,
+        "min": 48.21,
+        "max": 48.21
+      },
+      "GL": {
+        "mean": 149.79,
+        "sd": null,
+        "n": 1,
+        "min": 149.79,
+        "max": 149.79
+      },
+      "GB": {
+        "mean": 69.62,
+        "sd": null,
+        "n": 1,
+        "min": 69.62,
+        "max": 69.62
+      },
+      "GLpe": {
+        "mean": 42.39,
+        "sd": null,
+        "n": 1,
+        "min": 42.39,
+        "max": 42.39
+      }
     },
-    "Cattle (Bos taurus)": {
-      "GL": {"mean": 280.5, "sd": 15.2, "n": 203, "min": 245, "max": 320},
-      "GLI": {"mean": 277.3, "sd": 14.9, "n": 195, "min": 242, "max": 315},
-      "GLm": {"mean": 274.1, "sd": 14.7, "n": 188, "min": 239, "max": 310},
-      "Bp": {"mean": 74.8, "sd": 5.9, "n": 198, "min": 62, "max": 88},
-      "Bd": {"mean": 68.2, "sd": 5.6, "n": 202, "min": 56, "max": 82},
-      "Dp": {"mean": 52.3, "sd": 4.8, "n": 165, "min": 42, "max": 64},
-      "Dd": {"mean": 48.6, "sd": 4.5, "n": 170, "min": 39, "max": 59},
-      "SD": {"mean": 37.8, "sd": 3.9, "n": 205, "min": 29, "max": 48},
-      "SLC": {"mean": 62.5, "sd": 5.8, "n": 145, "min": 50, "max": 76},
-      "GLP": {"mean": 72.3, "sd": 6.7, "n": 152, "min": 58, "max": 88},
-      "LG": {"mean": 58.2, "sd": 5.2, "n": 148, "min": 47, "max": 70},
-      "BG": {"mean": 51.8, "sd": 4.9, "n": 148, "min": 41, "max": 63},
-      "GLC": {"mean": 125.4, "sd": 10.2, "n": 125, "min": 102, "max": 150},
-      "BT": {"mean": 82.3, "sd": 7.1, "n": 138, "min": 67, "max": 98},
-      "BFp": {"mean": 70.5, "sd": 6.2, "n": 118, "min": 57, "max": 85},
-      "BFd": {"mean": 65.8, "sd": 5.8, "n": 125, "min": 53, "max": 79},
-      "LA": {"mean": 62.4, "sd": 5.5, "n": 112, "min": 50, "max": 75},
-      "DC": {"mean": 42.5, "sd": 4.1, "n": 118, "min": 34, "max": 52},
-      "BFP": {"mean": 85.6, "sd": 7.8, "n": 98, "min": 69, "max": 103},
-      "GC": {"mean": 128.3, "sd": 11.2, "n": 105, "min": 104, "max": 154}
+    "Bos taurus (Johnstone)": {
+      "W": {
+        "mean": 15.4,
+        "sd": null,
+        "n": 1,
+        "min": 15.4,
+        "max": 15.4
+      },
+      "L": {
+        "mean": 35.6,
+        "sd": null,
+        "n": 1,
+        "min": 35.6,
+        "max": 35.6
+      },
+      "SLC": {
+        "mean": 43.1,
+        "sd": null,
+        "n": 1,
+        "min": 43.1,
+        "max": 43.1
+      },
+      "BT": {
+        "mean": 66.5,
+        "sd": null,
+        "n": 1,
+        "min": 66.5,
+        "max": 66.5
+      },
+      "HTC": {
+        "mean": 30.3,
+        "sd": null,
+        "n": 1,
+        "min": 30.3,
+        "max": 30.3
+      },
+      "GL": {
+        "mean": 177.1,
+        "sd": null,
+        "n": 1,
+        "min": 177.1,
+        "max": 177.1
+      },
+      "SD": {
+        "mean": 29.4,
+        "sd": null,
+        "n": 1,
+        "min": 29.4,
+        "max": 29.4
+      },
+      "Bd": {
+        "mean": 49.9,
+        "sd": null,
+        "n": 1,
+        "min": 49.9,
+        "max": 49.9
+      },
+      "Dd": {
+        "mean": 29.3,
+        "sd": null,
+        "n": 1,
+        "min": 29.3,
+        "max": 29.3
+      },
+      "BatF": {
+        "mean": 46.9,
+        "sd": null,
+        "n": 1,
+        "min": 46.9,
+        "max": 46.9
+      },
+      "WCM": {
+        "mean": 23.9,
+        "sd": null,
+        "n": 1,
+        "min": 23.9,
+        "max": 23.9
+      },
+      "WCL": {
+        "mean": 22.9,
+        "sd": null,
+        "n": 1,
+        "min": 22.9,
+        "max": 22.9
+      },
+      "Davis.3": {
+        "mean": 25.6,
+        "sd": null,
+        "n": 1,
+        "min": 25.6,
+        "max": 25.6
+      },
+      "GLl": {
+        "mean": 59.3,
+        "sd": null,
+        "n": 1,
+        "min": 59.3,
+        "max": 59.3
+      },
+      "Dl": {
+        "mean": 32.9,
+        "sd": null,
+        "n": 1,
+        "min": 32.9,
+        "max": 32.9
+      }
     },
-    "Pig (Sus scrofa domesticus)": {
-      "GL": {"mean": 130.2, "sd": 11.8, "n": 178, "min": 105, "max": 160},
-      "GLI": {"mean": 128.5, "sd": 11.6, "n": 165, "min": 103, "max": 158},
-      "GLm": {"mean": 126.8, "sd": 11.4, "n": 158, "min": 101, "max": 156},
-      "Bp": {"mean": 42.3, "sd": 4.8, "n": 172, "min": 32, "max": 54},
-      "Bd": {"mean": 39.8, "sd": 4.6, "n": 175, "min": 30, "max": 51},
-      "Dp": {"mean": 35.2, "sd": 4.1, "n": 142, "min": 26, "max": 46},
-      "Dd": {"mean": 32.8, "sd": 3.9, "n": 148, "min": 24, "max": 42},
-      "SD": {"mean": 21.5, "sd": 2.8, "n": 180, "min": 15, "max": 29},
-      "SLC": {"mean": 38.6, "sd": 4.5, "n": 125, "min": 28, "max": 50},
-      "GLP": {"mean": 44.8, "sd": 5.1, "n": 132, "min": 33, "max": 58},
-      "LG": {"mean": 34.5, "sd": 4.0, "n": 128, "min": 25, "max": 45},
-      "BG": {"mean": 31.2, "sd": 3.8, "n": 128, "min": 23, "max": 41},
-      "GLC": {"mean": 58.6, "sd": 6.2, "n": 108, "min": 45, "max": 74},
-      "BT": {"mean": 37.8, "sd": 4.3, "n": 115, "min": 28, "max": 49},
-      "BFp": {"mean": 40.2, "sd": 4.6, "n": 98, "min": 30, "max": 52},
-      "BFd": {"mean": 36.5, "sd": 4.2, "n": 105, "min": 27, "max": 47},
-      "LA": {"mean": 32.4, "sd": 3.8, "n": 92, "min": 24, "max": 42},
-      "DC": {"mean": 26.8, "sd": 3.2, "n": 96, "min": 20, "max": 35},
-      "BFP": {"mean": 46.5, "sd": 5.3, "n": 82, "min": 35, "max": 59},
-      "GC": {"mean": 55.2, "sd": 6.0, "n": 88, "min": 42, "max": 70}
+    "Bos primigenius (Degerbol)": {
+      "SLC": {
+        "mean": 69.0,
+        "sd": null,
+        "n": 1,
+        "min": 69.0,
+        "max": 69.0
+      },
+      "LG": {
+        "mean": 70.0,
+        "sd": null,
+        "n": 1,
+        "min": 70.0,
+        "max": 70.0
+      },
+      "BG": {
+        "mean": 60.0,
+        "sd": null,
+        "n": 1,
+        "min": 60.0,
+        "max": 60.0
+      },
+      "GL": {
+        "mean": 165.0,
+        "sd": null,
+        "n": 1,
+        "min": 165.0,
+        "max": 165.0
+      },
+      "GLC": {
+        "mean": 309.0,
+        "sd": null,
+        "n": 1,
+        "min": 309.0,
+        "max": 309.0
+      },
+      "Bd": {
+        "mean": 29.0,
+        "sd": null,
+        "n": 1,
+        "min": 29.0,
+        "max": 29.0
+      },
+      "BT": {
+        "mean": 89.0,
+        "sd": null,
+        "n": 1,
+        "min": 89.0,
+        "max": 89.0
+      },
+      "SD": {
+        "mean": 27.0,
+        "sd": null,
+        "n": 1,
+        "min": 27.0,
+        "max": 27.0
+      },
+      "Bp": {
+        "mean": 34.0,
+        "sd": null,
+        "n": 1,
+        "min": 34.0,
+        "max": 34.0
+      },
+      "BFp": {
+        "mean": 90.0,
+        "sd": null,
+        "n": 1,
+        "min": 90.0,
+        "max": 90.0
+      },
+      "DC": {
+        "mean": 57.0,
+        "sd": null,
+        "n": 1,
+        "min": 57.0,
+        "max": 57.0
+      },
+      "GLl": {
+        "mean": 83.0,
+        "sd": null,
+        "n": 1,
+        "min": 83.0,
+        "max": 83.0
+      },
+      "GB": {
+        "mean": 67.0,
+        "sd": null,
+        "n": 1,
+        "min": 67.0,
+        "max": 67.0
+      },
+      "GLpe": {
+        "mean": 47.0,
+        "sd": null,
+        "n": 1,
+        "min": 47.0,
+        "max": 47.0
+      }
     },
-    "Red Deer (Cervus elaphus)": {
-      "GL": {"mean": 260.5, "sd": 14.2, "n": 145, "min": 228, "max": 295},
-      "GLI": {"mean": 257.8, "sd": 14.0, "n": 138, "min": 225, "max": 292},
-      "GLm": {"mean": 255.1, "sd": 13.8, "n": 132, "min": 222, "max": 289},
-      "Bp": {"mean": 60.2, "sd": 5.2, "n": 142, "min": 49, "max": 72},
-      "Bd": {"mean": 55.3, "sd": 4.9, "n": 148, "min": 45, "max": 67},
-      "Dp": {"mean": 42.5, "sd": 4.2, "n": 118, "min": 33, "max": 53},
-      "Dd": {"mean": 38.9, "sd": 4.0, "n": 122, "min": 30, "max": 49},
-      "SD": {"mean": 29.8, "sd": 3.1, "n": 150, "min": 23, "max": 38},
-      "SLC": {"mean": 52.3, "sd": 5.1, "n": 105, "min": 41, "max": 65},
-      "GLP": {"mean": 58.2, "sd": 5.8, "n": 112, "min": 45, "max": 73},
-      "LG": {"mean": 47.5, "sd": 4.5, "n": 108, "min": 37, "max": 59},
-      "BG": {"mean": 42.1, "sd": 4.2, "n": 108, "min": 33, "max": 53},
-      "GLC": {"mean": 98.5, "sd": 8.9, "n": 92, "min": 79, "max": 120},
-      "BT": {"mean": 52.3, "sd": 4.8, "n": 98, "min": 42, "max": 64},
-      "BFp": {"mean": 55.6, "sd": 5.2, "n": 85, "min": 44, "max": 68},
-      "BFd": {"mean": 50.2, "sd": 4.7, "n": 92, "min": 40, "max": 62},
-      "LA": {"mean": 48.5, "sd": 4.6, "n": 82, "min": 38, "max": 60},
-      "DC": {"mean": 32.8, "sd": 3.4, "n": 86, "min": 25, "max": 41},
-      "BFP": {"mean": 68.2, "sd": 6.5, "n": 72, "min": 54, "max": 84},
-      "GC": {"mean": 98.5, "sd": 9.2, "n": 78, "min": 78, "max": 120}
+    "Bos primigenius (Steppan)": {
+      "Bd": {
+        "mean": 77.63,
+        "sd": null,
+        "n": 1,
+        "min": 77.63,
+        "max": 77.63
+      },
+      "Bp": {
+        "mean": 124.76,
+        "sd": null,
+        "n": 1,
+        "min": 124.76,
+        "max": 124.76
+      },
+      "GLpe": {
+        "mean": 47.7,
+        "sd": null,
+        "n": 1,
+        "min": 47.7,
+        "max": 47.7
+      },
+      "SD": {
+        "mean": 48.78,
+        "sd": null,
+        "n": 1,
+        "min": 48.78,
+        "max": 48.78
+      },
+      "DLS": {
+        "mean": 81.72,
+        "sd": null,
+        "n": 1,
+        "min": 81.72,
+        "max": 81.72
+      },
+      "Ld": {
+        "mean": 65.55,
+        "sd": null,
+        "n": 1,
+        "min": 65.55,
+        "max": 65.55
+      },
+      "MBS": {
+        "mean": 29.62,
+        "sd": null,
+        "n": 1,
+        "min": 29.62,
+        "max": 29.62
+      },
+      "Dl": {
+        "mean": 47.06,
+        "sd": null,
+        "n": 1,
+        "min": 47.06,
+        "max": 47.06
+      },
+      "GLl": {
+        "mean": 82.36,
+        "sd": null,
+        "n": 1,
+        "min": 82.36,
+        "max": 82.36
+      },
+      "GLm": {
+        "mean": 75.72,
+        "sd": null,
+        "n": 1,
+        "min": 75.72,
+        "max": 75.72
+      },
+      "GL": {
+        "mean": 418.75,
+        "sd": null,
+        "n": 1,
+        "min": 418.75,
+        "max": 418.75
+      },
+      "GB": {
+        "mean": 70.56,
+        "sd": null,
+        "n": 1,
+        "min": 70.56,
+        "max": 70.56
+      },
+      "DC": {
+        "mean": 56.3,
+        "sd": null,
+        "n": 1,
+        "min": 56.3,
+        "max": 56.3
+      },
+      "GLC": {
+        "mean": 306.75,
+        "sd": null,
+        "n": 1,
+        "min": 306.75,
+        "max": 306.75
+      },
+      "BC": {
+        "mean": 270.0,
+        "sd": null,
+        "n": 1,
+        "min": 270.0,
+        "max": 270.0
+      },
+      "GD": {
+        "mean": 94.0,
+        "sd": null,
+        "n": 1,
+        "min": 94.0,
+        "max": 94.0
+      },
+      "LD": {
+        "mean": 74.0,
+        "sd": null,
+        "n": 1,
+        "min": 74.0,
+        "max": 74.0
+      },
+      "LoC": {
+        "mean": 450.0,
+        "sd": null,
+        "n": 1,
+        "min": 450.0,
+        "max": 450.0
+      },
+      "BT": {
+        "mean": 90.28,
+        "sd": null,
+        "n": 1,
+        "min": 90.28,
+        "max": 90.28
+      },
+      "LCTR": {
+        "mean": 161.0,
+        "sd": null,
+        "n": 1,
+        "min": 161.0,
+        "max": 161.0
+      },
+      "LMR": {
+        "mean": 97.63,
+        "sd": null,
+        "n": 1,
+        "min": 97.63,
+        "max": 97.63
+      },
+      "LPMR": {
+        "mean": 64.39,
+        "sd": null,
+        "n": 1,
+        "min": 64.39,
+        "max": 64.39
+      },
+      "BmC": {
+        "mean": 30.84,
+        "sd": null,
+        "n": 1,
+        "min": 30.84,
+        "max": 30.84
+      },
+      "DdD": {
+        "mean": 31.02,
+        "sd": null,
+        "n": 1,
+        "min": 31.02,
+        "max": 31.02
+      },
+      "DmC": {
+        "mean": 40.81,
+        "sd": null,
+        "n": 1,
+        "min": 40.81,
+        "max": 40.81
+      },
+      "LA": {
+        "mean": 88.79,
+        "sd": null,
+        "n": 1,
+        "min": 88.79,
+        "max": 88.79
+      },
+      "BFd": {
+        "mean": 83.07,
+        "sd": null,
+        "n": 1,
+        "min": 83.07,
+        "max": 83.07
+      },
+      "BFp": {
+        "mean": 90.18,
+        "sd": null,
+        "n": 1,
+        "min": 90.18,
+        "max": 90.18
+      },
+      "BFcr": {
+        "mean": 77.93,
+        "sd": null,
+        "n": 1,
+        "min": 77.93,
+        "max": 77.93
+      },
+      "GLP": {
+        "mean": 86.98,
+        "sd": null,
+        "n": 1,
+        "min": 86.98,
+        "max": 86.98
+      },
+      "SLC": {
+        "mean": 68.63,
+        "sd": null,
+        "n": 1,
+        "min": 68.63,
+        "max": 68.63
+      },
+      "BPC": {
+        "mean": 58.32,
+        "sd": null,
+        "n": 1,
+        "min": 58.32,
+        "max": 58.32
+      },
+      "DPA": {
+        "mean": 76.93,
+        "sd": null,
+        "n": 1,
+        "min": 76.93,
+        "max": 76.93
+      },
+      "LO": {
+        "mean": 112.85,
+        "sd": null,
+        "n": 1,
+        "min": 112.85,
+        "max": 112.85
+      },
+      "SDO": {
+        "mean": 66.42,
+        "sd": null,
+        "n": 1,
+        "min": 66.42,
+        "max": 66.42
+      }
     },
-    "Roe Deer (Capreolus capreolus)": {
-      "GL": {"mean": 180.3, "sd": 10.1, "n": 132, "min": 158, "max": 205},
-      "GLI": {"mean": 178.2, "sd": 9.9, "n": 125, "min": 156, "max": 202},
-      "GLm": {"mean": 176.1, "sd": 9.7, "n": 118, "min": 154, "max": 199},
-      "Bp": {"mean": 39.8, "sd": 3.2, "n": 128, "min": 33, "max": 47},
-      "Bd": {"mean": 35.2, "sd": 2.9, "n": 135, "min": 29, "max": 42},
-      "Dp": {"mean": 28.5, "sd": 2.5, "n": 108, "min": 23, "max": 35},
-      "Dd": {"mean": 26.2, "sd": 2.3, "n": 112, "min": 21, "max": 32},
-      "SD": {"mean": 19.8, "sd": 1.9, "n": 138, "min": 16, "max": 25},
-      "SLC": {"mean": 35.2, "sd": 3.1, "n": 95, "min": 28, "max": 43},
-      "GLP": {"mean": 38.5, "sd": 3.5, "n": 98, "min": 30, "max": 48},
-      "LG": {"mean": 29.8, "sd": 2.7, "n": 95, "min": 24, "max": 36},
-      "BG": {"mean": 25.6, "sd": 2.4, "n": 95, "min": 20, "max": 32},
-      "GLC": {"mean": 72.3, "sd": 6.5, "n": 82, "min": 58, "max": 88},
-      "BT": {"mean": 32.5, "sd": 2.9, "n": 88, "min": 26, "max": 40},
-      "BFp": {"mean": 36.8, "sd": 3.3, "n": 75, "min": 29, "max": 45},
-      "BFd": {"mean": 32.1, "sd": 2.9, "n": 82, "min": 25, "max": 40},
-      "LA": {"mean": 30.2, "sd": 2.8, "n": 72, "min": 24, "max": 37},
-      "DC": {"mean": 22.5, "sd": 2.2, "n": 76, "min": 18, "max": 28},
-      "BFP": {"mean": 42.5, "sd": 4.0, "n": 65, "min": 33, "max": 53},
-      "GC": {"mean": 58.2, "sd": 5.5, "n": 70, "min": 46, "max": 72}
+    "Ovis aries (Davis)": {
+      "GL": {
+        "mean": 122.8,
+        "sd": null,
+        "n": 1,
+        "min": 122.8,
+        "max": 122.8
+      },
+      "SD": {
+        "mean": 11.0,
+        "sd": null,
+        "n": 1,
+        "min": 11.0,
+        "max": 11.0
+      },
+      "BT": {
+        "mean": 27.1,
+        "sd": null,
+        "n": 1,
+        "min": 27.1,
+        "max": 27.1
+      },
+      "HTC": {
+        "mean": 13.7,
+        "sd": null,
+        "n": 1,
+        "min": 13.7,
+        "max": 13.7
+      },
+      "Bp": {
+        "mean": 21.3,
+        "sd": null,
+        "n": 1,
+        "min": 21.3,
+        "max": 21.3
+      },
+      "BFp": {
+        "mean": 27.1,
+        "sd": null,
+        "n": 1,
+        "min": 27.1,
+        "max": 27.1
+      },
+      "Bd": {
+        "mean": 22.8,
+        "sd": null,
+        "n": 1,
+        "min": 22.8,
+        "max": 22.8
+      },
+      "Davis.SD": {
+        "mean": 11.1,
+        "sd": null,
+        "n": 1,
+        "min": 11.1,
+        "max": 11.1
+      },
+      "Dd": {
+        "mean": 19.8,
+        "sd": null,
+        "n": 1,
+        "min": 19.8,
+        "max": 19.8
+      },
+      "GLl": {
+        "mean": 27.0,
+        "sd": null,
+        "n": 1,
+        "min": 27.0,
+        "max": 27.0
+      },
+      "Dl": {
+        "mean": 14.9,
+        "sd": null,
+        "n": 1,
+        "min": 14.9,
+        "max": 14.9
+      }
     },
-    "Horse (Equus caballus)": {
-      "GL": {"mean": 320.5, "sd": 18.2, "n": 98, "min": 280, "max": 365},
-      "GLI": {"mean": 317.2, "sd": 17.9, "n": 92, "min": 277, "max": 361},
-      "GLm": {"mean": 313.9, "sd": 17.6, "n": 88, "min": 274, "max": 357},
-      "Bp": {"mean": 85.2, "sd": 7.2, "n": 95, "min": 70, "max": 102},
-      "Bd": {"mean": 75.3, "sd": 6.8, "n": 96, "min": 61, "max": 91},
-      "Dp": {"mean": 58.5, "sd": 5.5, "n": 82, "min": 47, "max": 71},
-      "Dd": {"mean": 52.8, "sd": 5.1, "n": 84, "min": 42, "max": 65},
-      "SD": {"mean": 42.1, "sd": 4.2, "n": 98, "min": 33, "max": 52},
-      "SLC": {"mean": 72.5, "sd": 6.8, "n": 72, "min": 58, "max": 88},
-      "GLP": {"mean": 82.3, "sd": 7.5, "n": 75, "min": 66, "max": 100},
-      "LG": {"mean": 65.2, "sd": 5.9, "n": 72, "min": 52, "max": 79},
-      "BG": {"mean": 58.1, "sd": 5.4, "n": 72, "min": 46, "max": 71},
-      "GLC": {"mean": 145.2, "sd": 12.1, "n": 62, "min": 118, "max": 174},
-      "BT": {"mean": 72.5, "sd": 6.5, "n": 68, "min": 58, "max": 88},
-      "BFp": {"mean": 78.3, "sd": 7.0, "n": 58, "min": 63, "max": 95},
-      "BFd": {"mean": 68.5, "sd": 6.2, "n": 62, "min": 55, "max": 83},
-      "LA": {"mean": 68.2, "sd": 6.1, "n": 55, "min": 55, "max": 82},
-      "DC": {"mean": 48.5, "sd": 4.6, "n": 58, "min": 38, "max": 59},
-      "BFP": {"mean": 95.2, "sd": 8.8, "n": 48, "min": 76, "max": 115},
-      "GC": {"mean": 112.5, "sd": 10.2, "n": 52, "min": 90, "max": 136}
+    "Ovis aries (Clutton)": {
+      "SLC": {
+        "mean": 18.26,
+        "sd": null,
+        "n": 1,
+        "min": 18.26,
+        "max": 18.26
+      },
+      "GLP": {
+        "mean": 30.54,
+        "sd": null,
+        "n": 1,
+        "min": 30.54,
+        "max": 30.54
+      },
+      "LG": {
+        "mean": 22.95,
+        "sd": null,
+        "n": 1,
+        "min": 22.95,
+        "max": 22.95
+      },
+      "BG": {
+        "mean": 19.66,
+        "sd": null,
+        "n": 1,
+        "min": 19.66,
+        "max": 19.66
+      },
+      "GL": {
+        "mean": 128.66,
+        "sd": null,
+        "n": 1,
+        "min": 128.66,
+        "max": 128.66
+      },
+      "Bp": {
+        "mean": 10.25,
+        "sd": null,
+        "n": 1,
+        "min": 10.25,
+        "max": 10.25
+      },
+      "Dp": {
+        "mean": 11.14,
+        "sd": null,
+        "n": 1,
+        "min": 11.14,
+        "max": 11.14
+      },
+      "SD": {
+        "mean": 8.69,
+        "sd": null,
+        "n": 1,
+        "min": 8.69,
+        "max": 8.69
+      },
+      "Bd": {
+        "mean": 8.47,
+        "sd": null,
+        "n": 1,
+        "min": 8.47,
+        "max": 8.47
+      },
+      "Dd": {
+        "mean": 15.42,
+        "sd": null,
+        "n": 1,
+        "min": 15.42,
+        "max": 15.42
+      },
+      "BT": {
+        "mean": 27.27,
+        "sd": null,
+        "n": 1,
+        "min": 27.27,
+        "max": 27.27
+      },
+      "HTC": {
+        "mean": 15.3,
+        "sd": null,
+        "n": 1,
+        "min": 15.3,
+        "max": 15.3
+      },
+      "DPA": {
+        "mean": 25.15,
+        "sd": null,
+        "n": 1,
+        "min": 25.15,
+        "max": 25.15
+      },
+      "BPC": {
+        "mean": 18.05,
+        "sd": null,
+        "n": 1,
+        "min": 18.05,
+        "max": 18.05
+      },
+      "WCM": {
+        "mean": 9.65,
+        "sd": null,
+        "n": 1,
+        "min": 9.65,
+        "max": 9.65
+      },
+      "LA": {
+        "mean": 25.7,
+        "sd": null,
+        "n": 1,
+        "min": 25.7,
+        "max": 25.7
+      },
+      "DC": {
+        "mean": 19.36,
+        "sd": null,
+        "n": 1,
+        "min": 19.36,
+        "max": 19.36
+      },
+      "GLl": {
+        "mean": 26.6,
+        "sd": null,
+        "n": 1,
+        "min": 26.6,
+        "max": 26.6
+      },
+      "Dl": {
+        "mean": 14.41,
+        "sd": null,
+        "n": 1,
+        "min": 14.41,
+        "max": 14.41
+      },
+      "GB": {
+        "mean": 18.66,
+        "sd": null,
+        "n": 1,
+        "min": 18.66,
+        "max": 18.66
+      },
+      "GLpe": {
+        "mean": 21.14,
+        "sd": null,
+        "n": 1,
+        "min": 21.14,
+        "max": 21.14
+      },
+      "L": {
+        "mean": 25.5,
+        "sd": null,
+        "n": 1,
+        "min": 25.5,
+        "max": 25.5
+      },
+      "H": {
+        "mean": 14.59,
+        "sd": null,
+        "n": 1,
+        "min": 14.59,
+        "max": 14.59
+      }
     },
-    "Dog (Canis familiaris)": {
-      "GL": {"mean": 120.5, "sd": 18.5, "n": 145, "min": 85, "max": 165},
-      "GLI": {"mean": 118.2, "sd": 18.2, "n": 138, "min": 83, "max": 162},
-      "GLm": {"mean": 115.9, "sd": 17.9, "n": 132, "min": 81, "max": 159},
-      "Bp": {"mean": 27.8, "sd": 4.2, "n": 142, "min": 18, "max": 38},
-      "Bd": {"mean": 24.5, "sd": 3.9, "n": 148, "min": 16, "max": 34},
-      "Dp": {"mean": 22.3, "sd": 3.5, "n": 118, "min": 14, "max": 31},
-      "Dd": {"mean": 20.1, "sd": 3.2, "n": 122, "min": 13, "max": 28},
-      "SD": {"mean": 12.2, "sd": 2.1, "n": 150, "min": 8, "max": 18},
-      "SLC": {"mean": 22.5, "sd": 3.8, "n": 105, "min": 14, "max": 32},
-      "GLP": {"mean": 29.8, "sd": 4.5, "n": 108, "min": 19, "max": 41},
-      "LG": {"mean": 21.5, "sd": 3.2, "n": 105, "min": 14, "max": 30},
-      "BG": {"mean": 18.2, "sd": 2.8, "n": 105, "min": 12, "max": 26},
-      "GLC": {"mean": 48.5, "sd": 7.2, "n": 92, "min": 32, "max": 68},
-      "BT": {"mean": 23.8, "sd": 3.6, "n": 98, "min": 15, "max": 33},
-      "BFp": {"mean": 25.2, "sd": 3.9, "n": 85, "min": 16, "max": 36},
-      "BFd": {"mean": 21.8, "sd": 3.4, "n": 92, "min": 14, "max": 31},
-      "LA": {"mean": 20.5, "sd": 3.2, "n": 82, "min": 13, "max": 29},
-      "DC": {"mean": 15.2, "sd": 2.5, "n": 86, "min": 10, "max": 22},
-      "BFP": {"mean": 30.2, "sd": 4.8, "n": 72, "min": 19, "max": 43},
-      "GC": {"mean": 38.5, "sd": 5.9, "n": 78, "min": 25, "max": 54}
+    "Ovis orientalis (Basel)": {
+      "SLC": {
+        "mean": 22.15,
+        "sd": null,
+        "n": 1,
+        "min": 22.15,
+        "max": 22.15
+      },
+      "GLP": {
+        "mean": 37.75,
+        "sd": null,
+        "n": 1,
+        "min": 37.75,
+        "max": 37.75
+      },
+      "LG": {
+        "mean": 27.1,
+        "sd": null,
+        "n": 1,
+        "min": 27.1,
+        "max": 27.1
+      },
+      "BG": {
+        "mean": 23.1,
+        "sd": null,
+        "n": 1,
+        "min": 23.1,
+        "max": 23.1
+      },
+      "SD": {
+        "mean": 12.5,
+        "sd": null,
+        "n": 1,
+        "min": 12.5,
+        "max": 12.5
+      },
+      "Bd": {
+        "mean": 25.8,
+        "sd": null,
+        "n": 1,
+        "min": 25.8,
+        "max": 25.8
+      },
+      "BT": {
+        "mean": 31.45,
+        "sd": null,
+        "n": 1,
+        "min": 31.45,
+        "max": 31.45
+      },
+      "Bp": {
+        "mean": 21.6,
+        "sd": null,
+        "n": 1,
+        "min": 21.6,
+        "max": 21.6
+      },
+      "BFp": {
+        "mean": 32.8,
+        "sd": null,
+        "n": 1,
+        "min": 32.8,
+        "max": 32.8
+      },
+      "BFd": {
+        "mean": 25.8,
+        "sd": null,
+        "n": 1,
+        "min": 25.8,
+        "max": 25.8
+      },
+      "DPA": {
+        "mean": 28.8,
+        "sd": null,
+        "n": 1,
+        "min": 28.8,
+        "max": 28.8
+      },
+      "SDO": {
+        "mean": 24.05,
+        "sd": null,
+        "n": 1,
+        "min": 24.05,
+        "max": 24.05
+      },
+      "DD": {
+        "mean": 10.7,
+        "sd": null,
+        "n": 1,
+        "min": 10.7,
+        "max": 10.7
+      },
+      "LA": {
+        "mean": 31.1,
+        "sd": null,
+        "n": 1,
+        "min": 31.1,
+        "max": 31.1
+      },
+      "LAR": {
+        "mean": 27.3,
+        "sd": null,
+        "n": 1,
+        "min": 27.3,
+        "max": 27.3
+      },
+      "DC": {
+        "mean": 22.9,
+        "sd": null,
+        "n": 1,
+        "min": 22.9,
+        "max": 22.9
+      },
+      "GLl": {
+        "mean": 32.1,
+        "sd": null,
+        "n": 1,
+        "min": 32.1,
+        "max": 32.1
+      },
+      "GLm": {
+        "mean": 30.35,
+        "sd": null,
+        "n": 1,
+        "min": 30.35,
+        "max": 30.35
+      },
+      "Dl": {
+        "mean": 17.95,
+        "sd": null,
+        "n": 1,
+        "min": 17.95,
+        "max": 17.95
+      },
+      "Dm": {
+        "mean": 18.25,
+        "sd": null,
+        "n": 1,
+        "min": 18.25,
+        "max": 18.25
+      },
+      "GL": {
+        "mean": 65.05,
+        "sd": null,
+        "n": 1,
+        "min": 65.05,
+        "max": 65.05
+      },
+      "GB": {
+        "mean": 21.25,
+        "sd": null,
+        "n": 1,
+        "min": 21.25,
+        "max": 21.25
+      }
+    },
+    "Ovis orientalis (Uerpmann)": {
+      "SLC": {
+        "mean": 19.5,
+        "sd": null,
+        "n": 1,
+        "min": 19.5,
+        "max": 19.5
+      },
+      "GLP": {
+        "mean": 33.0,
+        "sd": null,
+        "n": 1,
+        "min": 33.0,
+        "max": 33.0
+      },
+      "LG": {
+        "mean": 26.0,
+        "sd": null,
+        "n": 1,
+        "min": 26.0,
+        "max": 26.0
+      },
+      "BG": {
+        "mean": 22.0,
+        "sd": null,
+        "n": 1,
+        "min": 22.0,
+        "max": 22.0
+      },
+      "Bp": {
+        "mean": 12.8,
+        "sd": null,
+        "n": 1,
+        "min": 12.8,
+        "max": 12.8
+      },
+      "Dp": {
+        "mean": 22.5,
+        "sd": null,
+        "n": 1,
+        "min": 22.5,
+        "max": 22.5
+      },
+      "SD": {
+        "mean": 8.9,
+        "sd": null,
+        "n": 1,
+        "min": 8.9,
+        "max": 8.9
+      },
+      "Bd": {
+        "mean": 11.3,
+        "sd": null,
+        "n": 1,
+        "min": 11.3,
+        "max": 11.3
+      },
+      "BT": {
+        "mean": 29.5,
+        "sd": null,
+        "n": 1,
+        "min": 29.5,
+        "max": 29.5
+      },
+      "BFp": {
+        "mean": 30.5,
+        "sd": null,
+        "n": 1,
+        "min": 30.5,
+        "max": 30.5
+      },
+      "BFd": {
+        "mean": 25.5,
+        "sd": null,
+        "n": 1,
+        "min": 25.5,
+        "max": 25.5
+      },
+      "BPC": {
+        "mean": 19.0,
+        "sd": null,
+        "n": 1,
+        "min": 19.0,
+        "max": 19.0
+      },
+      "DPA": {
+        "mean": 27.5,
+        "sd": null,
+        "n": 1,
+        "min": 27.5,
+        "max": 27.5
+      },
+      "Dd": {
+        "mean": 17.0,
+        "sd": null,
+        "n": 1,
+        "min": 17.0,
+        "max": 17.0
+      },
+      "DC": {
+        "mean": 21.1,
+        "sd": null,
+        "n": 1,
+        "min": 21.1,
+        "max": 21.1
+      },
+      "BTP": {
+        "mean": 19.5,
+        "sd": null,
+        "n": 1,
+        "min": 19.5,
+        "max": 19.5
+      },
+      "GLl": {
+        "mean": 31.3,
+        "sd": null,
+        "n": 1,
+        "min": 31.3,
+        "max": 31.3
+      },
+      "GLm": {
+        "mean": 29.3,
+        "sd": null,
+        "n": 1,
+        "min": 29.3,
+        "max": 29.3
+      },
+      "Dl": {
+        "mean": 17.4,
+        "sd": null,
+        "n": 1,
+        "min": 17.4,
+        "max": 17.4
+      },
+      "GL": {
+        "mean": 64.0,
+        "sd": null,
+        "n": 1,
+        "min": 64.0,
+        "max": 64.0
+      },
+      "GB": {
+        "mean": 20.5,
+        "sd": null,
+        "n": 1,
+        "min": 20.5,
+        "max": 20.5
+      },
+      "GD": {
+        "mean": 24.5,
+        "sd": null,
+        "n": 1,
+        "min": 24.5,
+        "max": 24.5
+      },
+      "GLpe": {
+        "mean": 40.0,
+        "sd": null,
+        "n": 1,
+        "min": 40.0,
+        "max": 40.0
+      }
+    },
+    "Capra hircus (Basel)": {
+      "SLC": {
+        "mean": 23.75,
+        "sd": null,
+        "n": 1,
+        "min": 23.75,
+        "max": 23.75
+      },
+      "GLP": {
+        "mean": 37.3,
+        "sd": null,
+        "n": 1,
+        "min": 37.3,
+        "max": 37.3
+      },
+      "LG": {
+        "mean": 29.5,
+        "sd": null,
+        "n": 1,
+        "min": 29.5,
+        "max": 29.5
+      },
+      "BG": {
+        "mean": 24.15,
+        "sd": null,
+        "n": 1,
+        "min": 24.15,
+        "max": 24.15
+      },
+      "SD": {
+        "mean": 14.95,
+        "sd": null,
+        "n": 1,
+        "min": 14.95,
+        "max": 14.95
+      },
+      "Bd": {
+        "mean": 27.35,
+        "sd": null,
+        "n": 1,
+        "min": 27.35,
+        "max": 27.35
+      },
+      "BT": {
+        "mean": 31.55,
+        "sd": null,
+        "n": 1,
+        "min": 31.55,
+        "max": 31.55
+      },
+      "Bp": {
+        "mean": 21.85,
+        "sd": null,
+        "n": 1,
+        "min": 21.85,
+        "max": 21.85
+      },
+      "BFp": {
+        "mean": 31.2,
+        "sd": null,
+        "n": 1,
+        "min": 31.2,
+        "max": 31.2
+      },
+      "BFd": {
+        "mean": 27.9,
+        "sd": null,
+        "n": 1,
+        "min": 27.9,
+        "max": 27.9
+      },
+      "DPA": {
+        "mean": 30.1,
+        "sd": null,
+        "n": 1,
+        "min": 30.1,
+        "max": 30.1
+      },
+      "SDO": {
+        "mean": 25.6,
+        "sd": null,
+        "n": 1,
+        "min": 25.6,
+        "max": 25.6
+      },
+      "DD": {
+        "mean": 12.8,
+        "sd": null,
+        "n": 1,
+        "min": 12.8,
+        "max": 12.8
+      },
+      "LA": {
+        "mean": 34.2,
+        "sd": null,
+        "n": 1,
+        "min": 34.2,
+        "max": 34.2
+      },
+      "LAR": {
+        "mean": 29.05,
+        "sd": null,
+        "n": 1,
+        "min": 29.05,
+        "max": 29.05
+      },
+      "DC": {
+        "mean": 24.0,
+        "sd": null,
+        "n": 1,
+        "min": 24.0,
+        "max": 24.0
+      },
+      "GLl": {
+        "mean": 30.4,
+        "sd": null,
+        "n": 1,
+        "min": 30.4,
+        "max": 30.4
+      },
+      "GLm": {
+        "mean": 28.9,
+        "sd": null,
+        "n": 1,
+        "min": 28.9,
+        "max": 28.9
+      },
+      "Dl": {
+        "mean": 18.0,
+        "sd": null,
+        "n": 1,
+        "min": 18.0,
+        "max": 18.0
+      },
+      "GL": {
+        "mean": 57.7,
+        "sd": null,
+        "n": 1,
+        "min": 57.7,
+        "max": 57.7
+      },
+      "GB": {
+        "mean": 20.9,
+        "sd": null,
+        "n": 1,
+        "min": 20.9,
+        "max": 20.9
+      }
+    },
+    "Capra hircus (Clutton)": {
+      "SLC": {
+        "mean": 27.76,
+        "sd": null,
+        "n": 1,
+        "min": 27.76,
+        "max": 27.76
+      },
+      "GLP": {
+        "mean": 40.0,
+        "sd": null,
+        "n": 1,
+        "min": 40.0,
+        "max": 40.0
+      },
+      "LG": {
+        "mean": 30.48,
+        "sd": null,
+        "n": 1,
+        "min": 30.48,
+        "max": 30.48
+      },
+      "BG": {
+        "mean": 28.43,
+        "sd": null,
+        "n": 1,
+        "min": 28.43,
+        "max": 28.43
+      },
+      "GL": {
+        "mean": 31.06,
+        "sd": null,
+        "n": 1,
+        "min": 31.06,
+        "max": 31.06
+      },
+      "Bp": {
+        "mean": 13.88,
+        "sd": null,
+        "n": 1,
+        "min": 13.88,
+        "max": 13.88
+      },
+      "Dp": {
+        "mean": 14.97,
+        "sd": null,
+        "n": 1,
+        "min": 14.97,
+        "max": 14.97
+      },
+      "SD": {
+        "mean": 12.64,
+        "sd": null,
+        "n": 1,
+        "min": 12.64,
+        "max": 12.64
+      },
+      "Bd": {
+        "mean": 11.85,
+        "sd": null,
+        "n": 1,
+        "min": 11.85,
+        "max": 11.85
+      },
+      "Dd": {
+        "mean": 18.63,
+        "sd": null,
+        "n": 1,
+        "min": 18.63,
+        "max": 18.63
+      },
+      "DPA": {
+        "mean": 31.46,
+        "sd": null,
+        "n": 1,
+        "min": 31.46,
+        "max": 31.46
+      },
+      "BPC": {
+        "mean": 27.87,
+        "sd": null,
+        "n": 1,
+        "min": 27.87,
+        "max": 27.87
+      },
+      "WCM": {
+        "mean": 11.14,
+        "sd": null,
+        "n": 1,
+        "min": 11.14,
+        "max": 11.14
+      },
+      "LA": {
+        "mean": 33.64,
+        "sd": null,
+        "n": 1,
+        "min": 33.64,
+        "max": 33.64
+      },
+      "DC": {
+        "mean": 24.08,
+        "sd": null,
+        "n": 1,
+        "min": 24.08,
+        "max": 24.08
+      },
+      "GLl": {
+        "mean": 32.66,
+        "sd": null,
+        "n": 1,
+        "min": 32.66,
+        "max": 32.66
+      },
+      "GB": {
+        "mean": 24.1,
+        "sd": null,
+        "n": 1,
+        "min": 24.1,
+        "max": 24.1
+      },
+      "L": {
+        "mean": 33.41,
+        "sd": null,
+        "n": 1,
+        "min": 33.41,
+        "max": 33.41
+      },
+      "H": {
+        "mean": 18.71,
+        "sd": null,
+        "n": 1,
+        "min": 18.71,
+        "max": 18.71
+      }
+    },
+    "Capra aegagrus (Uerpmann)": {
+      "SLC": {
+        "mean": 20.0,
+        "sd": null,
+        "n": 1,
+        "min": 20.0,
+        "max": 20.0
+      },
+      "GLP": {
+        "mean": 35.7,
+        "sd": null,
+        "n": 1,
+        "min": 35.7,
+        "max": 35.7
+      },
+      "LG": {
+        "mean": 28.5,
+        "sd": null,
+        "n": 1,
+        "min": 28.5,
+        "max": 28.5
+      },
+      "BG": {
+        "mean": 24.8,
+        "sd": null,
+        "n": 1,
+        "min": 24.8,
+        "max": 24.8
+      },
+      "Bp": {
+        "mean": 13.5,
+        "sd": null,
+        "n": 1,
+        "min": 13.5,
+        "max": 13.5
+      },
+      "Dp": {
+        "mean": 21.3,
+        "sd": null,
+        "n": 1,
+        "min": 21.3,
+        "max": 21.3
+      },
+      "SD": {
+        "mean": 10.3,
+        "sd": null,
+        "n": 1,
+        "min": 10.3,
+        "max": 10.3
+      },
+      "Bd": {
+        "mean": 12.9,
+        "sd": null,
+        "n": 1,
+        "min": 12.9,
+        "max": 12.9
+      },
+      "BT": {
+        "mean": 34.3,
+        "sd": null,
+        "n": 1,
+        "min": 34.3,
+        "max": 34.3
+      },
+      "BFp": {
+        "mean": 34.4,
+        "sd": null,
+        "n": 1,
+        "min": 34.4,
+        "max": 34.4
+      },
+      "BPC": {
+        "mean": 25.5,
+        "sd": null,
+        "n": 1,
+        "min": 25.5,
+        "max": 25.5
+      },
+      "DPA": {
+        "mean": 29.3,
+        "sd": null,
+        "n": 1,
+        "min": 29.3,
+        "max": 29.3
+      },
+      "SDO": {
+        "mean": 23.5,
+        "sd": null,
+        "n": 1,
+        "min": 23.5,
+        "max": 23.5
+      },
+      "Dd": {
+        "mean": 17.8,
+        "sd": null,
+        "n": 1,
+        "min": 17.8,
+        "max": 17.8
+      },
+      "DC": {
+        "mean": 23.0,
+        "sd": null,
+        "n": 1,
+        "min": 23.0,
+        "max": 23.0
+      },
+      "BTP": {
+        "mean": 19.8,
+        "sd": null,
+        "n": 1,
+        "min": 19.8,
+        "max": 19.8
+      },
+      "GLl": {
+        "mean": 32.0,
+        "sd": null,
+        "n": 1,
+        "min": 32.0,
+        "max": 32.0
+      },
+      "GLm": {
+        "mean": 29.3,
+        "sd": null,
+        "n": 1,
+        "min": 29.3,
+        "max": 29.3
+      },
+      "Dm": {
+        "mean": 18.5,
+        "sd": null,
+        "n": 1,
+        "min": 18.5,
+        "max": 18.5
+      },
+      "GL": {
+        "mean": 65.5,
+        "sd": null,
+        "n": 1,
+        "min": 65.5,
+        "max": 65.5
+      },
+      "GB": {
+        "mean": 20.8,
+        "sd": null,
+        "n": 1,
+        "min": 20.8,
+        "max": 20.8
+      },
+      "GD": {
+        "mean": 23.3,
+        "sd": null,
+        "n": 1,
+        "min": 23.3,
+        "max": 23.3
+      },
+      "GLpe": {
+        "mean": 40.5,
+        "sd": null,
+        "n": 1,
+        "min": 40.5,
+        "max": 40.5
+      }
+    },
+    "Sus domesticus (Albarella)": {
+      "H": {
+        "mean": 46.9,
+        "sd": null,
+        "n": 1,
+        "min": 46.9,
+        "max": 46.9
+      },
+      "BFcr": {
+        "mean": 56.8,
+        "sd": null,
+        "n": 1,
+        "min": 56.8,
+        "max": 56.8
+      },
+      "GLP": {
+        "mean": 36.7,
+        "sd": null,
+        "n": 1,
+        "min": 36.7,
+        "max": 36.7
+      },
+      "SLC": {
+        "mean": 23.8,
+        "sd": null,
+        "n": 1,
+        "min": 23.8,
+        "max": 23.8
+      },
+      "Bd": {
+        "mean": 30.7,
+        "sd": null,
+        "n": 1,
+        "min": 30.7,
+        "max": 30.7
+      },
+      "BT": {
+        "mean": 31.3,
+        "sd": null,
+        "n": 1,
+        "min": 31.3,
+        "max": 31.3
+      },
+      "HTC": {
+        "mean": 19.7,
+        "sd": null,
+        "n": 1,
+        "min": 19.7,
+        "max": 19.7
+      },
+      "SD": {
+        "mean": 20.4,
+        "sd": null,
+        "n": 1,
+        "min": 20.4,
+        "max": 20.4
+      },
+      "Bp": {
+        "mean": 29.6,
+        "sd": null,
+        "n": 1,
+        "min": 29.6,
+        "max": 29.6
+      },
+      "GL": {
+        "mean": 79.3,
+        "sd": null,
+        "n": 1,
+        "min": 79.3,
+        "max": 79.3
+      },
+      "LAR": {
+        "mean": 33.3,
+        "sd": null,
+        "n": 1,
+        "min": 33.3,
+        "max": 33.3
+      },
+      "DD": {
+        "mean": 14.9,
+        "sd": null,
+        "n": 1,
+        "min": 14.9,
+        "max": 14.9
+      },
+      "GLl": {
+        "mean": 40.8,
+        "sd": null,
+        "n": 1,
+        "min": 40.8,
+        "max": 40.8
+      },
+      "GLm": {
+        "mean": 37.9,
+        "sd": null,
+        "n": 1,
+        "min": 37.9,
+        "max": 37.9
+      },
+      "GD": {
+        "mean": 31.1,
+        "sd": null,
+        "n": 1,
+        "min": 31.1,
+        "max": 31.1
+      },
+      "L": {
+        "mean": 34.5,
+        "sd": null,
+        "n": 1,
+        "min": 34.5,
+        "max": 34.5
+      },
+      "WA": {
+        "mean": 15.7,
+        "sd": null,
+        "n": 1,
+        "min": 15.7,
+        "max": 15.7
+      },
+      "WP": {
+        "mean": 14.2,
+        "sd": null,
+        "n": 1,
+        "min": 14.2,
+        "max": 14.2
+      }
+    },
+    "Sus scrofa (Basel)": {
+      "SLC": {
+        "mean": 28.85,
+        "sd": null,
+        "n": 1,
+        "min": 28.85,
+        "max": 28.85
+      },
+      "GLP": {
+        "mean": 43.95,
+        "sd": null,
+        "n": 1,
+        "min": 43.95,
+        "max": 43.95
+      },
+      "BG": {
+        "mean": 28.8,
+        "sd": null,
+        "n": 1,
+        "min": 28.8,
+        "max": 28.8
+      },
+      "Bp": {
+        "mean": 17.93,
+        "sd": null,
+        "n": 1,
+        "min": 17.93,
+        "max": 17.93
+      },
+      "SD": {
+        "mean": 23.25,
+        "sd": null,
+        "n": 1,
+        "min": 23.25,
+        "max": 23.25
+      },
+      "Bd": {
+        "mean": 11.3,
+        "sd": null,
+        "n": 1,
+        "min": 11.3,
+        "max": 11.3
+      },
+      "BT": {
+        "mean": 35.5,
+        "sd": null,
+        "n": 1,
+        "min": 35.5,
+        "max": 35.5
+      },
+      "BPC": {
+        "mean": 25.95,
+        "sd": null,
+        "n": 1,
+        "min": 25.95,
+        "max": 25.95
+      },
+      "DPA": {
+        "mean": 48.15,
+        "sd": null,
+        "n": 1,
+        "min": 48.15,
+        "max": 48.15
+      },
+      "SDO": {
+        "mean": 35.1,
+        "sd": null,
+        "n": 1,
+        "min": 35.1,
+        "max": 35.1
+      },
+      "LAR": {
+        "mean": 35.1,
+        "sd": null,
+        "n": 1,
+        "min": 35.1,
+        "max": 35.1
+      },
+      "SH": {
+        "mean": 28.7,
+        "sd": null,
+        "n": 1,
+        "min": 28.7,
+        "max": 28.7
+      },
+      "DC": {
+        "mean": 28.4,
+        "sd": null,
+        "n": 1,
+        "min": 28.4,
+        "max": 28.4
+      },
+      "GLl": {
+        "mean": 48.0,
+        "sd": null,
+        "n": 1,
+        "min": 48.0,
+        "max": 48.0
+      },
+      "GLm": {
+        "mean": 43.7,
+        "sd": null,
+        "n": 1,
+        "min": 43.7,
+        "max": 43.7
+      },
+      "GL": {
+        "mean": 91.25,
+        "sd": null,
+        "n": 1,
+        "min": 91.25,
+        "max": 91.25
+      },
+      "GB": {
+        "mean": 27.2,
+        "sd": null,
+        "n": 1,
+        "min": 27.2,
+        "max": 27.2
+      },
+      "LeP": {
+        "mean": 98.15,
+        "sd": null,
+        "n": 1,
+        "min": 98.15,
+        "max": 98.15
+      }
+    },
+    "Sus scrofa (Hongo)": {
+      "SLC": {
+        "mean": 26.5,
+        "sd": null,
+        "n": 1,
+        "min": 26.5,
+        "max": 26.5
+      },
+      "GLP": {
+        "mean": 39.4,
+        "sd": null,
+        "n": 1,
+        "min": 39.4,
+        "max": 39.4
+      },
+      "LG": {
+        "mean": 32.5,
+        "sd": null,
+        "n": 1,
+        "min": 32.5,
+        "max": 32.5
+      },
+      "BG": {
+        "mean": 27.5,
+        "sd": null,
+        "n": 1,
+        "min": 27.5,
+        "max": 27.5
+      },
+      "HS": {
+        "mean": 228.1,
+        "sd": null,
+        "n": 1,
+        "min": 228.1,
+        "max": 228.1
+      },
+      "DHA": {
+        "mean": 229.6,
+        "sd": null,
+        "n": 1,
+        "min": 229.6,
+        "max": 229.6
+      },
+      "Ld": {
+        "mean": 37.6,
+        "sd": null,
+        "n": 1,
+        "min": 37.6,
+        "max": 37.6
+      },
+      "SBC": {
+        "mean": 12.7,
+        "sd": null,
+        "n": 1,
+        "min": 12.7,
+        "max": 12.7
+      },
+      "Bd": {
+        "mean": 27.6,
+        "sd": null,
+        "n": 1,
+        "min": 27.6,
+        "max": 27.6
+      },
+      "BT": {
+        "mean": 37.5,
+        "sd": null,
+        "n": 1,
+        "min": 37.5,
+        "max": 37.5
+      },
+      "GLT": {
+        "mean": 32.4,
+        "sd": null,
+        "n": 1,
+        "min": 32.4,
+        "max": 32.4
+      },
+      "Bp": {
+        "mean": 17.5,
+        "sd": null,
+        "n": 1,
+        "min": 17.5,
+        "max": 17.5
+      },
+      "BFT": {
+        "mean": 34.6,
+        "sd": null,
+        "n": 1,
+        "min": 34.6,
+        "max": 34.6
+      },
+      "SD": {
+        "mean": 14.3,
+        "sd": null,
+        "n": 1,
+        "min": 14.3,
+        "max": 14.3
+      },
+      "Dp": {
+        "mean": 57.4,
+        "sd": null,
+        "n": 1,
+        "min": 57.4,
+        "max": 57.4
+      },
+      "GLC": {
+        "mean": 250.2,
+        "sd": null,
+        "n": 1,
+        "min": 250.2,
+        "max": 250.2
+      },
+      "GL": {
+        "mean": 73.6,
+        "sd": null,
+        "n": 1,
+        "min": 73.6,
+        "max": 73.6
+      },
+      "Dd": {
+        "mean": 30.6,
+        "sd": null,
+        "n": 1,
+        "min": 30.6,
+        "max": 30.6
+      },
+      "LT(mid)": {
+        "mean": 21.3,
+        "sd": null,
+        "n": 1,
+        "min": 21.3,
+        "max": 21.3
+      },
+      "LT(lat)": {
+        "mean": 23.7,
+        "sd": null,
+        "n": 1,
+        "min": 23.7,
+        "max": 23.7
+      },
+      "BFp": {
+        "mean": 34.2,
+        "sd": null,
+        "n": 1,
+        "min": 34.2,
+        "max": 34.2
+      },
+      "BFd": {
+        "mean": 11.7,
+        "sd": null,
+        "n": 1,
+        "min": 11.7,
+        "max": 11.7
+      },
+      "DFd": {
+        "mean": 17.0,
+        "sd": null,
+        "n": 1,
+        "min": 17.0,
+        "max": 17.0
+      },
+      "LO": {
+        "mean": 72.4,
+        "sd": null,
+        "n": 1,
+        "min": 72.4,
+        "max": 72.4
+      },
+      "DPA": {
+        "mean": 42.4,
+        "sd": null,
+        "n": 1,
+        "min": 42.4,
+        "max": 42.4
+      },
+      "SDO": {
+        "mean": 32.2,
+        "sd": null,
+        "n": 1,
+        "min": 32.2,
+        "max": 32.2
+      },
+      "BPC": {
+        "mean": 25.3,
+        "sd": null,
+        "n": 1,
+        "min": 25.3,
+        "max": 25.3
+      },
+      "SBO": {
+        "mean": 11.5,
+        "sd": null,
+        "n": 1,
+        "min": 11.5,
+        "max": 11.5
+      },
+      "LPA": {
+        "mean": 29.9,
+        "sd": null,
+        "n": 1,
+        "min": 29.9,
+        "max": 29.9
+      },
+      "SLFp": {
+        "mean": 21.5,
+        "sd": null,
+        "n": 1,
+        "min": 21.5,
+        "max": 21.5
+      },
+      "DC": {
+        "mean": 29.8,
+        "sd": null,
+        "n": 1,
+        "min": 29.8,
+        "max": 29.8
+      },
+      "B.tr": {
+        "mean": 26.7,
+        "sd": null,
+        "n": 1,
+        "min": 26.7,
+        "max": 26.7
+      },
+      "GLl": {
+        "mean": 47.5,
+        "sd": null,
+        "n": 1,
+        "min": 47.5,
+        "max": 47.5
+      },
+      "GLm": {
+        "mean": 43.6,
+        "sd": null,
+        "n": 1,
+        "min": 43.6,
+        "max": 43.6
+      },
+      "LA": {
+        "mean": 38.7,
+        "sd": null,
+        "n": 1,
+        "min": 38.7,
+        "max": 38.7
+      },
+      "Dl": {
+        "mean": 25.0,
+        "sd": null,
+        "n": 1,
+        "min": 25.0,
+        "max": 25.0
+      },
+      "GB": {
+        "mean": 26.8,
+        "sd": null,
+        "n": 1,
+        "min": 26.8,
+        "max": 26.8
+      },
+      "GDl": {
+        "mean": 34.1,
+        "sd": null,
+        "n": 1,
+        "min": 34.1,
+        "max": 34.1
+      },
+      "SDTc": {
+        "mean": 22.0,
+        "sd": null,
+        "n": 1,
+        "min": 22.0,
+        "max": 22.0
+      },
+      "LTc": {
+        "mean": 36.5,
+        "sd": null,
+        "n": 1,
+        "min": 36.5,
+        "max": 36.5
+      },
+      "LFOM": {
+        "mean": 13.1,
+        "sd": null,
+        "n": 1,
+        "min": 13.1,
+        "max": 13.1
+      }
+    },
+    "Sus scrofa (Payne)": {
+      "SLC": {
+        "mean": 29.8,
+        "sd": null,
+        "n": 1,
+        "min": 29.8,
+        "max": 29.8
+      },
+      "GLP": {
+        "mean": 42.6,
+        "sd": null,
+        "n": 1,
+        "min": 42.6,
+        "max": 42.6
+      },
+      "Bd": {
+        "mean": 41.3,
+        "sd": null,
+        "n": 1,
+        "min": 41.3,
+        "max": 41.3
+      },
+      "BT": {
+        "mean": 35.0,
+        "sd": null,
+        "n": 1,
+        "min": 35.0,
+        "max": 35.0
+      },
+      "HTC": {
+        "mean": 22.5,
+        "sd": null,
+        "n": 1,
+        "min": 22.5,
+        "max": 22.5
+      },
+      "BpP": {
+        "mean": 34.2,
+        "sd": null,
+        "n": 1,
+        "min": 34.2,
+        "max": 34.2
+      },
+      "DPA": {
+        "mean": 47.3,
+        "sd": null,
+        "n": 1,
+        "min": 47.3,
+        "max": 47.3
+      },
+      "LAR": {
+        "mean": 36.3,
+        "sd": null,
+        "n": 1,
+        "min": 36.3,
+        "max": 36.3
+      },
+      "DC": {
+        "mean": 30.3,
+        "sd": null,
+        "n": 1,
+        "min": 30.3,
+        "max": 30.3
+      },
+      "BdP": {
+        "mean": 34.6,
+        "sd": null,
+        "n": 1,
+        "min": 34.6,
+        "max": 34.6
+      },
+      "GLl": {
+        "mean": 48.7,
+        "sd": null,
+        "n": 1,
+        "min": 48.7,
+        "max": 48.7
+      },
+      "GL": {
+        "mean": 95.2,
+        "sd": null,
+        "n": 1,
+        "min": 95.2,
+        "max": 95.2
+      },
+      "L": {
+        "mean": 41.5,
+        "sd": null,
+        "n": 1,
+        "min": 41.5,
+        "max": 41.5
+      },
+      "WP": {
+        "mean": 16.5,
+        "sd": null,
+        "n": 1,
+        "min": 16.5,
+        "max": 16.5
+      },
+      "WA": {
+        "mean": 18.3,
+        "sd": null,
+        "n": 1,
+        "min": 18.3,
+        "max": 18.3
+      }
+    },
+    "Cervus elaphus (Basel)": {
+      "SLC": {
+        "mean": 40.5,
+        "sd": null,
+        "n": 1,
+        "min": 40.5,
+        "max": 40.5
+      },
+      "Bp": {
+        "mean": 20.7,
+        "sd": null,
+        "n": 1,
+        "min": 20.7,
+        "max": 20.7
+      },
+      "Bd": {
+        "mean": 44.6,
+        "sd": null,
+        "n": 1,
+        "min": 44.6,
+        "max": 44.6
+      },
+      "BPC": {
+        "mean": 33.1,
+        "sd": null,
+        "n": 1,
+        "min": 33.1,
+        "max": 33.1
+      },
+      "LA": {
+        "mean": 55.0,
+        "sd": null,
+        "n": 1,
+        "min": 55.0,
+        "max": 55.0
+      },
+      "GLl": {
+        "mean": 58.0,
+        "sd": null,
+        "n": 1,
+        "min": 58.0,
+        "max": 58.0
+      },
+      "GL": {
+        "mean": 121.0,
+        "sd": null,
+        "n": 1,
+        "min": 121.0,
+        "max": 121.0
+      }
+    },
+    "Dama mesopotamica (Haifa)": {
+      "GLP": {
+        "mean": 49.0,
+        "sd": null,
+        "n": 1,
+        "min": 49.0,
+        "max": 49.0
+      },
+      "SLC": {
+        "mean": 28.0,
+        "sd": null,
+        "n": 1,
+        "min": 28.0,
+        "max": 28.0
+      },
+      "HTC": {
+        "mean": 23.0,
+        "sd": null,
+        "n": 1,
+        "min": 23.0,
+        "max": 23.0
+      },
+      "BT": {
+        "mean": 44.0,
+        "sd": null,
+        "n": 1,
+        "min": 44.0,
+        "max": 44.0
+      },
+      "GL": {
+        "mean": 43.0,
+        "sd": null,
+        "n": 1,
+        "min": 43.0,
+        "max": 43.0
+      },
+      "Bd": {
+        "mean": 18.0,
+        "sd": null,
+        "n": 1,
+        "min": 18.0,
+        "max": 18.0
+      },
+      "SD": {
+        "mean": 18.0,
+        "sd": null,
+        "n": 1,
+        "min": 18.0,
+        "max": 18.0
+      },
+      "Bp": {
+        "mean": 23.0,
+        "sd": null,
+        "n": 1,
+        "min": 23.0,
+        "max": 23.0
+      },
+      "Dd": {
+        "mean": 22.0,
+        "sd": null,
+        "n": 1,
+        "min": 22.0,
+        "max": 22.0
+      },
+      "DEM": {
+        "mean": 16.2,
+        "sd": null,
+        "n": 1,
+        "min": 16.2,
+        "max": 16.2
+      },
+      "DVM": {
+        "mean": 19.9,
+        "sd": null,
+        "n": 1,
+        "min": 19.9,
+        "max": 19.9
+      },
+      "WCM": {
+        "mean": 15.7,
+        "sd": null,
+        "n": 1,
+        "min": 15.7,
+        "max": 15.7
+      },
+      "DEL": {
+        "mean": 15.5,
+        "sd": null,
+        "n": 1,
+        "min": 15.5,
+        "max": 15.5
+      },
+      "DVL": {
+        "mean": 20.3,
+        "sd": null,
+        "n": 1,
+        "min": 20.3,
+        "max": 20.3
+      },
+      "WCL": {
+        "mean": 15.1,
+        "sd": null,
+        "n": 1,
+        "min": 15.1,
+        "max": 15.1
+      },
+      "LA": {
+        "mean": 49.0,
+        "sd": null,
+        "n": 1,
+        "min": 49.0,
+        "max": 49.0
+      },
+      "DC": {
+        "mean": 30.0,
+        "sd": null,
+        "n": 1,
+        "min": 30.0,
+        "max": 30.0
+      },
+      "GLl": {
+        "mean": 41.0,
+        "sd": null,
+        "n": 1,
+        "min": 41.0,
+        "max": 41.0
+      },
+      "Dl": {
+        "mean": 27.0,
+        "sd": null,
+        "n": 1,
+        "min": 27.0,
+        "max": 27.0
+      },
+      "GLm": {
+        "mean": 42.0,
+        "sd": null,
+        "n": 1,
+        "min": 42.0,
+        "max": 42.0
+      },
+      "Dm": {
+        "mean": 25.0,
+        "sd": null,
+        "n": 1,
+        "min": 25.0,
+        "max": 25.0
+      },
+      "GB": {
+        "mean": 32.0,
+        "sd": null,
+        "n": 1,
+        "min": 32.0,
+        "max": 32.0
+      },
+      "GLpe": {
+        "mean": 51.0,
+        "sd": null,
+        "n": 1,
+        "min": 51.0,
+        "max": 51.0
+      }
+    },
+    "Gazella gazella (Haifa)": {
+      "GLP": {
+        "mean": 26.0,
+        "sd": null,
+        "n": 1,
+        "min": 26.0,
+        "max": 26.0
+      },
+      "SLC": {
+        "mean": 15.0,
+        "sd": null,
+        "n": 1,
+        "min": 15.0,
+        "max": 15.0
+      },
+      "HTC": {
+        "mean": 13.0,
+        "sd": null,
+        "n": 1,
+        "min": 13.0,
+        "max": 13.0
+      },
+      "BT": {
+        "mean": 24.0,
+        "sd": null,
+        "n": 1,
+        "min": 24.0,
+        "max": 24.0
+      },
+      "GL": {
+        "mean": 22.0,
+        "sd": null,
+        "n": 1,
+        "min": 22.0,
+        "max": 22.0
+      },
+      "GLl": {
+        "mean": 25.0,
+        "sd": null,
+        "n": 1,
+        "min": 25.0,
+        "max": 25.0
+      },
+      "Bd": {
+        "mean": 8.0,
+        "sd": null,
+        "n": 1,
+        "min": 8.0,
+        "max": 8.0
+      },
+      "SD": {
+        "mean": 7.0,
+        "sd": null,
+        "n": 1,
+        "min": 7.0,
+        "max": 7.0
+      },
+      "Bp": {
+        "mean": 9.0,
+        "sd": null,
+        "n": 1,
+        "min": 9.0,
+        "max": 9.0
+      },
+      "Dd": {
+        "mean": 9.0,
+        "sd": null,
+        "n": 1,
+        "min": 9.0,
+        "max": 9.0
+      },
+      "DEM": {
+        "mean": 9.6,
+        "sd": null,
+        "n": 1,
+        "min": 9.6,
+        "max": 9.6
+      },
+      "DVM": {
+        "mean": 12.8,
+        "sd": null,
+        "n": 1,
+        "min": 12.8,
+        "max": 12.8
+      },
+      "WCM": {
+        "mean": 9.5,
+        "sd": null,
+        "n": 1,
+        "min": 9.5,
+        "max": 9.5
+      },
+      "DEL": {
+        "mean": 9.3,
+        "sd": null,
+        "n": 1,
+        "min": 9.3,
+        "max": 9.3
+      },
+      "DVL": {
+        "mean": 12.0,
+        "sd": null,
+        "n": 1,
+        "min": 12.0,
+        "max": 12.0
+      },
+      "WCL": {
+        "mean": 9.6,
+        "sd": null,
+        "n": 1,
+        "min": 9.6,
+        "max": 9.6
+      },
+      "LA": {
+        "mean": 27.0,
+        "sd": null,
+        "n": 1,
+        "min": 27.0,
+        "max": 27.0
+      },
+      "DC": {
+        "mean": 17.0,
+        "sd": null,
+        "n": 1,
+        "min": 17.0,
+        "max": 17.0
+      },
+      "Dl": {
+        "mean": 14.0,
+        "sd": null,
+        "n": 1,
+        "min": 14.0,
+        "max": 14.0
+      },
+      "GLm": {
+        "mean": 24.0,
+        "sd": null,
+        "n": 1,
+        "min": 24.0,
+        "max": 24.0
+      },
+      "Dm": {
+        "mean": 15.0,
+        "sd": null,
+        "n": 1,
+        "min": 15.0,
+        "max": 15.0
+      },
+      "GB": {
+        "mean": 24.0,
+        "sd": null,
+        "n": 1,
+        "min": 24.0,
+        "max": 24.0
+      },
+      "GLpe": {
+        "mean": 39.0,
+        "sd": null,
+        "n": 1,
+        "min": 39.0,
+        "max": 39.0
+      }
+    },
+    "Equus asinus (Haifa)": {
+      "GLP": {
+        "mean": 66.0,
+        "sd": null,
+        "n": 1,
+        "min": 66.0,
+        "max": 66.0
+      },
+      "SLC": {
+        "mean": 50.0,
+        "sd": null,
+        "n": 1,
+        "min": 50.0,
+        "max": 50.0
+      },
+      "HTC": {
+        "mean": 29.0,
+        "sd": null,
+        "n": 1,
+        "min": 29.0,
+        "max": 29.0
+      },
+      "BT": {
+        "mean": 65.0,
+        "sd": null,
+        "n": 1,
+        "min": 65.0,
+        "max": 65.0
+      },
+      "GL": {
+        "mean": 36.0,
+        "sd": null,
+        "n": 1,
+        "min": 36.0,
+        "max": 36.0
+      },
+      "GLl": {
+        "mean": 226.0,
+        "sd": null,
+        "n": 1,
+        "min": 226.0,
+        "max": 226.0
+      },
+      "Bd": {
+        "mean": 34.0,
+        "sd": null,
+        "n": 1,
+        "min": 34.0,
+        "max": 34.0
+      },
+      "SD": {
+        "mean": 33.0,
+        "sd": null,
+        "n": 1,
+        "min": 33.0,
+        "max": 33.0
+      },
+      "Bp": {
+        "mean": 36.0,
+        "sd": null,
+        "n": 1,
+        "min": 36.0,
+        "max": 36.0
+      },
+      "BPC": {
+        "mean": 45.0,
+        "sd": null,
+        "n": 1,
+        "min": 45.0,
+        "max": 45.0
+      },
+      "Dd": {
+        "mean": 21.0,
+        "sd": null,
+        "n": 1,
+        "min": 21.0,
+        "max": 21.0
+      },
+      "LA": {
+        "mean": 48.0,
+        "sd": null,
+        "n": 1,
+        "min": 48.0,
+        "max": 48.0
+      },
+      "DC": {
+        "mean": 41.0,
+        "sd": null,
+        "n": 1,
+        "min": 41.0,
+        "max": 41.0
+      },
+      "GB": {
+        "mean": 49.0,
+        "sd": null,
+        "n": 1,
+        "min": 49.0,
+        "max": 49.0
+      }
+    },
+    "Equus caballus (Johnstone)": {
+      "1": {
+        "mean": 515.0,
+        "sd": null,
+        "n": 1,
+        "min": 515.0,
+        "max": 515.0
+      },
+      "2": {
+        "mean": 480.0,
+        "sd": null,
+        "n": 1,
+        "min": 480.0,
+        "max": 480.0
+      },
+      "3": {
+        "mean": 455.0,
+        "sd": null,
+        "n": 1,
+        "min": 455.0,
+        "max": 455.0
+      },
+      "9": {
+        "mean": 174.0,
+        "sd": null,
+        "n": 1,
+        "min": 174.0,
+        "max": 174.0
+      },
+      "10": {
+        "mean": 356.0,
+        "sd": null,
+        "n": 1,
+        "min": 356.0,
+        "max": 356.0
+      },
+      "24": {
+        "mean": 98.9,
+        "sd": null,
+        "n": 1,
+        "min": 98.9,
+        "max": 98.9
+      },
+      "34": {
+        "mean": 73.3,
+        "sd": null,
+        "n": 1,
+        "min": 73.3,
+        "max": 73.3
+      },
+      "38": {
+        "mean": 109.1,
+        "sd": null,
+        "n": 1,
+        "min": 109.1,
+        "max": 109.1
+      },
+      "40": {
+        "mean": 143.4,
+        "sd": null,
+        "n": 1,
+        "min": 143.4,
+        "max": 143.4
+      },
+      "41": {
+        "mean": 208.8,
+        "sd": null,
+        "n": 1,
+        "min": 208.8,
+        "max": 208.8
+      },
+      "43": {
+        "mean": 173.6,
+        "sd": null,
+        "n": 1,
+        "min": 173.6,
+        "max": 173.6
+      },
+      "45": {
+        "mean": 64.1,
+        "sd": null,
+        "n": 1,
+        "min": 64.1,
+        "max": 64.1
+      },
+      "48": {
+        "mean": 129.8,
+        "sd": null,
+        "n": 1,
+        "min": 129.8,
+        "max": 129.8
+      },
+      "50": {
+        "mean": 97.2,
+        "sd": null,
+        "n": 1,
+        "min": 97.2,
+        "max": 97.2
+      },
+      "SLC": {
+        "mean": 58.7,
+        "sd": null,
+        "n": 1,
+        "min": 58.7,
+        "max": 58.7
+      },
+      "GLP": {
+        "mean": 84.6,
+        "sd": null,
+        "n": 1,
+        "min": 84.6,
+        "max": 84.6
+      },
+      "LG": {
+        "mean": 51.8,
+        "sd": null,
+        "n": 1,
+        "min": 51.8,
+        "max": 51.8
+      },
+      "BG": {
+        "mean": 43.1,
+        "sd": null,
+        "n": 1,
+        "min": 43.1,
+        "max": 43.1
+      },
+      "GLC": {
+        "mean": 322.0,
+        "sd": null,
+        "n": 1,
+        "min": 322.0,
+        "max": 322.0
+      },
+      "GLl": {
+        "mean": 268.2,
+        "sd": null,
+        "n": 1,
+        "min": 268.2,
+        "max": 268.2
+      },
+      "SD": {
+        "mean": 32.4,
+        "sd": null,
+        "n": 1,
+        "min": 32.4,
+        "max": 32.4
+      },
+      "Bd": {
+        "mean": 65.1,
+        "sd": null,
+        "n": 1,
+        "min": 65.1,
+        "max": 65.1
+      },
+      "BT": {
+        "mean": 65.3,
+        "sd": null,
+        "n": 1,
+        "min": 65.3,
+        "max": 65.3
+      },
+      "HTC": {
+        "mean": 33.8,
+        "sd": null,
+        "n": 1,
+        "min": 33.8,
+        "max": 33.8
+      },
+      "GL": {
+        "mean": 249.1,
+        "sd": null,
+        "n": 1,
+        "min": 249.1,
+        "max": 249.1
+      },
+      "Ll": {
+        "mean": 344.4,
+        "sd": null,
+        "n": 1,
+        "min": 344.4,
+        "max": 344.4
+      },
+      "Bp": {
+        "mean": 49.0,
+        "sd": null,
+        "n": 1,
+        "min": 49.0,
+        "max": 49.0
+      },
+      "BFp": {
+        "mean": 66.1,
+        "sd": null,
+        "n": 1,
+        "min": 66.1,
+        "max": 66.1
+      },
+      "BFd": {
+        "mean": 39.3,
+        "sd": null,
+        "n": 1,
+        "min": 39.3,
+        "max": 39.3
+      },
+      "DFd": {
+        "mean": 33.5,
+        "sd": null,
+        "n": 1,
+        "min": 33.5,
+        "max": 33.5
+      },
+      "Dp": {
+        "mean": 32.4,
+        "sd": null,
+        "n": 1,
+        "min": 32.4,
+        "max": 32.4
+      },
+      "Dd": {
+        "mean": 22.3,
+        "sd": null,
+        "n": 1,
+        "min": 22.3,
+        "max": 22.3
+      },
+      "GLpe": {
+        "mean": 76.2,
+        "sd": null,
+        "n": 1,
+        "min": 76.2,
+        "max": 76.2
+      },
+      "DC": {
+        "mean": 50.4,
+        "sd": null,
+        "n": 1,
+        "min": 50.4,
+        "max": 50.4
+      },
+      "GH": {
+        "mean": 52.6,
+        "sd": null,
+        "n": 1,
+        "min": 52.6,
+        "max": 52.6
+      },
+      "GB": {
+        "mean": 46.5,
+        "sd": null,
+        "n": 1,
+        "min": 46.5,
+        "max": 46.5
+      },
+      "DS": {
+        "mean": 54.3,
+        "sd": null,
+        "n": 1,
+        "min": 54.3,
+        "max": 54.3
+      }
+    },
+    "Oryctolagus cuniculus (Nottingham)": {
+      "GB": {
+        "mean": 8.7,
+        "sd": null,
+        "n": 1,
+        "min": 8.7,
+        "max": 8.7
+      },
+      "GL": {
+        "mean": 29.2,
+        "sd": null,
+        "n": 1,
+        "min": 29.2,
+        "max": 29.2
+      },
+      "GLT": {
+        "mean": 14.0,
+        "sd": null,
+        "n": 1,
+        "min": 14.0,
+        "max": 14.0
+      },
+      "SBT": {
+        "mean": 4.3,
+        "sd": null,
+        "n": 1,
+        "min": 4.3,
+        "max": 4.3
+      },
+      "SDT": {
+        "mean": 4.0,
+        "sd": null,
+        "n": 1,
+        "min": 4.0,
+        "max": 4.0
+      },
+      "GBT": {
+        "mean": 6.0,
+        "sd": null,
+        "n": 1,
+        "min": 6.0,
+        "max": 6.0
+      },
+      "GDT": {
+        "mean": 4.5,
+        "sd": null,
+        "n": 1,
+        "min": 4.5,
+        "max": 4.5
+      },
+      "HS": {
+        "mean": 55.2,
+        "sd": null,
+        "n": 1,
+        "min": 55.2,
+        "max": 55.2
+      },
+      "SLC": {
+        "mean": 4.1,
+        "sd": null,
+        "n": 1,
+        "min": 4.1,
+        "max": 4.1
+      },
+      "GLP": {
+        "mean": 81.3,
+        "sd": null,
+        "n": 1,
+        "min": 81.3,
+        "max": 81.3
+      },
+      "BG": {
+        "mean": 7.4,
+        "sd": null,
+        "n": 1,
+        "min": 7.4,
+        "max": 7.4
+      },
+      "Bd": {
+        "mean": 3.8,
+        "sd": null,
+        "n": 1,
+        "min": 3.8,
+        "max": 3.8
+      },
+      "SD": {
+        "mean": 5.2,
+        "sd": null,
+        "n": 1,
+        "min": 5.2,
+        "max": 5.2
+      },
+      "HTC": {
+        "mean": 3.9,
+        "sd": null,
+        "n": 1,
+        "min": 3.9,
+        "max": 3.9
+      },
+      "Bp": {
+        "mean": 14.7,
+        "sd": null,
+        "n": 1,
+        "min": 14.7,
+        "max": 14.7
+      },
+      "Dp": {
+        "mean": 14.6,
+        "sd": null,
+        "n": 1,
+        "min": 14.6,
+        "max": 14.6
+      },
+      "BPC": {
+        "mean": 6.0,
+        "sd": null,
+        "n": 1,
+        "min": 6.0,
+        "max": 6.0
+      },
+      "DPA": {
+        "mean": 7.5,
+        "sd": null,
+        "n": 1,
+        "min": 7.5,
+        "max": 7.5
+      },
+      "SDO": {
+        "mean": 7.0,
+        "sd": null,
+        "n": 1,
+        "min": 7.0,
+        "max": 7.0
+      },
+      "LAR": {
+        "mean": 8.9,
+        "sd": null,
+        "n": 1,
+        "min": 8.9,
+        "max": 8.9
+      },
+      "LFo": {
+        "mean": 16.3,
+        "sd": null,
+        "n": 1,
+        "min": 16.3,
+        "max": 16.3
+      },
+      "SB": {
+        "mean": 4.6,
+        "sd": null,
+        "n": 1,
+        "min": 4.6,
+        "max": 4.6
+      },
+      "SH": {
+        "mean": 7.3,
+        "sd": null,
+        "n": 1,
+        "min": 7.3,
+        "max": 7.3
+      },
+      "Dd": {
+        "mean": 6.2,
+        "sd": null,
+        "n": 1,
+        "min": 6.2,
+        "max": 6.2
+      }
+    },
+    "Canis lupus (Russell)": {
+      "GL": {
+        "mean": 86.2,
+        "sd": null,
+        "n": 1,
+        "min": 86.2,
+        "max": 86.2
+      },
+      "GLF": {
+        "mean": 37.4,
+        "sd": null,
+        "n": 1,
+        "min": 37.4,
+        "max": 37.4
+      },
+      "GB": {
+        "mean": 27.0,
+        "sd": null,
+        "n": 1,
+        "min": 27.0,
+        "max": 27.0
+      },
+      "BFcr": {
+        "mean": 34.8,
+        "sd": null,
+        "n": 1,
+        "min": 34.8,
+        "max": 34.8
+      },
+      "BFcd": {
+        "mean": 39.3,
+        "sd": null,
+        "n": 1,
+        "min": 39.3,
+        "max": 39.3
+      },
+      "Breadth of caudal channel": {
+        "mean": 22.1,
+        "sd": null,
+        "n": 1,
+        "min": 22.1,
+        "max": 22.1
+      },
+      "H": {
+        "mean": 46.5,
+        "sd": null,
+        "n": 1,
+        "min": 46.5,
+        "max": 46.5
+      },
+      "LCDe": {
+        "mean": 57.5,
+        "sd": null,
+        "n": 1,
+        "min": 57.5,
+        "max": 57.5
+      },
+      "Breadth of cranial channel": {
+        "mean": 17.8,
+        "sd": null,
+        "n": 1,
+        "min": 17.8,
+        "max": 17.8
+      },
+      "LAPa": {
+        "mean": 60.7,
+        "sd": null,
+        "n": 1,
+        "min": 60.7,
+        "max": 60.7
+      },
+      "SBV": {
+        "mean": 28.4,
+        "sd": null,
+        "n": 1,
+        "min": 28.4,
+        "max": 28.4
+      },
+      "BPtr": {
+        "mean": 48.0,
+        "sd": null,
+        "n": 1,
+        "min": 48.0,
+        "max": 48.0
+      },
+      "BPacd": {
+        "mean": 25.8,
+        "sd": null,
+        "n": 1,
+        "min": 25.8,
+        "max": 25.8
+      },
+      "PL": {
+        "mean": 46.4,
+        "sd": null,
+        "n": 1,
+        "min": 46.4,
+        "max": 46.4
+      },
+      "HFcr": {
+        "mean": 17.6,
+        "sd": null,
+        "n": 1,
+        "min": 17.6,
+        "max": 17.6
+      },
+      "SLC": {
+        "mean": 37.7,
+        "sd": null,
+        "n": 1,
+        "min": 37.7,
+        "max": 37.7
+      },
+      "GLP": {
+        "mean": 43.2,
+        "sd": null,
+        "n": 1,
+        "min": 43.2,
+        "max": 43.2
+      },
+      "LG": {
+        "mean": 36.2,
+        "sd": null,
+        "n": 1,
+        "min": 36.2,
+        "max": 36.2
+      },
+      "BG": {
+        "mean": 24.6,
+        "sd": null,
+        "n": 1,
+        "min": 24.6,
+        "max": 24.6
+      },
+      "HS": {
+        "mean": 168.2,
+        "sd": null,
+        "n": 1,
+        "min": 168.2,
+        "max": 168.2
+      },
+      "DHA": {
+        "mean": 155.0,
+        "sd": null,
+        "n": 1,
+        "min": 155.0,
+        "max": 155.0
+      },
+      "Dp": {
+        "mean": 55.9,
+        "sd": null,
+        "n": 1,
+        "min": 55.9,
+        "max": 55.9
+      },
+      "SD": {
+        "mean": 16.5,
+        "sd": null,
+        "n": 1,
+        "min": 16.5,
+        "max": 16.5
+      },
+      "Bd": {
+        "mean": 10.3,
+        "sd": null,
+        "n": 1,
+        "min": 10.3,
+        "max": 10.3
+      },
+      "Bp": {
+        "mean": 49.1,
+        "sd": null,
+        "n": 1,
+        "min": 49.1,
+        "max": 49.1
+      },
+      "BPC": {
+        "mean": 23.7,
+        "sd": null,
+        "n": 1,
+        "min": 23.7,
+        "max": 23.7
+      },
+      "DPA": {
+        "mean": 33.0,
+        "sd": null,
+        "n": 1,
+        "min": 33.0,
+        "max": 33.0
+      },
+      "SDO": {
+        "mean": 26.0,
+        "sd": null,
+        "n": 1,
+        "min": 26.0,
+        "max": 26.0
+      },
+      "LA": {
+        "mean": 28.7,
+        "sd": null,
+        "n": 1,
+        "min": 28.7,
+        "max": 28.7
+      },
+      "Breadth of acetabulum": {
+        "mean": 26.8,
+        "sd": null,
+        "n": 1,
+        "min": 26.8,
+        "max": 26.8
+      },
+      "LS": {
+        "mean": 59.9,
+        "sd": null,
+        "n": 1,
+        "min": 59.9,
+        "max": 59.9
+      },
+      "SH": {
+        "mean": 25.1,
+        "sd": null,
+        "n": 1,
+        "min": 25.1,
+        "max": 25.1
+      },
+      "SB": {
+        "mean": 13.4,
+        "sd": null,
+        "n": 1,
+        "min": 13.4,
+        "max": 13.4
+      },
+      "LFo": {
+        "mean": 37.7,
+        "sd": null,
+        "n": 1,
+        "min": 37.7,
+        "max": 37.7
+      },
+      "DC": {
+        "mean": 25.9,
+        "sd": null,
+        "n": 1,
+        "min": 25.9,
+        "max": 25.9
+      },
+      "Depth": {
+        "mean": 12.1,
+        "sd": null,
+        "n": 1,
+        "min": 12.1,
+        "max": 12.1
+      },
+      "Dd": {
+        "mean": 23.7,
+        "sd": null,
+        "n": 1,
+        "min": 23.7,
+        "max": 23.7
+      },
+      "Distal depth, flat against posterior": {
+        "mean": 23.9,
+        "sd": null,
+        "n": 1,
+        "min": 23.9,
+        "max": 23.9
+      },
+      "GLl": {
+        "mean": 34.5,
+        "sd": null,
+        "n": 1,
+        "min": 34.5,
+        "max": 34.5
+      },
+      "Maximum lateral depth": {
+        "mean": 25.3,
+        "sd": null,
+        "n": 1,
+        "min": 25.3,
+        "max": 25.3
+      }
+    },
+    " Combined Set": {
+      "SLC": {
+        "mean": 33.75,
+        "sd": 20.54,
+        "n": 4,
+        "min": 19.5,
+        "max": 69.0
+      },
+      "LG": {
+        "mean": 39.25,
+        "sd": 17.9,
+        "n": 4,
+        "min": 26.0,
+        "max": 70.0
+      },
+      "BG": {
+        "mean": 33.58,
+        "sd": 15.38,
+        "n": 4,
+        "min": 22.0,
+        "max": 60.0
+      },
+      "GL": {
+        "mean": 92.03,
+        "sd": 42.29,
+        "n": 4,
+        "min": 64.0,
+        "max": 165.0
+      },
+      "GLC": {
+        "mean": 279.6,
+        "sd": 29.4,
+        "n": 2,
+        "min": 250.2,
+        "max": 309.0
+      },
+      "Bd": {
+        "mean": 20.2,
+        "sd": 8.13,
+        "n": 4,
+        "min": 11.3,
+        "max": 29.0
+      },
+      "BT": {
+        "mean": 47.58,
+        "sd": 24.09,
+        "n": 4,
+        "min": 29.5,
+        "max": 89.0
+      },
+      "SD": {
+        "mean": 15.12,
+        "sd": 7.14,
+        "n": 4,
+        "min": 8.9,
+        "max": 27.0
+      },
+      "Bp": {
+        "mean": 19.45,
+        "sd": 8.59,
+        "n": 4,
+        "min": 12.8,
+        "max": 34.0
+      },
+      "BFp": {
+        "mean": 47.27,
+        "sd": 24.72,
+        "n": 4,
+        "min": 30.5,
+        "max": 90.0
+      },
+      "DC": {
+        "mean": 32.73,
+        "sd": 14.38,
+        "n": 4,
+        "min": 21.1,
+        "max": 57.0
+      },
+      "GLl": {
+        "mean": 48.45,
+        "sd": 20.97,
+        "n": 4,
+        "min": 31.3,
+        "max": 83.0
+      },
+      "GB": {
+        "mean": 33.77,
+        "sd": 19.35,
+        "n": 4,
+        "min": 20.5,
+        "max": 67.0
+      },
+      "GLpe": {
+        "mean": 42.5,
+        "sd": 3.19,
+        "n": 3,
+        "min": 40.0,
+        "max": 47.0
+      },
+      "GLP": {
+        "mean": 36.03,
+        "sd": 2.62,
+        "n": 3,
+        "min": 33.0,
+        "max": 39.4
+      },
+      "Dp": {
+        "mean": 33.73,
+        "sd": 16.74,
+        "n": 3,
+        "min": 21.3,
+        "max": 57.4
+      },
+      "BFd": {
+        "mean": 18.6,
+        "sd": 6.9,
+        "n": 2,
+        "min": 11.7,
+        "max": 25.5
+      },
+      "BPC": {
+        "mean": 23.27,
+        "sd": 3.02,
+        "n": 3,
+        "min": 19.0,
+        "max": 25.5
+      },
+      "DPA": {
+        "mean": 33.07,
+        "sd": 6.64,
+        "n": 3,
+        "min": 27.5,
+        "max": 42.4
+      },
+      "Dd": {
+        "mean": 21.8,
+        "sd": 6.23,
+        "n": 3,
+        "min": 17.0,
+        "max": 30.6
+      },
+      "BTP": {
+        "mean": 19.65,
+        "sd": 0.15,
+        "n": 2,
+        "min": 19.5,
+        "max": 19.8
+      },
+      "GLm": {
+        "mean": 34.07,
+        "sd": 6.74,
+        "n": 3,
+        "min": 29.3,
+        "max": 43.6
+      },
+      "Dl": {
+        "mean": 21.2,
+        "sd": 3.8,
+        "n": 2,
+        "min": 17.4,
+        "max": 25.0
+      },
+      "GD": {
+        "mean": 23.9,
+        "sd": 0.6,
+        "n": 2,
+        "min": 23.3,
+        "max": 24.5
+      },
+      "SDO": {
+        "mean": 27.85,
+        "sd": 4.35,
+        "n": 2,
+        "min": 23.5,
+        "max": 32.2
+      },
+      "Dm": {
+        "mean": 18.5,
+        "sd": null,
+        "n": 1,
+        "min": 18.5,
+        "max": 18.5
+      },
+      "HS": {
+        "mean": 228.1,
+        "sd": null,
+        "n": 1,
+        "min": 228.1,
+        "max": 228.1
+      },
+      "DHA": {
+        "mean": 229.6,
+        "sd": null,
+        "n": 1,
+        "min": 229.6,
+        "max": 229.6
+      },
+      "Ld": {
+        "mean": 37.6,
+        "sd": null,
+        "n": 1,
+        "min": 37.6,
+        "max": 37.6
+      },
+      "SBC": {
+        "mean": 12.7,
+        "sd": null,
+        "n": 1,
+        "min": 12.7,
+        "max": 12.7
+      },
+      "GLT": {
+        "mean": 32.4,
+        "sd": null,
+        "n": 1,
+        "min": 32.4,
+        "max": 32.4
+      },
+      "BFT": {
+        "mean": 34.6,
+        "sd": null,
+        "n": 1,
+        "min": 34.6,
+        "max": 34.6
+      },
+      "LT(mid)": {
+        "mean": 21.3,
+        "sd": null,
+        "n": 1,
+        "min": 21.3,
+        "max": 21.3
+      },
+      "LT(lat)": {
+        "mean": 23.7,
+        "sd": null,
+        "n": 1,
+        "min": 23.7,
+        "max": 23.7
+      },
+      "DFd": {
+        "mean": 17.0,
+        "sd": null,
+        "n": 1,
+        "min": 17.0,
+        "max": 17.0
+      },
+      "LO": {
+        "mean": 72.4,
+        "sd": null,
+        "n": 1,
+        "min": 72.4,
+        "max": 72.4
+      },
+      "SBO": {
+        "mean": 11.5,
+        "sd": null,
+        "n": 1,
+        "min": 11.5,
+        "max": 11.5
+      },
+      "LPA": {
+        "mean": 29.9,
+        "sd": null,
+        "n": 1,
+        "min": 29.9,
+        "max": 29.9
+      },
+      "SLFp": {
+        "mean": 21.5,
+        "sd": null,
+        "n": 1,
+        "min": 21.5,
+        "max": 21.5
+      },
+      "B.tr": {
+        "mean": 26.7,
+        "sd": null,
+        "n": 1,
+        "min": 26.7,
+        "max": 26.7
+      },
+      "LA": {
+        "mean": 38.7,
+        "sd": null,
+        "n": 1,
+        "min": 38.7,
+        "max": 38.7
+      },
+      "GDl": {
+        "mean": 34.1,
+        "sd": null,
+        "n": 1,
+        "min": 34.1,
+        "max": 34.1
+      },
+      "SDTc": {
+        "mean": 22.0,
+        "sd": null,
+        "n": 1,
+        "min": 22.0,
+        "max": 22.0
+      },
+      "LTc": {
+        "mean": 36.5,
+        "sd": null,
+        "n": 1,
+        "min": 36.5,
+        "max": 36.5
+      },
+      "LFOM": {
+        "mean": 13.1,
+        "sd": null,
+        "n": 1,
+        "min": 13.1,
+        "max": 13.1
+      }
     }
   }
 }
