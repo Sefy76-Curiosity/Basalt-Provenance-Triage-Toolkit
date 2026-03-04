@@ -1,0 +1,170 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "cabanis_lecolle_la_y_nb_alternative_1989",
+  "diagram_name": "Cabanis & Lecolle La/5-Y/10-Nb/5 Alternative Ternary",
+  "version": "1.0",
+  "author": "Cabanis, B. & Lecolle, M.",
+  "reference": {
+    "citation": "Cabanis, B. & Lecolle, M. (1989). Le diagramme La/10 - Y/15 - Nb/8: un outil pour la discrimination des séries volcaniques... Comptes Rendus de l'Académie des Sciences, Paris, 309, 1443-1449",
+    "figure": "Figure 2"
+  },
+  "description": "La/5 - Y/10 - Nb/5 ternary discrimination diagram for basalts (alternative normalization)",
+  "diagram_type": "ternary",
+
+  "requires_fields": ["La_ppm", "Y_ppm", "Nb_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "La_5",
+      "formula": "La_ppm / 5",
+      "requires": ["La_ppm"],
+      "description": "La/5"
+    },
+    {
+      "name": "Y_10",
+      "formula": "Y_ppm / 10",
+      "requires": ["Y_ppm"],
+      "description": "Y/10"
+    },
+    {
+      "name": "Nb_5",
+      "formula": "Nb_ppm / 5",
+      "requires": ["Nb_ppm"],
+      "description": "Nb/5"
+    }
+  ],
+
+  "axes": {
+    "a": {
+      "field": "La_5",
+      "label": "La/5",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "b": {
+      "field": "Y_10",
+      "label": "Y/10",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "c": {
+      "field": "Nb_5",
+      "label": "Nb/5",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    }
+  },
+
+  "fields": [
+    {
+      "name": "Arc Tholeiites",
+      "type": "polygon",
+      "points": [[15, 70, 15], [25, 70, 5], [30, 65, 5], [20, 60, 20]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.25,
+      "label": "Arc Tholeiites"
+    },
+    {
+      "name": "Calc-Alkaline",
+      "type": "polygon",
+      "points": [[20, 50, 30], [35, 50, 15], [45, 40, 15], [30, 40, 30]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "Calc-Alkaline"
+    },
+    {
+      "name": "N-MORB",
+      "type": "polygon",
+      "points": [[10, 60, 30], [20, 60, 20], [25, 50, 25], [15, 50, 35]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "N-MORB"
+    },
+    {
+      "name": "E-MORB",
+      "type": "polygon",
+      "points": [[25, 40, 35], [40, 40, 20], [50, 30, 20], [35, 30, 35]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.25,
+      "label": "E-MORB"
+    },
+    {
+      "name": "Alkaline",
+      "type": "polygon",
+      "points": [[40, 30, 30], [60, 30, 10], [75, 15, 10], [55, 15, 30]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "Alkaline"
+    },
+    {
+      "name": "Continental",
+      "type": "polygon",
+      "points": [[30, 30, 40], [45, 30, 25], [55, 20, 25], [40, 20, 40]],
+      "closed": true,
+      "color": "#CD853F",
+      "alpha": 0.2,
+      "label": "Continental"
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "Arc Thol",
+      "position": [22, 65, 13],
+      "fontsize": 6,
+      "color": "black"
+    },
+    {
+      "text": "C-A",
+      "position": [30, 45, 25],
+      "fontsize": 6,
+      "color": "black"
+    },
+    {
+      "text": "N-MORB",
+      "position": [18, 55, 27],
+      "fontsize": 6,
+      "color": "black"
+    },
+    {
+      "text": "E-MORB",
+      "position": [38, 35, 27],
+      "fontsize": 6,
+      "color": "black"
+    },
+    {
+      "text": "Alk",
+      "position": [55, 22, 23],
+      "fontsize": 6,
+      "color": "black"
+    },
+    {
+      "text": "Cont",
+      "position": [42, 25, 33],
+      "fontsize": 6,
+      "color": "black"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper right",
+    "fontsize": 6,
+    "ncol": 2
+  }
+}

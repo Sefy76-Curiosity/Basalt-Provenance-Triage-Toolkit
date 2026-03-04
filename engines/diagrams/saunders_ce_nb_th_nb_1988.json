@@ -1,0 +1,152 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "saunders_ce_nb_th_nb_1988",
+  "diagram_name": "Saunders Ce/Nb vs Th/Nb Mantle Source",
+  "version": "1.0",
+  "author": "Saunders, A.D., Norry, M.J. & Tarney, J.",
+  "reference": {
+    "citation": "Saunders, A.D., Norry, M.J. & Tarney, J. (1988). Origin of MORB and chemically-depleted mantle reservoirs: trace element constraints. Journal of Petrology, Special Volume, 415-445",
+    "doi": "10.1093/petrology/Special_Volume.1.415",
+    "figure": "Figure 6"
+  },
+  "description": "Ce/Nb vs Th/Nb discrimination diagram for mantle source variations",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Ce_ppm", "Nb_ppm", "Th_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "Ce_Nb",
+      "formula": "Ce_ppm / Nb_ppm",
+      "requires": ["Ce_ppm", "Nb_ppm"],
+      "description": "Ce/Nb ratio"
+    },
+    {
+      "name": "Th_Nb",
+      "formula": "Th_ppm / Nb_ppm",
+      "requires": ["Th_ppm", "Nb_ppm"],
+      "description": "Th/Nb ratio"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "Th_Nb",
+      "label": "Th/Nb",
+      "scale": "log",
+      "limits": [0.01, 10],
+      "major_ticks": [0.01, 0.1, 1, 10],
+      "grid": true
+    },
+    "y": {
+      "field": "Ce_Nb",
+      "label": "Ce/Nb",
+      "scale": "log",
+      "limits": [0.1, 100],
+      "major_ticks": [0.1, 1, 10, 100],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "N-MORB",
+      "type": "polygon",
+      "points": [[0.02, 0.8], [0.08, 0.8], [0.08, 2.5], [0.02, 2.5]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "N-MORB",
+      "tooltip": "Normal MORB - Depleted mantle"
+    },
+    {
+      "name": "E-MORB",
+      "type": "polygon",
+      "points": [[0.05, 2.0], [0.2, 2.0], [0.2, 5.0], [0.05, 5.0]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.25,
+      "label": "E-MORB",
+      "tooltip": "Enriched MORB"
+    },
+    {
+      "name": "OIB",
+      "type": "polygon",
+      "points": [[0.05, 5.0], [0.3, 5.0], [0.3, 20], [0.05, 20]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "OIB",
+      "tooltip": "Ocean Island Basalt"
+    },
+    {
+      "name": "Arc-Related",
+      "type": "polygon",
+      "points": [[0.2, 1.0], [10, 1.0], [10, 30], [0.2, 30]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "Arc-Related",
+      "tooltip": "Subduction-related basalts"
+    },
+    {
+      "name": "Continental Crust",
+      "type": "polygon",
+      "points": [[0.5, 2.0], [10, 2.0], [10, 100], [0.5, 100]],
+      "closed": true,
+      "color": "#8B4513",
+      "alpha": 0.15,
+      "label": "Continental Crust",
+      "tooltip": "Upper continental crust"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "Mantle Array",
+      "type": "line",
+      "points": [[0.02, 0.8], [0.3, 20]],
+      "color": "black",
+      "linestyle": "-",
+      "linewidth": 1,
+      "alpha": 0.4
+    }
+  ],
+
+  "points_of_interest": [
+    {
+      "name": "Primitive Mantle",
+      "coordinates": [0.11, 3.5],
+      "marker": "star",
+      "color": "gold",
+      "label": "PM"
+    },
+    {
+      "name": "Lower Crust",
+      "coordinates": [0.8, 8],
+      "marker": "square",
+      "color": "brown",
+      "label": "LC"
+    },
+    {
+      "name": "Upper Crust",
+      "coordinates": [1.5, 15],
+      "marker": "square",
+      "color": "sienna",
+      "label": "UC"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "lower right",
+    "fontsize": 8
+  }
+}

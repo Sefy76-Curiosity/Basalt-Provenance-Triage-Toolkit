@@ -1,0 +1,132 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "pearce_th_nb_1982",
+  "diagram_name": "Pearce Th vs Nb Discrimination",
+  "version": "1.0",
+  "author": "Pearce, J.A.",
+  "reference": {
+    "citation": "Pearce, J.A. (1982). Trace element characteristics of lavas from destructive plate boundaries. In: Thorpe, R.S. (ed) Andesites, pp. 525-548",
+    "figure": "Figure 6"
+  },
+  "description": "Th vs Nb discrimination diagram for basalts: MORB, OIB, Arc, Continental",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Th_ppm", "Nb_ppm"],
+
+  "axes": {
+    "x": {
+      "field": "Nb_ppm",
+      "label": "Nb (ppm)",
+      "scale": "log",
+      "limits": [0.1, 100],
+      "major_ticks": [0.1, 1, 10, 100],
+      "grid": true
+    },
+    "y": {
+      "field": "Th_ppm",
+      "label": "Th (ppm)",
+      "scale": "log",
+      "limits": [0.01, 10],
+      "major_ticks": [0.01, 0.1, 1, 10],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "MORB",
+      "type": "polygon",
+      "points": [[0.5, 0.01], [5, 0.01], [5, 0.2], [0.5, 0.2]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "MORB",
+      "tooltip": "Mid-Ocean Ridge Basalt"
+    },
+    {
+      "name": "OIB",
+      "type": "polygon",
+      "points": [[5, 0.2], [50, 0.2], [50, 2.0], [5, 2.0]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "OIB",
+      "tooltip": "Ocean Island Basalt"
+    },
+    {
+      "name": "IAT",
+      "type": "polygon",
+      "points": [[0.2, 0.05], [2, 0.05], [2, 0.5], [0.2, 0.5]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.25,
+      "label": "IAT",
+      "tooltip": "Island Arc Tholeiite"
+    },
+    {
+      "name": "CAB",
+      "type": "polygon",
+      "points": [[1, 0.2], [10, 0.2], [10, 2.0], [1, 2.0]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "CAB",
+      "tooltip": "Calc-Alkaline Basalt"
+    },
+    {
+      "name": "Continental Arc",
+      "type": "polygon",
+      "points": [[5, 0.5], [30, 0.5], [30, 5.0], [5, 5.0]],
+      "closed": true,
+      "color": "#CD853F",
+      "alpha": 0.2,
+      "label": "Continental Arc",
+      "tooltip": "Continental margin arcs"
+    },
+    {
+      "name": "Within-Plate",
+      "type": "polygon",
+      "points": [[10, 0.5], [100, 0.5], [100, 10], [10, 10]],
+      "closed": true,
+      "color": "#DDA0DD",
+      "alpha": 0.2,
+      "label": "Within-Plate",
+      "tooltip": "Within-plate basalts"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "Mantle Array",
+      "type": "line",
+      "points": [[0.1, 0.01], [100, 10]],
+      "color": "black",
+      "linestyle": ":",
+      "linewidth": 1,
+      "alpha": 0.5
+    },
+    {
+      "name": "Th/Nb = 0.1",
+      "type": "line",
+      "points": [[0.1, 0.01], [100, 10]],
+      "color": "gray",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.3
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 7,
+    "ncol": 2
+  }
+}

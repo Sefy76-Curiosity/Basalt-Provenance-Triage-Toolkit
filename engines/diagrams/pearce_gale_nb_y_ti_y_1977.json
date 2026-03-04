@@ -1,0 +1,116 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "pearce_gale_nb_y_ti_y_1977",
+  "diagram_name": "Pearce & Gale Nb/Y vs Ti/Y Discrimination",
+  "version": "1.0",
+  "author": "Pearce, J.A. & Gale, G.H.",
+  "reference": {
+    "citation": "Pearce, J.A. & Gale, G.H. (1977). Identification of ore-deposition environment from trace-element geochemistry of associated igneous host rocks. Geological Society of London Special Publications, 7(1), 14-24",
+    "doi": "10.1144/GSL.SP.1977.007.01.03",
+    "figure": "Figure 2"
+  },
+  "description": "Nb/Y vs Ti/Y discrimination diagram for basaltic rocks",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Nb_ppm", "Y_ppm", "Ti_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "Nb_Y",
+      "formula": "Nb_ppm / Y_ppm",
+      "requires": ["Nb_ppm", "Y_ppm"],
+      "description": "Nb/Y ratio"
+    },
+    {
+      "name": "Ti_Y",
+      "formula": "Ti_ppm / Y_ppm",
+      "requires": ["Ti_ppm", "Y_ppm"],
+      "description": "Ti/Y ratio"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "Nb_Y",
+      "label": "Nb/Y",
+      "scale": "log",
+      "limits": [0.01, 10],
+      "major_ticks": [0.01, 0.1, 1, 10],
+      "grid": true
+    },
+    "y": {
+      "field": "Ti_Y",
+      "label": "Ti/Y",
+      "scale": "log",
+      "limits": [10, 10000],
+      "major_ticks": [10, 100, 1000, 10000],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "MORB",
+      "type": "polygon",
+      "points": [[0.01, 200], [0.1, 200], [0.1, 800], [0.01, 800]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "MORB",
+      "tooltip": "Mid-Ocean Ridge Basalt"
+    },
+    {
+      "name": "IAT",
+      "type": "polygon",
+      "points": [[0.01, 50], [0.1, 50], [0.1, 200], [0.01, 200]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.25,
+      "label": "IAT",
+      "tooltip": "Island Arc Tholeiite"
+    },
+    {
+      "name": "CAB",
+      "type": "polygon",
+      "points": [[0.03, 100], [0.3, 100], [0.3, 400], [0.03, 400]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "CAB",
+      "tooltip": "Calc-Alkaline Basalt"
+    },
+    {
+      "name": "WPB",
+      "type": "polygon",
+      "points": [[0.1, 300], [10, 300], [10, 5000], [0.1, 5000]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "WPB",
+      "tooltip": "Within-Plate Basalt"
+    },
+    {
+      "name": "Alkaline",
+      "type": "polygon",
+      "points": [[0.5, 500], [10, 500], [10, 10000], [0.5, 10000]],
+      "closed": true,
+      "color": "#DDA0DD",
+      "alpha": 0.25,
+      "label": "Alkaline",
+      "tooltip": "Alkaline basalts"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "lower right",
+    "fontsize": 8
+  }
+}

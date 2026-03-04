@@ -1,0 +1,132 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "pearce_norry_ti_zr_y_1979",
+  "diagram_name": "Pearce & Norry Ti-Zr-Y Alternative Ternary",
+  "version": "1.0",
+  "author": "Pearce, J.A. & Norry, M.J.",
+  "reference": {
+    "citation": "Pearce, J.A. & Norry, M.J. (1979). Petrogenetic implications of Ti, Zr, Y, and Nb variations in volcanic rocks. Contributions to Mineralogy and Petrology, 69(1), 33-47",
+    "doi": "10.1007/BF00375192",
+    "figure": "Figure 6"
+  },
+  "description": "Ti - Zr - Y ternary with alternative normalization",
+  "diagram_type": "ternary",
+
+  "requires_fields": ["Ti_ppm", "Zr_ppm", "Y_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "Ti_norm",
+      "formula": "Ti_ppm / 50",
+      "requires": ["Ti_ppm"],
+      "description": "Ti/50"
+    }
+  ],
+
+  "axes": {
+    "a": {
+      "field": "Ti_norm",
+      "label": "Ti/50",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "b": {
+      "field": "Zr_ppm",
+      "label": "Zr",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "c": {
+      "field": "Y_ppm",
+      "label": "Y",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    }
+  },
+
+  "fields": [
+    {
+      "name": "MORB",
+      "type": "polygon",
+      "points": [[30, 40, 30], [45, 40, 15], [50, 30, 20], [35, 30, 35]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "MORB",
+      "tooltip": "Mid-Ocean Ridge Basalt"
+    },
+    {
+      "name": "IAT",
+      "type": "polygon",
+      "points": [[20, 50, 30], [30, 50, 20], [40, 40, 20], [30, 35, 35]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.25,
+      "label": "IAT",
+      "tooltip": "Island Arc Tholeiite"
+    },
+    {
+      "name": "CAB",
+      "type": "polygon",
+      "points": [[35, 30, 35], [45, 30, 25], [55, 20, 25], [45, 20, 35]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "CAB",
+      "tooltip": "Calc-Alkaline Basalt"
+    },
+    {
+      "name": "WPB",
+      "type": "polygon",
+      "points": [[45, 20, 35], [60, 20, 20], [70, 10, 20], [55, 10, 35]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "WPB",
+      "tooltip": "Within-Plate Basalt"
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "MORB",
+      "position": [40, 35, 25],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "IAT",
+      "position": [30, 45, 25],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "CAB",
+      "position": [45, 25, 30],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "WPB",
+      "position": [60, 15, 25],
+      "fontsize": 7,
+      "color": "black"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 7
+  }
+}

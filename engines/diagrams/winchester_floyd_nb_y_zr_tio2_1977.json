@@ -1,0 +1,139 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "winchester_floyd_nb_y_zr_tio2_1977",
+  "diagram_name": "Winchester & Floyd Nb/Y vs Zr/TiO₂ Rock Classification",
+  "version": "1.0",
+  "author": "Winchester, J.A. & Floyd, P.A.",
+  "reference": {
+    "citation": "Winchester, J.A. & Floyd, P.A. (1977). Geochemical discrimination of different magma series and their differentiation products using immobile elements. Chemical Geology, 20, 325-343",
+    "doi": "10.1016/0009-2541(77)90057-2",
+    "figure": "Figure 2"
+  },
+  "description": "Nb/Y vs Zr/TiO₂ discrimination diagram for volcanic rock classification (alternative orientation)",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Nb_ppm", "Y_ppm", "Zr_ppm", "TiO2_wt"],
+
+  "derived_fields": [
+    {
+      "name": "Nb_Y",
+      "formula": "Nb_ppm / Y_ppm",
+      "requires": ["Nb_ppm", "Y_ppm"],
+      "description": "Nb/Y ratio"
+    },
+    {
+      "name": "Zr_TiO2",
+      "formula": "Zr_ppm / (TiO2_wt * 10000)",
+      "requires": ["Zr_ppm", "TiO2_wt"],
+      "description": "Zr/TiO₂ ratio"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "Nb_Y",
+      "label": "Nb/Y",
+      "scale": "log",
+      "limits": [0.01, 10],
+      "major_ticks": [0.01, 0.1, 1, 10],
+      "grid": true
+    },
+    "y": {
+      "field": "Zr_TiO2",
+      "label": "Zr/TiO₂",
+      "scale": "log",
+      "limits": [0.001, 1],
+      "major_ticks": [0.001, 0.01, 0.1, 1],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "Sub-alkaline Basalt",
+      "type": "polygon",
+      "points": [[0.01, 0.01], [0.1, 0.01], [0.1, 0.06], [0.01, 0.06]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "Sub-alkaline Basalt"
+    },
+    {
+      "name": "Andesite",
+      "type": "polygon",
+      "points": [[0.01, 0.06], [0.1, 0.06], [0.1, 0.2], [0.01, 0.2]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.25,
+      "label": "Andesite"
+    },
+    {
+      "name": "Dacite",
+      "type": "polygon",
+      "points": [[0.01, 0.2], [0.1, 0.2], [0.1, 0.5], [0.01, 0.5]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.25,
+      "label": "Dacite"
+    },
+    {
+      "name": "Rhyolite",
+      "type": "polygon",
+      "points": [[0.01, 0.5], [0.1, 0.5], [0.1, 1.0], [0.01, 1.0]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "Rhyolite"
+    },
+    {
+      "name": "Alkaline Basalt",
+      "type": "polygon",
+      "points": [[0.1, 0.01], [1, 0.01], [1, 0.06], [0.1, 0.06]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "Alkaline Basalt"
+    },
+    {
+      "name": "Trachyandesite",
+      "type": "polygon",
+      "points": [[0.1, 0.06], [1, 0.06], [1, 0.2], [0.1, 0.2]],
+      "closed": true,
+      "color": "#FFA07A",
+      "alpha": 0.25,
+      "label": "Trachyandesite"
+    },
+    {
+      "name": "Trachyte",
+      "type": "polygon",
+      "points": [[0.1, 0.2], [1, 0.2], [1, 0.5], [0.1, 0.5]],
+      "closed": true,
+      "color": "#DDA0DD",
+      "alpha": 0.25,
+      "label": "Trachyte"
+    },
+    {
+      "name": "Phonolite",
+      "type": "polygon",
+      "points": [[1, 0.01], [10, 0.01], [10, 0.1], [1, 0.1]],
+      "closed": true,
+      "color": "#E6E6FA",
+      "alpha": 0.25,
+      "label": "Phonolite"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "lower right",
+    "fontsize": 6,
+    "ncol": 2
+  }
+}

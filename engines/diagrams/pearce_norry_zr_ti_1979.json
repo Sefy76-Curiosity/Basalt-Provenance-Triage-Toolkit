@@ -1,0 +1,91 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "pearce_norry_zr_ti_1979",
+  "diagram_name": "Pearce & Norry Zr vs Ti Discrimination",
+  "version": "1.0",
+  "author": "Pearce, J.A. & Norry, M.J.",
+  "reference": {
+    "citation": "Pearce, J.A. & Norry, M.J. (1979). Petrogenetic implications of Ti, Zr, Y, and Nb variations in volcanic rocks. Contributions to Mineralogy and Petrology, 69(1), 33-47",
+    "doi": "10.1007/BF00375192",
+    "figure": "Figure 3"
+  },
+  "description": "Zr vs Ti discrimination diagram for basalts: MORB, IAT, CAB, WPB",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Zr_ppm", "Ti_ppm"],
+
+  "axes": {
+    "x": {
+      "field": "Zr_ppm",
+      "label": "Zr (ppm)",
+      "scale": "log",
+      "limits": [10, 1000],
+      "major_ticks": [10, 100, 1000],
+      "grid": true
+    },
+    "y": {
+      "field": "Ti_ppm",
+      "label": "Ti (ppm)",
+      "scale": "log",
+      "limits": [100, 50000],
+      "major_ticks": [100, 1000, 10000],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "MORB",
+      "type": "polygon",
+      "points": [[50, 5000], [200, 5000], [200, 15000], [50, 15000]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "MORB",
+      "tooltip": "Mid-Ocean Ridge Basalt"
+    },
+    {
+      "name": "IAT",
+      "type": "polygon",
+      "points": [[10, 500], [100, 500], [100, 5000], [10, 5000]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "IAT",
+      "tooltip": "Island Arc Tholeiite"
+    },
+    {
+      "name": "CAB",
+      "type": "polygon",
+      "points": [[30, 1000], [150, 1000], [150, 8000], [30, 8000]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.25,
+      "label": "CAB",
+      "tooltip": "Calc-Alkaline Basalt"
+    },
+    {
+      "name": "WPB",
+      "type": "polygon",
+      "points": [[100, 8000], [1000, 8000], [1000, 50000], [100, 50000]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "WPB",
+      "tooltip": "Within-Plate Basalt"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 8
+  }
+}

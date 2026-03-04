@@ -1,0 +1,101 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "floyd_winchester_tio2_zr_1978",
+  "diagram_name": "Floyd & Winchester TiO₂ vs Zr Discrimination",
+  "version": "1.0",
+  "author": "Floyd, P.A. & Winchester, J.A.",
+  "reference": {
+    "citation": "Floyd, P.A. & Winchester, J.A. (1978). Identification and discrimination of altered and metamorphosed volcanic rocks using immobile elements. Chemical Geology, 21(3-4), 291-306",
+    "doi": "10.1016/0009-2541(78)90050-5",
+    "figure": "Figure 3"
+  },
+  "description": "TiO₂ vs Zr discrimination diagram for basaltic rocks",
+  "diagram_type": "xy",
+
+  "requires_fields": ["TiO2_wt", "Zr_ppm"],
+
+  "axes": {
+    "x": {
+      "field": "Zr_ppm",
+      "label": "Zr (ppm)",
+      "scale": "log",
+      "limits": [10, 1000],
+      "major_ticks": [10, 100, 1000],
+      "grid": true
+    },
+    "y": {
+      "field": "TiO2_wt",
+      "label": "TiO₂ (wt%)",
+      "scale": "log",
+      "limits": [0.1, 5],
+      "major_ticks": [0.1, 1, 5],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "MORB",
+      "type": "polygon",
+      "points": [[50, 0.8], [200, 0.8], [200, 2.0], [50, 2.0]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "MORB",
+      "tooltip": "Mid-Ocean Ridge Basalt"
+    },
+    {
+      "name": "IAT",
+      "type": "polygon",
+      "points": [[20, 0.4], [100, 0.4], [100, 1.2], [20, 1.2]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.25,
+      "label": "IAT",
+      "tooltip": "Island Arc Tholeiite"
+    },
+    {
+      "name": "CAB",
+      "type": "polygon",
+      "points": [[40, 0.6], [150, 0.6], [150, 1.5], [40, 1.5]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "CAB",
+      "tooltip": "Calc-Alkaline Basalt"
+    },
+    {
+      "name": "OIB",
+      "type": "polygon",
+      "points": [[150, 1.5], [500, 1.5], [500, 4.0], [150, 4.0]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "OIB",
+      "tooltip": "Ocean Island Basalt"
+    },
+    {
+      "name": "Boninite",
+      "type": "polygon",
+      "points": [[20, 0.1], [60, 0.1], [60, 0.5], [20, 0.5]],
+      "closed": true,
+      "color": "#DDA0DD",
+      "alpha": 0.25,
+      "label": "Boninite",
+      "tooltip": "Boninite series"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 8
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "pearce_th_hf_nb_1996",
+  "diagram_name": "Pearce Th-Hf-Nb/2 Ternary for Felsic Rocks",
+  "version": "1.0",
+  "author": "Pearce, J.A.",
+  "reference": {
+    "citation": "Pearce, J.A. (1996). A user's guide to basalt discrimination diagrams. Geological Society of London Special Publications, 118(1), 1-36",
+    "doi": "10.1144/GSL.SP.1996.118.01.01",
+    "figure": "Figure 7"
+  },
+  "description": "Th - Hf - Nb/2 ternary discrimination diagram for felsic and intermediate rocks",
+  "diagram_type": "ternary",
+
+  "requires_fields": ["Th_ppm", "Hf_ppm", "Nb_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "Nb_2",
+      "formula": "Nb_ppm / 2",
+      "requires": ["Nb_ppm"],
+      "description": "Nb/2"
+    }
+  ],
+
+  "axes": {
+    "a": {
+      "field": "Th_ppm",
+      "label": "Th",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "b": {
+      "field": "Hf_ppm",
+      "label": "Hf",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "c": {
+      "field": "Nb_2",
+      "label": "Nb/2",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    }
+  },
+
+  "fields": [
+    {
+      "name": "N-MORB",
+      "type": "polygon",
+      "points": [[10, 70, 20], [25, 70, 5], [35, 60, 5], [20, 50, 30]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "N-MORB",
+      "tooltip": "Normal Mid-Ocean Ridge Basalt"
+    },
+    {
+      "name": "E-MORB",
+      "type": "polygon",
+      "points": [[20, 50, 30], [35, 50, 15], [45, 40, 15], [30, 35, 35]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.25,
+      "label": "E-MORB",
+      "tooltip": "Enriched MORB"
+    },
+    {
+      "name": "WPT",
+      "type": "polygon",
+      "points": [[25, 35, 40], [45, 35, 20], [55, 25, 20], [35, 20, 45]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.25,
+      "label": "WPT",
+      "tooltip": "Within-Plate Tholeiites"
+    },
+    {
+      "name": "WPA",
+      "type": "polygon",
+      "points": [[35, 20, 45], [55, 20, 25], [70, 10, 20], [45, 5, 50]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "WPA",
+      "tooltip": "Within-Plate Alkaline"
+    },
+    {
+      "name": "VAB",
+      "type": "polygon",
+      "points": [[30, 50, 20], [45, 40, 15], [55, 30, 15], [40, 30, 30]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "VAB",
+      "tooltip": "Volcanic Arc Basalts"
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "N-MORB",
+      "position": [20, 60, 20],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "E-MORB",
+      "position": [30, 45, 25],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "WPT",
+      "position": [40, 30, 30],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "WPA",
+      "position": [50, 15, 35],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "VAB",
+      "position": [45, 35, 20],
+      "fontsize": 7,
+      "color": "black"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 7
+  }
+}

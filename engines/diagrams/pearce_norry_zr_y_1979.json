@@ -1,0 +1,121 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "pearce_norry_zr_y_1979",
+  "diagram_name": "Pearce & Norry Zr vs Y Discrimination",
+  "version": "1.0",
+  "author": "Pearce, J.A. & Norry, M.J.",
+  "reference": {
+    "citation": "Pearce, J.A. & Norry, M.J. (1979). Petrogenetic implications of Ti, Zr, Y, and Nb variations in volcanic rocks. Contributions to Mineralogy and Petrology, 69(1), 33-47",
+    "doi": "10.1007/BF00375192",
+    "figure": "Figure 4"
+  },
+  "description": "Zr vs Y discrimination diagram for basalts",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Zr_ppm", "Y_ppm"],
+
+  "axes": {
+    "x": {
+      "field": "Zr_ppm",
+      "label": "Zr (ppm)",
+      "scale": "log",
+      "limits": [10, 1000],
+      "major_ticks": [10, 100, 1000],
+      "grid": true
+    },
+    "y": {
+      "field": "Y_ppm",
+      "label": "Y (ppm)",
+      "scale": "log",
+      "limits": [10, 100],
+      "major_ticks": [10, 100],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "MORB",
+      "type": "polygon",
+      "points": [[50, 20], [200, 20], [200, 40], [50, 40]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "MORB",
+      "tooltip": "Mid-Ocean Ridge Basalt"
+    },
+    {
+      "name": "IAT",
+      "type": "polygon",
+      "points": [[20, 10], [100, 10], [100, 25], [20, 25]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.25,
+      "label": "IAT",
+      "tooltip": "Island Arc Tholeiite"
+    },
+    {
+      "name": "CAB",
+      "type": "polygon",
+      "points": [[40, 15], [150, 15], [150, 35], [40, 35]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "CAB",
+      "tooltip": "Calc-Alkaline Basalt"
+    },
+    {
+      "name": "WPB",
+      "type": "polygon",
+      "points": [[150, 25], [500, 25], [500, 70], [150, 70]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "WPB",
+      "tooltip": "Within-Plate Basalt"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "Zr/Y = 3",
+      "type": "line",
+      "points": [[10, 3.3], [1000, 333]],
+      "color": "gray",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.5
+    },
+    {
+      "name": "Zr/Y = 5",
+      "type": "line",
+      "points": [[10, 2], [1000, 200]],
+      "color": "gray",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.5
+    },
+    {
+      "name": "Zr/Y = 10",
+      "type": "line",
+      "points": [[10, 1], [1000, 100]],
+      "color": "gray",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.5
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 8
+  }
+}

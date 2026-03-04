@@ -1,0 +1,118 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "pearce_etal_al2o3_mgo_feo_1977",
+  "diagram_name": "Pearce et al. Al₂O₃-MgO-FeO* Ternary",
+  "version": "1.0",
+  "author": "Pearce, T.H., Gorman, B.E. & Birkett, T.C.",
+  "reference": {
+    "citation": "Pearce, T.H., Gorman, B.E. & Birkett, T.C. (1977). The relationship between major element chemistry and tectonic environment of basic and intermediate volcanic rocks. Earth and Planetary Science Letters, 36(1), 121-132",
+    "doi": "10.1016/0012-821X(77)90193-5",
+    "figure": "Figure 3"
+  },
+  "description": "Al₂O₃ - MgO - FeO* ternary for intermediate volcanic rocks (51-56% SiO₂): Spreading Center Island, Orogenic, Ocean Island",
+  "diagram_type": "ternary",
+
+  "requires_fields": ["Al2O3_wt", "MgO_wt", "FeO_T_wt"],
+
+  "derived_fields": [
+    {
+      "name": "FeO_star",
+      "formula": "FeO_T_wt",
+      "requires": ["FeO_T_wt"],
+      "description": "Total Fe as FeO"
+    }
+  ],
+
+  "axes": {
+    "a": {
+      "field": "Al2O3_wt",
+      "label": "Al₂O₃",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "b": {
+      "field": "MgO_wt",
+      "label": "MgO",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "c": {
+      "field": "FeO_star",
+      "label": "FeO*",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    }
+  },
+
+  "fields": [
+    {
+      "name": "Spreading Center Island",
+      "type": "polygon",
+      "points": [[20, 30, 50], [25, 35, 40], [35, 25, 40], [30, 20, 50]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "Spreading Center Island",
+      "tooltip": "MORB and island arc tholeiites"
+    },
+    {
+      "name": "Orogenic",
+      "type": "polygon",
+      "points": [[30, 20, 50], [40, 10, 50], [45, 5, 50], [35, 10, 55], [30, 15, 55]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "Orogenic",
+      "tooltip": "Calc-alkaline and andesitic suites"
+    },
+    {
+      "name": "Ocean Island",
+      "type": "polygon",
+      "points": [[10, 35, 55], [20, 40, 40], [30, 35, 35], [25, 25, 50], [15, 25, 60]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "Ocean Island",
+      "tooltip": "Ocean island and alkaline basalts"
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "Spreading Center",
+      "position": [28, 25, 47],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "Orogenic",
+      "position": [38, 12, 50],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "Ocean Island",
+      "position": [20, 30, 50],
+      "fontsize": 7,
+      "color": "black"
+    }
+  ],
+
+  "note": "This diagram should only be used with subalkaline rocks in the silica range 51-56 wt% SiO₂",
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 7
+  }
+}

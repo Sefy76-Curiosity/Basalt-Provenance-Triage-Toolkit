@@ -1,0 +1,128 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "schandl_gorton_ta_hf_th_hf_2002",
+  "diagram_name": "Schandl & Gorton Ta/Hf vs Th/Hf Discrimination",
+  "version": "1.0",
+  "author": "Schandl, E.S. & Gorton, M.P.",
+  "reference": {
+    "citation": "Schandl, E.S. & Gorton, M.P. (2002). Application of high field strength elements to discriminate tectonic settings in VMS environments. Economic Geology, 97(3), 629-642",
+    "doi": "10.2113/97.3.629",
+    "figure": "Figure 7"
+  },
+  "description": "Ta/Hf vs Th/Hf discrimination diagram for felsic and mafic volcanic rocks",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Ta_ppm", "Hf_ppm", "Th_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "Ta_Hf",
+      "formula": "Ta_ppm / Hf_ppm",
+      "requires": ["Ta_ppm", "Hf_ppm"],
+      "description": "Ta/Hf ratio"
+    },
+    {
+      "name": "Th_Hf",
+      "formula": "Th_ppm / Hf_ppm",
+      "requires": ["Th_ppm", "Hf_ppm"],
+      "description": "Th/Hf ratio"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "Ta_Hf",
+      "label": "Ta/Hf",
+      "scale": "log",
+      "limits": [0.01, 10],
+      "major_ticks": [0.01, 0.1, 1, 10],
+      "grid": true
+    },
+    "y": {
+      "field": "Th_Hf",
+      "label": "Th/Hf",
+      "scale": "log",
+      "limits": [0.01, 10],
+      "major_ticks": [0.01, 0.1, 1, 10],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "MORB + OIB",
+      "type": "polygon",
+      "points": [[0.01, 0.01], [0.1, 0.01], [0.1, 0.1], [0.01, 0.1]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.2,
+      "label": "MORB + OIB",
+      "tooltip": "Mid-Ocean Ridge and Ocean Island Basalts"
+    },
+    {
+      "name": "Continental Arc",
+      "type": "polygon",
+      "points": [[0.1, 0.1], [1.0, 0.1], [1.0, 1.0], [0.1, 1.0]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.2,
+      "label": "Continental Arc",
+      "tooltip": "Continental margin arcs"
+    },
+    {
+      "name": "Oceanic Arc",
+      "type": "polygon",
+      "points": [[0.01, 0.1], [0.1, 0.1], [0.1, 1.0], [0.01, 1.0]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.2,
+      "label": "Oceanic Arc",
+      "tooltip": "Oceanic island arcs"
+    },
+    {
+      "name": "WPB",
+      "type": "polygon",
+      "points": [[0.1, 0.01], [10, 0.01], [10, 0.1], [0.1, 0.1]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.2,
+      "label": "WPB",
+      "tooltip": "Within-Plate Basalts"
+    },
+    {
+      "name": "Active Continental Margin",
+      "type": "polygon",
+      "points": [[0.1, 1.0], [10, 1.0], [10, 10], [0.1, 10]],
+      "closed": true,
+      "color": "#CD5C5C",
+      "alpha": 0.15,
+      "label": "Active Continental Margin",
+      "tooltip": "Active continental margin settings"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "Mantle Array",
+      "type": "line",
+      "points": [[0.01, 0.01], [10, 10]],
+      "color": "black",
+      "linestyle": ":",
+      "linewidth": 1,
+      "alpha": 0.5
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 8
+  }
+}

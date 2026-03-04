@@ -1,0 +1,154 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "meschede_nb_zr_y_ternary_1986",
+  "diagram_name": "Meschede 2Nb-Zr/4-Y Ternary Discrimination",
+  "version": "1.0",
+  "author": "Meschede, M.",
+  "reference": {
+    "citation": "Meschede, M. (1986). A method of discriminating between different types of mid-ocean ridge basalts and continental tholeiites with the Nb-Zr-Y diagram. Chemical Geology, 56(3-4), 207-218",
+    "doi": "10.1016/0009-2541(86)90004-5",
+    "figure": "Figure 3"
+  },
+  "description": "2×Nb - Zr/4 - Y ternary discrimination diagram for basalts: WPA, WPT, P-MORB, N-MORB, VAB",
+  "diagram_type": "ternary",
+
+  "requires_fields": ["Nb_ppm", "Zr_ppm", "Y_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "Nb_x2",
+      "formula": "Nb_ppm * 2",
+      "requires": ["Nb_ppm"],
+      "description": "2×Nb"
+    },
+    {
+      "name": "Zr_div4",
+      "formula": "Zr_ppm / 4",
+      "requires": ["Zr_ppm"],
+      "description": "Zr/4"
+    }
+  ],
+
+  "axes": {
+    "a": {
+      "field": "Nb_x2",
+      "label": "2×Nb",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "b": {
+      "field": "Zr_div4",
+      "label": "Zr/4",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "c": {
+      "field": "Y_ppm",
+      "label": "Y",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    }
+  },
+
+  "fields": [
+    {
+      "name": "WPA",
+      "type": "polygon",
+      "points": [[5, 60, 35], [15, 70, 15], [35, 55, 10], [25, 45, 30]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "WPA",
+      "tooltip": "Within-Plate Alkaline"
+    },
+    {
+      "name": "WPT",
+      "type": "polygon",
+      "points": [[15, 45, 40], [25, 45, 30], [35, 35, 30], [30, 30, 40], [20, 35, 45]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.25,
+      "label": "WPT",
+      "tooltip": "Within-Plate Tholeiitic"
+    },
+    {
+      "name": "P-MORB",
+      "type": "polygon",
+      "points": [[15, 30, 55], [25, 30, 45], [30, 20, 50], [20, 20, 60]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.25,
+      "label": "P-MORB",
+      "tooltip": "Plume-type MORB (enriched)"
+    },
+    {
+      "name": "N-MORB",
+      "type": "polygon",
+      "points": [[10, 15, 75], [20, 15, 65], [20, 5, 75], [10, 5, 85]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "N-MORB",
+      "tooltip": "Normal MORB (depleted)"
+    },
+    {
+      "name": "VAB",
+      "type": "polygon",
+      "points": [[10, 40, 50], [20, 40, 40], [20, 30, 50], [15, 25, 60], [5, 30, 65]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "VAB",
+      "tooltip": "Volcanic Arc Basalts"
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "WPA",
+      "position": [20, 60, 20],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "WPT",
+      "position": [25, 40, 35],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "P-MORB",
+      "position": [22, 25, 53],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "N-MORB",
+      "position": [15, 10, 75],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "VAB",
+      "position": [12, 30, 58],
+      "fontsize": 7,
+      "color": "black"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 7
+  }
+}

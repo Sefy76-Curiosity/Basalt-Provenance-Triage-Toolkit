@@ -1,0 +1,113 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "pearce_cr_y_1982",
+  "diagram_name": "Pearce Cr vs Y Melt Depletion Diagram",
+  "version": "1.0",
+  "author": "Pearce, J.A.",
+  "reference": {
+    "citation": "Pearce, J.A. (1982). Trace element characteristics of lavas from destructive plate boundaries. In: Thorpe, R.S. (ed) Andesites, pp. 525-548",
+    "figure": "Figure 5"
+  },
+  "description": "Cr vs Y discrimination diagram for melt depletion and enrichment in basaltic rocks",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Cr_ppm", "Y_ppm"],
+
+  "axes": {
+    "x": {
+      "field": "Y_ppm",
+      "label": "Y (ppm)",
+      "scale": "log",
+      "limits": [1, 100],
+      "major_ticks": [1, 10, 100],
+      "grid": true
+    },
+    "y": {
+      "field": "Cr_ppm",
+      "label": "Cr (ppm)",
+      "scale": "log",
+      "limits": [10, 1000],
+      "major_ticks": [10, 100, 1000],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "Depleted Mantle (High % melting)",
+      "type": "polygon",
+      "points": [[1, 500], [10, 500], [10, 1000], [1, 1000]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "Depleted Mantle",
+      "tooltip": "High degree melting, depleted source"
+    },
+    {
+      "name": "Primitive Mantle",
+      "type": "polygon",
+      "points": [[10, 300], [30, 300], [30, 600], [10, 600]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.25,
+      "label": "Primitive Mantle",
+      "tooltip": "Primitive, undepleted mantle"
+    },
+    {
+      "name": "Enriched Mantle (Low % melting)",
+      "type": "polygon",
+      "points": [[30, 100], [100, 100], [100, 400], [30, 400]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "Enriched Mantle",
+      "tooltip": "Low degree melting, enriched source"
+    },
+    {
+      "name": "Arc-Related",
+      "type": "polygon",
+      "points": [[10, 50], [50, 50], [50, 300], [10, 300]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "Arc-Related",
+      "tooltip": "Subduction-related basalts"
+    },
+    {
+      "name": "Fractionated",
+      "type": "polygon",
+      "points": [[20, 10], [100, 10], [100, 100], [20, 100]],
+      "closed": true,
+      "color": "#DDA0DD",
+      "alpha": 0.2,
+      "label": "Fractionated",
+      "tooltip": "Highly fractionated melts"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "Mantle Array",
+      "type": "line",
+      "points": [[1, 1000], [100, 10]],
+      "color": "black",
+      "linestyle": "-",
+      "linewidth": 1,
+      "alpha": 0.3
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper right",
+    "fontsize": 7,
+    "ncol": 2
+  }
+}

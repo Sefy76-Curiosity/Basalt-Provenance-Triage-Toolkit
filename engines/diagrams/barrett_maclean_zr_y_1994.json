@@ -1,0 +1,160 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "barrett_maclean_zr_y_1994",
+  "diagram_name": "Barrett & MacLean Zr vs Y Hydrothermal Alteration",
+  "version": "1.0",
+  "author": "Barrett, T.J. & MacLean, W.H.",
+  "reference": {
+    "citation": "Barrett, T.J. & MacLean, W.H. (1994). Chemostratigraphy and hydrothermal alteration in exploration for VHMS deposits in greenstones and younger volcanic rocks. In: Lentz, D.R. (ed.) Alteration and Alteration Processes Associated with Ore-Forming Systems. Geological Association of Canada Short Course Notes, 11, 433-467",
+    "figure": "Figure 8"
+  },
+  "description": "Zr vs Y discrimination diagram for identifying hydrothermal alteration in volcanic rocks",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Zr_ppm", "Y_ppm"],
+
+  "axes": {
+    "x": {
+      "field": "Zr_ppm",
+      "label": "Zr (ppm)",
+      "scale": "log",
+      "limits": [10, 1000],
+      "major_ticks": [10, 100, 1000],
+      "grid": true
+    },
+    "y": {
+      "field": "Y_ppm",
+      "label": "Y (ppm)",
+      "scale": "log",
+      "limits": [1, 100],
+      "major_ticks": [1, 10, 100],
+      "grid": true
+    }
+  },
+
+  "lines": [
+    {
+      "name": "Zr/Y = 1",
+      "type": "line",
+      "points": [[10, 10], [1000, 1000]],
+      "color": "gray",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.5
+    },
+    {
+      "name": "Zr/Y = 3",
+      "type": "line",
+      "points": [[10, 3.33], [1000, 333]],
+      "color": "gray",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.5
+    },
+    {
+      "name": "Zr/Y = 5",
+      "type": "line",
+      "points": [[10, 2], [1000, 200]],
+      "color": "gray",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.5
+    },
+    {
+      "name": "Zr/Y = 10",
+      "type": "line",
+      "points": [[10, 1], [1000, 100]],
+      "color": "gray",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.5
+    }
+  ],
+
+  "fields": [
+    {
+      "name": "Fresh Basalt",
+      "type": "polygon",
+      "points": [[50, 20], [150, 20], [150, 40], [50, 40]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.2,
+      "label": "Fresh Basalt",
+      "tooltip": "Fresh, unaltered basalt"
+    },
+    {
+      "name": "Altered - Mass Loss",
+      "type": "polygon",
+      "points": [[20, 5], [80, 5], [80, 20], [20, 20]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.2,
+      "label": "Altered - Mass Loss",
+      "tooltip": "Hydrothermal alteration with mass loss"
+    },
+    {
+      "name": "Altered - Mass Gain",
+      "type": "polygon",
+      "points": [[150, 30], [300, 30], [300, 60], [150, 60]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.2,
+      "label": "Altered - Mass Gain",
+      "tooltip": "Hydrothermal alteration with mass gain"
+    },
+    {
+      "name": "Fractionation Trend",
+      "type": "polygon",
+      "points": [[40, 10], [200, 10], [200, 50], [40, 50]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.15,
+      "label": "Fractionation Trend",
+      "tooltip": "Igneous fractionation trend"
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "Zr/Y=1",
+      "position": [800, 700],
+      "fontsize": 6,
+      "rotation": 45,
+      "alpha": 0.5
+    },
+    {
+      "text": "Zr/Y=3",
+      "position": [800, 230],
+      "fontsize": 6,
+      "rotation": 45,
+      "alpha": 0.5
+    },
+    {
+      "text": "Zr/Y=5",
+      "position": [800, 140],
+      "fontsize": 6,
+      "rotation": 45,
+      "alpha": 0.5
+    },
+    {
+      "text": "Zr/Y=10",
+      "position": [800, 70],
+      "fontsize": 6,
+      "rotation": 45,
+      "alpha": 0.5
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 8
+  }
+}

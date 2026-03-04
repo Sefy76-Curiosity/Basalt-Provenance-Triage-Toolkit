@@ -1,0 +1,115 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "chappell_white_i_s_type_1974",
+  "diagram_name": "Chappell & White I-type vs S-type Granite Classification",
+  "version": "1.0",
+  "author": "Chappell, B.W. & White, A.J.R.",
+  "reference": {
+    "citation": "Chappell, B.W. & White, A.J.R. (1974). Two contrasting granite types. Pacific Geology, 8, 173-174",
+    "description": "I-type and S-type granite classification based on Na2O and normative corundum"
+  },
+  "description": "Discrimination diagram for I-type and S-type granites based on Na2O content at given SiO2 ranges",
+  "diagram_type": "xy",
+
+  "requires_fields": ["SiO2_wt", "Na2O_wt", "Al2O3_wt", "CaO_wt", "K2O_wt"],
+
+  "derived_fields": [
+    {
+      "name": "Na2O_at_SiO2",
+      "formula": "Na2O_wt",
+      "requires": ["Na2O_wt"],
+      "description": "Na2O wt%"
+    },
+    {
+      "name": "Normative_Corundum",
+      "formula": "calculate_normative_corundum(Al2O3_wt, CaO_wt, Na2O_wt, K2O_wt)",
+      "requires": ["Al2O3_wt", "CaO_wt", "Na2O_wt", "K2O_wt"],
+      "description": "CIPW normative corundum (calculated)"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "SiO2_wt",
+      "label": "SiO₂ (wt%)",
+      "scale": "linear",
+      "limits": [50, 80],
+      "major_ticks": [50, 55, 60, 65, 70, 75, 80],
+      "grid": true
+    },
+    "y": {
+      "field": "Na2O_wt",
+      "label": "Na₂O (wt%)",
+      "scale": "linear",
+      "limits": [0, 6],
+      "major_ticks": [0, 1, 2, 3, 4, 5, 6],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "I-type",
+      "type": "polygon",
+      "points": [[50, 2.2], [61, 2.2], [61, 3.2], [66, 3.2], [66, 4.5], [75, 4.5], [75, 2.5], [70, 2.5], [70, 1.8], [65, 1.8], [65, 1.5], [50, 1.5]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.2,
+      "label": "I-type",
+      "tooltip": "Igneous source granites (metaluminous to weakly peraluminous)"
+    },
+    {
+      "name": "S-type",
+      "type": "polygon",
+      "points": [[50, 1.5], [70, 1.5], [70, 0.5], [50, 0.5]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.2,
+      "label": "S-type",
+      "tooltip": "Sedimentary source granites (peraluminous, low Na2O)"
+    },
+    {
+      "name": "S-type (high SiO2)",
+      "type": "polygon",
+      "points": [[70, 2.5], [80, 2.5], [80, 0.5], [70, 0.5]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.2,
+      "label": "S-type"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "I/S boundary (low SiO2)",
+      "type": "line",
+      "points": [[50, 1.5], [70, 1.5]],
+      "color": "black",
+      "linestyle": "--",
+      "linewidth": 1,
+      "alpha": 0.5
+    },
+    {
+      "name": "I/S boundary (high SiO2)",
+      "type": "line",
+      "points": [[70, 2.5], [80, 2.5]],
+      "color": "black",
+      "linestyle": "--",
+      "linewidth": 1,
+      "alpha": 0.5
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 8
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "maniar_piccoli_al2o3_sio2_1989",
+  "diagram_name": "Maniar & Piccoli Al₂O₃ vs SiO₂ Tectonic Discrimination",
+  "version": "1.0",
+  "author": "Maniar, P.D. & Piccoli, P.M.",
+  "reference": {
+    "citation": "Maniar, P.D. & Piccoli, P.M. (1989). Tectonic discrimination of granitoids. Geological Society of America Bulletin, 101(5), 635-643",
+    "doi": "10.1130/0016-7606(1989)101<0635:TDOG>2.3.CO;2",
+    "figure": "Figure 4"
+  },
+  "description": "Al₂O₃ vs SiO₂ discrimination diagram for granitoid tectonic settings: Island Arc, Continental Arc, Active Continental Margin, Passive Margin",
+  "diagram_type": "xy",
+
+  "requires_fields": ["SiO2_wt", "Al2O3_wt"],
+
+  "axes": {
+    "x": {
+      "field": "SiO2_wt",
+      "label": "SiO₂ (wt%)",
+      "scale": "linear",
+      "limits": [50, 80],
+      "major_ticks": [50, 55, 60, 65, 70, 75, 80],
+      "grid": true
+    },
+    "y": {
+      "field": "Al2O3_wt",
+      "label": "Al₂O₃ (wt%)",
+      "scale": "linear",
+      "limits": [10, 20],
+      "major_ticks": [10, 12, 14, 16, 18, 20],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "Island Arc",
+      "type": "polygon",
+      "points": [[50, 16], [68, 16], [68, 18.5], [50, 18.5]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.2,
+      "label": "Island Arc",
+      "tooltip": "IAG - Island Arc Granitoids"
+    },
+    {
+      "name": "Continental Arc",
+      "type": "polygon",
+      "points": [[50, 14], [70, 14], [70, 16], [50, 16]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.2,
+      "label": "Continental Arc",
+      "tooltip": "CAG - Continental Arc Granitoids"
+    },
+    {
+      "name": "Active Continental Margin",
+      "type": "polygon",
+      "points": [[55, 12], [75, 12], [75, 14], [55, 14]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.2,
+      "label": "Active Continental Margin",
+      "tooltip": "ACM - Active Continental Margin"
+    },
+    {
+      "name": "Passive Margin",
+      "type": "polygon",
+      "points": [[60, 10], [80, 10], [80, 12], [60, 12]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.2,
+      "label": "Passive Margin",
+      "tooltip": "PM - Passive Margin (including POG, RRG, CEUG)"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "Upper boundary IAG",
+      "type": "line",
+      "points": [[50, 18.5], [68, 18.5]],
+      "color": "black",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.3
+    },
+    {
+      "name": "IAG/CAG boundary",
+      "type": "line",
+      "points": [[50, 16], [70, 16]],
+      "color": "black",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.3
+    },
+    {
+      "name": "CAG/ACM boundary",
+      "type": "line",
+      "points": [[50, 14], [75, 14]],
+      "color": "black",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.3
+    },
+    {
+      "name": "ACM/PM boundary",
+      "type": "line",
+      "points": [[55, 12], [80, 12]],
+      "color": "black",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.3
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper right",
+    "fontsize": 8
+  }
+}

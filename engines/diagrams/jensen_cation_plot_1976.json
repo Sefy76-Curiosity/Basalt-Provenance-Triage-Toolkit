@@ -1,0 +1,181 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "jensen_cation_plot_1976",
+  "diagram_name": "Jensen Cation Plot for Subalkaline Volcanic Rocks",
+  "version": "1.0",
+  "author": "Jensen, L.S.",
+  "reference": {
+    "citation": "Jensen, L.S. (1976). A New Cation Plot for Classifying Subalkalic Volcanic Rocks. Ontario Geological Survey Miscellaneous Paper 66",
+    "figure": "Figure 1"
+  },
+  "description": "Al - (Fe+Ti) - Mg cation ternary diagram for subalkaline volcanic rocks: Tholeiite, Calc-Alkaline, Komatiite, High-Mg basalt",
+  "diagram_type": "ternary",
+
+  "requires_fields": ["Al2O3_wt", "FeO_T_wt", "TiO2_wt", "MgO_wt"],
+
+  "derived_fields": [
+    {
+      "name": "Al_cation",
+      "formula": "(Al2O3_wt / 101.96) * 2",
+      "requires": ["Al2O3_wt"],
+      "description": "Al cations"
+    },
+    {
+      "name": "Fe_cation",
+      "formula": "FeO_T_wt / 71.85",
+      "requires": ["FeO_T_wt"],
+      "description": "Fe cations"
+    },
+    {
+      "name": "Ti_cation",
+      "formula": "TiO2_wt / 79.90",
+      "requires": ["TiO2_wt"],
+      "description": "Ti cations"
+    },
+    {
+      "name": "Mg_cation",
+      "formula": "MgO_wt / 40.30",
+      "requires": ["MgO_wt"],
+      "description": "Mg cations"
+    },
+    {
+      "name": "Fe_Ti_sum",
+      "formula": "Fe_cation + Ti_cation",
+      "requires": ["Fe_cation", "Ti_cation"],
+      "description": "Fe + Ti cation sum"
+    },
+    {
+      "name": "Al_percent",
+      "formula": "Al_cation / (Al_cation + Fe_Ti_sum + Mg_cation) * 100",
+      "requires": ["Al_cation", "Fe_Ti_sum", "Mg_cation"],
+      "description": "Al cation %"
+    },
+    {
+      "name": "Fe_Ti_percent",
+      "formula": "Fe_Ti_sum / (Al_cation + Fe_Ti_sum + Mg_cation) * 100",
+      "requires": ["Al_cation", "Fe_Ti_sum", "Mg_cation"],
+      "description": "Fe+Ti cation %"
+    },
+    {
+      "name": "Mg_percent",
+      "formula": "Mg_cation / (Al_cation + Fe_Ti_sum + Mg_cation) * 100",
+      "requires": ["Al_cation", "Fe_Ti_sum", "Mg_cation"],
+      "description": "Mg cation %"
+    }
+  ],
+
+  "axes": {
+    "a": {
+      "field": "Fe_Ti_percent",
+      "label": "Fe + Ti",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "b": {
+      "field": "Al_percent",
+      "label": "Al",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "c": {
+      "field": "Mg_percent",
+      "label": "Mg",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    }
+  },
+
+  "fields": [
+    {
+      "name": "Tholeiite",
+      "type": "polygon",
+      "points": [[60, 20, 20], [80, 20, 0], [80, 10, 10], [60, 10, 30]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.25,
+      "label": "Tholeiite"
+    },
+    {
+      "name": "Calc-Alkaline",
+      "type": "polygon",
+      "points": [[40, 30, 30], [60, 30, 10], [70, 20, 10], [50, 20, 30], [40, 25, 35]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.25,
+      "label": "Calc-Alkaline"
+    },
+    {
+      "name": "Komatiite",
+      "type": "polygon",
+      "points": [[20, 10, 70], [30, 10, 60], [40, 5, 55], [30, 5, 65], [20, 5, 75]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "Komatiite"
+    },
+    {
+      "name": "High-Mg Basalt",
+      "type": "polygon",
+      "points": [[30, 15, 55], [45, 15, 40], [50, 10, 40], [35, 10, 55]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "High-Mg Basalt"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "Tholeiite/C-Alkaline boundary",
+      "type": "line",
+      "points": [[40, 30, 30], [70, 15, 15]],
+      "color": "black",
+      "linestyle": "--",
+      "linewidth": 0.5,
+      "alpha": 0.5
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "Tholeiite",
+      "position": [70, 15, 15],
+      "fontsize": 8,
+      "color": "black"
+    },
+    {
+      "text": "Calc-Alkaline",
+      "position": [50, 25, 25],
+      "fontsize": 8,
+      "color": "black"
+    },
+    {
+      "text": "Komatiite",
+      "position": [25, 7, 68],
+      "fontsize": 8,
+      "color": "black"
+    },
+    {
+      "text": "High-Mg Basalt",
+      "position": [40, 12, 48],
+      "fontsize": 8,
+      "color": "black"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 8
+  }
+}

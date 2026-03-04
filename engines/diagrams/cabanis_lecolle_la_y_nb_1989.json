@@ -1,0 +1,175 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "cabanis_lecolle_la_y_nb_1989",
+  "diagram_name": "Cabanis & Lecolle La-Y-Nb Ternary Discrimination",
+  "version": "1.0",
+  "author": "Cabanis, B. & Lecolle, M.",
+  "reference": {
+    "citation": "Cabanis, B. & Lecolle, M. (1989). Le diagramme La/10 - Y/15 - Nb/8: un outil pour la discrimination des séries volcaniques et la mise en évidence des processus de mélange et/ou de contamination crustale. Comptes Rendus de l'Académie des Sciences, Paris, 309, 1443-1449",
+    "figure": "Figure 1"
+  },
+  "description": "La/10 - Y/15 - Nb/8 ternary discrimination diagram for basalts: 1A = Calc-alkaline basalts, 1B = Island arc tholeiites, 2 = Continental basalts, 3A = N-MORB, 3B = E-MORB, 3C = Alkaline within-plate",
+  "diagram_type": "ternary",
+
+  "requires_fields": ["La_ppm", "Y_ppm", "Nb_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "La_10",
+      "formula": "La_ppm / 10",
+      "requires": ["La_ppm"],
+      "description": "La/10"
+    },
+    {
+      "name": "Y_15",
+      "formula": "Y_ppm / 15",
+      "requires": ["Y_ppm"],
+      "description": "Y/15"
+    },
+    {
+      "name": "Nb_8",
+      "formula": "Nb_ppm / 8",
+      "requires": ["Nb_ppm"],
+      "description": "Nb/8"
+    }
+  ],
+
+  "axes": {
+    "a": {
+      "field": "La_10",
+      "label": "La/10",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "b": {
+      "field": "Y_15",
+      "label": "Y/15",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "c": {
+      "field": "Nb_8",
+      "label": "Nb/8",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    }
+  },
+
+  "fields": [
+    {
+      "name": "1A",
+      "type": "polygon",
+      "points": [[10, 40, 50], [20, 40, 40], [30, 30, 40], [25, 25, 50], [15, 30, 55]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "1A",
+      "tooltip": "Calc-alkaline basalts"
+    },
+    {
+      "name": "1B",
+      "type": "polygon",
+      "points": [[5, 60, 35], [15, 60, 25], [25, 50, 25], [15, 40, 45], [5, 50, 45]],
+      "closed": true,
+      "color": "#DEB887",
+      "alpha": 0.25,
+      "label": "1B",
+      "tooltip": "Island arc tholeiites"
+    },
+    {
+      "name": "2",
+      "type": "polygon",
+      "points": [[20, 25, 55], [30, 25, 45], [40, 15, 45], [40, 10, 50], [30, 15, 55]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.25,
+      "label": "2",
+      "tooltip": "Continental basalts"
+    },
+    {
+      "name": "3A",
+      "type": "polygon",
+      "points": [[10, 70, 20], [20, 70, 10], [25, 65, 10], [20, 60, 20], [10, 60, 30]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "3A",
+      "tooltip": "N-MORB"
+    },
+    {
+      "name": "3B",
+      "type": "polygon",
+      "points": [[20, 60, 20], [30, 60, 10], [40, 50, 10], [35, 45, 20], [25, 50, 25]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.25,
+      "label": "3B",
+      "tooltip": "E-MORB"
+    },
+    {
+      "name": "3C",
+      "type": "polygon",
+      "points": [[30, 40, 30], [45, 40, 15], [55, 30, 15], [50, 25, 25], [35, 30, 35]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "3C",
+      "tooltip": "Alkaline within-plate"
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "1A",
+      "position": [20, 30, 50],
+      "fontsize": 8,
+      "color": "black"
+    },
+    {
+      "text": "1B",
+      "position": [15, 50, 35],
+      "fontsize": 8,
+      "color": "black"
+    },
+    {
+      "text": "2",
+      "position": [30, 20, 50],
+      "fontsize": 8,
+      "color": "black"
+    },
+    {
+      "text": "3A",
+      "position": [15, 65, 20],
+      "fontsize": 8,
+      "color": "black"
+    },
+    {
+      "text": "3B",
+      "position": [30, 55, 15],
+      "fontsize": 8,
+      "color": "black"
+    },
+    {
+      "text": "3C",
+      "position": [40, 35, 25],
+      "fontsize": 8,
+      "color": "black"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper right",
+    "fontsize": 7
+  }
+}

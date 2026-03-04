@@ -1,0 +1,132 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "wood_hf_th_ta_1980",
+  "diagram_name": "Wood Hf-Th-Ta Ternary Discrimination",
+  "version": "1.0",
+  "author": "Wood, D.A.",
+  "reference": {
+    "citation": "Wood, D.A. (1980). The application of a Th-Hf-Ta diagram to problems of tectonomagmatic classification and to establishing the nature of crustal contamination of basaltic lavas of the British Tertiary Volcanic Province. Earth and Planetary Science Letters, 50(1), 11-30",
+    "doi": "10.1016/0012-821X(80)90116-8",
+    "figure": "Figure 1"
+  },
+  "description": "Hf/3 - Th - Ta ternary discrimination diagram for basalts: N-MORB, E-MORB + WPT, WPA, VAB",
+  "diagram_type": "ternary",
+
+  "requires_fields": ["Hf_ppm", "Th_ppm", "Ta_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "Hf_3",
+      "formula": "Hf_ppm / 3",
+      "requires": ["Hf_ppm"],
+      "description": "Hf/3"
+    }
+  ],
+
+  "axes": {
+    "a": {
+      "field": "Hf_3",
+      "label": "Hf/3",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "b": {
+      "field": "Th_ppm",
+      "label": "Th",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "c": {
+      "field": "Ta_ppm",
+      "label": "Ta",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    }
+  },
+
+  "fields": [
+    {
+      "name": "N-MORB",
+      "type": "polygon",
+      "points": [[50, 5, 45], [70, 5, 25], [70, 15, 15], [50, 15, 35]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "N-MORB",
+      "tooltip": "Normal Mid-Ocean Ridge Basalt"
+    },
+    {
+      "name": "E-MORB + WPT",
+      "type": "polygon",
+      "points": [[30, 10, 60], [50, 10, 40], [50, 25, 25], [30, 25, 45]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.25,
+      "label": "E-MORB + WPT",
+      "tooltip": "Enriched MORB + Within-Plate Tholeiites"
+    },
+    {
+      "name": "WPA",
+      "type": "polygon",
+      "points": [[15, 20, 65], [30, 20, 50], [30, 35, 35], [15, 35, 50]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "WPA",
+      "tooltip": "Within-Plate Alkaline"
+    },
+    {
+      "name": "VAB",
+      "type": "polygon",
+      "points": [[50, 20, 30], [70, 20, 10], [80, 10, 10], [70, 5, 25], [50, 5, 45]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "VAB",
+      "tooltip": "Volcanic Arc Basalts"
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "N-MORB",
+      "position": [60, 10, 30],
+      "fontsize": 8,
+      "color": "black"
+    },
+    {
+      "text": "E-MORB + WPT",
+      "position": [40, 15, 45],
+      "fontsize": 8,
+      "color": "black"
+    },
+    {
+      "text": "WPA",
+      "position": [20, 25, 55],
+      "fontsize": 8,
+      "color": "black"
+    },
+    {
+      "text": "VAB",
+      "position": [65, 15, 20],
+      "fontsize": 8,
+      "color": "black"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 7
+  }
+}

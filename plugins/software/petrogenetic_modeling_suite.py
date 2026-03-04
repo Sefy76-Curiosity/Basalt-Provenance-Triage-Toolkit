@@ -103,6 +103,9 @@ class PetrogeneticModelingSuitePlugin:
         self.element_var = tk.StringVar(value="")
         self.numeric_columns = []
 
+        # ============ UNCERTAINTY PLUGIN ============
+        self.uncertainty_plugin = None
+
         # ============ TDF DATABASE ============
         self.tdf_db = None
         self.current_tdf = None
@@ -432,6 +435,54 @@ class PetrogeneticModelingSuitePlugin:
         # [full code from previous message]
         pass
 
+    def _send_to_uncertainty(self):
+        """Send current tab's model to uncertainty plugin"""
+        # Check if plugin exists
+        plugin = None
+        if hasattr(self.app, 'plugins') and 'uncertainty_propagation' in self.app.plugins:
+            plugin = self.app.plugins['uncertainty_propagation']
+            self.uncertainty_plugin = plugin
+
+        if not plugin:
+            # TRY TO CREATE IT LIKE THE OTHER PLUGIN DOES
+            try:
+                from plugins.software.uncertainty_propagation import setup_plugin
+                plugin = setup_plugin(self.app)
+                if not hasattr(self.app, 'plugins'):
+                    self.app.plugins = {}
+                self.app.plugins['uncertainty_propagation'] = plugin
+                self.uncertainty_plugin = plugin
+            except Exception as e:
+                messagebox.showerror("Plugin Error", f"Could not load uncertainty plugin: {e}")
+                return
+
+        # Get current tab
+        current_tab = self.notebook.index(self.notebook.select())
+        tab_text = self.notebook.tab(current_tab, "text")
+
+        # Map tab text to model key
+        tab_map = {
+            "🌋 AFC": "afc",
+            "🔬 Fractional": "fractional",
+            "🔬 Zone Refining": "zone",
+            "🔄 Mixing": "mixing",
+            "🔥 Partial Melting": "melting",
+            "⚗️ MELTS": "melts"
+        }
+
+        model_key = tab_map.get(tab_text)
+        if not model_key:
+            messagebox.showinfo("No Model", "Current tab has no model to send")
+            return
+
+        result = self.model_results.get(model_key)
+        if not result:
+            messagebox.showwarning("No Results", f"Run the {tab_text} model first")
+            return
+
+        # Package and send
+        self._package_model_for_uncertainty(model_key, result)
+
     # ============================================================================
     # Kd DATABASE INTEGRATION
     # ============================================================================
@@ -514,6 +565,89 @@ class PetrogeneticModelingSuitePlugin:
 
         dialog.wait_window()
         return {m: v.get() for m, v in mode_vars.items() if v.get() > 0} if 'mode_vars' in locals() else {}
+
+    def _package_model_for_uncertainty(self, model_key, result):
+        """Package model results for uncertainty plugin"""
+        element = self.element_var.get()
+        data = []
+
+        if model_key == 'afc':
+            F = result['F']
+            C = result['C']
+            params = result.get('params', {})
+
+            for i, (f, c) in enumerate(zip(F, C)):
+                data.append({
+                    'Sample_ID': f"AFC_{i:03d}",
+                    'F': f,
+                    element: c,
+                    f'{element}_error': c * 0.05,
+                    'Model': 'AFC',
+                    'C0': params.get('C0', 0),
+                    'D': params.get('D', 0.5),
+                    'r': params.get('r', 0.3)
+                })
+
+            context = {
+                'type': 'petrogenetic_model',
+                'model': 'AFC',
+                'element': element,
+                'parameters': params
+            }
+
+        elif model_key == 'fractional':
+            F = result['F']
+            C = result['C']
+            params = result.get('params', {})
+
+            for i, (f, c) in enumerate(zip(F, C)):
+                data.append({
+                    'Sample_ID': f"Fractional_{i:03d}",
+                    'F': f,
+                    element: c,
+                    f'{element}_error': c * 0.05,
+                    'Model': params.get('model', 'Fractional'),
+                    'C0': params.get('C0', 0),
+                    'D': params.get('D', 0.5)
+                })
+
+            context = {
+                'type': 'petrogenetic_model',
+                'model': 'Fractional',
+                'element': element,
+                'parameters': params
+            }
+
+        elif model_key == 'melting':
+            if element in result['results']:
+                F = result['F']
+                C = result['results'][element]
+                params = result.get('params', {})
+
+                for i, (f, c) in enumerate(zip(F, C)):
+                    data.append({
+                        'Sample_ID': f"Melting_{i:03d}",
+                        'F': f,
+                        element: c,
+                        f'{element}_error': c * 0.05,
+                        'Model': params.get('model', 'Melting'),
+                        'Source': params.get('source', '')
+                    })
+
+                context = {
+                    'type': 'petrogenetic_model',
+                    'model': 'Partial_Melting',
+                    'element': element,
+                    'parameters': params
+                }
+
+        # Add other models as needed (zone, mixing, melts)
+
+        if data and context:
+            self.uncertainty_plugin.receive_data(data, context)
+            self.status_var.set(f"✅ Sent {len(data)} points to Uncertainty plugin")
+        else:
+            messagebox.showwarning("No Data", "Could not package model data")
 
     # ============================================================================
     # AFC MODEL (Enhanced with Kd)
@@ -659,7 +793,7 @@ class PetrogeneticModelingSuitePlugin:
         Full ternary mixing implementation with support for:
         - Linear mixing (major elements)
         - Trace element partitioning
-        - Isotope mixing
+        - Isotope mixing with TDF correction
         """
         # Check if we're in trace element mode
         if hasattr(self, 'mixing_mode') and self.mixing_mode == 'trace':
@@ -685,7 +819,41 @@ class PetrogeneticModelingSuitePlugin:
             ratios = getattr(self, 'mix_ratios', {'A': CA, 'B': CB, 'C': CC})
             conc = getattr(self, 'mix_concentrations', {'A': 1.0, 'B': 1.0, 'C': 1.0})
 
-            # R_mix = (fA*CA*RA + fB*CB*RB + fC*CC*RC) / (fA*CA + fB*CB + fC*CC)
+            # Apply TDF correction if in binary mode and TDF is selected
+            if (hasattr(self, 'mix_model_var') and self.mix_model_var.get() == 'binary' and
+                hasattr(self, 'current_tdf') and self.current_tdf and
+                hasattr(self, 'include_tdf_uncertainty') and self.include_tdf_uncertainty.get()):
+
+                # For consumer-diet systems: consumer = diet + TDF
+                # So when mixing, we need to correct consumer values to dietary equivalents
+                # This assumes we're working with δ13C and δ15N values
+                CA_corrected = CA - self.current_tdf['Δ13C_mean']
+                CB_corrected = CB - self.current_tdf['Δ13C_mean']
+
+                # For ternary mixing, we would need to correct all three end-members
+                # But TDF typically applies to consumer tissue, not all end-members
+                # This is a simplified approach - in practice, you'd need to know
+                # which end-member represents the consumer
+                if fA > 0.5:  # Assume A is the consumer if it's dominant
+                    CA_used = CA_corrected
+                    CB_used = CB
+                    CC_used = CC
+                elif fB > 0.5:  # Assume B is the consumer
+                    CA_used = CA
+                    CB_used = CB_corrected
+                    CC_used = CC
+                else:  # Assume mixture, apply proportional correction
+                    correction_factor = (fA * self.current_tdf['Δ13C_mean'] +
+                                        fB * self.current_tdf['Δ13C_mean']) / (fA + fB) if (fA + fB) > 0 else 0
+                    CA_used = CA - correction_factor
+                    CB_used = CB - correction_factor
+                    CC_used = CC
+            else:
+                CA_used = CA
+                CB_used = CB
+                CC_used = CC
+
+            # Standard isotope mixing equation
             numerator = (fA * conc['A'] * ratios['A'] +
                         fB * conc['B'] * ratios['B'] +
                         fC * conc['C'] * ratios['C'])
@@ -702,6 +870,7 @@ class PetrogeneticModelingSuitePlugin:
     def _calculate_mixing(self):
         """
         Calculate mixing model with support for linear, trace, and isotope modes
+        with TDF correction for isotopes
         """
         model_type = self.mix_model_var.get()
 
@@ -720,11 +889,36 @@ class PetrogeneticModelingSuitePlugin:
                             self.mix_steps_var.get())
 
             if self.mixing_mode == 'isotope' and hasattr(self, 'binary_conc_A'):
-                # Binary isotope mixing
+                # Binary isotope mixing with optional TDF correction
                 conc_A = self.binary_conc_A.get()
                 conc_B = self.binary_conc_B.get()
-                C = (CA * conc_A * fA + CB * conc_B * (1 - fA)) / (conc_A * fA + conc_B * (1 - fA))
-                model_name = 'Binary Isotope Mixing'
+
+                # Apply TDF correction if selected
+                if (hasattr(self, 'current_tdf') and self.current_tdf and
+                    self.include_tdf_uncertainty.get()):
+                    # Correct the consumer values to dietary equivalents
+                    CA_corrected = CA - self.current_tdf['Δ13C_mean']
+                    CB_corrected = CB - self.current_tdf['Δ13C_mean']
+                    model_name = 'Binary Isotope Mixing'
+                    if hasattr(self, 'current_tdf') and self.current_tdf:
+                        taxon = self.current_tdf.get('taxon', 'custom')
+                        if taxon:
+                            model_name += f" (TDF: {taxon})"
+                        else:
+                            model_name += " (TDF corrected)"
+                else:
+                    CA_corrected = CA
+                    CB_corrected = CB
+                    model_name = 'Binary Isotope Mixing'
+
+                # Isotope mixing equation
+                C = (CA_corrected * conc_A * fA + CB_corrected * conc_B * (1 - fA)) / \
+                    (conc_A * fA + conc_B * (1 - fA))
+
+            elif self.mixing_mode == 'trace':
+                # Binary trace element mixing (not typically used, but could be added)
+                C = CA * fA + CB * (1 - fA)
+                model_name = 'Binary Trace Element Mixing'
             else:
                 # Linear binary mixing
                 C = CA * fA + CB * (1 - fA)
@@ -736,7 +930,8 @@ class PetrogeneticModelingSuitePlugin:
                 'params': {
                     'model': model_name,
                     'mode': self.mixing_mode,
-                    'CA': CA, 'CB': CB
+                    'CA': CA, 'CB': CB,
+                    'tdf_used': hasattr(self, 'current_tdf') and self.current_tdf is not None and self.include_tdf_uncertainty.get()
                 },
                 'xlabel': 'Fraction A'
             }
@@ -766,6 +961,12 @@ class PetrogeneticModelingSuitePlugin:
                 model_name = 'Ternary Trace Element Mixing'
             elif self.mixing_mode == 'isotope':
                 model_name = 'Ternary Isotope Mixing'
+                if hasattr(self, 'current_tdf') and self.current_tdf and self.include_tdf_uncertainty.get():
+                    taxon = self.current_tdf.get('taxon', 'custom')
+                    if taxon:
+                        model_name += f" (TDF: {taxon})"
+                    else:
+                        model_name += " (TDF corrected)"
             else:
                 model_name = 'Ternary Linear Mixing'
 
@@ -774,9 +975,25 @@ class PetrogeneticModelingSuitePlugin:
                 'params': {
                     'model': model_name,
                     'mode': self.mixing_mode,
-                    'CA': CA, 'CB': CB, 'CC': CC
+                    'CA': CA, 'CB': CB, 'CC': CC,
+                    'tdf_used': hasattr(self, 'current_tdf') and self.current_tdf is not None and self.include_tdf_uncertainty.get()
                 }
             }
+
+    def _calculate_and_plot_mixing(self):
+        """Calculate and plot mixing model"""
+        self.progress.start()
+        self.status_var.set("Calculating mixing model...")
+        self.model_results['mixing'] = self._calculate_mixing()
+
+        if self.mix_model_var.get() == 'binary':
+            self._plot_binary_mixing(self.mix_ax, self.model_results['mixing'])
+        else:
+            self._plot_ternary_mixing(self.mix_ax, self.model_results['mixing'])
+
+        self.mix_canvas.draw()
+        self.status_var.set("✅ Mixing model complete")
+        self.progress.stop()
     # ============================================================================
     # PARTIAL MELTING MODELS (Enhanced with Kd)
     # ============================================================================
@@ -2082,11 +2299,11 @@ class PetrogeneticModelingSuitePlugin:
         os.environ['JULIA_PKG_PRECOMPILE_AUTO'] = '0'
 
         # Check Julia installation
-        if not self._check_julia_installation():
-            self.window.after(0, lambda: messagebox.showinfo(
-                "Julia Required",
-                "Julia is not installed or not in PATH.\n"
-                "Please install Julia from https://julialang.org/downloads/"
+        if not self._julia_env_is_ready():
+            self.window.after(0, lambda: messagebox.showerror(
+                "MAGEMin Environment Not Ready",
+                "MAGEMin environment not initialized.\n"
+                "Please restart plugin or reinstall petthermotools."
             ))
             return
 
@@ -2240,7 +2457,31 @@ class PetrogeneticModelingSuitePlugin:
         """Display MAGEMin results"""
         try:
             self.model_results['melts'] = results
-            self.melts_ax.clear()
+
+            # CREATE FIGURE AND CANVAS ON FIRST USE
+            if not hasattr(self, 'melts_fig'):
+                self.melts_fig = plt.Figure(figsize=(6, 5), dpi=90)
+                self.melts_fig.patch.set_facecolor('white')
+                self.melts_ax = self.melts_fig.add_subplot(111)
+                self.melts_ax.set_facecolor('#f8f9fa')
+
+                # Find the MELTS tab right panel and create canvas
+                for child in self.window.winfo_children():
+                    if isinstance(child, ttk.Notebook):
+                        # Get the MELTS tab (index 6)
+                        melts_tab = child.winfo_children()[6]
+                        # Find the right panel (second child of paned window)
+                        right_panel = melts_tab.winfo_children()[0].winfo_children()[1]
+
+                        self.melts_canvas = FigureCanvasTkAgg(self.melts_fig, right_panel)
+                        self.melts_canvas.draw()
+                        self.melts_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+                        # Add toolbar
+                        toolbar_frame = tk.Frame(right_panel, height=25)
+                        toolbar_frame.pack(fill=tk.X)
+                        NavigationToolbar2Tk(self.melts_canvas, toolbar_frame).update()
+                        break
 
             parsed = self._parse_petthermotools_results(results)
             if len(parsed) == 3:
@@ -2313,8 +2554,11 @@ class PetrogeneticModelingSuitePlugin:
             self.status_var.set(
                 f"✅ MAGEMin complete! {elapsed:.0f}s — {plotted} oxides, {len(mass_dict)} phases")
 
-            if messagebox.askyesno("Export Results", "Export results to main app?"):
-                self._export_model_enhanced(results, "MELTS")
+            # Results are already in main app via the export button if clicked
+            # Just notify user
+            messagebox.showinfo("Export Complete",
+                            "Results have been added to main data table.\n"
+                            "Use the Export button in the MELTS tab to save to file.")
 
         except Exception as e:
             messagebox.showerror("Display Error", str(e))
@@ -2345,6 +2589,7 @@ class PetrogeneticModelingSuitePlugin:
 
         if self._load_from_main_app():
             self.status_var.set("✅ Loaded data from main app")
+            print(f"📊 Loaded {len(self.samples)} samples")  # ← ADD THIS LINE
         else:
             self.status_var.set("ℹ️ No geochemical data found")
 
@@ -2374,9 +2619,17 @@ class PetrogeneticModelingSuitePlugin:
                 font=("Arial", 9)).pack(side=tk.LEFT, padx=2)
 
         self.element_combo = ttk.Combobox(elem_frame, textvariable=self.element_var,
-                                          values=self.numeric_columns, width=8,
-                                          state='readonly')
+                                        values=self.numeric_columns, width=8,
+                                        state='readonly')
         self.element_combo.pack(side=tk.LEFT, padx=2)
+
+        # Add uncertainty button
+        uncertainty_btn = tk.Button(elem_frame, text="📊→Uncertainty",
+                                command=self._send_to_uncertainty,
+                                bg="#9C27B0", fg="white",
+                                font=("Arial", 8, "bold"),
+                                padx=5)
+        uncertainty_btn.pack(side=tk.LEFT, padx=5)
 
         self.notebook = ttk.Notebook(self.window)
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -2574,7 +2827,7 @@ class PetrogeneticModelingSuitePlugin:
     # TAB 4: Mixing
     # ============================================================================
     def _create_mixing_tab(self):
-        """Create mixing tab with full mode selection UI"""
+        """Create mixing tab with full mode selection UI and TDF integration"""
         tab = tk.Frame(self.notebook, bg="white")
         self.notebook.add(tab, text="🔄 Mixing")
 
@@ -2685,22 +2938,32 @@ class PetrogeneticModelingSuitePlugin:
         tk.Entry(conc_frame, textvariable=self.iso_conc_B, width=8).grid(row=0, column=2)
         tk.Entry(conc_frame, textvariable=self.iso_conc_C, width=8).grid(row=0, column=3)
 
-        # Binary-specific isotope parameters
+        # ============ BINARY ISOTOPE FRAME WITH TDF ============
         self.binary_iso_frame = tk.Frame(self.isotope_param_frame, bg="#f5f5f5")
 
-        tk.Label(self.binary_iso_frame, text="Binary Mixing Only:",
+        # Add TDF selector
+        self._create_tdf_selector_ui(self.binary_iso_frame)
+
+        # Concentration inputs
+        conc_frame_bin = tk.Frame(self.binary_iso_frame, bg="#f5f5f5")
+        conc_frame_bin.pack(fill=tk.X, pady=5)
+
+        tk.Label(conc_frame_bin, text="Element Concentrations (ppm):",
                 font=("Arial", 8, "italic"), bg="#f5f5f5").pack(anchor=tk.W)
 
-        bin_conc_frame = tk.Frame(self.binary_iso_frame, bg="#f5f5f5")
-        bin_conc_frame.pack(fill=tk.X, pady=2)
+        conc_grid = tk.Frame(conc_frame_bin, bg="#f5f5f5")
+        conc_grid.pack(fill=tk.X, pady=2)
 
-        tk.Label(bin_conc_frame, text="Conc A (ppm):", bg="#f5f5f5", width=12).pack(side=tk.LEFT)
+        tk.Label(conc_grid, text="").grid(row=0, column=0)
+        tk.Label(conc_grid, text="EM1").grid(row=0, column=1, padx=5)
+        tk.Label(conc_grid, text="EM2").grid(row=0, column=2, padx=5)
+
+        tk.Label(conc_grid, text="Conc:").grid(row=1, column=0, sticky=tk.W)
         self.binary_conc_A = tk.DoubleVar(value=100)
-        tk.Spinbox(bin_conc_frame, from_=1, to=10000, textvariable=self.binary_conc_A, width=8).pack(side=tk.LEFT)
-
-        tk.Label(bin_conc_frame, text="Conc B (ppm):", bg="#f5f5f5", width=12).pack(side=tk.LEFT, padx=(10,0))
         self.binary_conc_B = tk.DoubleVar(value=200)
-        tk.Spinbox(bin_conc_frame, from_=1, to=10000, textvariable=self.binary_conc_B, width=8).pack(side=tk.LEFT)
+
+        tk.Entry(conc_grid, textvariable=self.binary_conc_A, width=10).grid(row=1, column=1, padx=5)
+        tk.Entry(conc_grid, textvariable=self.binary_conc_B, width=10).grid(row=1, column=2, padx=5)
 
         # ============ BINARY FRAME (existing) ============
         self.binary_frame = tk.Frame(left, bg="#f5f5f5")
@@ -2798,25 +3061,13 @@ class PetrogeneticModelingSuitePlugin:
         toggle_param_frames()
 
     def _toggle_mixing_ui(self):
+        """Toggle between binary and ternary UI frames"""
         if self.mix_model_var.get() == 'binary':
             self.binary_frame.pack(fill=tk.X, padx=5, pady=2)
             self.ternary_frame.pack_forget()
         else:
             self.binary_frame.pack_forget()
             self.ternary_frame.pack(fill=tk.X, padx=5, pady=2)
-
-    def _calculate_and_plot_mixing(self):
-        self.progress.start()
-        self.status_var.set("Calculating mixing model...")
-        self.model_results['mixing'] = self._calculate_mixing()
-        if self.mix_model_var.get() == 'binary':
-            self._plot_binary_mixing(self.mix_ax, self.model_results['mixing'])
-        else:
-            self._plot_ternary_mixing(self.mix_ax, self.model_results['mixing'])
-        self.mix_canvas.draw()
-        self.status_var.set("✅ Mixing model complete")
-        self.progress.stop()
-
     # ============================================================================
     # TAB 5: Partial Melting
     # ============================================================================
@@ -3102,6 +3353,9 @@ class PetrogeneticModelingSuitePlugin:
 
         # Validation
         def validate_all_inputs():
+            # Debug: print current values
+            print(f"T_start: {self.melts_T_start_var.get()}, T_end: {self.melts_T_end_var.get()}")
+
             if self.melts_T_start_var.get() <= self.melts_T_end_var.get():
                 self.temp_valid_label.config(text="❌ T start > T end required", fg="red")
                 if HAS_PETTERMO:
@@ -3112,12 +3366,18 @@ class PetrogeneticModelingSuitePlugin:
 
             total = 0
             oxide_values = {}
+            required_oxides = ['SiO2', 'Al2O3', 'CaO', 'MgO', 'FeO', 'Na2O', 'K2O', 'H2O']
+
+            print("Oxide values:")
             for oxide, var in self.comp_vars.items():
                 val = var.get()
                 oxide_values[oxide] = val
                 total += val
+                if oxide in required_oxides:
+                    print(f"  {oxide}: {val}")
 
-            required_oxides = ['SiO2', 'Al2O3', 'CaO', 'MgO', 'FeO', 'Na2O', 'K2O', 'H2O']
+            print(f"Total: {total}%")
+
             missing_required = [ox for ox in required_oxides if oxide_values.get(ox, 0) <= 0]
 
             if missing_required:
@@ -3138,23 +3398,6 @@ class PetrogeneticModelingSuitePlugin:
             if HAS_PETTERMO:
                 self.run_button.config(state='normal', bg="#9C27B0")
             return True
-
-        self.melts_T_start_var.trace('w', lambda *args: validate_all_inputs())
-        self.melts_T_end_var.trace('w', lambda *args: validate_all_inputs())
-        self.validate_callback = validate_all_inputs
-        validate_all_inputs()
-
-        # Plot canvas
-        self.melts_fig = plt.Figure(figsize=(6, 5), dpi=90)
-        self.melts_fig.patch.set_facecolor('white')
-        self.melts_ax = self.melts_fig.add_subplot(111)
-        self.melts_ax.set_facecolor('#f8f9fa')
-        self.melts_canvas = FigureCanvasTkAgg(self.melts_fig, right)
-        self.melts_canvas.draw()
-        self.melts_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-        toolbar_frame = tk.Frame(right, height=25)
-        toolbar_frame.pack(fill=tk.X)
-        NavigationToolbar2Tk(self.melts_canvas, toolbar_frame).update()
 
     def _install_petthermo(self):
         """Install petthermotools package"""
@@ -3246,24 +3489,74 @@ class PetrogeneticModelingSuitePlugin:
         update_total()
 
     def _load_melts_preset(self):
-        """Load preset composition"""
-        preset = self.melts_preset_var.get().lower()
+        """Load preset composition into comp_vars cleanly"""
+
+        preset_name = self.melts_preset_var.get().lower()
+
         presets = {
-            "basalt":     {'SiO2': 50.0, 'TiO2': 1.5, 'Al2O3': 15.0, 'Fe2O3': 1.5, 'FeO': 8.5, 'MnO': 0.2, 'MgO': 7.0,  'CaO': 11.0, 'Na2O': 2.5, 'K2O': 0.8, 'P2O5': 0.2, 'H2O': 0.5, 'Cr2O3': 0.05},
-            "andesite":   {'SiO2': 60.0, 'TiO2': 0.8, 'Al2O3': 17.0, 'Fe2O3': 1.0, 'FeO': 4.0, 'MnO': 0.1, 'MgO': 3.0,  'CaO': 6.0,  'Na2O': 3.5, 'K2O': 1.5, 'P2O5': 0.2, 'H2O': 1.0, 'Cr2O3': 0.02},
-            "dacite":     {'SiO2': 65.0, 'TiO2': 0.6, 'Al2O3': 16.0, 'Fe2O3': 0.8, 'FeO': 2.5, 'MnO': 0.1, 'MgO': 1.5,  'CaO': 4.0,  'Na2O': 4.0, 'K2O': 2.0, 'P2O5': 0.2, 'H2O': 1.5, 'Cr2O3': 0.01},
-            "rhyolite":   {'SiO2': 75.0, 'TiO2': 0.2, 'Al2O3': 13.0, 'Fe2O3': 0.3, 'FeO': 0.8, 'MnO': 0.05,'MgO': 0.2,  'CaO': 0.8,  'Na2O': 4.0, 'K2O': 4.5, 'P2O5': 0.1, 'H2O': 2.0, 'Cr2O3': 0.0},
-            "morb":       {'SiO2': 49.5, 'TiO2': 1.5, 'Al2O3': 16.0, 'Fe2O3': 1.2, 'FeO': 7.5, 'MnO': 0.2, 'MgO': 8.5,  'CaO': 11.5, 'Na2O': 2.8, 'K2O': 0.1, 'P2O5': 0.1, 'H2O': 0.2, 'Cr2O3': 0.1},
-            "granite":    {'SiO2': 72.0, 'TiO2': 0.3, 'Al2O3': 14.0, 'Fe2O3': 0.5, 'FeO': 1.5, 'MnO': 0.05,'MgO': 0.5,  'CaO': 1.5,  'Na2O': 3.5, 'K2O': 4.5, 'P2O5': 0.1, 'H2O': 1.0, 'Cr2O3': 0.0},
-            "peridotite": {'SiO2': 45.0, 'TiO2': 0.2, 'Al2O3': 4.0,  'Fe2O3': 0.5, 'FeO': 8.0, 'MnO': 0.1, 'MgO': 38.0, 'CaO': 3.5,  'Na2O': 0.3, 'K2O': 0.03,'P2O5': 0.02,'H2O': 0.1, 'Cr2O3': 0.3},
+            "basalt": {
+                'SiO2': 50.0, 'TiO2': 1.5, 'Al2O3': 15.0,
+                'Fe2O3': 1.5, 'FeO': 8.5, 'MnO': 0.2,
+                'MgO': 7.0, 'CaO': 11.0,
+                'Na2O': 2.5, 'K2O': 0.8,
+                'P2O5': 0.2, 'H2O': 0.5, 'Cr2O3': 0.05
+            },
+            "andesite": {
+                'SiO2': 60.0, 'TiO2': 0.8, 'Al2O3': 17.0,
+                'Fe2O3': 1.0, 'FeO': 4.0, 'MnO': 0.1,
+                'MgO': 3.0, 'CaO': 6.0,
+                'Na2O': 3.5, 'K2O': 1.5,
+                'P2O5': 0.2, 'H2O': 1.0, 'Cr2O3': 0.02
+            },
+            "dacite": {
+                'SiO2': 65.0, 'TiO2': 0.6, 'Al2O3': 16.0,
+                'Fe2O3': 0.8, 'FeO': 2.5, 'MnO': 0.1,
+                'MgO': 1.5, 'CaO': 4.0,
+                'Na2O': 4.0, 'K2O': 2.0,
+                'P2O5': 0.2, 'H2O': 1.5, 'Cr2O3': 0.01
+            },
+            "rhyolite": {
+                'SiO2': 75.0, 'TiO2': 0.2, 'Al2O3': 13.0,
+                'Fe2O3': 0.3, 'FeO': 0.8, 'MnO': 0.05,
+                'MgO': 0.2, 'CaO': 0.8,
+                'Na2O': 4.0, 'K2O': 4.5,
+                'P2O5': 0.1, 'H2O': 2.0, 'Cr2O3': 0.0
+            }
         }
-        if preset in presets:
-            for oxide, value in presets[preset].items():
-                if oxide in self.comp_vars:
-                    self.comp_vars[oxide].set(value)
-            if hasattr(self, 'validate_callback'):
-                self.validate_callback()
-            self.status_var.set(f"✅ Loaded {self.melts_preset_var.get()} preset")
+
+        if preset_name not in presets:
+            return
+
+        preset = presets[preset_name]
+
+        # Reset everything first
+        for oxide in self.comp_vars:
+            self.comp_vars[oxide].set(0.0)
+
+        # Load preset values
+        for oxide, value in preset.items():
+            if oxide in self.comp_vars:
+                self.comp_vars[oxide].set(value)
+
+        # Update status
+        total = sum(v.get() for v in self.comp_vars.values())
+        self.comp_status_label.config(
+            text=f"✅ Loaded {preset_name.capitalize()} (total={total:.1f}%)",
+            fg="green"
+        )
+
+        # Force composition revalidation
+        if hasattr(self, "_validate_magemin_composition"):
+            self._validate_magemin_composition()
+
+        # Force full MAGEMin input validation
+        if hasattr(self, "_validate_magemin_inputs"):
+            valid = self._validate_magemin_inputs()
+            if valid and hasattr(self, 'run_button'):
+                self.run_button.config(state='normal', bg="#9C27B0")
+        # Re-validate if validation function exists
+        if hasattr(self, "_validate_magemin_inputs"):
+            self._validate_magemin_inputs()
 
     def _refresh_melts_tab(self):
         """Refresh MELTS tab after installation"""

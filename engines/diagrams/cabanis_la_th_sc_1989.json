@@ -1,0 +1,155 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "cabanis_la_th_sc_1989",
+  "diagram_name": "Cabanis La-Th-Sc Ternary for Metamorphosed Basalts",
+  "version": "1.0",
+  "author": "Cabanis, B.",
+  "reference": {
+    "citation": "Cabanis, B. (1989). Le diagramme La-Th-Sc: un nouvel outil pour la discrimination des séries volcaniques et la mise en évidence des processus de mélange et/ou de contamination crustale. Comptes Rendus de l'Académie des Sciences, Paris, 308, 1323-1329",
+    "figure": "Figure 1"
+  },
+  "description": "La - Th - Sc ternary discrimination diagram for metamorphosed and altered basalts",
+  "diagram_type": "ternary",
+
+  "requires_fields": ["La_ppm", "Th_ppm", "Sc_ppm"],
+
+  "axes": {
+    "a": {
+      "field": "La_ppm",
+      "label": "La",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "b": {
+      "field": "Th_ppm",
+      "label": "Th",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "c": {
+      "field": "Sc_ppm",
+      "label": "Sc",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    }
+  },
+
+  "fields": [
+    {
+      "name": "N-MORB",
+      "type": "polygon",
+      "points": [[10, 5, 85], [20, 5, 75], [25, 10, 65], [15, 10, 75]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "N-MORB",
+      "tooltip": "Normal MORB"
+    },
+    {
+      "name": "E-MORB",
+      "type": "polygon",
+      "points": [[20, 10, 70], [35, 10, 55], [40, 15, 45], [25, 15, 60]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.25,
+      "label": "E-MORB",
+      "tooltip": "Enriched MORB"
+    },
+    {
+      "name": "OIB",
+      "type": "polygon",
+      "points": [[40, 15, 45], [60, 15, 25], [70, 20, 10], [50, 20, 30]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "OIB",
+      "tooltip": "Ocean Island Basalt"
+    },
+    {
+      "name": "IAT",
+      "type": "polygon",
+      "points": [[10, 2, 88], [15, 2, 83], [18, 5, 77], [12, 5, 83]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "IAT",
+      "tooltip": "Island Arc Tholeiite"
+    },
+    {
+      "name": "CAB",
+      "type": "polygon",
+      "points": [[15, 5, 80], [25, 5, 70], [30, 10, 60], [20, 10, 70]],
+      "closed": true,
+      "color": "#CD853F",
+      "alpha": 0.25,
+      "label": "CAB",
+      "tooltip": "Calc-Alkaline Basalt"
+    },
+    {
+      "name": "Continental",
+      "type": "polygon",
+      "points": [[30, 15, 55], [50, 15, 35], [60, 20, 20], [40, 20, 40]],
+      "closed": true,
+      "color": "#D2B48C",
+      "alpha": 0.2,
+      "label": "Continental",
+      "tooltip": "Continental basalts"
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "N-MORB",
+      "position": [18, 8, 74],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "E-MORB",
+      "position": [30, 12, 58],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "OIB",
+      "position": [55, 18, 27],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "IAT",
+      "position": [14, 4, 82],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "CAB",
+      "position": [22, 8, 70],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "Continental",
+      "position": [45, 18, 37],
+      "fontsize": 7,
+      "color": "black"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper right",
+    "fontsize": 7,
+    "ncol": 2
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "frost_fe_number_mali_2001",
+  "diagram_name": "Frost Fe-number vs MALI Granite Classification",
+  "version": "1.0",
+  "author": "Frost, B.R., Barnes, C.G., Collins, W.J., Arculus, R.J., Ellis, D.J. & Frost, C.D.",
+  "reference": {
+    "citation": "Frost, B.R. et al. (2001). A geochemical classification for granitic rocks. Journal of Petrology, 42(11), 2033-2048",
+    "doi": "10.1093/petrology/42.11.2033",
+    "figure": "Figures 4 & 5"
+  },
+  "description": "Fe-number [FeO/(FeO+MgO)] vs MALI (Na2O+K2O-CaO) classification for granites",
+  "diagram_type": "xy",
+
+  "requires_fields": ["FeO_T_wt", "MgO_wt", "Na2O_wt", "K2O_wt", "CaO_wt", "SiO2_wt"],
+
+  "derived_fields": [
+    {
+      "name": "Fe_number",
+      "formula": "FeO_T_wt / (FeO_T_wt + MgO_wt)",
+      "requires": ["FeO_T_wt", "MgO_wt"],
+      "description": "Fe-number (FeO/(FeO+MgO))"
+    },
+    {
+      "name": "MALI",
+      "formula": "Na2O_wt + K2O_wt - CaO_wt",
+      "requires": ["Na2O_wt", "K2O_wt", "CaO_wt"],
+      "description": "Modified Alkali-Lime Index"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "MALI",
+      "label": "MALI (Na₂O + K₂O - CaO)",
+      "scale": "linear",
+      "limits": [-10, 20],
+      "major_ticks": [-10, -5, 0, 5, 10, 15, 20],
+      "grid": true
+    },
+    "y": {
+      "field": "Fe_number",
+      "label": "Fe-number [FeO/(FeO+MgO)]",
+      "scale": "linear",
+      "limits": [0.5, 1.0],
+      "major_ticks": [0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "Ferroan",
+      "type": "polygon",
+      "points": [[-10, 0.7], [20, 0.7], [20, 1.0], [-10, 1.0]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.2,
+      "label": "Ferroan",
+      "tooltip": "Ferroan granites (A-type)"
+    },
+    {
+      "name": "Magnesian",
+      "type": "polygon",
+      "points": [[-10, 0.5], [20, 0.5], [20, 0.7], [-10, 0.7]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.2,
+      "label": "Magnesian",
+      "tooltip": "Magnesian granites (I & S-type)"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "Ferroan/Magnesian boundary",
+      "type": "line",
+      "points": [[-10, 0.7], [20, 0.7]],
+      "color": "black",
+      "linestyle": "-",
+      "linewidth": 1,
+      "alpha": 0.5
+    }
+  ],
+
+  "fields_optional": [
+    {
+      "name": "Alkalic",
+      "type": "polygon",
+      "points": [[5, 0.5], [20, 0.5], [20, 1.0], [5, 1.0]],
+      "closed": true,
+      "color": "none",
+      "edge_color": "red",
+      "edge_width": 0.5,
+      "linestyle": "--",
+      "alpha": 0.5,
+      "label": "Alkalic"
+    },
+    {
+      "name": "Alkali-calcic",
+      "type": "polygon",
+      "points": [[0, 0.5], [5, 0.5], [5, 1.0], [0, 1.0]],
+      "closed": true,
+      "color": "none",
+      "edge_color": "orange",
+      "edge_width": 0.5,
+      "linestyle": "--",
+      "label": "Alkali-calcic"
+    },
+    {
+      "name": "Calc-alkalic",
+      "type": "polygon",
+      "points": [[-5, 0.5], [0, 0.5], [0, 1.0], [-5, 1.0]],
+      "closed": true,
+      "color": "none",
+      "edge_color": "green",
+      "edge_width": 0.5,
+      "linestyle": "--",
+      "label": "Calc-alkalic"
+    },
+    {
+      "name": "Calcic",
+      "type": "polygon",
+      "points": [[-10, 0.5], [-5, 0.5], [-5, 1.0], [-10, 1.0]],
+      "closed": true,
+      "color": "none",
+      "edge_color": "blue",
+      "edge_width": 0.5,
+      "linestyle": "--",
+      "label": "Calcic"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "black",
+    "default_edgecolor": "white",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 8
+  }
+}

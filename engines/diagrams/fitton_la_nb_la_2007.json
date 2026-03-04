@@ -1,0 +1,142 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "fitton_la_nb_la_2007",
+  "diagram_name": "Fitton La/Nb vs La Plume Discrimination",
+  "version": "1.0",
+  "author": "Fitton, J.G.",
+  "reference": {
+    "citation": "Fitton, J.G. (2007). The OIB paradox. In: Foulger, G.R. & Jurdy, D.M. (eds) Plates, Plumes, and Planetary Processes. Geological Society of America Special Paper 430, 387-412",
+    "doi": "10.1130/2007.2430(20)",
+    "figure": "Figure 3"
+  },
+  "description": "La/Nb vs La discrimination diagram for plume vs non-plume basalts",
+  "diagram_type": "xy",
+
+  "requires_fields": ["La_ppm", "Nb_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "La_Nb",
+      "formula": "La_ppm / Nb_ppm",
+      "requires": ["La_ppm", "Nb_ppm"],
+      "description": "La/Nb ratio"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "La_ppm",
+      "label": "La (ppm)",
+      "scale": "log",
+      "limits": [1, 100],
+      "major_ticks": [1, 10, 100],
+      "grid": true
+    },
+    "y": {
+      "field": "La_Nb",
+      "label": "La/Nb",
+      "scale": "linear",
+      "limits": [0, 3],
+      "major_ticks": [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "Plume (OIB)",
+      "type": "polygon",
+      "points": [[1, 0.4], [100, 0.4], [100, 1.2], [1, 1.2]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "Plume (OIB)",
+      "tooltip": "Ocean Island Basalts - Plume source"
+    },
+    {
+      "name": "Non-Plume (MORB)",
+      "type": "polygon",
+      "points": [[1, 0.6], [30, 0.6], [30, 2.5], [1, 2.5]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "Non-Plume (MORB)",
+      "tooltip": "Mid-Ocean Ridge Basalts - Depleted mantle"
+    },
+    {
+      "name": "Arc-Related",
+      "type": "polygon",
+      "points": [[5, 1.5], [100, 1.5], [100, 3.0], [5, 3.0]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "Arc-Related",
+      "tooltip": "Volcanic arc basalts - Subduction modified"
+    },
+    {
+      "name": "Continental Crust",
+      "type": "polygon",
+      "points": [[10, 1.8], [100, 1.8], [100, 3.0], [10, 3.0]],
+      "closed": true,
+      "color": "#8B4513",
+      "alpha": 0.15,
+      "label": "Continental Crust",
+      "tooltip": "Continental crust contamination"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "Plume/Non-Plume boundary",
+      "type": "line",
+      "points": [[1, 1.2], [100, 1.2]],
+      "color": "black",
+      "linestyle": "--",
+      "linewidth": 1,
+      "alpha": 0.6
+    },
+    {
+      "name": "MORB/Arc boundary",
+      "type": "line",
+      "points": [[1, 2.5], [30, 2.5]],
+      "color": "black",
+      "linestyle": ":",
+      "linewidth": 0.8,
+      "alpha": 0.5
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "Plume (OIB)",
+      "position": [10, 0.8],
+      "fontsize": 9,
+      "color": "#8B0000"
+    },
+    {
+      "text": "Non-Plume (MORB)",
+      "position": [5, 1.8],
+      "fontsize": 9,
+      "color": "#2c3e50"
+    },
+    {
+      "text": "Arc-Related",
+      "position": [20, 2.2],
+      "fontsize": 9,
+      "color": "#8B4513"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper right",
+    "fontsize": 8
+  }
+}

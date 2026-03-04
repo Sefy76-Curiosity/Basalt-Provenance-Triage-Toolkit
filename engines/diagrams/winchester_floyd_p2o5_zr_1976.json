@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "winchester_floyd_p2o5_zr_1976",
+  "diagram_name": "Winchester & Floyd P₂O₅ vs Zr Discrimination",
+  "version": "1.0",
+  "author": "Winchester, J.A. & Floyd, P.A.",
+  "reference": {
+    "citation": "Winchester, J.A. & Floyd, P.A. (1976). Geochemical magma type discrimination: application to altered and metamorphosed basic igneous rocks. Earth and Planetary Science Letters, 28(3), 459-469",
+    "doi": "10.1016/0012-821X(76)90207-7",
+    "figure": "Figure 2"
+  },
+  "description": "P₂O₅ vs Zr discrimination diagram for alkaline and tholeiitic basalts",
+  "diagram_type": "xy",
+
+  "requires_fields": ["P2O5_wt", "Zr_ppm"],
+
+  "axes": {
+    "x": {
+      "field": "Zr_ppm",
+      "label": "Zr (ppm)",
+      "scale": "log",
+      "limits": [10, 1000],
+      "major_ticks": [10, 100, 1000],
+      "grid": true
+    },
+    "y": {
+      "field": "P2O5_wt",
+      "label": "P₂O₅ (wt%)",
+      "scale": "log",
+      "limits": [0.01, 1],
+      "major_ticks": [0.01, 0.1, 1],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "Tholeiitic",
+      "type": "polygon",
+      "points": [[10, 0.01], [300, 0.01], [300, 0.15], [10, 0.15]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.25,
+      "label": "Tholeiitic",
+      "tooltip": "Tholeiitic basalts"
+    },
+    {
+      "name": "Alkaline",
+      "type": "polygon",
+      "points": [[50, 0.15], [500, 0.15], [500, 1.0], [50, 1.0]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "Alkaline",
+      "tooltip": "Alkaline basalts"
+    },
+    {
+      "name": "Transitional",
+      "type": "polygon",
+      "points": [[30, 0.08], [200, 0.08], [200, 0.25], [30, 0.25]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.2,
+      "label": "Transitional",
+      "tooltip": "Transitional basalts"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "Tholeiite/Alkaline boundary",
+      "type": "line",
+      "points": [[10, 0.15], [300, 0.15]],
+      "color": "black",
+      "linestyle": "--",
+      "linewidth": 1,
+      "alpha": 0.5
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 8
+  }
+}

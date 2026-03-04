@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "whalen_ga_al_zr_1987",
+  "diagram_name": "Whalen Ga/Al vs Zr A-type Granite Discrimination",
+  "version": "1.0",
+  "author": "Whalen, J.B., Currie, K.L. & Chappell, B.W.",
+  "reference": {
+    "citation": "Whalen, J.B., Currie, K.L. & Chappell, B.W. (1987). A-type granites: geochemical characteristics, discrimination and petrogenesis. Contributions to Mineralogy and Petrology, 95(4), 407-419",
+    "doi": "10.1007/BF00402202",
+    "figure": "Figure 4a"
+  },
+  "description": "10000*Ga/Al vs Zr discrimination diagram for A-type granites",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Ga_ppm", "Al2O3_wt", "Zr_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "Ga_Al_x10000",
+      "formula": "(Ga_ppm / (Al2O3_wt * 10000 / 101.96 * 2 * 26.98)) * 10000",
+      "requires": ["Ga_ppm", "Al2O3_wt"],
+      "description": "10000*Ga/Al ratio"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "Ga_Al_x10000",
+      "label": "10000 × Ga/Al",
+      "scale": "linear",
+      "limits": [0, 10],
+      "major_ticks": [0, 2, 4, 6, 8, 10],
+      "grid": true
+    },
+    "y": {
+      "field": "Zr_ppm",
+      "label": "Zr (ppm)",
+      "scale": "log",
+      "limits": [10, 1000],
+      "major_ticks": [10, 100, 1000],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "I, S & M-type",
+      "type": "polygon",
+      "points": [[0, 10], [2.6, 10], [2.6, 350], [0, 350]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.2,
+      "label": "I, S & M-type"
+    },
+    {
+      "name": "A-type",
+      "type": "polygon",
+      "points": [[2.6, 100], [10, 100], [10, 1000], [2.6, 1000]],
+      "closed": true,
+      "color": "#FFA07A",
+      "alpha": 0.2,
+      "label": "A-type"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "A-type boundary",
+      "type": "line",
+      "points": [[2.6, 10], [2.6, 1000]],
+      "color": "black",
+      "linestyle": "--",
+      "linewidth": 1,
+      "alpha": 0.5
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper left",
+    "fontsize": 8
+  }
+}

@@ -1,0 +1,171 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "mullen_mno_tio2_p2o5_1983",
+  "diagram_name": "Mullen MnO-TiO₂-P₂O₅ Ternary Discrimination",
+  "version": "1.0",
+  "author": "Mullen, E.D.",
+  "reference": {
+    "citation": "Mullen, E.D. (1983). MnO/TiO2/P2O5: a minor element discriminant for basaltic rocks of oceanic environments and its implications for petrogenesis. Earth and Planetary Science Letters, 62(1), 53-62",
+    "doi": "10.1016/0012-821X(83)90070-5",
+    "figure": "Figure 2"
+  },
+  "description": "10×MnO - TiO₂ - 10×P₂O₅ ternary discrimination diagram for basalts (45-54% SiO₂): MORB, OIT, OIA, IAT, CAB, Boninite",
+  "diagram_type": "ternary",
+
+  "requires_fields": ["MnO_wt", "TiO2_wt", "P2O5_wt"],
+
+  "derived_fields": [
+    {
+      "name": "MnO_x10",
+      "formula": "MnO_wt * 10",
+      "requires": ["MnO_wt"],
+      "description": "10 × MnO"
+    },
+    {
+      "name": "P2O5_x10",
+      "formula": "P2O5_wt * 10",
+      "requires": ["P2O5_wt"],
+      "description": "10 × P₂O₅"
+    }
+  ],
+
+  "axes": {
+    "a": {
+      "field": "MnO_x10",
+      "label": "10×MnO",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "b": {
+      "field": "TiO2_wt",
+      "label": "TiO₂",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    },
+    "c": {
+      "field": "P2O5_x10",
+      "label": "10×P₂O₅",
+      "scale": "linear",
+      "limits": [0, 100],
+      "major_ticks": [0, 20, 40, 60, 80, 100]
+    }
+  },
+
+  "fields": [
+    {
+      "name": "MORB",
+      "type": "polygon",
+      "points": [[20, 60, 20], [30, 70, 0], [40, 60, 0], [30, 50, 20]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "MORB",
+      "tooltip": "Mid-Ocean Ridge Basalt"
+    },
+    {
+      "name": "IAT",
+      "type": "polygon",
+      "points": [[15, 70, 15], [25, 75, 0], [35, 65, 0], [25, 60, 15]],
+      "closed": true,
+      "color": "#F4A460",
+      "alpha": 0.25,
+      "label": "IAT",
+      "tooltip": "Island Arc Tholeiite"
+    },
+    {
+      "name": "CAB",
+      "type": "polygon",
+      "points": [[10, 60, 30], [20, 70, 10], [30, 60, 10], [20, 50, 30]],
+      "closed": true,
+      "color": "#98FB98",
+      "alpha": 0.25,
+      "label": "CAB",
+      "tooltip": "Calc-Alkaline Basalt"
+    },
+    {
+      "name": "OIT",
+      "type": "polygon",
+      "points": [[30, 50, 20], [45, 50, 5], [55, 40, 5], [40, 35, 25]],
+      "closed": true,
+      "color": "#87CEEB",
+      "alpha": 0.25,
+      "label": "OIT",
+      "tooltip": "Ocean Island Tholeiite"
+    },
+    {
+      "name": "OIA",
+      "type": "polygon",
+      "points": [[40, 35, 25], [55, 35, 10], [65, 25, 10], [50, 20, 30]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "OIA",
+      "tooltip": "Ocean Island Alkaline"
+    },
+    {
+      "name": "Boninite",
+      "type": "polygon",
+      "points": [[5, 90, 5], [15, 90, -5], [20, 85, -5], [10, 80, 10]],
+      "closed": true,
+      "color": "#DDA0DD",
+      "alpha": 0.25,
+      "label": "Boninite",
+      "tooltip": "Boninite series"
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "MORB",
+      "position": [30, 60, 10],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "IAT",
+      "position": [25, 65, 10],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "CAB",
+      "position": [20, 60, 20],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "OIT",
+      "position": [45, 45, 10],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "OIA",
+      "position": [55, 30, 15],
+      "fontsize": 7,
+      "color": "black"
+    },
+    {
+      "text": "Boninite",
+      "position": [12, 85, 3],
+      "fontsize": 7,
+      "color": "black"
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "upper right",
+    "fontsize": 7,
+    "ncol": 2
+  }
+}

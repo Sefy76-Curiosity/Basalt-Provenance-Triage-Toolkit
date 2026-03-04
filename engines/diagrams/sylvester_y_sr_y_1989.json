@@ -1,0 +1,109 @@
+{
+  "schema_version": "1.0",
+  "diagram_id": "sylvester_y_sr_y_1989",
+  "diagram_name": "Sylvester Y vs Sr/Y Adakite Discrimination",
+  "version": "1.0",
+  "author": "Sylvester, P.J.",
+  "reference": {
+    "citation": "Sylvester, P.J. (1989). Post-collisional alkaline granites. Geology, 17(9), 815-819",
+    "doi": "10.1130/0091-7613(1989)017<0815:PCAG>2.3.CO;2",
+    "figure": "Figure 3"
+  },
+  "description": "Y vs Sr/Y discrimination diagram for adakites and normal arc rocks",
+  "diagram_type": "xy",
+
+  "requires_fields": ["Y_ppm", "Sr_ppm"],
+
+  "derived_fields": [
+    {
+      "name": "Sr_Y",
+      "formula": "Sr_ppm / Y_ppm",
+      "requires": ["Sr_ppm", "Y_ppm"],
+      "description": "Sr/Y ratio"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "field": "Y_ppm",
+      "label": "Y (ppm)",
+      "scale": "log",
+      "limits": [1, 100],
+      "major_ticks": [1, 10, 100],
+      "grid": true
+    },
+    "y": {
+      "field": "Sr_Y",
+      "label": "Sr/Y",
+      "scale": "log",
+      "limits": [1, 1000],
+      "major_ticks": [1, 10, 100, 1000],
+      "grid": true
+    }
+  },
+
+  "fields": [
+    {
+      "name": "Adakite",
+      "type": "polygon",
+      "points": [[1, 40], [18, 40], [18, 1000], [1, 1000]],
+      "closed": true,
+      "color": "#FFB6C1",
+      "alpha": 0.25,
+      "label": "Adakite",
+      "tooltip": "Adakite (slab-derived melts)"
+    },
+    {
+      "name": "Typical Arc Rocks",
+      "type": "polygon",
+      "points": [[10, 1], [100, 1], [100, 40], [10, 40]],
+      "closed": true,
+      "color": "#B0C4DE",
+      "alpha": 0.25,
+      "label": "Typical Arc Rocks",
+      "tooltip": "Normal arc andesite-dacite-rhyolite"
+    }
+  ],
+
+  "lines": [
+    {
+      "name": "Adakite/Arc boundary",
+      "type": "line",
+      "points": [[1, 40], [18, 40], [18, 100]],
+      "color": "black",
+      "linestyle": "--",
+      "linewidth": 1,
+      "alpha": 0.6
+    }
+  ],
+
+  "annotations": [
+    {
+      "text": "Adakite",
+      "position": [5, 200],
+      "fontsize": 10,
+      "color": "#8B0000",
+      "alpha": 0.7
+    },
+    {
+      "text": "Typical Arc",
+      "position": [30, 10],
+      "fontsize": 10,
+      "color": "#2c3e50",
+      "alpha": 0.7
+    }
+  ],
+
+  "sample_plotting": {
+    "default_marker": "o",
+    "default_size": 30,
+    "default_color": "red",
+    "default_edgecolor": "black",
+    "default_alpha": 0.8
+  },
+
+  "legend": {
+    "position": "lower left",
+    "fontsize": 8
+  }
+}
