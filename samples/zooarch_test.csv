@@ -1,21 +1,51 @@
-StationID,Location,Date,Geologist,FeatureType,Strike_deg,Dip_deg,DipDirection_deg,Trend_deg,Plunge_deg,Rake_deg,Pitch_deg,FoldAxis_deg,FoldPlunge_deg,LineationType,FractureType,VeinType,FaultType,ShearSense,RockType,Comments
-STR-001,Outcrop A,2024-01-10,JSmith,Bedding,045,35,135,,,,,,,,,,,Sandstone,Well-bedded
-STR-002,Outcrop A,2024-01-10,JSmith,Joint,090,45,180,,,,,,,,,Extension,,,,Sandstone,Vertical joint set
-STR-003,Outcrop A,2024-01-10,JSmith,Fault,120,60,210,210,45,30,30,,,,,Normal,SE,Granite,Brecciated zone
-STR-004,Outcrop B,2024-01-11,RJones,Bedding,010,25,100,,,,,,,,,,,Limestone,Thin-bedded
-STR-005,Outcrop B,2024-01-11,RJones,FoldAxis,,,,,,,055,15,F1,,,,,,Limestone,Asymmetric fold
-STR-006,Outcrop B,2024-01-11,RJones,Cleavage,355,40,085,,,,,,,,,,,Limestone,Axial planar
-STR-007,Outcrop C,2024-01-12,MJohnson,Bedding,078,42,168,,,,,,,,,,,Shale,Fissile
-STR-008,Outcrop C,2024-01-12,MJohnson,Lineation,,,,078,12,,,Stretching,,,,,,Shale,Mineral lineation
-STR-009,Outcrop C,2024-01-12,MJohnson,Fault,140,55,230,230,52,38,38,,,,,Reverse,W,Shale,Gouge zone
-STR-010,Outcrop D,2024-01-13,SWilson,Bedding,120,15,210,,,,,,,,,,,Conglomerate,Imbricated
-STR-011,Outcrop D,2024-01-13,SWilson,Joint,030,85,120,,,,,,,,,Shear,,,,Conglomerate,Shear joint
-STR-012,Outcrop D,2024-01-13,SWilson,Vein,095,70,185,,,,,090,30,Quartz,Extension,,,,Conglomerate,En echelon veins
-STR-013,Outcrop E,2024-01-14,TBrown,Bedding,165,28,255,,,,,,,,,,,Gneiss,Migmatitic
-STR-014,Outcrop E,2024-01-14,TBrown,Foliation,160,45,250,,,,,,,,,,,Gneiss,Compositional banding
-STR-015,Outcrop E,2024-01-14,TBrown,Lineation,,,,160,38,,,Mineral,,,,,,Gneiss,Hornblende lineation
-STR-016,Outcrop F,2024-01-15,LDavis,Fault,025,65,115,115,58,42,42,,,,,Strike-slip,Left,Basalt,Slickensides
-STR-017,Outcrop F,2024-01-15,LDavis,Joint,310,50,220,,,,,,,,,Extension,,,,Basalt,Columnar joint
-STR-018,Outcrop F,2024-01-15,LDavis,Bedding,340,22,070,,,,,,,,,,,Basalt,Pillow lava
-STR-019,Outcrop G,2024-01-16,KWilson,FoldAxis,,,,,,,045,20,F2,,,,,,Schist,Crenulation cleavage
-STR-020,Outcrop G,2024-01-16,KWilson,Lineation,,,,045,20,,,Crenulation,,,,,,Schist,Intersection lineation
+Sample_ID,taxon,nisp,element,side,modification,age_stage,burning,butchery,gnawing,d13c,d15n,c_n_ratio,collagen_yield,ftir_crystallinity,ftir_carbonate_ratio,context,site,notes
+BONE001,Sheep,1,Mandible,Left,weathering_stage2,adult_fused,unburned,present,absent,-19.5,7.2,3.2,12.4,3.1,0.18,Unit A1,Çatalhöyük,Complete mandible M3 erupted
+BONE002,Sheep,1,Humerus,Right,weathering_stage1,adult_fused,unburned,absent,absent,-19.8,7.5,3.3,11.2,3.2,0.17,Unit A1,Çatalhöyük,Distal fused
+BONE003,Sheep,1,Femur,Left,weathering_stage2,adult_fused,calcined,absent,absent,-19.2,7.0,3.5,2.1,4.8,0.08,Unit A1,Çatalhöyük,Calcined - high temp
+BONE004,Sheep,1,Tibia,Right,weathering_stage1,juvenile_unfused,unburned,absent,absent,-19.6,8.1,3.1,14.2,2.9,0.19,Unit A1,Çatalhöyük,Prox unfused - young
+BONE005,Cattle,1,Mandible,Right,weathering_stage3,adult_fused,unburned,present,absent,-17.2,6.8,3.3,8.3,3.4,0.15,Unit B2,Çatalhöyük,Heavy wear
+BONE006,Cattle,1,Scapula,Left,weathering_stage2,adult_fused,unburned,absent,rodent,-16.8,6.5,3.2,9.1,3.3,0.16,Unit B2,Çatalhöyük,Glenoid完好
+BONE007,Cattle,1,Metacarpal,Right,weathering_stage1,adult_fused,unburned,present,absent,-17.5,6.9,3.2,10.5,3.1,0.17,Unit B2,Çatalhöyük,Complete
+BONE008,Cattle,1,Phalanx1,Axial,weathering_stage2,adult_fused,burned,absent,absent,-17.0,6.7,3.4,4.2,4.2,0.11,Unit B3,Çatalhöyük,部分burned
+BONE009,Pig,1,Mandible,Right,weathering_stage1,juvenile_unfused,unburned,absent,absent,-20.2,8.5,3.1,13.2,3.0,0.16,Unit C1,Çatalhöyük,Deciduous premolar
+BONE010,Pig,1,Humerus,Left,weathering_stage2,subadult_fusing,unburned,present,absent,-20.5,8.8,3.2,10.1,3.2,0.15,Unit C1,Çatalhöyük,Distal fusing
+BONE011,Pig,1,Femur,Right,weathering_stage3,adult_fused,burned,absent,carnivore,-20.1,8.3,3.6,3.5,4.5,0.09,Unit C2,Çatalhöyük,Carnivore gnaw marks
+BONE012,Goat,1,Horncore,Left,weathering_stage1,adult_fused,unburned,absent,absent,-18.5,7.8,3.2,9.8,3.1,0.17,Unit D1,Çatalhöyük,Base only
+BONE013,Goat,1,Tibia,Left,weathering_stage2,adult_fused,unburned,absent,absent,-18.8,8.0,3.2,10.2,3.3,0.16,Unit D1,Çatalhöyük,Complete
+BONE014,Goat,1,Radius,Right,weathering_stage1,juvenile_unfused,unburned,absent,absent,-18.3,8.4,3.1,13.5,2.9,0.18,Unit D2,Çatalhöyük,Prox unfused
+BONE015,Red Deer,1,Antler,Axial,weathering_stage2,adult_fused,unburned,absent,rodent,-21.5,5.2,3.5,6.7,3.8,0.13,Unit E1,Çatalhöyük,Shed? Rodent gnaw
+BONE016,Red Deer,1,Metatarsal,Right,weathering_stage3,adult_fused,unburned,present,absent,-21.2,5.4,3.4,7.1,3.9,0.12,Unit E1,Çatalhöyük,Butchered
+BONE017,Roe Deer,1,Mandible,Left,weathering_stage2,adult_fused,unburned,absent,absent,-22.0,5.8,3.3,8.2,3.5,0.14,Unit F1,Çatalhöyük,Small size
+BONE018,Roe Deer,1,Scapula,Right,weathering_stage1,adult_fused,unburned,absent,absent,-22.3,5.6,3.2,9.3,3.2,0.16,Unit F1,Çatalhöyük,
+BONE019,Horse,1,Mandible,Left,weathering_stage3,adult_fused,unburned,absent,absent,-19.0,6.2,3.4,6.5,3.9,0.12,Unit G1,Çatalhöyük,Incisors present
+BONE020,Horse,1,Femur,Right,weathering_stage2,adult_fused,unburned,absent,absent,-19.3,6.4,3.3,7.8,3.6,0.13,Unit G1,Çatalhöyük,Proximal
+BONE021,Dog,1,Mandible,Left,weathering_stage1,adult_fused,unburned,absent,carnivore,-14.5,9.8,3.2,10.2,3.1,0.15,Unit H1,Çatalhöyük,Carnivore - itself?
+BONE022,Dog,1,Ulna,Right,weathering_stage2,adult_fused,unburned,absent,absent,-14.2,9.5,3.2,9.1,3.3,0.14,Unit H1,Çatalhöyük,Olecranon
+BONE023,Fox,1,Mandible,Right,weathering_stage1,adult_fused,unburned,absent,absent,-16.8,8.9,3.1,7.3,3.1,0.16,Unit I1,Çatalhöyük,Small canid
+BONE024,Fox,1,Femur,Left,weathering_stage2,adult_fused,unburned,absent,absent,-17.0,9.1,3.2,6.8,3.3,0.15,Unit I1,Çatalhöyük,
+BONE025,Fish (Cyprinid),1,Vertebra,Axial,weathering_stage1,adult_fused,burned,absent,absent,-22.5,10.2,3.0,1.2,4.9,0.06,Unit J1,Çatalhöyük,Calcined
+BONE026,Fish (Cyprinid),1,Vertebra,Axial,weathering_stage1,adult_fused,unburned,absent,absent,-22.8,10.5,3.0,2.3,3.2,0.14,Unit J1,Çatalhöyük,Fresh
+BONE027,Fish (Cyprinid),1,Vertebra,Axial,weathering_stage1,adult_fused,unburned,absent,absent,-22.6,10.3,3.0,2.1,3.2,0.14,Unit J1,Çatalhöyük,
+BONE028,Fish (Cyprinid),1,Vertebra,Axial,weathering_stage1,adult_fused,unburned,absent,absent,-22.7,10.4,3.0,1.9,3.3,0.13,Unit J1,Çatalhöyük,
+BONE029,Bird (Galliform),1,Humerus,Left,weathering_stage2,adult_fused,unburned,absent,absent,-18.2,9.2,3.3,5.2,3.4,0.14,Unit K1,Çatalhöyük,Game bird
+BONE030,Bird (Galliform),1,Femur,Right,weathering_stage2,adult_fused,unburned,absent,absent,-18.4,9.4,3.3,4.8,3.5,0.13,Unit K1,Çatalhöyük,
+BONE031,Bird (Galliform),1,Tarsometatarsus,Left,weathering_stage1,adult_fused,unburned,absent,absent,-18.1,9.1,3.2,5.5,3.2,0.15,Unit K1,Çatalhöyük,Spur present? male
+BONE032,Sheep,1,Atlas,Axial,weathering_stage2,adult_fused,unburned,present,absent,-19.4,7.3,3.2,10.8,3.2,0.17,Unit A2,Çatalhöyük,Butchered
+BONE033,Sheep,1,Axis,Axial,weathering_stage1,adult_fused,unburned,present,absent,-19.7,7.4,3.2,11.5,3.1,0.17,Unit A2,Çatalhöyük,
+BONE034,Cattle,1,Pelvis,Left,weathering_stage2,adult_fused,unburned,present,absent,-17.3,6.6,3.3,8.7,3.4,0.15,Unit B3,Çatalhöyük,Acetabulum
+BONE035,Cattle,1,Metatarsal,Left,weathering_stage2,adult_fused,unburned,present,absent,-17.1,6.7,3.2,9.2,3.3,0.16,Unit B3,Çatalhöyük,
+BONE036,Pig,1,Mandible,Left,weathering_stage1,juvenile_unfused,unburned,absent,absent,-20.3,8.6,3.1,12.8,3.0,0.16,Unit C1,Çatalhöyük,Milk teeth
+BONE037,Pig,1,Scapula,Right,weathering_stage2,subadult_fusing,unburned,absent,absent,-20.4,8.7,3.2,10.5,3.2,0.15,Unit C1,Çatalhöyük,
+BONE038,Human,1,Femur,Left,weathering_stage2,adult_fused,unburned,absent,absent,-18.0,9.5,3.4,6.2,3.7,0.13,Unit L1,Çatalhöyük,Burial context
+BONE039,Human,1,Tibia,Right,weathering_stage2,adult_fused,unburned,absent,absent,-18.2,9.7,3.4,5.8,3.8,0.12,Unit L1,Çatalhöyük,
+BONE040,Human,1,Mandible,Left,weathering_stage3,adult_fused,unburned,absent,absent,-17.8,9.3,3.5,4.1,4.0,0.11,Unit L2,Çatalhöyük,Worn teeth
+BONE041,Sheep,1,Calcaneus,Right,weathering_stage1,adult_fused,unburned,absent,absent,-19.3,7.3,3.2,11.8,3.1,0.17,Unit A3,Çatalhöyük,
+BONE42,Cattle,1,Astragalus,Left,weathering_stage2,adult_fused,unburned,present,absent,-17.4,6.7,3.3,8.9,3.3,0.16,Unit B4,Çatalhöyük,Butchered
+BONE043,Pig,1,Fibula,Left,weathering_stage1,subadult_fusing,unburned,absent,absent,-20.3,8.6,3.2,11.2,3.1,0.15,Unit C3,Çatalhöyük,
+BONE044,Goat,1,Mandible,Right,weathering_stage2,adult_fused,unburned,present,absent,-18.6,7.9,3.2,9.5,3.2,0.16,Unit D3,Çatalhöyük,
+BONE045,Rabbit,1,Femur,Left,weathering_stage1,adult_fused,unburned,absent,absent,-21.0,4.5,3.1,8.2,3.1,0.16,Unit M1,Çatalhöyük,Small lagomorph
+BONE046,Rabbit,1,Tibia,Right,weathering_stage1,adult_fused,unburned,absent,absent,-21.2,4.3,3.1,8.5,3.1,0.16,Unit M1,Çatalhöyük,
+BONE047,Fish (Salmonid),1,Vertebra,Axial,weathering_stage1,adult_fused,unburned,absent,absent,-19.5,11.8,3.0,3.2,3.2,0.14,Unit J2,Çatalhöyük,Anadromous
+BONE048,Fish (Salmonid),1,Vertebra,Axial,weathering_stage1,adult_fused,burned,absent,absent,-19.3,11.6,3.2,1.5,4.3,0.08,Unit J2,Çatalhöyük,
+BONE049,Bird (Aquatic),1,Coracoid,Left,weathering_stage2,adult_fused,unburned,absent,absent,-16.5,10.8,3.3,4.8,3.5,0.13,Unit K2,Çatalhöyük,Waterfowl
+BONE050,Bird (Aquatic),1,Femur,Right,weathering_stage2,adult_fused,unburned,absent,absent,-16.7,10.9,3.3,4.5,3.5,0.13,Unit K2,Çatalhöyük,
