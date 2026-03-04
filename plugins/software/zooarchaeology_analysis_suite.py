@@ -449,7 +449,7 @@ class ReferenceDatabase:
             selected_taxa: list of taxa to compare against (None = all)
 
         Returns:
-            dict of {taxon: probability}
+            dict of {taxon: probability} sorted by probability
         """
         if not self.loaded:
             return {}
@@ -477,6 +477,8 @@ class ReferenceDatabase:
                     matched += 1
 
             if matched > 0:
+                # Take nth root to normalize for number of measurements
+                likelihood = likelihood ** (1.0 / matched)
                 results[taxon] = likelihood
                 total_prob += likelihood
 
@@ -1820,6 +1822,111 @@ class IdentityTab(AnalysisTab):
         self._load_reference_database()
         self._build_ui()
 
+    def _set_equal_split(self, paned):
+        """Force the paned window to 50/50 split."""
+        try:
+            total_width = paned.winfo_width()
+            if total_width > 10:
+                paned.sashpos(0, total_width // 2)
+        except:
+            pass
+
+    def refresh(self):
+        """Refresh tab with current data and load measurements from selected specimen."""
+        super().refresh()
+        self._load_measurements_from_selection()
+
+    def _update_live_preview(self, event=None):
+        """Update the quick match preview live as user types."""
+        # Collect measurements
+        unknown = {}
+        for code, var in self.id_measurements.items():
+            val = var.get().strip()
+            if val:
+                try:
+                    unknown[code] = float(val)
+                except ValueError:
+                    pass
+
+        if not unknown or not hasattr(self, 'ref_db') or not self.ref_db.loaded:
+            # Clear preview
+            for i in range(5):
+                self.preview_taxon_labels[i].config(text="—")
+                self.preview_percent_labels[i].config(text="0%")
+                self.preview_bars[i].delete("all")
+            self.preview_summary.config(text="Enter measurements to see live match preview")
+            return
+
+        # Get selected taxa
+        selected_taxa = [taxon for taxon, var in self.id_taxa_vars.items() if var.get()]
+        if not selected_taxa:
+            return
+
+        # Get live probabilities
+        results = self.ref_db.compare_unknown(unknown, selected_taxa)
+
+        # Update preview rows
+        for i, (taxon, prob) in enumerate(list(results.items())[:5]):
+            self.preview_taxon_labels[i].config(text=taxon[:20])
+            self.preview_percent_labels[i].config(text=f"{prob:.0%}")
+
+            # Update progress bar
+            bar = self.preview_bars[i]
+            bar.delete("all")
+            bar_width = bar.winfo_width()
+            if bar_width > 10:
+                fill_width = int(bar_width * prob)
+                bar.create_rectangle(0, 0, fill_width, 12, fill='#2ecc71', outline='')
+
+        # Clear remaining rows
+        for i in range(len(results), 5):
+            self.preview_taxon_labels[i].config(text="—")
+            self.preview_percent_labels[i].config(text="0%")
+            self.preview_bars[i].delete("all")
+
+        # Update summary
+        if results:
+            best = list(results.keys())[0]
+            best_prob = results[best]
+            self.preview_summary.config(text=f"Most likely: {best} ({best_prob:.0%})")
+        else:
+            self.preview_summary.config(text="No match data available")
+
+    def _go_to_results_tab(self, event=None):
+        """Switch to the Results & Visualization tab."""
+        if hasattr(self, 'right_notebook'):
+            self.right_notebook.select(1)  # Index 1 = Results tab
+
+    def _load_measurements_from_selection(self):
+        """Load measurements from the currently selected specimen."""
+        if not self.selected_indices:
+            return
+
+        # Get the first selected specimen
+        idx = next(iter(self.selected_indices))
+        if idx >= len(self.samples):
+            return
+
+        sample = self.samples[idx]
+
+        # Map of measurement codes
+        measurement_codes = ['GL', 'Bp', 'Bd', 'SD', 'Dp', 'GLP', 'LG', 'BG', 'BT']
+
+        # Fill in the measurement fields
+        filled_count = 0
+        for code in measurement_codes:
+            if code in self.id_measurements:
+                saved_value = sample.get(code, '')
+                if saved_value:
+                    self.id_measurements[code].set(str(saved_value))
+                    filled_count += 1
+                else:
+                    self.id_measurements[code].set('')
+
+        # Update status if we have a status label
+        if hasattr(self, 'measurement_status'):
+            self.measurement_status.config(text=f"Loaded {filled_count} measurements from selected specimen")
+
     def _load_reference_database(self):
         """Load reference database from config folder."""
         try:
@@ -1837,82 +1944,84 @@ class IdentityTab(AnalysisTab):
             print(f"⚠️ Could not load reference database: {e}")
 
     def _build_ui(self):
-        # Main container with left (key) and right (measurements + results)
+        # === MAIN PANED WINDOW ===
         main = ttk.PanedWindow(self.frame, orient=tk.HORIZONTAL)
         main.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # LEFT PANEL - Morphological key (fixed width)
-        left = ttk.Frame(main, width=400)
-        main.add(left, weight=0)
+        # LEFT PANEL
+        left = ttk.Frame(main)
+        main.add(left, weight=1)
 
-        # RIGHT PANEL - Measurement + Results (takes remaining space)
+        # RIGHT PANEL
         right = ttk.Frame(main)
         main.add(right, weight=1)
 
-        # === LEFT PANEL - MORPHOLOGICAL KEY ===
+        # Force both panes to ignore natural width of children
+        left.update_idletasks()
+        right.update_idletasks()
+        left.configure(width=1)
+        right.configure(width=1)
+
+
+        # Equal minimum sizes
+        left.configure(width=1)
+        right.configure(width=1)
+
+
+
+        # === LEFT PANEL CONTENT ===
         key_frame = ttk.LabelFrame(left, text="Morphological Key", padding=5)
         key_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Category selector
         cat_frame = ttk.Frame(key_frame)
         cat_frame.pack(fill=tk.X, pady=2)
 
         ttk.Label(cat_frame, text="Category:").pack(side=tk.LEFT)
         self.key_category_var = tk.StringVar()
         cat_combo = ttk.Combobox(cat_frame, textvariable=self.key_category_var,
-                                 values=[
-                                     "Mammals",
-                                     "Birds",
-                                     "Fish",
-                                     "Special Cases"
-                                 ],
-                                 state="readonly", width=15)
+                                values=["Mammals", "Birds", "Fish", "Special Cases"],
+                                state="readonly", width=15)
         cat_combo.pack(side=tk.LEFT, padx=2)
         cat_combo.bind('<<ComboboxSelected>>', self._update_key_list)
 
-        # Key selection
         ttk.Label(key_frame, text="Select comparison:").pack(anchor='w')
         self.key_var = tk.StringVar()
         self.key_combo = ttk.Combobox(key_frame, textvariable=self.key_var,
-                                     values=[], state="readonly", width=40)
+                                    values=[], state="readonly", width=40)
         self.key_combo.pack(fill=tk.X, pady=2)
         self.key_combo.bind('<<ComboboxSelected>>', self._update_key)
 
-        # Key display area with scrollbar
         key_text_frame = ttk.Frame(key_frame)
         key_text_frame.pack(fill=tk.BOTH, expand=True, pady=5)
 
         self.key_text = tk.Text(key_text_frame, wrap=tk.WORD, font=("Courier", 9),
-                                 bg="#f9f9f9", relief=tk.SUNKEN, borderwidth=1)
-        key_scrollbar = ttk.Scrollbar(key_text_frame, orient="vertical", command=self.key_text.yview)
+                                bg="#f9f9f9", relief=tk.SUNKEN, borderwidth=1)
+        key_scrollbar = ttk.Scrollbar(key_text_frame, orient="vertical",
+                                    command=self.key_text.yview)
         self.key_text.configure(yscrollcommand=key_scrollbar.set)
 
         self.key_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         key_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # References label
         ref_frame = ttk.Frame(key_frame)
         ref_frame.pack(fill=tk.X, pady=2)
         ttk.Label(ref_frame, text="References: Boessneck 1969, Zeder 2006, Cohen & Serjeantson 1996, etc.",
-                  font=("Arial", 7, "italic")).pack()
+                font=("Arial", 7, "italic")).pack()
 
-        # Initialize first category
         self.key_category_var.set("Mammals")
         self._update_key_list()
 
-        # === RIGHT PANEL - Notebook for measurements and results ===
-        right_notebook = ttk.Notebook(right)
-        right_notebook.pack(fill=tk.BOTH, expand=True)
+        # === RIGHT PANEL CONTENT ===
+        self.right_notebook = ttk.Notebook(right)
+        self.right_notebook.pack(fill=tk.BOTH, expand=True)
 
-        # Tab R1: Measurement Input
-        measure_frame = ttk.Frame(right_notebook)
-        right_notebook.add(measure_frame, text="Measurement Input")
+        # TAB 1: MEASUREMENTS
+        measure_frame = ttk.Frame(self.right_notebook)
+        self.right_notebook.add(measure_frame, text="Measurement Input")
 
-        # Input measurements - expanded grid
         input_frame = ttk.LabelFrame(measure_frame, text="Enter Unknown Specimen Measurements", padding=5)
         input_frame.pack(fill=tk.X, pady=5, padx=5)
 
-        # Create a 3x3 grid for measurements
         grid = ttk.Frame(input_frame)
         grid.pack()
 
@@ -1930,19 +2039,18 @@ class IdentityTab(AnalysisTab):
             entry.pack(padx=2, pady=2)
             self.id_measurements[code] = var
 
-        # Taxa to compare - scrollable checklist
+            # Bind live update to each entry
+            entry.bind('<KeyRelease>', self._update_live_preview)
+
         taxa_frame = ttk.LabelFrame(measure_frame, text="Compare Against Reference Collections", padding=5)
         taxa_frame.pack(fill=tk.X, pady=5, padx=5)
 
-        # Create a frame with scrollbar for taxa list
         taxa_canvas = tk.Canvas(taxa_frame, highlightthickness=0, height=120)
         taxa_scrollbar = ttk.Scrollbar(taxa_frame, orient="vertical", command=taxa_canvas.yview)
         taxa_scrollable = ttk.Frame(taxa_canvas)
 
-        taxa_scrollable.bind(
-            "<Configure>",
-            lambda e: taxa_canvas.configure(scrollregion=taxa_canvas.bbox("all"))
-        )
+        taxa_scrollable.bind("<Configure>",
+                            lambda e: taxa_canvas.configure(scrollregion=taxa_canvas.bbox("all")))
 
         taxa_canvas.create_window((0, 0), window=taxa_scrollable, anchor="nw")
         taxa_canvas.configure(yscrollcommand=taxa_scrollbar.set)
@@ -1950,8 +2058,13 @@ class IdentityTab(AnalysisTab):
         taxa_canvas.pack(side="left", fill="both", expand=True)
         taxa_scrollbar.pack(side="right", fill="y")
 
-        # All possible taxa for comparison
-        all_taxa = list(self.reference_data.keys())
+        if hasattr(self, 'ref_db') and self.ref_db.loaded:
+            all_taxa = self.ref_db.get_taxa()
+        else:
+            all_taxa = ["Sheep (Ovis aries)", "Goat (Capra hircus)", "Cattle (Bos taurus)",
+                        "Pig (Sus scrofa domesticus)", "Red Deer (Cervus elaphus)",
+                        "Roe Deer (Capreolus capreolus)", "Horse (Equus caballus)",
+                        "Dog (Canis familiaris)"]
 
         self.id_taxa_vars = {}
         for taxon in all_taxa:
@@ -1959,53 +2072,114 @@ class IdentityTab(AnalysisTab):
             cb = ttk.Checkbutton(taxa_scrollable, text=taxon, variable=var)
             cb.pack(anchor='w', padx=5)
             self.id_taxa_vars[taxon] = var
+            # Bind live update to checkbox
+            cb.configure(command=self._update_live_preview)
 
-        # Button frame
         button_frame = ttk.Frame(measure_frame)
         button_frame.pack(fill=tk.X, pady=5, padx=5)
 
         ttk.Button(button_frame, text="🔍 RUN DISCRIMINANT ANALYSIS",
-                  command=self._run_discriminant).pack(side=tk.LEFT, padx=2)
+                command=self._run_discriminant).pack(side=tk.LEFT, padx=2)
         ttk.Button(button_frame, text="🧹 Clear All",
-                  command=self._clear_measurements).pack(side=tk.LEFT, padx=2)
+                command=self._clear_measurements).pack(side=tk.LEFT, padx=2)
         ttk.Button(button_frame, text="📊 Export Report",
-                  command=self._export_report).pack(side=tk.RIGHT, padx=2)
+                command=self._export_report).pack(side=tk.RIGHT, padx=2)
 
-        # Tab R2: Results & Visualization
-        results_frame = ttk.Frame(right_notebook)
-        right_notebook.add(results_frame, text="Results & Visualization")
+        # === QUICK MATCH PREVIEW (LIVE UPDATING) ===
+        preview_frame = ttk.LabelFrame(measure_frame, text="🎯 Quick Match Preview", padding=5)
+        preview_frame.pack(fill=tk.X, pady=5, padx=5)
 
-        # Split results into left (stats) and right (plot)
-        results_pane = ttk.PanedWindow(results_frame, orient=tk.HORIZONTAL)
+        # Header
+        preview_header = ttk.Frame(preview_frame)
+        preview_header.pack(fill=tk.X)
+        ttk.Label(preview_header, text="Taxon", font=("Arial", 7, "bold"), width=15).pack(side=tk.LEFT)
+        ttk.Label(preview_header, text="Match", font=("Arial", 7, "bold"), width=8).pack(side=tk.LEFT)
+        ttk.Label(preview_header, text="Confidence Bar", font=("Arial", 7, "bold")).pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # Preview rows (will be updated live)
+        self.preview_taxon_labels = []
+        self.preview_percent_labels = []
+        self.preview_bars = []
+
+        for i in range(5):  # Show top 5 matches
+            row = ttk.Frame(preview_frame)
+            row.pack(fill=tk.X, pady=2)
+
+            taxon_label = ttk.Label(row, text="—", font=("Arial", 7), width=15, anchor='w')
+            taxon_label.pack(side=tk.LEFT)
+
+            percent_label = ttk.Label(row, text="0%", font=("Arial", 7, "bold"), width=8)
+            percent_label.pack(side=tk.LEFT)
+
+            # Canvas for custom progress bar
+            bar_canvas = tk.Canvas(row, height=12, bg='#f0f0f0', highlightthickness=0)
+            bar_canvas.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=2)
+
+            self.preview_taxon_labels.append(taxon_label)
+            self.preview_percent_labels.append(percent_label)
+            self.preview_bars.append(bar_canvas)
+
+        # Most likely summary
+        self.preview_summary = ttk.Label(preview_frame, text="Enter measurements to see live match preview",
+                                         font=("Arial", 7, "italic"))
+        self.preview_summary.pack(anchor='w', pady=2)
+
+        # === RESULTS STATUS NOTIFICATION ===
+        self.result_status = tk.Label(measure_frame,
+                                      text="",
+                                      font=("Arial", 8, "bold"),
+                                      cursor="hand2",  # Changes cursor to hand on hover
+                                      relief=tk.FLAT)
+        self.result_status.pack(anchor='w', padx=5, pady=2, fill=tk.X)
+        self.result_status.bind('<Button-1>', self._go_to_results_tab)
+
+        # Status label for loaded measurements
+        self.measurement_status = ttk.Label(measure_frame, text="", font=("Arial", 7))
+        self.measurement_status.pack(anchor='w', padx=5, pady=2)
+
+        # TAB 2: RESULTS
+        results_frame = ttk.Frame(self.right_notebook)
+        self.right_notebook.add(results_frame, text="Results & Visualization")
+
+        results_pane = ttk.PanedWindow(results_frame, orient=tk.VERTICAL)
         results_pane.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # Left: Statistics
         stats_panel = ttk.Frame(results_pane)
         results_pane.add(stats_panel, weight=1)
 
-        # Classification results
         class_frame = ttk.LabelFrame(stats_panel, text="Classification Results", padding=5)
         class_frame.pack(fill=tk.BOTH, expand=True, pady=2)
 
         self.class_result = tk.Text(class_frame, height=15, font=("Courier", 9))
         self.class_result.pack(fill=tk.BOTH, expand=True)
 
-        # Right: Visualization
         viz_panel = ttk.Frame(results_pane)
-        results_pane.add(viz_panel, weight=2)
+        results_pane.add(viz_panel, weight=1)
 
         if HAS_MPL:
-            # Create figure for PCA plot
-            self.fig = Figure(figsize=(6, 5), dpi=100)
+            self.fig = Figure(figsize=(5, 4), dpi=100)
             self.ax = self.fig.add_subplot(111)
             self.canvas = FigureCanvasTkAgg(self.fig, viz_panel)
             self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-            # Toolbar
             toolbar = NavigationToolbar2Tk(self.canvas, viz_panel)
             toolbar.update()
         else:
             tk.Label(viz_panel, text="Install matplotlib for visualizations").pack(expand=True)
+
+        # === FINAL FIX: FORCE 50/50 SPLIT ===
+        def force_equal_split():
+            # Force both panes to ignore their children's requested width
+            left.configure(width=1)
+            right.configure(width=1)
+
+            total = main.winfo_width()
+            if total > 10:
+                main.sashpos(0, total // 2)
+
+        # Run twice: once after layout, once after matplotlib loads
+        self.frame.after(50, force_equal_split)
+        self.frame.after(300, force_equal_split)
 
     def _update_ui(self):
         """Update with current data - placeholder."""
@@ -3099,7 +3273,7 @@ References: Cohen & Serjeantson 1996, Sadler 1991"""
             self.class_result.insert(1.0, "scikit-learn not installed\n\nPlease install with:\npip install scikit-learn")
             return
 
-        # Collect measurements
+        # Collect measurements from input fields
         unknown = {}
         for code, var in self.id_measurements.items():
             val = var.get().strip()
@@ -3114,76 +3288,89 @@ References: Cohen & Serjeantson 1996, Sadler 1991"""
             self.class_result.insert(1.0, "Enter at least one measurement")
             return
 
-        # Get selected taxa
+        # Get selected taxa from checkboxes
         selected_taxa = [taxon for taxon, var in self.id_taxa_vars.items() if var.get()]
         if not selected_taxa:
             self.class_result.delete(1.0, tk.END)
             self.class_result.insert(1.0, "Select at least one taxon to compare")
             return
 
-        # Calculate probabilities using reference database
-        results = []
-        total_prob = 0
-        probs = {}
+        # Check if reference database is loaded
+        if not hasattr(self, 'ref_db') or not self.ref_db.loaded:
+            self.class_result.delete(1.0, tk.END)
+            self.class_result.insert(1.0, "Reference database not loaded.\n\nPlease ensure zooarch_reference.json exists in config folder.")
+            return
 
-        for taxon in selected_taxa:
-            if taxon not in self.reference_data:
-                continue
+        # Use reference database for comparison
+        results = self.ref_db.compare_unknown(unknown, selected_taxa)
 
-            ref = self.reference_data[taxon]
-            likelihood = 1.0
-            matched_measurements = 0
-
-            for code, value in unknown.items():
-                if code in ref:
-                    mean = ref[code]['mean']
-                    sd = ref[code]['sd']
-                    # Simple probability based on normal distribution
-                    z = abs(value - mean) / sd
-                    prob = math.exp(-0.5 * z**2) / (sd * math.sqrt(2 * math.pi))
-                    likelihood *= prob
-                    matched_measurements += 1
-
-            if matched_measurements > 0:
-                probs[taxon] = likelihood
-                total_prob += likelihood
-
-        # Normalize probabilities
-        if total_prob > 0:
-            for taxon in probs:
-                probs[taxon] /= total_prob
-
-        # Sort by probability
-        sorted_probs = sorted(probs.items(), key=lambda x: x[1], reverse=True)
+        if not results:
+            self.class_result.delete(1.0, tk.END)
+            self.class_result.insert(1.0, "No matching reference data found for these measurements")
+            return
 
         # Display results
         self.class_result.delete(1.0, tk.END)
         self.class_result.insert(1.0, "DISCRIMINANT ANALYSIS RESULTS\n")
         self.class_result.insert(tk.END, "=" * 50 + "\n\n")
+
         self.class_result.insert(tk.END, f"Unknown specimen measurements:\n")
-        for code, value in unknown.items():
+        for code, value in sorted(unknown.items()):
             self.class_result.insert(tk.END, f"  {code}: {value:.1f} mm\n")
 
-        self.class_result.insert(tk.END, f"\nCompared against: {', '.join(selected_taxa)}\n\n")
+        self.class_result.insert(tk.END, f"\nCompared against: {', '.join(selected_taxa[:3])}")
+        if len(selected_taxa) > 3:
+            self.class_result.insert(tk.END, f" +{len(selected_taxa)-3} more\n\n")
+        else:
+            self.class_result.insert(tk.END, "\n\n")
+
         self.class_result.insert(tk.END, "Classification probabilities:\n")
+        self.class_result.insert(tk.END, "-" * 40 + "\n")
 
-        for taxon, prob in sorted_probs[:5]:
-            ci_low = max(0, prob - 0.1)
-            ci_high = min(1, prob + 0.1)
-            self.class_result.insert(tk.END, f"  • {taxon}: {prob:.3f}  (95% CI: {ci_low:.2f}-{ci_high:.2f})\n")
+        # Display top matches
+        for taxon, prob in list(results.items())[:5]:
+            if prob > 0.01:  # Only show probabilities > 1%
+                # Simple confidence interval approximation
+                ci_low = max(0, prob - 0.1)
+                ci_high = min(1, prob + 0.1)
+                bar_length = int(prob * 30)
+                bar = "█" * bar_length + "░" * (30 - bar_length)
+                self.class_result.insert(tk.END, f"{taxon[:20]:20} {bar} {prob:.1%}\n")
+                self.class_result.insert(tk.END, f"{'':20}  95% CI: {ci_low:.1%}-{ci_high:.1%}\n\n")
 
-        if sorted_probs:
-            best = sorted_probs[0][0]
-            best_prob = sorted_probs[0][1]
-            self.class_result.insert(tk.END, f"\n→ Most likely: {best} ({best_prob:.1%} confidence)\n")
+        if results:
+            best_taxon = list(results.keys())[0]
+            best_prob = results[best_taxon]
+            self.class_result.insert(tk.END, "=" * 50 + "\n")
+            self.class_result.insert(tk.END, f"→ MOST LIKELY: {best_taxon}\n")
+            self.class_result.insert(tk.END, f"  ({best_prob:.1%} confidence)\n")
 
-        # Generate PCA plot
+        # Generate PCA plot if we have at least 2 measurements
         if HAS_MPL and len(unknown) >= 2:
             self._generate_pca_plot(unknown, selected_taxa)
 
+        self.result_status.config(
+            text="✓ Analysis complete! Click 'Results & Visualization' tab to view",
+            foreground="#8B4513",
+            background="#f1c40f"
+        )
+
+    def _clear_measurements(self):
+        for var in self.id_measurements.values():
+            var.set("")
+
+        # Reset label to default system background
+        default_bg = tk.Label().cget("bg")
+
+        self.result_status.config(
+            text="",
+            fg="black",
+            bg=default_bg
+        )
+
     def _generate_pca_plot(self, unknown, selected_taxa):
         """Generate PCA plot of unknown vs reference."""
-        if not HAS_MPL:
+        if not HAS_MPL or not hasattr(self, 'ref_db') or not self.ref_db.loaded:
             return
 
         self.ax.clear()
@@ -3197,17 +3384,18 @@ References: Cohen & Serjeantson 1996, Sadler 1991"""
         # Add reference data
         color_map = plt.cm.tab10
         for i, taxon in enumerate(selected_taxa):
-            if taxon not in self.reference_data:
+            if taxon not in self.ref_db.references:
                 continue
-            ref = self.reference_data[taxon]
+            ref = self.ref_db.references[taxon]
             # Create a synthetic point for each taxon (mean values)
             point = []
+            valid = True
             for code in unknown.keys():
                 if code in ref:
                     point.append(ref[code]['mean'])
                 else:
                     point.append(0)
-            if point:
+            if point and len(point) > 0:
                 all_measurements.append(point)
                 all_labels.append(taxon)
                 colors.append(color_map(i % 10))
@@ -3470,6 +3658,7 @@ class EcologyTab(AnalysisTab):
             idx = int(selection.split(':')[0])
             sample = self.samples[idx]
 
+            # Load isotope data (existing)
             self.d13c_var.set(sample.get('d13c', ''))
             self.d15n_var.set(sample.get('d15n', ''))
             self.cn_var.set(sample.get('C_N_ratio', ''))
