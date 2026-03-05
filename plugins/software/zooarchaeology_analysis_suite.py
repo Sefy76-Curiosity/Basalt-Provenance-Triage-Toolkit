@@ -536,6 +536,13 @@ class AnalysisTab:
         """Update UI with current data - override in subclasses."""
         pass
 
+    def set_status(self, message, message_type="info"):
+        """Send status message to main app's status bar."""
+        if hasattr(self.app, 'center') and hasattr(self.app.center, 'set_status'):
+            self.app.center.set_status(message, message_type)
+        else:
+            print(f"[{message_type}] {message}")
+
 
 # ============================================================================
 # TAB 1: ASSEMBLAGE - NISP/MNI, diversity, anatomical distribution
@@ -783,13 +790,30 @@ class AssemblageTab(AnalysisTab):
             self.anat_text.insert(tk.END, f"{element[:15]:15} {count:3}\n")
 
     def _calculate_advanced_mni(self):
-        """Calculate MNI using element/side/portion logic."""
+        """Calculate MNI and MNE using element/side/portion logic with optional overlap correction."""
         if not self.samples:
+            self.set_status("⚠️ No samples loaded", "warning")
             return
 
-        # Group by taxon, element, side
-        mni_data = {}
+        # Check if any samples have portion data when overlap correction is ON
+        if self.mne_overlap.get():
+            has_portion = False
+            indices = self.selected_indices if self.selected_indices else range(len(self.samples))
+            for i in indices:
+                if i >= len(self.samples):
+                    continue
+                sample = self.samples[i]
+                portion = sample.get('portion')
+                if portion and portion != 'Unknown' and portion.strip():
+                    has_portion = True
+                    break
 
+            if not has_portion:
+                self.set_status("⚠️ No portion data found - overlap correction will have no effect", "warning")
+                # Keep correction ON but warn user via status bar
+
+        # Group by taxon, element, side, portion
+        mni_data = {}
         indices = self.selected_indices if self.selected_indices else range(len(self.samples))
 
         for i in indices:
@@ -799,28 +823,54 @@ class AssemblageTab(AnalysisTab):
             taxon = sample.get('taxon') or sample.get('species') or 'Unknown'
             element = sample.get('element') or sample.get('bone')
             side = sample.get('side', 'Unknown')
+            portion = sample.get('portion', 'Unknown')
 
             if not element:
                 continue
 
-            key = (taxon, element, side)
+            key = (taxon, element, side, portion)
             mni_data[key] = mni_data.get(key, 0) + 1
 
-        # Calculate MNI per taxon
+        # Organise for MNI and MNE
         mni_by_taxon = {}
-        mne_by_taxon = {}
+        mne_counts = {}   # stores counts per (taxon, element, side, portion)
 
-        for (taxon, element, side), count in mni_data.items():
-            # MNI logic
+        for (taxon, element, side, portion), count in mni_data.items():
+            # MNI: track sides per element (portion ignored for MNI)
             if taxon not in mni_by_taxon:
                 mni_by_taxon[taxon] = {}
-
             if element not in mni_by_taxon[taxon]:
                 mni_by_taxon[taxon][element] = {'Left': 0, 'Right': 0, 'Axial': 0, 'Unknown': 0}
-
             mni_by_taxon[taxon][element][side] += count
 
-        # Calculate final MNI
+            # For MNE, store per element-side-portion
+            key_mne = (taxon, element, side, portion)
+            mne_counts[key_mne] = count
+
+        # Compute MNE
+        mne_final = {}
+        if self.mne_overlap.get():
+            # Overlap correction: for each taxon, element, side, take max across portions
+            per_element_side = {}
+            for (taxon, element, side, portion), count in mne_counts.items():
+                key_es = (taxon, element, side)
+                if key_es not in per_element_side:
+                    per_element_side[key_es] = {}
+                per_element_side[key_es][portion] = count
+
+            for (taxon, element, side), portions in per_element_side.items():
+                mne_val = max(portions.values())   # best estimate of minimum number of elements for that side
+                if taxon not in mne_final:
+                    mne_final[taxon] = 0
+                mne_final[taxon] += mne_val
+        else:
+            # No correction: sum all specimens
+            for (taxon, element, side, portion), count in mne_counts.items():
+                if taxon not in mne_final:
+                    mne_final[taxon] = 0
+                mne_final[taxon] += count
+
+        # Calculate MNI per taxon
         results = []
         total_mni = 0
 
@@ -828,40 +878,29 @@ class AssemblageTab(AnalysisTab):
             taxon_mni = 0
             for element, sides in elements.items():
                 if self.mni_method.get() == "Paired elements":
-                    # MNI = max(left, right) + abs(left - right)
                     left = sides.get('Left', 0)
                     right = sides.get('Right', 0)
                     axial = sides.get('Axial', 0)
                     unknown = sides.get('Unknown', 0)
-
                     element_mni = max(left, right) + axial + unknown
                 else:
                     # Simple MNI = max count of any side
                     element_mni = max(sides.values())
-
                 taxon_mni = max(taxon_mni, element_mni)
 
-                # MNE calculation (with optional overlap correction)
-                if self.mne_overlap.get():
-                    # Simplified overlap correction: different portions count separately
-                    # This would need portion data from samples
-                    mne = sum(sides.values())
-                else:
-                    mne = sum(sides.values())
-
-                if taxon not in mne_by_taxon:
-                    mne_by_taxon[taxon] = 0
-                mne_by_taxon[taxon] += mne
-
             total_mni += taxon_mni
-            results.append(f"{taxon[:15]:15} MNI:{taxon_mni:2}  MNE:{mne_by_taxon.get(taxon,0):3}")
+            mne_val = mne_final.get(taxon, 0)
+            results.append(f"{taxon[:15]:15} MNI:{taxon_mni:2}  MNE:{mne_val:3}")
 
         # Display results
         self.mni_results.delete(1.0, tk.END)
         self.mni_results.insert(1.0, f"Total MNI: {total_mni}\n")
-        self.mni_results.insert(tk.END, f"Method: {self.mni_method.get()}\n\n")
-        for line in results[:5]:  # Show top 5
+        self.mni_results.insert(tk.END, f"Method: {self.mni_method.get()}\n")
+        self.mni_results.insert(tk.END, f"MNE overlap correction: {'ON' if self.mne_overlap.get() else 'OFF'}\n\n")
+        for line in results[:5]:
             self.mni_results.insert(tk.END, line + "\n")
+
+        self.set_status(f"✅ MNI: {total_mni} | Correction: {'ON' if self.mne_overlap.get() else 'OFF'}", "success")
 
     def _plot_rarefaction(self):
         """Generate rarefaction curve."""
@@ -1102,6 +1141,16 @@ class IndividualTab(AnalysisTab):
         self.current_specimen_idx = None
         self.measurement_codes = list(MEASUREMENT_CODES.keys())
         self._build_ui()
+        self.ref_db = None
+        self._load_reference_database()
+
+    def set_status(self, message, message_type="info"):
+        """Send status message to main app's status bar."""
+        if hasattr(self.app, 'center') and hasattr(self.app.center, 'set_status'):
+            self.app.center.set_status(message, message_type)
+        else:
+            # Fallback to print if center not available
+            print(f"[{message_type}] {message}")
 
     def _build_ui(self):
         # Main container with left (specimen selector) and right (details)
@@ -1413,56 +1462,89 @@ class IndividualTab(AnalysisTab):
         self.lsi_result = tk.Label(lsi_frame, text="", font=("Arial", 6))
         self.lsi_result.pack(side=tk.LEFT, padx=5)
 
+    def _load_reference_database(self):
+        """Load reference database from config folder for LSI calculations."""
+        try:
+            from pathlib import Path
+            plugin_dir = Path(__file__).parent
+            appbase_dir = plugin_dir.parent.parent
+            ref_path = appbase_dir / "config" / "zooarch_reference.json"
+
+            self.ref_db = ReferenceDatabase()
+            success, msg = self.ref_db.load_from_file(ref_path)
+            if success:
+                taxa_count = len(self.ref_db.get_taxa())
+                self.set_status(f"✅ Loaded {taxa_count} reference taxa for LSI", "success")
+                print(f"✅ IndividualTab loaded reference database: {msg}")
+            else:
+                self.set_status(f"⚠️ Reference database not found - using built‑in LSI standards", "warning")
+                print(f"⚠️ IndividualTab: {msg}")
+        except Exception as e:
+            self.set_status("⚠️ Could not load reference database - using built‑in standards", "warning")
+            print(f"⚠️ IndividualTab: could not load reference database: {e}")
+            self.ref_db = ReferenceDatabase()
+
     def _calculate_lsi(self):
-        """Calculate Log Size Index from measurements."""
+        """Calculate Log Size Index using reference DB if available, else built‑in standards."""
         if not self.current_specimen_idx:
             self.lsi_result.config(text="Select specimen first")
             return
 
-        # Get current specimen taxon
         sample = self.samples[self.current_specimen_idx]
         taxon = sample.get('taxon', '').lower()
 
-        # Standard measurements from von den Driesch/zoolog
-        ZOOLOG_STANDARDS = {
-            'cattle': {'GL': 280, 'Bp': 75, 'Bd': 68, 'SD': 38, 'GLP': 72, 'LG': 58, 'BG': 52, 'BT': 82},
-            'sheep': {'GL': 150, 'Bp': 40, 'Bd': 35, 'SD': 18, 'GLP': 42, 'LG': 32, 'BG': 28, 'BT': 32},
-            'goat': {'GL': 145, 'Bp': 38, 'Bd': 34, 'SD': 17, 'GLP': 40, 'LG': 30, 'BG': 26, 'BT': 30},
-            'pig': {'GL': 130, 'Bp': 42, 'Bd': 40, 'SD': 22, 'GLP': 45, 'LG': 35, 'BG': 32, 'BT': 38},
-            'red deer': {'GL': 260, 'Bp': 60, 'Bd': 55, 'SD': 30, 'GLP': 58, 'LG': 48, 'BG': 42, 'BT': 52},
-            'roe deer': {'GL': 180, 'Bp': 40, 'Bd': 35, 'SD': 20, 'GLP': 38, 'LG': 30, 'BG': 26, 'BT': 32},
-            'horse': {'GL': 320, 'Bp': 85, 'Bd': 75, 'SD': 42, 'GLP': 82, 'LG': 65, 'BG': 58, 'BT': 72},
-            'dog': {'GL': 120, 'Bp': 28, 'Bd': 25, 'SD': 12, 'GLP': 30, 'LG': 22, 'BG': 18, 'BT': 24}
-        }
+        # --- Try reference database first ---
+        standards = {}
+        source = ""
+        if hasattr(self, 'ref_db') and self.ref_db and self.ref_db.loaded:
+            matched = None
+            for ref_taxon in self.ref_db.get_taxa():
+                if taxon in ref_taxon.lower():
+                    matched = ref_taxon
+                    break
+            if matched:
+                ref_data = self.ref_db.get_measurements_for_taxon(matched)
+                standards = {code: stats['mean'] for code, stats in ref_data.items() if stats.get('mean')}
+                if standards:
+                    source = f"reference ({matched})"
 
-        # Find matching standard
-        std_taxon = None
-        for key in ZOOLOG_STANDARDS:
-            if key in taxon:
-                std_taxon = key
-                break
+        # --- Fallback to built-in dictionary ---
+        if not standards:
+            ZOOLOG = {
+                'cattle': {'GL':280, 'Bp':75, 'Bd':68, 'SD':38, 'GLP':72, 'LG':58, 'BG':52, 'BT':82},
+                'sheep':  {'GL':150, 'Bp':40, 'Bd':35, 'SD':18, 'GLP':42, 'LG':32, 'BG':28, 'BT':32},
+                'goat':   {'GL':145, 'Bp':38, 'Bd':34, 'SD':17, 'GLP':40, 'LG':30, 'BG':26, 'BT':30},
+                'pig':    {'GL':130, 'Bp':42, 'Bd':40, 'SD':22, 'GLP':45, 'LG':35, 'BG':32, 'BT':38},
+                'red deer':{'GL':260, 'Bp':60, 'Bd':55, 'SD':30, 'GLP':58, 'LG':48, 'BG':42, 'BT':52},
+                'roe deer':{'GL':180, 'Bp':40, 'Bd':35, 'SD':20, 'GLP':38, 'LG':30, 'BG':26, 'BT':32},
+                'horse':  {'GL':320, 'Bp':85, 'Bd':75, 'SD':42, 'GLP':82, 'LG':65, 'BG':58, 'BT':72},
+                'dog':    {'GL':120, 'Bp':28, 'Bd':25, 'SD':12, 'GLP':30, 'LG':22, 'BG':18, 'BT':24}
+            }
+            for key, vals in ZOOLOG.items():
+                if key in taxon:
+                    standards = vals
+                    source = f"built‑in ({key})"
+                    break
+            if not standards:
+                self.lsi_result.config(text="No standard for this taxon")
+                return
 
-        if not std_taxon:
-            self.lsi_result.config(text="No standard for this taxon")
-            return
-
-        standards = ZOOLOG_STANDARDS[std_taxon]
+        # --- Compute LSI ---
         results = []
-
         for code, var in self.measurement_vars.items():
             val = var.get().strip()
             if val and code in standards:
                 try:
-                    measurement = float(val)
-                    standard = standards[code]
-                    lsi = math.log(measurement / standard)
+                    meas = float(val)
+                    lsi = math.log(meas / standards[code])
                     results.append(f"{code}: {lsi:.3f}")
-                except:
-                    pass
+                except ValueError:
+                    self.measurement_status.config(text=f"Invalid {code}: '{val}'", foreground="red")
+                    return
 
         if results:
             self.lsi_result.config(text=" | ".join(results[:4]))
-            self.measurement_status.config(text=f"LSI calculated for {len(results)} measurements")
+            self.measurement_status.config(text=f"LSI ({len(results)} meas, {source})", foreground="green")
         else:
             self.lsi_result.config(text="No matching measurements")
 
@@ -1646,46 +1728,6 @@ class IndividualTab(AnalysisTab):
         'Roe Deer': {'GL': 180, 'Bp': 40, 'Bd': 35, 'SD': 20}
     }
 
-    def _calculate_lsi(self):
-        """Calculate Log Size Index from measurements."""
-        if not self.current_specimen_idx:
-            self.lsi_result.config(text="Select a specimen first")
-            return
-
-        sample = self.samples[self.current_specimen_idx]
-        taxon = sample.get('taxon', '')
-
-        # Find matching standard
-        standard_taxon = None
-        for std_taxon in self.ZOOLOG_STANDARDS:
-            if std_taxon.lower() in taxon.lower():
-                standard_taxon = std_taxon
-                break
-
-        if not standard_taxon:
-            self.lsi_result.config(text="No standard found for this taxon")
-            return
-
-        standards = self.ZOOLOG_STANDARDS[standard_taxon]
-        results = []
-
-        for code, var in self.measurement_vars.items():
-            val = var.get().strip()
-            if val and code in standards:
-                try:
-                    measurement = float(val)
-                    standard = standards[code]
-                    lsi = math.log(measurement / standard)
-                    results.append(f"{code}: LSI = {lsi:.3f}")
-                except:
-                    pass
-
-        if results:
-            self.lsi_result.config(text=" | ".join(results[:5]))
-            self.measurement_status.config(text=f"LSI calculated for {len(results)} measurements")
-        else:
-            self.lsi_result.config(text="No matching measurements for LSI")
-
     # ============================================================================
     # UI update methods
     # ============================================================================
@@ -1790,26 +1832,60 @@ class IndividualTab(AnalysisTab):
             self._on_specimen_selected()
 
     def _save_to_specimen(self):
-        """Save current data to specimen."""
+        """Save current data back to the main data hub."""
         if self.current_specimen_idx is None:
-            messagebox.showwarning("No Selection", "Select a specimen first")
+            self.set_status("⚠️ No specimen selected", "warning")
             return
 
-        # Collect all measurement values
-        measurements = {}
-        saved_count = 0
+        all_samples = self.app.data_hub.get_all()
+        if self.current_specimen_idx >= len(all_samples):
+            self.set_status("❌ Specimen index out of range", "error")
+            return
+
+        updated = all_samples[self.current_specimen_idx].copy()
+
+        # --- Save measurements ---
+        meas_count = 0
         for code, var in self.measurement_vars.items():
             val = var.get().strip()
             if val:
                 try:
-                    measurements[code] = float(val)
-                    saved_count += 1
+                    updated[code] = float(val)
+                    meas_count += 1
                 except ValueError:
-                    measurements[code] = val
-                    saved_count += 1
+                    updated[code] = val
+                    meas_count += 1
+            else:
+                if code in updated:
+                    del updated[code]
 
-        self.measurement_status.config(text=f"Saved {saved_count} measurements")
-        messagebox.showinfo("Save", f"Saved {saved_count} measurements to specimen {self.current_specimen_idx}")
+        # --- Save taphonomy ---
+        updated['weathering'] = self.weather_var.get()
+        updated['burning'] = self.burn_var.get()
+        updated['butchery'] = self.butchery_var.get()
+        updated['gnawing'] = self.gnaw_var.get()
+        updated['root_etching'] = self.root_var.get()
+
+        # --- Save fusion ---
+        fusion = self.fusion_var.get()
+        if fusion:
+            updated['fusion'] = fusion
+
+        # --- Save dental wear ---
+        for tooth in ['M1', 'M2', 'M3', 'P4']:
+            val = self.wear_vars[tooth].get().strip()
+            if val:
+                updated[f'wear_{tooth}'] = val
+            else:
+                if f'wear_{tooth}' in updated:
+                    del updated[f'wear_{tooth}']
+
+        try:
+            self.app.data_hub.update_row(self.current_specimen_idx, updated)
+            self.measurement_status.config(text=f"Saved {meas_count} measurements", foreground="green")
+            self.set_status(f"✅ Saved specimen {self.current_specimen_idx} ({meas_count} measurements)", "success")
+        except Exception as e:
+            self.set_status(f"❌ Save failed: {str(e)[:50]}", "error")
 
     def _clear_measurements(self):
         """Clear all measurement fields."""
@@ -1890,11 +1966,24 @@ class IdentityTab(AnalysisTab):
             self.preview_percent_labels[i].config(text="0%")
             self.preview_bars[i].delete("all")
 
-        # Update summary
+        # Update summary with confidence indicator
         if results:
             best = list(results.keys())[0]
             best_prob = results[best]
-            self.preview_summary.config(text=f"Most likely: {best} ({best_prob:.0%})")
+
+            # Check how many measurements matched
+            matched_count = len(unknown)
+            confidence_note = ""
+            if matched_count < 3:
+                confidence_note = "⚠️ Low confidence (few measurements)"
+            elif matched_count < 5:
+                confidence_note = "⚠️ Moderate confidence"
+            else:
+                confidence_note = "✓ Good confidence"
+
+            self.preview_summary.config(
+                text=f"Most likely: {best} ({best_prob:.0%}) · {confidence_note}"
+            )
         else:
             self.preview_summary.config(text="No match data available")
 
@@ -1943,10 +2032,14 @@ class IdentityTab(AnalysisTab):
 
             success, msg = self.ref_db.load_from_file(ref_path)
             if success:
+                taxa_count = len(self.ref_db.get_taxa())
+                self.set_status(f"✅ Loaded {taxa_count} reference taxa for identification", "success")
                 print(f"✅ Reference database loaded: {msg}")
             else:
-                print(f"⚠️ {msg} — falling back to empty reference")
+                self.set_status(f"⚠️ Reference database not found - using fallback", "warning")
+                print(f"⚠️ {msg}")
         except Exception as e:
+            self.set_status(f"⚠️ Could not load reference database", "warning")
             print(f"⚠️ Could not load reference database: {e}")
 
     def _build_ui(self):
@@ -3210,68 +3303,6 @@ References: Cohen & Serjeantson 1996, Sadler 1991"""
         for var in self.id_measurements.values():
             var.set("")
 
-    def _calculate_lsi(self):
-        """Calculate Log Size Index (LSI) against zoolog-style reference."""
-        if not hasattr(self, 'ref_db'):
-            # Create a basic fallback reference if not loaded
-            self.ref_db = ReferenceDatabase()
-            plugin_dir = Path(__file__).parent
-            appbase_dir = plugin_dir.parent.parent
-            ref_path = appbase_dir / "config" / "zooarch_reference.json"
-            success, _ = self.ref_db.load_from_file(ref_path)
-
-        if not hasattr(self, 'ref_db') or not self.ref_db.loaded:
-            self.lsi_result.config(text="No reference DB", foreground="red")
-            return
-
-        # Collect current measurements
-        unknown = {}
-        for code, var in self.measurement_vars.items():
-            val = var.get().strip()
-            if val:
-                try:
-                    unknown[code] = float(val)
-                except ValueError:
-                    pass
-
-        if not unknown:
-            self.lsi_result.config(text="No measurements", foreground="orange")
-            return
-
-        # Use first selected taxon or default to Sheep
-        taxon = self.age_taxon_var.get()
-        if not taxon or taxon not in self.ref_db.references:
-            # Try to find a matching taxon from available references
-            for ref_taxon in self.ref_db.references.keys():
-                if any(t in ref_taxon.lower() for t in ['sheep', 'cattle', 'pig', 'deer']):
-                    taxon = ref_taxon
-                    break
-            if not taxon:
-                taxon = list(self.ref_db.references.keys())[0] if self.ref_db.references else ""
-
-        if not taxon or taxon not in self.ref_db.references:
-            self.lsi_result.config(text="No reference taxon", foreground="red")
-            return
-
-        ref = self.ref_db.references[taxon]
-        lsi_values = []
-
-        for code, value in unknown.items():
-            if code in ref:
-                mean = ref[code]['mean']
-                lsi = math.log(value / mean)  # classic LSI formula
-                lsi_values.append(lsi)
-
-        if lsi_values:
-            mean_lsi = sum(lsi_values) / len(lsi_values)
-            self.lsi_result.config(
-                text=f"{mean_lsi:+.3f} vs {taxon[:8]}",
-                foreground="green" if abs(mean_lsi) < 0.15 else "orange"
-            )
-            self.measurement_status.config(text=f"LSI = {mean_lsi:+.3f}")
-        else:
-            self.lsi_result.config(text="No matching codes", foreground="red")
-
     def _run_discriminant(self):
         """Run measurement-based discriminant analysis using reference database."""
         if not HAS_SKLEARN:
@@ -3477,24 +3508,18 @@ class EcologyTab(AnalysisTab):
 
     def _load_tdf_database(self):
         """Load TDF database from config folder."""
-        # Plugin is in: appbase/plugins/software/
-        # TDF is in: appbase/config/tdf_database.json
         plugin_dir = Path(__file__).parent
-        appbase_dir = plugin_dir.parent.parent  # Go up two levels: plugins/software/ → appbase/
+        appbase_dir = plugin_dir.parent.parent
         config_dir = appbase_dir / "config"
         tdf_path = config_dir / "tdf_database.json"
 
         success, message = self.tdf.load_from_file(tdf_path)
-        if not success:
+        if success:
+            self.set_status(f"✅ Loaded {len(self.tdf.entries)} TDF entries for ecology", "success")
+            print(f"✅ {message}")
+        else:
+            self.set_status(f"⚠️ TDF database not found - using defaults", "warning")
             print(f"⚠️ {message}")
-            # Try alternative path for development
-            alt_path = Path("appbase/config/tdf_database.json")
-            if alt_path.exists():
-                success, message = self.tdf.load_from_file(alt_path)
-                if success:
-                    print(f"✅ {message}")
-            else:
-                print("⚠️ TDF database will use limited built-in fallback")
 
     def _build_ui(self):
         # Main container with left (inputs) and right (results)
@@ -3861,6 +3886,13 @@ class ZooarchaeologyAnalysisSuite:
         self.window.lift()
         self.window.focus_force()
 
+    def set_status(self, message, message_type="info"):
+        """Send status message to main app's status bar."""
+        if hasattr(self.app, 'center') and hasattr(self.app.center, 'set_status'):
+            self.app.center.set_status(message, message_type)
+        else:
+            print(f"[{message_type}] {message}")
+
     def _build_ui(self):
         """Build the main UI."""
         # Header
@@ -3927,34 +3959,23 @@ class ZooarchaeologyAnalysisSuite:
         self._refresh_all()
 
     def _import_csv(self):
-        """Import CSV file."""
-        path = filedialog.askopenfilename(
-            title="Import CSV",
-            filetypes=[("CSV", "*.csv"), ("All files", "*.*")]
-        )
-        if not path:
-            return
+        """Import CSV file using main app's import method."""
+        # Let the main app's LeftPanel handle the import
+        if hasattr(self.app, 'left') and hasattr(self.app.left, 'import_csv'):
+            # Call the main app's import method
+            self.app.left.import_csv()
 
-        try:
-            if HAS_PANDAS:
-                df = pd.read_csv(path)
-                # Convert to list of dicts
-                data = df.to_dict('records')
-                if hasattr(self.app, 'data_hub'):
-                    self.app.data_hub.append_data(data)
-                messagebox.showinfo("Success", f"Imported {len(data)} records")
-                self._refresh_all()
-            else:
-                # Fallback to csv module
-                with open(path, 'r') as f:
-                    reader = csv.DictReader(f)
-                    data = list(reader)
-                if hasattr(self.app, 'data_hub'):
-                    self.app.data_hub.append_data(data)
-                messagebox.showinfo("Success", f"Imported {len(data)} records")
-                self._refresh_all()
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to import: {e}")
+            # Refresh all tabs with the new data
+            self._refresh_all()
+
+            # Also refresh the main app's center panel to show the new data
+            if hasattr(self.app, 'center') and hasattr(self.app.center, '_refresh'):
+                self.app.center._refresh()
+
+            self.set_status("✅ Import complete and tables refreshed", "success")
+        else:
+            self.set_status("❌ Main app import method not available", "error")
+            messagebox.showerror("Error", "Main app import method not available")
 
     def _export_csv(self):
         """Export data to CSV."""
@@ -3996,9 +4017,32 @@ class ZooarchaeologyAnalysisSuite:
         self.status_var.set(f"Loaded {data_count} specimens")
 
     def _send_to_table(self):
-        """Send data to main table."""
-        # This would integrate with your main app
-        messagebox.showinfo("Send to Table", "Data sent to main table")
+        """Send selected data from current tab to main table."""
+        # Get current tab
+        current_tab_id = self.notebook.index(self.notebook.select())
+        tab_names = list(self.tabs.keys())
+        if current_tab_id >= len(tab_names):
+            self.set_status("⚠️ No active tab found", "warning")
+            return
+
+        active_tab = self.tabs[tab_names[current_tab_id]]
+        selected = active_tab.selected_indices
+
+        if not selected:
+            self.set_status("⚠️ No specimens selected", "warning")
+            return
+
+        # If tab has a gather_updates method, use it
+        if hasattr(active_tab, 'gather_updates'):
+            updates = active_tab.gather_updates(selected)
+            success = 0
+            for idx, update_data in updates.items():
+                if update_data:
+                    self.app.data_hub.update_row(idx, update_data)
+                    success += 1
+            self.set_status(f"✅ Updated {success} records in main table", "success")
+        else:
+            self.set_status(f"⚠️ Tab '{tab_names[current_tab_id]}' doesn't support sending data", "warning")
 
 
 # ============================================================================
