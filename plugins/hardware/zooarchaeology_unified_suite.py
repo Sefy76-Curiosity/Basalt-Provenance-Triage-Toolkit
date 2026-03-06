@@ -3540,8 +3540,9 @@ class ZooarchaeologyUnifiedSuitePlugin:
         self.status_var.set(f"📏 {count} measurements staged")
 
     def _add_database_row(self):
-        """Add a new empty row to database"""
-        self.current = BoneMeasurement(timestamp=datetime.now(), sample_id=self._generate_id())
+        """Add current panel data as a new row to the database."""
+        # Do NOT reset self.current here — _add_bone_from_panel reads from it
+        # and creates the next blank bone itself after saving.
         self._add_bone_from_panel()
 
     def _delete_selected_row(self):
@@ -3553,8 +3554,13 @@ class ZooarchaeologyUnifiedSuitePlugin:
 
         if messagebox.askyesno("Confirm Delete", "Delete selected record?"):
             for item in selected:
+                # Sync measurements list BEFORE removing from tree
+                values = self.tree.item(item, 'values')
+                if values:
+                    sample_id = values[1]  # column 1 is sample_id
+                    self.measurements = [b for b in self.measurements
+                                         if b.sample_id != sample_id]
                 self.tree.delete(item)
-            # Also remove from measurements list (would need item ID mapping)
             self._update_status("🗑️ Row deleted")
 
     def _edit_cell(self):
@@ -3702,37 +3708,57 @@ class ZooarchaeologyUnifiedSuitePlugin:
         self._update_status("📊 NISP calculation complete")
 
     def _calculate_mni(self):
-        """Calculate MNI by taxon (simplified - by side)"""
+        """Calculate MNI by taxon using element+side grouping (standard method)."""
         if not self.measurements:
             messagebox.showwarning("No Data", "No bones recorded")
             return
 
         from collections import defaultdict
 
-        # Group by taxon and side
-        mni_dict = defaultdict(lambda: {'Left': 0, 'Right': 0, 'Unknown': 0})
+        # Group counts by (taxon, element, side)
+        # MNI for a taxon = max over all elements of max(left_count, right_count)
+        element_sides = defaultdict(lambda: defaultdict(lambda: {'Left': 0, 'Right': 0, 'Unknown': 0}))
 
         for m in self.measurements:
-            if m.taxon and m.side:
-                mni_dict[m.taxon][m.side] += 1
+            if not m.taxon:
+                continue
+            element = m.element if m.element else 'Unknown'
+            side = m.side if m.side in ('Left', 'Right') else 'Unknown'
+            element_sides[m.taxon][element][side] += 1
 
-        if not mni_dict:
-            messagebox.showinfo("MNI", "No taxa with side data")
+        if not element_sides:
+            messagebox.showinfo("MNI", "No taxa with element data")
             return
+
+        # For each taxon, MNI = max element MNI across all elements
+        # Element MNI = max(left, right); if both 0 use Unknown
+        taxon_mni_detail = {}
+        for taxon, elements in element_sides.items():
+            best_element = None
+            best_mni = 0
+            for element, sides in elements.items():
+                el_mni = max(sides['Left'], sides['Right'])
+                if el_mni == 0 and sides['Unknown'] > 0:
+                    el_mni = sides['Unknown']
+                if el_mni > best_mni:
+                    best_mni = el_mni
+                    best_element = element
+            taxon_mni_detail[taxon] = (best_mni, best_element, len(elements))
 
         # Display results
         self.nisp_text.delete(1.0, tk.END)
-        result = "MNI by Taxon (based on side counts):\n" + "="*50 + "\n"
+        result = "MNI by Taxon (element+side method):\n" + "="*55 + "\n"
         total_mni = 0
 
-        for taxon, sides in mni_dict.items():
-            # MNI is max of left/right counts
-            mni = max(sides['Left'], sides['Right'])
-            if mni == 0 and sides['Unknown'] > 0:
-                mni = sides['Unknown']
-
-            result += f"{taxon:<30} L:{sides['Left']:2} R:{sides['Right']:2} U:{sides['Unknown']:2} → MNI:{mni:2}\n"
+        for taxon, (mni, key_element, n_elements) in sorted(
+                taxon_mni_detail.items(), key=lambda x: -x[1][0]):
+            result += (f"{taxon:<28} MNI:{mni:3}  "
+                       f"(key: {(key_element or '?')[:15]:<15}, {n_elements} element types)\n")
             total_mni += mni
+
+        result += "="*55 + f"\n{'Total MNI':<40} {total_mni:3}"
+        self.nisp_text.insert(1.0, result)
+        self._update_status("📊 MNI calculation complete")
 
         result += "="*50 + f"\n{'Total MNI':<40} {total_mni:2}"
         self.nisp_text.insert(1.0, result)

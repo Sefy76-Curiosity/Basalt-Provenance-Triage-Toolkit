@@ -80,147 +80,69 @@ except ImportError:
 # ============================================================================
 
 MEASUREMENT_CODES = {
-    # GENERAL
-    "GL": "Greatest length",
+    # GENERAL / SHARED (Von den Driesch 1976)
+    "GL":  "Greatest length",
     "GLI": "Greatest length lateral",
     "GLm": "Greatest length medial",
-    "GB": "Greatest breadth",
-    "SB": "Smallest breadth",
-    "SD": "Smallest breadth of diaphysis",
-    "DD": "Depth of diaphysis",
-
-    # PROXIMAL
-    "Bp": "Breadth of the proximal end",
-    "Dp": "Depth of the proximal end",
-    "BP": "Breadth of the proximal articular surface",
-    "DP": "Depth of the proximal articular surface",
-
-    # DISTAL
-    "Bd": "Breadth of the distal end",
-    "Dd": "Depth of the distal end",
-    "BT": "Breadth of the trochlea",
-    "DT": "Depth of the trochlea",
-
+    "GLC": "Greatest length from the caput",
+    "GB":  "Greatest breadth",
+    "GD":  "Greatest depth",
+    "GH":  "Greatest height",
+    "GC":  "Greatest circumference",
+    "SB":  "Smallest breadth",
+    "SH":  "Smallest height of the ilium",
+    "SD":  "Smallest breadth of diaphysis",
+    "DD":  "Depth of diaphysis",
+    # PROXIMAL / DISTAL
+    "Bp":  "Breadth of the proximal end",
+    "Dp":  "Depth of the proximal end",
+    "BP":  "Breadth of the proximal articular surface",
+    "DP":  "Depth of the proximal articular surface",
+    "Bd":  "Breadth of the distal end",
+    "Dd":  "Depth of the distal end",
+    "BT":  "Breadth of the trochlea",
+    "DT":  "Depth of the trochlea",
+    "HT":  "Height of the trochlea",
     # SCAPULA
-    "HS": "Height of the scapula",
+    "HS":  "Height of the scapula",
     "SLC": "Smallest length of the collum scapulae",
     "GLP": "Greatest length of the processus articularis",
-    "LG": "Length of the glenoid cavity",
-    "BG": "Breadth of the glenoid cavity",
-    "AS": "Length of the facies articularis",
-
-    # HUMERUS
-    "GLC": "Greatest length from the caput",
-    "Bp": "Breadth of the proximal end",
-    "Dp": "Depth of the proximal end",
-    "SD": "Smallest breadth of the diaphysis",
-    "Bd": "Breadth of the distal end",
-    "BT": "Breadth of the trochlea",
-    "HT": "Height of the trochlea",
-
-    # RADIUS
-    "GL": "Greatest length",
-    "PL": "Physiological length",
-    "Bp": "Breadth of the proximal end",
+    "LG":  "Length of the glenoid cavity",
+    "BG":  "Breadth of the glenoid cavity",
+    "AS":  "Length of the facies articularis",
+    # RADIUS / LONG BONES
+    "PL":  "Physiological length",
     "BFp": "Breadth of the facies articularis proximalis",
-    "Dp": "Depth of the proximal end",
-    "SD": "Smallest breadth of the diaphysis",
-    "Bd": "Breadth of the distal end",
     "BFd": "Breadth of the facies articularis distalis",
-
     # ULNA
-    "GL": "Greatest length",
-    "LO": "Length of the olecranon",
+    "LO":  "Length of the olecranon",
     "BPC": "Breadth across the processus coronoideus",
     "SDO": "Smallest depth of the olecranon",
     "DPA": "Depth across the processus anconeus",
-
-    # METACARPAL / METATARSAL
-    "GL": "Greatest length",
-    "Bp": "Breadth of the proximal end",
-    "Dp": "Depth of the proximal end",
-    "SD": "Smallest breadth of the diaphysis",
-    "Bd": "Breadth of the distal end",
-    "Dd": "Depth of the distal end",
-
     # PELVIS
-    "LA": "Length of the acetabulum",
-    "LS": "Length of the symphysis",
+    "LA":  "Length of the acetabulum",
+    "LS":  "Length of the symphysis",
     "LAR": "Length of the acetabular rim",
-    "SB": "Smallest breadth of the ilium",
-    "SH": "Smallest height of the ilium",
-    "GB": "Greatest breadth of the pelvis",
-    "GL": "Greatest length of the pelvis",
-
     # FEMUR
-    "GL": "Greatest length",
-    "GLC": "Greatest length from the caput",
-    "Bp": "Breadth of the proximal end",
-    "DC": "Depth of the caput femoris",
-    "SD": "Smallest breadth of the diaphysis",
-    "Bd": "Breadth of the distal end",
-    "Dd": "Depth of the distal end",
-
-    # TIBIA
-    "GL": "Greatest length",
-    "Bp": "Breadth of the proximal end",
-    "Dp": "Depth of the proximal end",
-    "SD": "Smallest breadth of the diaphysis",
-    "Bd": "Breadth of the distal end",
-    "Dd": "Depth of the distal end",
-
-    # FIBULA
-    "GL": "Greatest length",
-    "SD": "Smallest breadth of the diaphysis",
-
-    # CALCANEUS
-    "GL": "Greatest length",
-    "GB": "Greatest breadth",
-    "GD": "Greatest depth",
-
+    "DC":  "Depth of the caput femoris",
     # ASTRAGALUS
-    "GLI": "Greatest length lateral",
-    "GLm": "Greatest length medial",
-    "Bd": "Breadth of the distal end",
-    "Dl": "Depth of the lateral side",
-    "Dm": "Depth of the medial side",
-
-    # PHALANGES
-    "GL": "Greatest length",
-    "Bp": "Breadth of the proximal end",
-    "SD": "Smallest breadth of the diaphysis",
-    "Bd": "Breadth of the distal end",
-
+    "Dl":  "Depth of the lateral side",
+    "Dm":  "Depth of the medial side",
     # VERTEBRAE
-    "PL": "Physiological length",
-    "HF": "Height of the facies terminalis",
-    "BF": "Breadth of the facies terminalis",
-    "H": "Height of the corpus",
-    "B": "Breadth of the corpus",
-
+    "HF":  "Height of the facies terminalis",
+    "BF":  "Breadth of the facies terminalis",
+    "H":   "Height of the corpus / mandible",
+    "B":   "Breadth of the corpus / mandible",
     # MANDIBLE
-    "GL": "Greatest length",
-    "GB": "Greatest breadth",
-    "GH": "Greatest height",
-    "LC": "Length of the cheektooth row",
-    "LM": "Length of the molar row",
-    "LP": "Length of the premolar row",
-    "H": "Height of the mandible",
-    "B": "Breadth of the mandible",
-
+    "LC":  "Length of the cheektooth row",
+    "LM":  "Length of the molar row",
+    "LP":  "Length of the premolar row",
     # TEETH
-    "L": "Length of the tooth",
-    "W": "Width of the tooth",
-    "H": "Height of the tooth",
-
-    # HORN CORES
-    "GL": "Greatest length",
-    "GB": "Greatest breadth",
-    "GC": "Greatest circumference",
-    "SD": "Smallest diameter",
+    "L":   "Length of the tooth",
+    "W":   "Width of the tooth",
 }
 
-# Total count: 60+ measurements
+# Total count: 52 unique Von den Driesch measurement codes
 
 # ============================================================================
 # FUSION STAGES
@@ -321,8 +243,8 @@ class TDFDatabase:
 
         matches = []
         for entry in self.entries:
-            # Skip entries without mean values
-            if not entry.get('Δ15N_mean') and not entry.get('Δ13C_mean'):
+            # Skip entries that have neither mean value (explicit None check — 0.0 is valid)
+            if entry.get('Δ15N_mean') is None and entry.get('Δ13C_mean') is None:
                 continue
 
             if taxon and entry.get('taxon', '').lower() != taxon.lower():
