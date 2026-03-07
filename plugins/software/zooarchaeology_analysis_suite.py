@@ -28,6 +28,7 @@ from tkinter import ttk, messagebox, filedialog
 import json
 import csv
 import os
+import gzip
 from pathlib import Path
 import threading
 import queue
@@ -50,12 +51,6 @@ try:
 except ImportError:
     pd = None
     HAS_PANDAS = False
-
-try:
-    from scipy import stats
-    HAS_SCIPY = True
-except ImportError:
-    HAS_SCIPY = False
 
 try:
     import matplotlib
@@ -799,14 +794,25 @@ class AssemblageTab(AnalysisTab):
         for taxon, elements in mni_by_taxon.items():
             taxon_mni = 0
             for element, sides in elements.items():
+                if not sides:
+                    continue
+                left    = sides.get('Left', 0)
+                right   = sides.get('Right', 0)
+                axial   = sides.get('Axial', 0)
+                unknown = sides.get('Unknown', 0)
+
                 if self.mni_method.get() == "Paired elements":
-                    left = sides.get('Left', 0)
-                    right = sides.get('Right', 0)
-                    axial = sides.get('Axial', 0)
-                    unknown = sides.get('Unknown', 0)
+                    # Conservative: treat unknowns as additional paired specimens
                     element_mni = max(left, right) + axial + unknown
+
+                elif self.mni_method.get() == "White's method":
+                    # White (1953): split unknowns conservatively between sides,
+                    # then take the higher side; axial specimens are counted separately.
+                    half_unknown = unknown // 2
+                    element_mni = max(left + half_unknown, right + half_unknown) + axial
+
                 else:
-                    # Simple MNI = max count of any side
+                    # Simple MNI = highest count of any single side category
                     element_mni = max(sides.values())
                 taxon_mni = max(taxon_mni, element_mni)
 
@@ -853,6 +859,7 @@ class AssemblageTab(AnalysisTab):
         from random import sample
 
         richness = []
+        stds = []
         subsample_sizes = list(range(5, min(len(taxa), 200), 5))
 
         for size in subsample_sizes:
@@ -865,13 +872,14 @@ class AssemblageTab(AnalysisTab):
                 subsample = sample(taxa, size)
                 rich_vals.append(len(set(subsample)))
             richness.append(np.mean(rich_vals))
+            stds.append(np.std(rich_vals))
 
         # Plot
         self.rare_ax.clear()
         self.rare_ax.plot(subsample_sizes[:len(richness)], richness, 'b-', linewidth=2)
         self.rare_ax.fill_between(subsample_sizes[:len(richness)],
-                                   [r - np.std(rich_vals) for r in richness],
-                                   [r + np.std(rich_vals) for r in richness],
+                                   [r - s for r, s in zip(richness, stds)],
+                                   [r + s for r, s in zip(richness, stds)],
                                    alpha=0.2)
         self.rare_ax.set_xlabel('Number of specimens')
         self.rare_ax.set_ylabel('Taxon richness')
@@ -1058,260 +1066,604 @@ print("Analysis complete. Check nisp_results.csv")
 # ============================================================================
 
 class IndividualTab(AnalysisTab):
+    # Grant's mandibular wear stages with absolute ages (Greenfield & Arnold 2008, Table 6)
+    GRANT_MWS_AGES = {
+        1:  (0, 2,   "No wear", "A"), 2:  (0, 2,   "Minimal wear", "A"),
+        3:  (2, 5,   "Early wear", "B1"), 4:  (2, 5,   "Light wear", "B1"),
+        5:  (2, 5,   "Light-moderate wear", "B1"), 6:  (2, 5,   "Moderate wear", "B1"),
+        7:  (2, 5,   "Moderate wear", "B1"), 8:  (2, 5,   "Moderate wear", "B1"),
+        9:  (5, 6,   "Moderate wear", "B2"), 10: (5, 6,   "Moderate wear", "B2"),
+        11: (5, 6,   "Moderate-heavy wear", "B2"), 12: (5, 6,   "Heavy wear", "B2"),
+        13: (6, 12,  "Heavy wear", "C"), 14: (6, 12,  "Heavy wear", "C"),
+        15: (6, 12,  "Heavy wear", "C"), 16: (6, 12,  "Heavy wear", "C"),
+        17: (6, 12,  "Heavy wear", "C"), 18: (6, 12,  "Heavy wear", "C"),
+        19: (12, 15, "Very heavy wear", "D1"), 20: (12, 15, "Very heavy wear", "D1"),
+        21: (16, 22, "Extreme wear", "D2"), 22: (16, 22, "Extreme wear", "D2"),
+        23: (16, 22, "Extreme wear", "D2"), 24: (16, 22, "Extreme wear", "D2"),
+        25: (16, 22, "Extreme wear", "D2"), 26: (16, 22, "Extreme wear", "D2"),
+        27: (22, 24, "Severe wear", "D3"), 28: (22, 24, "Severe wear", "D3"),
+        29: (24, 36, "Severe wear", "E"), 30: (24, 36, "Severe wear", "E"),
+        31: (24, 36, "Severe wear", "E"), 32: (24, 36, "Severe wear", "E"),
+        33: (24, 36, "Severe wear", "E"), 34: (36, 48, "Severe wear", "F"),
+        35: (36, 48, "Severe wear", "F"), 36: (36, 48, "Severe wear", "F"),
+        37: (36, 48, "Severe wear", "F"), 38: (48, 72, "Severe wear", "G"),
+        39: (48, 72, "Severe wear", "G"), 40: (48, 72, "Severe wear", "G"),
+        41: (48, 72, "Severe wear", "G"), 42: (72, 96, "Severe wear", "H"),
+        43: (72, 96, "Severe wear", "H"), 44: (72, 96, "Severe wear", "H"),
+        45: (96, 120, "Severe wear", "I"),
+    }
+
+    # Payne stages for reference/conversion (Greenfield & Arnold 2008, Table 1)
+    PAYNE_STAGES = {
+        'A': (0, 2, "Infant - Neonate"), 'B': (2, 6, "Infant - Old"),
+        'C': (6, 12, "Juvenile"), 'D': (12, 24, "Subadult - Young"),
+        'E': (24, 36, "Subadult - Old"), 'F': (36, 48, "Adult - Young"),
+        'G': (48, 72, "Adult - Young"), 'H': (72, 96, "Adult - Middle"),
+        'I': (96, 120, "Adult - Old/Senile"),
+    }
+
+    # Epiphyseal fusion ages (months) by taxon (Silver 1969) - fallback if JSON missing
+    FUSION_AGES = {
+        'Cattle': {'humerus_distal': 15, 'radius_proximal': 15, 'scapula_distal': 8,
+                   'phalanges': 18, 'tibia_distal': 24, 'metacarpal_distal': 30,
+                   'metatarsal_distal': 30, 'femur_proximal': 42, 'femur_distal': 48,
+                   'humerus_proximal': 48, 'radius_distal': 48, 'tibia_proximal': 48},
+        'Sheep': {'scapula_distal': 6, 'humerus_distal': 10, 'radius_proximal': 10,
+                  'phalanges': 13, 'tibia_distal': 18, 'metacarpal_distal': 20,
+                  'metatarsal_distal': 20, 'femur_proximal': 30, 'femur_distal': 36,
+                  'humerus_proximal': 36, 'radius_distal': 36, 'tibia_proximal': 36},
+        'Goat': {'scapula_distal': 6, 'humerus_distal': 10, 'radius_proximal': 10,
+                 'phalanges': 13, 'tibia_distal': 18, 'metacarpal_distal': 20,
+                 'metatarsal_distal': 20, 'femur_proximal': 30, 'femur_distal': 36,
+                 'humerus_proximal': 36, 'radius_distal': 36, 'tibia_proximal': 36},
+        'Pig': {'scapula_distal': 12, 'humerus_distal': 12, 'radius_proximal': 12,
+                'phalanges': 24, 'tibia_distal': 24, 'metacarpal_distal': 24,
+                'calcaneus': 36, 'femur_proximal': 36, 'femur_distal': 42,
+                'humerus_proximal': 42, 'radius_distal': 42},
+        'Horse': {'scapula_distal': 12, 'humerus_distal': 15, 'radius_proximal': 15,
+                  'phalanges': 18, 'tibia_distal': 24, 'metacarpal_distal': 18,
+                  'femur_proximal': 36, 'femur_distal': 42, 'humerus_proximal': 36}
+    }
+
+    # ── Grant MWS helpers ──────────────────────────────────────────────────
+    _GRANT_NUM = {c: i + 1 for i, c in enumerate('abcdefghijklmnop')}
+    _GRANT_TEETH = {
+        'dP4': ['—'] + list('abcdefghi'),
+        'P4':  ['—'] + list('abcdefgh'),
+        'M1':  ['—'] + list('abcdefghijklmnop'),
+        'M2':  ['—'] + list('abcdefghijklmnop'),
+        'M3':  ['—'] + list('abcdefghijklmnop'),
+    }
+    _MWS_PAYNE = [
+        (1,   2,  'A',   0,   2),
+        (3,  12,  'B',   2,   6),
+        (13,  18,  'C',   6,  12),
+        (19,  28,  'D',  12,  24),
+        (29,  33,  'E',  24,  36),
+        (34,  37,  'F',  36,  48),
+        (38,  41,  'G',  48,  72),
+        (42,  44,  'H',  72,  96),
+        (45, 999,  'I',  96, 144),
+    ]
+
+    # ── New Age Tab constants ──────────────────────────────────────────────
+    _TAXON_GROUPS = {
+        'Cattle': 'artiodactyl', 'Sheep': 'artiodactyl', 'Goat': 'artiodactyl',
+        'Pig': 'artiodactyl', 'Red Deer': 'artiodactyl', 'Fallow Deer': 'artiodactyl',
+        'Horse': 'perissodactyl', 'Donkey': 'perissodactyl',
+        'Dog': 'carnivore', 'Cat': 'carnivore',
+        'Chicken': 'bird', 'Goose': 'bird', 'Duck': 'bird', 'Other Bird': 'bird',
+        'Fish': 'fish', 'Other': 'unknown',
+    }
+
+    _ERUPTION_DATA = {
+        'Cattle': {
+            'dI1/I1': {'dec_erupting':(0,1),   'dec_present':(0,18),  'perm_erupting':(18,24), 'perm_present':(24,144)},
+            'dI2/I2': {'dec_erupting':(0,2),   'dec_present':(0,24),  'perm_erupting':(24,30), 'perm_present':(30,144)},
+            'dI3/I3': {'dec_erupting':(0,3),   'dec_present':(0,36),  'perm_erupting':(30,42), 'perm_present':(36,144)},
+            'dP4/P4': {'dec_erupting':(0,1),   'dec_present':(0,24),  'perm_erupting':(24,30), 'perm_present':(30,144)},
+            'M1':     {'perm_erupting':(5,6),   'perm_present':(6,144)},
+            'M2':     {'perm_erupting':(15,18), 'perm_present':(18,144)},
+            'M3':     {'perm_erupting':(24,28), 'perm_present':(28,144)},
+        },
+        'Sheep': {
+            'dI1/I1': {'dec_erupting':(0,1),   'dec_present':(0,12),  'perm_erupting':(12,18), 'perm_present':(18,144)},
+            'dI2/I2': {'dec_erupting':(0,2),   'dec_present':(0,21),  'perm_erupting':(21,24), 'perm_present':(24,144)},
+            'dI3/I3': {'dec_erupting':(1,2),   'dec_present':(1,30),  'perm_erupting':(30,36), 'perm_present':(36,144)},
+            'dP4/P4': {'dec_erupting':(0,1),   'dec_present':(0,21),  'perm_erupting':(21,24), 'perm_present':(24,144)},
+            'M1':     {'perm_erupting':(3,4),   'perm_present':(4,144)},
+            'M2':     {'perm_erupting':(9,12),  'perm_present':(12,144)},
+            'M3':     {'perm_erupting':(18,24), 'perm_present':(24,144)},
+        },
+        'Pig': {
+            'dI1/I1': {'dec_erupting':(0,1),   'dec_present':(0,12),  'perm_erupting':(12,14), 'perm_present':(14,144)},
+            'dI3/I3': {'dec_erupting':(1,2),   'dec_present':(1,8),   'perm_erupting':(8,10),  'perm_present':(10,144)},
+            'dC/C':   {'dec_erupting':(1,2),   'dec_present':(1,8),   'perm_erupting':(8,10),  'perm_present':(10,144)},
+            'dP4/P4': {'dec_erupting':(0,1),   'dec_present':(0,12),  'perm_erupting':(12,16), 'perm_present':(16,144)},
+            'M1':     {'perm_erupting':(4,6),   'perm_present':(6,144)},
+            'M2':     {'perm_erupting':(12,16), 'perm_present':(16,144)},
+            'M3':     {'perm_erupting':(17,22), 'perm_present':(22,144)},
+        },
+        'Horse': {
+            'dI1/I1': {'dec_erupting':(0,1),   'dec_present':(0,30),  'perm_erupting':(30,36), 'perm_present':(36,240)},
+            'dI2/I2': {'dec_erupting':(1,2),   'dec_present':(1,42),  'perm_erupting':(42,48), 'perm_present':(48,240)},
+            'dI3/I3': {'dec_erupting':(6,9),   'dec_present':(6,54),  'perm_erupting':(54,60), 'perm_present':(60,240)},
+            'dP2/P2': {'dec_erupting':(0,1),   'dec_present':(0,30),  'perm_erupting':(30,36), 'perm_present':(36,240)},
+            'dP3/P3': {'dec_erupting':(0,1),   'dec_present':(0,36),  'perm_erupting':(36,42), 'perm_present':(42,240)},
+            'dP4/P4': {'dec_erupting':(0,1),   'dec_present':(0,48),  'perm_erupting':(48,54), 'perm_present':(54,240)},
+            'M1':     {'perm_erupting':(9,12),  'perm_present':(12,240)},
+            'M2':     {'perm_erupting':(24,30), 'perm_present':(30,240)},
+            'M3':     {'perm_erupting':(36,48), 'perm_present':(48,240)},
+        },
+        'Red Deer': {
+            'dI1/I1': {'dec_erupting':(0,1),   'dec_present':(0,14),  'perm_erupting':(14,16), 'perm_present':(16,240)},
+            'dI2/I2': {'dec_erupting':(0,2),   'dec_present':(0,26),  'perm_erupting':(26,28), 'perm_present':(28,240)},
+            'dI3/I3': {'dec_erupting':(0,3),   'dec_present':(0,38),  'perm_erupting':(38,40), 'perm_present':(40,240)},
+            'dP4/P4': {'dec_erupting':(0,2),   'dec_present':(0,26),  'perm_erupting':(26,30), 'perm_present':(30,240)},
+            'M1':     {'perm_erupting':(4,5),   'perm_present':(5,240)},
+            'M2':     {'perm_erupting':(13,14), 'perm_present':(14,240)},
+            'M3':     {'perm_erupting':(24,28), 'perm_present':(28,240)},
+        },
+        'Dog': {
+            'dI/I':   {'dec_erupting':(1,2),   'dec_present':(1,14),  'perm_erupting':(12,14), 'perm_present':(14,180)},
+            'dC/C':   {'dec_erupting':(1,2),   'dec_present':(1,20),  'perm_erupting':(18,20), 'perm_present':(20,180)},
+            'dP/P':   {'dec_erupting':(2,4),   'dec_present':(2,16),  'perm_erupting':(14,18), 'perm_present':(18,180)},
+            'M1':     {'perm_erupting':(14,16), 'perm_present':(16,180)},
+            'M2':     {'perm_erupting':(16,20), 'perm_present':(20,180)},
+            'M3':     {'perm_erupting':(18,22), 'perm_present':(22,180)},
+        },
+    }
+    _ERUPTION_DATA['Goat']        = _ERUPTION_DATA['Sheep']
+    _ERUPTION_DATA['Fallow Deer'] = _ERUPTION_DATA['Red Deer']
+    _ERUPTION_DATA['Cat']         = _ERUPTION_DATA['Dog']
+
+    _ERUPT_STATES_WITH_DEC = [
+        '— not observed', 'Absent (not yet erupted)',
+        'Deciduous erupting', 'Deciduous present',
+        'Permanent erupting', 'Permanent present', 'Shed / not present',
+    ]
+    _ERUPT_STATES_PERM_ONLY = [
+        '— not observed', 'Absent (not yet erupted)',
+        'Permanent erupting', 'Permanent present', 'Shed / not present',
+    ]
+    _ERUPT_STATE_KEY = {
+        'Deciduous erupting': 'dec_erupting',
+        'Deciduous present':  'dec_present',
+        'Permanent erupting': 'perm_erupting',
+        'Permanent present':  'perm_present',
+    }
+    _TEETH_WITH_DEC = {'dI1/I1','dI2/I2','dI3/I3','dC/C','dP2/P2','dP3/P3','dP4/P4','dI/I','dP/P'}
+
+    _PIG_WEAR = {
+        'A': (0,   6,   'No wear — dP4 unworn, M1 not erupted',    '#2e7d32'),
+        'B': (6,   12,  'Light wear on dP4, M1 erupting',          '#558b2f'),
+        'C': (12,  18,  'M1 in wear; dP4 heavily worn',            '#f9a825'),
+        'D': (18,  24,  'M2 erupting; perm premolars erupting',    '#e65100'),
+        'E': (24,  36,  'M2 in wear; perm premolars present',      '#bf360c'),
+        'F': (36,  48,  'M3 erupting or in early wear',            '#b71c1c'),
+        'G': (48,  72,  'M3 in full wear; heavy attrition',        '#880e4f'),
+        'H': (72,  120, 'Severe wear throughout; senile changes',  '#4a148c'),
+    }
+
+    _GROSS_MORPH = {
+        '':         (None, None),
+        'foetal':   (0,    0),
+        'neonate':  (0,    1),
+        'juvenile': (1,    24),
+        'subadult': (12,   36),
+        'adult':    (24,   999),
+        'mature':   (36,   999),
+        'old':      (72,   999),
+    }
+    _GROSS_MORPH_LABELS = {
+        '':         '— not assessed',
+        'foetal':   'Foetal  (prenatal)',
+        'neonate':  'Neonate  (0–1 mo)',
+        'juvenile': 'Juvenile  (~1–24 mo)',
+        'subadult': 'Subadult  (not fully mature)',
+        'adult':    'Adult  (fully mature)',
+        'mature':   'Mature adult  (prime)',
+        'old':      'Old adult  (senile changes)',
+    }
+    _BONE_TEXTURE_OPTS = [
+        ('',          '— not assessed'),
+        ('porous',    'Porous / immature cortex'),
+        ('normal',    'Normal cortical density'),
+        ('compact',   'Dense / compact'),
+        ('osteoporo', 'Osteoporotic / thinning'),
+    ]
+
+    # ── Taphonomy constants ────────────────────────────────────────────────
+    _BEHRENSMEYER = {
+        0: ("Stage 0", "No cracking or flaking. Bone grease still present. Fresh surface.", "#2e7d32"),
+        1: ("Stage 1", "Longitudinal cracking, no flaking. Surface may be greasy or slightly bleached.", "#558b2f"),
+        2: ("Stage 2", "Mosaic cracking, flaking parallel to fibrous structure begins.", "#f9a825"),
+        3: ("Stage 3", "Rough, homogeneous texture. Fibrous structure visible. Large cracks present.", "#e65100"),
+        4: ("Stage 4", "Coarsely splintered. Bone falling apart. Only dense portions remain.", "#b71c1c"),
+        5: ("Stage 5", "Bone structurally fragile. May crumble when touched. Extreme weathering.", "#7b1fa2"),
+    }
+    _BURNING = {
+        'none':       ("None",       "No evidence of burning",                              "#9e9e9e"),
+        'scorched':   ("Scorched",   "Brown/black discolouration, partial charring, <300°C","#795548"),
+        'carbonised': ("Carbonised", "Black throughout, fully charred, 300–600°C",          "#212121"),
+        'calcined':   ("Calcined",   "White/grey/blue, fully oxidised, >600°C",             "#90caf9"),
+    }
+    _SURF_QUAL = {
+        1: ("1 — Poor",      "Heavy erosion, surface largely destroyed, no fine detail",  "#b71c1c"),
+        2: ("2 — Fair",      "Moderate erosion, some detail lost",                        "#e65100"),
+        3: ("3 — Moderate",  "Slight erosion, most surface detail intact",                "#f9a825"),
+        4: ("4 — Good",      "Minor abrasion only, fine detail present",                  "#2e7d32"),
+        5: ("5 — Excellent", "Fresh/pristine surface, all morphological detail preserved", "#1565c0"),
+    }
+
     def __init__(self, parent, app, ui_queue):
         super().__init__(parent, app, ui_queue)
         self.current_specimen_idx = None
         self.measurement_codes = list(MEASUREMENT_CODES.keys())
-        self._build_ui()
-        self.ref_db = None
-        self._load_reference_database()
+        self.grant_vars = {}
+        self.morph_keys = {}
 
-    def set_status(self, message, message_type="info"):
-        """Send status message to main app's status bar."""
-        if hasattr(self.app, 'center') and hasattr(self.app.center, 'set_status'):
-            self.app.center.set_status(message, message_type)
-        else:
-            # Fallback to print if center not available
-            print(f"[{message_type}] {message}")
+        self._horse_vars = {}
+        self._dog_wear_var = None
+        self.debug_taph = False
+
+        # New age tab vars
+        self._eruption_vars    = {}
+        self._erupt_interp     = {}
+        self._pig_wear_var     = None
+        self._cement_rings_var = tk.StringVar()
+        self._cement_season_var = tk.StringVar(value='')
+        self._histo_method_var = tk.StringVar(value='')
+        self._histo_age_var    = tk.StringVar()
+        self._histo_ref_var    = tk.StringVar()
+        self._gross_morph_var  = tk.StringVar(value='')
+        self._bone_texture_var = tk.StringVar(value='')
+        self._gross_notes_var  = tk.StringVar()
+
+        # === UNIFIED DATABASE CONTAINERS ===
+        self.full_db = None
+        self.references = {}
+        self.taxon_references = {}
+        self.reference_standards = {}
+        self.taxonomy = {}
+        self.taxon_thesaurus = {}
+        self.element_thesaurus = {}
+        self.measure_thesaurus = {}
+        self.reference_sets = {}
+        self.example_specimens = []
+
+        self._last_lsi_results = {}
+        self._last_lsi_condensed = {}
+        self._batch_lsi_results = []
+
+        self._AXIS_PRIORITY = {
+            'Length': ['GL', 'GLl', 'GLI', 'GLm', 'GLC', 'GLpe', 'HTC'],
+            'Width':  ['BT', 'Bd', 'Bp', 'SD', 'BFd', 'BFp', 'GLP', 'LG', 'SLC', 'GB'],
+            'Depth':  ['Dd', 'DD', 'BG', 'Dp', 'DPA', 'DC'],
+        }
+
+        self._build_ui()
+        self._load_unified_database()
+        self.frame.after(100, self._populate_lsi_tab)
+        self.frame.after(200, self._load_morph_keys)
 
     def _build_ui(self):
-        # Main container with left (specimen selector) and right (details)
         main = ttk.PanedWindow(self.frame, orient=tk.HORIZONTAL)
         main.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # LEFT PANEL - Specimen list + controls (fixed width)
-        left = ttk.Frame(main, width=350)  # Fixed width based on 30 chars + padding
-        main.add(left, weight=0)  # weight=0 means it won't expand
+        left = ttk.Frame(main, width=350)
+        main.add(left, weight=0)
 
-        # RIGHT PANEL - Details with tabs (takes remaining space)
-        right = ttk.Notebook(main)  # ← This NEEDS to be a Notebook!
-        main.add(right, weight=1)  # weight=1 means it takes all remaining space
+        self.right_notebook = ttk.Notebook(main)
+        main.add(self.right_notebook, weight=1)
 
         # === LEFT PANEL ===
-        # Specimen selector
         list_frame = ttk.LabelFrame(left, text="Select Specimen", padding=5)
         list_frame.pack(fill=tk.BOTH, expand=True, pady=2)
 
-        # Listbox - 30 characters wide as you wanted!
-        self.specimen_list = tk.Listbox(list_frame, height=15, font=("Courier", 8),
-                                        width=30)
+        self.specimen_list = tk.Listbox(list_frame, height=15, font=("Courier", 8), width=30)
         self.specimen_list.pack(side=tk.LEFT, fill=tk.Y)
+        self.specimen_list.bind('<<ListboxSelect>>', self._on_specimen_selected)
 
-        # Scrollbar for listbox
         list_scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=self.specimen_list.yview)
         self.specimen_list.configure(yscrollcommand=list_scrollbar.set)
         list_scrollbar.pack(side=tk.LEFT, fill=tk.Y)
 
-        # Quick nav buttons
         nav_frame = ttk.Frame(left)
         nav_frame.pack(fill=tk.X, pady=2)
         ttk.Button(nav_frame, text="◀ Prev", command=self._prev_specimen).pack(side=tk.LEFT, padx=2)
         ttk.Button(nav_frame, text="Next ▶", command=self._next_specimen).pack(side=tk.LEFT, padx=2)
+        ttk.Button(nav_frame, text="📚 Example", command=self._load_example_specimen).pack(side=tk.LEFT, padx=2)
 
-        # Quick summary of current specimen
         self.specimen_summary = tk.Text(left, height=3, font=("Arial", 7), width=30)
         self.specimen_summary.pack(fill=tk.X, pady=2)
 
-        # === RIGHT PANEL TABS ===
-        # Tab 2a: Age with Payne/Grant integration
-        self.age_frame = ttk.Frame(right)
-        right.add(self.age_frame, text="Age")
+        # === AGE TAB ===
+        self.age_frame = ttk.Frame(self.right_notebook)
+        self.right_notebook.add(self.age_frame, text="Age")
+        self._build_age_tab_ui()
 
-        age_main = ttk.Frame(self.age_frame)
-        age_main.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # === TAPHONOMY TAB (Enhanced) ===
+        self.taph_frame = ttk.Frame(self.right_notebook)
+        self.right_notebook.add(self.taph_frame, text="Taphonomy")
 
-        # Taxon selector for age (important for fusion/epiphyseal ages)
-        taxon_age_frame = ttk.Frame(age_main)
-        taxon_age_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(taxon_age_frame, text="Taxon:").pack(side=tk.LEFT)
-        self.age_taxon_var = tk.StringVar()
-        age_taxon_combo = ttk.Combobox(taxon_age_frame, textvariable=self.age_taxon_var,
-                                       values=["Cattle", "Sheep", "Goat", "Pig", "Horse", "Red Deer", "Dog"],
-                                       width=15)
-        age_taxon_combo.pack(side=tk.LEFT, padx=2)
-        age_taxon_combo.bind('<<ComboboxSelected>>', self._update_age_interpretation)
+        taph_canvas = tk.Canvas(self.taph_frame, highlightthickness=0)
+        taph_vsb = ttk.Scrollbar(self.taph_frame, orient="vertical", command=taph_canvas.yview)
+        taph_canvas.configure(yscrollcommand=taph_vsb.set)
+        taph_vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        taph_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        # Fusion stage with interpretation
-        fusion_frame = ttk.LabelFrame(age_main, text="Fusion Stage", padding=5)
-        fusion_frame.pack(fill=tk.X, pady=2)
+        taph_inner = ttk.Frame(taph_canvas)
+        taph_canvas_window = taph_canvas.create_window((0, 0), window=taph_inner, anchor="nw")
+        taph_inner.bind("<Configure>", lambda e: taph_canvas.configure(
+            scrollregion=taph_canvas.bbox("all")))
+        taph_canvas.bind("<Configure>", lambda e: taph_canvas.itemconfig(
+            taph_canvas_window, width=e.width))
 
-        fusion_row = ttk.Frame(fusion_frame)
-        fusion_row.pack(fill=tk.X)
+        taph_main = ttk.Frame(taph_inner)
+        taph_main.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
 
-        self.fusion_var = tk.StringVar()
-        fusion_combo = ttk.Combobox(fusion_row, textvariable=self.fusion_var,
-                                    values=list(FUSION_STAGES.keys()), width=10)
-        fusion_combo.pack(side=tk.LEFT, padx=2)
-        fusion_combo.bind('<<ComboboxSelected>>', self._update_fusion_interpretation)
+        taph_body = ttk.Frame(taph_main)
+        taph_body.pack(fill=tk.BOTH, expand=True)
+        taph_body.columnconfigure(0, weight=1)
+        taph_body.columnconfigure(1, weight=1)
 
-        self.fusion_desc = tk.Label(fusion_row, text="", font=("Arial", 7))
-        self.fusion_desc.pack(side=tk.LEFT, padx=5)
+        left_col = ttk.Frame(taph_body)
+        left_col.grid(row=0, column=0, sticky='nsew', padx=(0, 4))
 
-        # Fusion age interpretation
-        self.fusion_age = tk.Label(fusion_frame, text="", font=("Arial", 7, "italic"))
-        self.fusion_age.pack(anchor='w', padx=5)
+        weather_lf = ttk.LabelFrame(left_col, text="Weathering Stage  (Behrensmeyer 1978)", padding=6)
+        weather_lf.pack(fill=tk.X, pady=(0, 6))
 
-        # Dental wear with Payne/Grant lookup
-        dental_frame = ttk.LabelFrame(age_main, text="Dental Wear (Payne/Grant stages)", padding=5)
-        dental_frame.pack(fill=tk.X, pady=2)
+        self.weather_var = tk.IntVar(value=-1)
+        for stage, (label, desc, color) in self._BEHRENSMEYER.items():
+            row_f = ttk.Frame(weather_lf)
+            row_f.pack(fill=tk.X, pady=1)
+            rb = tk.Radiobutton(row_f, text=f"  {label}", variable=self.weather_var,
+                                value=stage, command=self._update_taph_summary,
+                                font=("Arial", 8, "bold"), fg=color,
+                                activeforeground=color, selectcolor="#f0f0f0",
+                                anchor='w', width=9)
+            rb.pack(side=tk.LEFT)
+            tk.Label(row_f, text=desc, font=("Arial", 7), foreground="#555",
+                     wraplength=220, justify=tk.LEFT, anchor='w').pack(side=tk.LEFT, fill=tk.X)
 
-        wear_grid = ttk.Frame(dental_frame)
-        wear_grid.pack()
+        nr_row = ttk.Frame(weather_lf)
+        nr_row.pack(fill=tk.X, pady=(4, 0))
+        tk.Radiobutton(nr_row, text="  Not recorded", variable=self.weather_var,
+                       value=-1, command=self._update_taph_summary,
+                       font=("Arial", 8), foreground="gray").pack(side=tk.LEFT)
 
-        # Tooth labels
-        for i, tooth in enumerate(['M1', 'M2', 'M3', 'P4']):
-            ttk.Label(wear_grid, text=tooth, font=("Arial", 8, "bold")).grid(row=0, column=i, padx=2)
+        burn_lf = ttk.LabelFrame(left_col, text="Burning Stage", padding=6)
+        burn_lf.pack(fill=tk.X, pady=(0, 6))
 
-        # Wear stage entries
-        self.wear_vars = {}
-        for i, tooth in enumerate(['M1', 'M2', 'M3', 'P4']):
-            var = tk.StringVar()
-            entry = ttk.Entry(wear_grid, textvariable=var, width=4)
-            entry.grid(row=1, column=i, padx=2)
-            entry.bind('<KeyRelease>', self._update_dental_interpretation)
-            self.wear_vars[tooth] = var
+        self.burning_var = tk.StringVar(value="none")
+        for key, (label, desc, color) in self._BURNING.items():
+            row_f = ttk.Frame(burn_lf)
+            row_f.pack(fill=tk.X, pady=1)
+            rb = tk.Radiobutton(row_f, text=f"  {label}", variable=self.burning_var,
+                                value=key, command=self._update_taph_summary,
+                                font=("Arial", 8, "bold"), fg=color,
+                                activeforeground=color, selectcolor="#f0f0f0",
+                                anchor='w', width=12)
+            rb.pack(side=tk.LEFT)
+            tk.Label(row_f, text=desc, font=("Arial", 7), foreground="#555",
+                     wraplength=200, justify=tk.LEFT, anchor='w').pack(side=tk.LEFT, fill=tk.X)
 
-        # Payne stage interpretation
-        self.payne_result = tk.Label(dental_frame, text="", font=("Arial", 7, "italic"), justify=tk.LEFT)
-        self.payne_result.pack(anchor='w', padx=5, pady=2)
+        surf_lf = ttk.LabelFrame(left_col, text="Surface Preservation Quality", padding=6)
+        surf_lf.pack(fill=tk.X, pady=(0, 6))
 
-        # Button to estimate age from wear
-        ttk.Button(dental_frame, text="📊 Estimate Age from Wear",
-                  command=self._estimate_age_from_wear).pack(pady=2)
+        self.surf_qual_var = tk.IntVar(value=0)
+        for score, (label, desc, color) in self._SURF_QUAL.items():
+            row_f = ttk.Frame(surf_lf)
+            row_f.pack(fill=tk.X, pady=1)
+            rb = tk.Radiobutton(row_f, text=f"  {label}", variable=self.surf_qual_var,
+                                value=score, command=self._update_taph_summary,
+                                font=("Arial", 8, "bold"), fg=color,
+                                activeforeground=color, selectcolor="#f0f0f0",
+                                anchor='w', width=14)
+            rb.pack(side=tk.LEFT)
+            tk.Label(row_f, text=desc, font=("Arial", 7), foreground="#555",
+                     wraplength=195, justify=tk.LEFT, anchor='w').pack(side=tk.LEFT, fill=tk.X)
 
-        # Age estimate result
-        estimate_frame = ttk.LabelFrame(age_main, text="Age Estimate", padding=5)
-        estimate_frame.pack(fill=tk.X, pady=2)
+        nr2_row = ttk.Frame(surf_lf)
+        nr2_row.pack(fill=tk.X, pady=(4, 0))
+        tk.Radiobutton(nr2_row, text="  Not recorded", variable=self.surf_qual_var,
+                       value=0, command=self._update_taph_summary,
+                       font=("Arial", 8), foreground="gray").pack(side=tk.LEFT)
 
-        self.age_estimate = tk.Label(estimate_frame, text="—", font=("Arial", 9, "bold"))
-        self.age_estimate.pack()
+        right_col = ttk.Frame(taph_body)
+        right_col.grid(row=0, column=1, sticky='nsew', padx=(4, 0))
 
-        # Tab 2b: Taphonomy with Behrensmeyer interpretation
-        self.taph_frame = ttk.Frame(right)
-        right.add(self.taph_frame, text="Taphonomy")
+        butch_lf = ttk.LabelFrame(right_col, text="Butchery Marks", padding=6)
+        butch_lf.pack(fill=tk.X, pady=(0, 6))
 
-        taph_main = ttk.Frame(self.taph_frame)
-        taph_main.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        butch_types = [
+            ('cut_marks',        'Cut marks',
+             'Fine parallel incisions from stone/metal blade — skinning, filleting, disarticulation'),
+            ('chop_marks',       'Chop marks',
+             'Deep V-shaped notches from axe or cleaver — disarticulation, portioning'),
+            ('percussion_marks', 'Percussion marks',
+             'Circular/oval pits or internal cone fractures — marrow extraction'),
+            ('scraping_marks',   'Scraping marks',
+             'Broad striations covering large areas — periosteum removal, pot-polishing'),
+        ]
+        self.butchery_vars = {}
+        for key, label, desc in butch_types:
+            row_f = ttk.Frame(butch_lf)
+            row_f.pack(fill=tk.X, pady=2)
+            var = tk.BooleanVar()
+            self.butchery_vars[key] = var
+            tk.Checkbutton(row_f, text=f"  {label}", variable=var,
+                           command=self._update_taph_summary,
+                           font=("Arial", 8, "bold"), anchor='w').pack(side=tk.LEFT, anchor='n')
+            tk.Label(row_f, text=desc, font=("Arial", 7), foreground="#555",
+                     wraplength=230, justify=tk.LEFT).pack(side=tk.LEFT, padx=(4, 0))
 
-        # Weathering with Behrensmeyer stages
-        weather_frame = ttk.LabelFrame(taph_main, text="Weathering Stage (Behrensmeyer 1978)", padding=5)
-        weather_frame.pack(fill=tk.X, pady=2)
+        bn_row = ttk.Frame(butch_lf)
+        bn_row.pack(fill=tk.X, pady=(4, 0))
+        ttk.Label(bn_row, text="Location/notes:", font=("Arial", 7)).pack(side=tk.LEFT)
+        self.butchery_notes_var = tk.StringVar()
+        ttk.Entry(bn_row, textvariable=self.butchery_notes_var, width=28
+                  ).pack(side=tk.LEFT, padx=4, fill=tk.X, expand=True)
 
-        # Behrensmeyer descriptions
-        self.behrensmeyer = {
-            0: "Stage 0: No cracking or flaking",
-            1: "Stage 1: Longitudinal cracking",
-            2: "Stage 2: Flaking of outer bone",
-            3: "Stage 3: Rough, fibrous texture",
-            4: "Stage 4: Coarsely fibrous, splintered",
-            5: "Stage 5: Fragile, falling apart"
-        }
+        gnaw_lf = ttk.LabelFrame(right_col, text="Gnawing", padding=6)
+        gnaw_lf.pack(fill=tk.X, pady=(0, 6))
 
-        weather_row = ttk.Frame(weather_frame)
-        weather_row.pack(fill=tk.X)
+        gnaw_types = [
+            ('none',      'None',              "No gnawing present",                         "#9e9e9e"),
+            ('carnivore', 'Carnivore gnawing',
+             'Pits, scores, crenulated edges, furrows — dog/wolf/hyaena',                     "#c62828"),
+            ('rodent',    'Rodent gnawing',
+             'Paired parallel grooves with flat bases — mouse, rat, rabbit',                  "#6a1fa2"),
+            ('both',      'Both present',
+             'Carnivore and rodent gnawing recorded on same element',                         "#1565c0"),
+        ]
+        self.gnawing_var = tk.StringVar(value='none')
+        for key, label, desc, color in gnaw_types:
+            row_f = ttk.Frame(gnaw_lf)
+            row_f.pack(fill=tk.X, pady=1)
+            rb = tk.Radiobutton(row_f, text=f"  {label}", variable=self.gnawing_var,
+                                value=key, command=self._update_taph_summary,
+                                font=("Arial", 8, "bold"), fg=color,
+                                activeforeground=color, selectcolor="#f0f0f0",
+                                anchor='w', width=18)
+            rb.pack(side=tk.LEFT)
+            tk.Label(row_f, text=desc, font=("Arial", 7), foreground="#555",
+                     wraplength=175, justify=tk.LEFT).pack(side=tk.LEFT)
 
-        self.weather_var = tk.IntVar(value=0)
-        for i in range(6):
-            rb = ttk.Radiobutton(weather_row, text=str(i), variable=self.weather_var,
-                                value=i, command=self._update_weather_interpretation)
-            rb.pack(side=tk.LEFT, padx=5)
+        tp_row = ttk.Frame(gnaw_lf)
+        tp_row.pack(fill=tk.X, pady=(4, 0))
+        self.tooth_pits_var = tk.BooleanVar()
+        tk.Checkbutton(tp_row, text="  Tooth pits present",
+                       variable=self.tooth_pits_var,
+                       command=self._update_taph_summary,
+                       font=("Arial", 8)).pack(side=tk.LEFT)
 
-        self.weather_desc = tk.Label(weather_frame, text=self.behrensmeyer[0],
-                                     font=("Arial", 7, "italic"))
-        self.weather_desc.pack(anchor='w', padx=5, pady=2)
+        surf_mod_lf = ttk.LabelFrame(right_col, text="Surface Modifications", padding=6)
+        surf_mod_lf.pack(fill=tk.X, pady=(0, 6))
 
-        # Modifications with summary
-        mod_frame = ttk.LabelFrame(taph_main, text="Modifications", padding=5)
-        mod_frame.pack(fill=tk.X, pady=2)
+        surf_mods = [
+            ('root_etching',       'Root etching',
+             'Dendritic branching marks from plant roots / fungi'),
+            ('abrasion',           'Abrasion',
+             'Surface smoothed/rounded by sediment particle contact'),
+            ('rounding',           'Rounding',
+             'Edge rounding suggesting water transport or trampling'),
+            ('bleaching',          'Bleaching',
+             'White/chalky surface from UV exposure or prolonged subaerial weathering'),
+            ('manganese_staining', 'Manganese staining',
+             'Black dendritic staining from soil Mn-oxides (waterlogged/anoxic contexts)'),
+            ('iron_staining',      'Iron/ochre staining',
+             'Red-brown surface discolouration from Fe-oxides or ochre use'),
+            ('trampling',          'Trampling damage',
+             'Subparallel striae on shaft surfaces, random orientation'),
+        ]
+        self.surf_mod_vars = {}
+        for key, label, desc in surf_mods:
+            row_f = ttk.Frame(surf_mod_lf)
+            row_f.pack(fill=tk.X, pady=1)
+            var = tk.BooleanVar()
+            self.surf_mod_vars[key] = var
+            tk.Checkbutton(row_f, text=f"  {label}", variable=var,
+                           command=self._update_taph_summary,
+                           font=("Arial", 8, "bold"), anchor='w').pack(side=tk.LEFT, anchor='n')
+            tk.Label(row_f, text=desc, font=("Arial", 7), foreground="#555",
+                     wraplength=220, justify=tk.LEFT).pack(side=tk.LEFT, padx=(4, 0))
 
-        mod_grid = ttk.Frame(mod_frame)
-        mod_grid.pack()
+        bot_frame = ttk.Frame(taph_main)
+        bot_frame.pack(fill=tk.X, pady=(6, 0))
+        bot_frame.columnconfigure(0, weight=1)
+        bot_frame.columnconfigure(1, weight=2)
 
-        self.burn_var = tk.BooleanVar()
-        ttk.Checkbutton(mod_grid, text="Burned", variable=self.burn_var,
-                       command=self._update_taph_summary).grid(row=0, column=0, sticky='w')
+        frag_lf = ttk.LabelFrame(bot_frame, text="Fragmentation / Completeness", padding=6)
+        frag_lf.grid(row=0, column=0, sticky='nsew', padx=(0, 4))
 
+        fc_row = ttk.Frame(frag_lf)
+        fc_row.pack(fill=tk.X, pady=2)
+        ttk.Label(fc_row, text="Portion:", width=10).pack(side=tk.LEFT)
+        self.fragmentation_var = tk.StringVar(value="")
+        frag_opts = [
+            "", "Complete", "Nearly complete (>75%)",
+            "Proximal half", "Distal half", "Proximal epiphysis",
+            "Distal epiphysis", "Shaft fragment", "Proximal + shaft",
+            "Distal + shaft", "Epiphysis only", "Fragment (<25%)", "Other",
+        ]
+        ttk.Combobox(fc_row, textvariable=self.fragmentation_var,
+                     values=frag_opts, width=22, state="readonly"
+                     ).pack(side=tk.LEFT, padx=2)
+
+        comp_row = ttk.Frame(frag_lf)
+        comp_row.pack(fill=tk.X, pady=2)
+        ttk.Label(comp_row, text="Completeness:", width=10).pack(side=tk.LEFT)
+        self.completeness_var = tk.StringVar(value="")
+        ttk.Entry(comp_row, textvariable=self.completeness_var, width=6).pack(side=tk.LEFT, padx=2)
+        ttk.Label(comp_row, text="%  (0–100)", font=("Arial", 7),
+                  foreground="gray").pack(side=tk.LEFT)
+
+        summ_lf = ttk.LabelFrame(bot_frame, text="Taphonomic Summary", padding=6)
+        summ_lf.grid(row=0, column=1, sticky='nsew', padx=(4, 0))
+
+        self.taph_summary_text = tk.Text(
+            summ_lf, height=5, font=("Arial", 8),
+            wrap=tk.WORD, state=tk.DISABLED,
+            bg="#fafafa", relief=tk.FLAT, borderwidth=1)
+        self.taph_summary_text.pack(fill=tk.BOTH, expand=True)
+
+        self.taph_summary_text.tag_configure("header",  font=("Arial", 8, "bold"))
+        self.taph_summary_text.tag_configure("good",    foreground="#2e7d32")
+        self.taph_summary_text.tag_configure("warn",    foreground="#e65100")
+        self.taph_summary_text.tag_configure("bad",     foreground="#b71c1c")
+        self.taph_summary_text.tag_configure("neutral", foreground="#555")
+
+        notes_lf = ttk.LabelFrame(taph_main, text="Taphonomic Notes (free text)", padding=4)
+        notes_lf.pack(fill=tk.X, pady=(6, 0))
+        self.taph_notes_var = tk.StringVar()
+        ttk.Entry(notes_lf, textvariable=self.taph_notes_var, font=("Arial", 8)
+                  ).pack(fill=tk.X)
+
+        # Backward-compat dummy vars for taphonomy
+        self.burn_var     = tk.BooleanVar()
         self.butchery_var = tk.BooleanVar()
-        ttk.Checkbutton(mod_grid, text="Butchery", variable=self.butchery_var,
-                       command=self._update_taph_summary).grid(row=0, column=1, sticky='w')
+        self.gnaw_var     = tk.BooleanVar()
+        self.root_var     = tk.BooleanVar()
 
-        self.gnaw_var = tk.BooleanVar()
-        ttk.Checkbutton(mod_grid, text="Gnawed", variable=self.gnaw_var,
-                       command=self._update_taph_summary).grid(row=1, column=0, sticky='w')
+        # === BIOMETRICS TAB ===
+        self.bio_frame = ttk.Frame(self.right_notebook)
+        self.right_notebook.add(self.bio_frame, text="Biometrics")
 
-        self.root_var = tk.BooleanVar()
-        ttk.Checkbutton(mod_grid, text="Root etching", variable=self.root_var,
-                       command=self._update_taph_summary).grid(row=1, column=1, sticky='w')
-
-        # Taphonomy summary
-        taph_summary_frame = ttk.LabelFrame(taph_main, text="Taphonomic Summary", padding=5)
-        taph_summary_frame.pack(fill=tk.X, pady=2)
-
-        self.taph_summary = tk.Label(taph_summary_frame, text="No modifications recorded",
-                                     font=("Arial", 7))
-        self.taph_summary.pack(anchor='w')
-
-        # Tab 2c: Biometrics with LSI calculator
-        self.bio_frame = ttk.Frame(right)
-        right.add(self.bio_frame, text="Biometrics")
-
-        # Create a main container
         bio_main_container = ttk.Frame(self.bio_frame)
         bio_main_container.pack(fill=tk.BOTH, expand=True)
 
-        # === MEASUREMENTS SECTION ===
-        # Create a canvas with scrollbar
         bio_canvas = tk.Canvas(bio_main_container, highlightthickness=0, height=400)
         bio_scrollbar = ttk.Scrollbar(bio_main_container, orient="vertical", command=bio_canvas.yview)
         bio_scrollable = ttk.Frame(bio_canvas)
 
-        bio_scrollable.bind(
-            "<Configure>",
-            lambda e: bio_canvas.configure(scrollregion=bio_canvas.bbox("all"))
-        )
-
+        bio_scrollable.bind("<Configure>", lambda e: bio_canvas.configure(
+            scrollregion=bio_canvas.bbox("all")))
         bio_canvas.create_window((0, 0), window=bio_scrollable, anchor="nw")
         bio_canvas.configure(yscrollcommand=bio_scrollbar.set)
-
         bio_canvas.pack(side="left", fill="both", expand=True)
         bio_scrollbar.pack(side="right", fill="y")
 
-        # Measurement grid - ALL codes in 3 columns
         self.measurement_vars = {}
-        codes = self.measurement_codes  # All 50+ codes
-
-        # Calculate total rows needed (ceil(len(codes) / 3))
+        codes = self.measurement_codes
         total_rows = (len(codes) + 2) // 3
 
-        # Create header frame
         header_frame = ttk.Frame(bio_scrollable)
         header_frame.pack(fill=tk.X, pady=5)
-
-        # Configure header columns
-        for i in range(9):
-            if i % 3 == 0:
-                header_frame.columnconfigure(i, weight=1, minsize=50)
-            elif i % 3 == 1:
-                header_frame.columnconfigure(i, weight=3, minsize=120)
-            else:
-                header_frame.columnconfigure(i, weight=1, minsize=50)
-
-        # Column headers
         for col in range(3):
             ttk.Label(header_frame, text="Code", font=("Arial", 8, "bold"),
-                     anchor='w').grid(row=0, column=col*3, padx=2, pady=1, sticky='ew')
+                    anchor='w').grid(row=0, column=col*3, padx=2, pady=1, sticky='ew')
             ttk.Label(header_frame, text="Description", font=("Arial", 8, "bold"),
-                     anchor='w').grid(row=0, column=col*3+1, padx=2, pady=1, sticky='ew')
+                    anchor='w').grid(row=0, column=col*3+1, padx=2, pady=1, sticky='ew')
             ttk.Label(header_frame, text="mm", font=("Arial", 8, "bold"),
-                     anchor='w').grid(row=0, column=col*3+2, padx=2, pady=1, sticky='ew')
+                    anchor='w').grid(row=0, column=col*3+2, padx=2, pady=1, sticky='ew')
 
         ttk.Separator(bio_scrollable, orient='horizontal').pack(fill=tk.X, pady=2)
 
-        # Container for measurement rows
         rows_container = ttk.Frame(bio_scrollable)
         rows_container.pack(fill=tk.BOTH, expand=True)
 
-        # Configure row container columns
         for i in range(9):
             if i % 3 == 0:
                 rows_container.columnconfigure(i, weight=1, minsize=50)
@@ -1320,373 +1672,2373 @@ class IndividualTab(AnalysisTab):
             else:
                 rows_container.columnconfigure(i, weight=1, minsize=50)
 
-        # Create ALL rows
         for row in range(total_rows):
             for col in range(3):
                 idx = row * 3 + col
                 if idx >= len(codes):
-                    # Fill remaining cells with empty labels
-                    ttk.Label(rows_container, text="").grid(row=row, column=col*3, padx=2, pady=1, sticky='w')
-                    ttk.Label(rows_container, text="").grid(row=row, column=col*3+1, padx=2, pady=1, sticky='w')
-                    ttk.Entry(rows_container, width=8, state='disabled').grid(row=row, column=col*3+2, padx=2, pady=1, sticky='ew')
                     continue
-
                 code = codes[idx]
                 desc = MEASUREMENT_CODES[code]
                 if len(desc) > 25:
                     desc = desc[:23] + ".."
-
-                # Code label
                 ttk.Label(rows_container, text=code, font=("Arial", 8, "bold"),
-                         anchor='w').grid(row=row, column=col*3, padx=2, pady=1, sticky='w')
-
-                # Description label
+                        anchor='w').grid(row=row, column=col*3, padx=2, pady=1, sticky='w')
                 ttk.Label(rows_container, text=desc, font=("Arial", 7),
-                         anchor='w').grid(row=row, column=col*3+1, padx=2, pady=1, sticky='w')
-
-                # Value entry
+                        anchor='w').grid(row=row, column=col*3+1, padx=2, pady=1, sticky='w')
                 var = tk.StringVar()
                 entry = ttk.Entry(rows_container, textvariable=var, width=6)
                 entry.grid(row=row, column=col*3+2, padx=2, pady=1, sticky='ew')
                 self.measurement_vars[code] = var
 
-        # === BOTTOM BAR with LSI and buttons ===
-        bottom_bar = ttk.Frame(self.bio_frame)
-        bottom_bar.pack(fill=tk.X, pady=2, side=tk.BOTTOM)
+        # === LSI TAB ===
+        self.lsi_frame = ttk.Frame(self.right_notebook)
+        self.right_notebook.add(self.lsi_frame, text="LSI Calculator")
+        self._build_lsi_skeleton()
 
-        # Left side - buttons
-        button_frame = ttk.Frame(bottom_bar)
+        # === BOTTOM BAR ===
+        self.bottom_bar = ttk.Frame(self.frame)
+        self.bottom_bar.pack(fill=tk.X, pady=2, side=tk.BOTTOM)
+
+        button_frame = ttk.Frame(self.bottom_bar)
         button_frame.pack(side=tk.LEFT)
-
         ttk.Button(button_frame, text="💾 Save", width=8,
-                  command=self._save_to_specimen).pack(side=tk.LEFT, padx=1)
+                   command=self._save_to_specimen).pack(side=tk.LEFT, padx=1)
         ttk.Button(button_frame, text="🧹 Clear", width=8,
-                  command=self._clear_measurements).pack(side=tk.LEFT, padx=1)
+                   command=self._clear_measurements).pack(side=tk.LEFT, padx=1)
 
-        # Center - status
-        self.measurement_status = ttk.Label(bottom_bar, text="", font=("Arial", 7))
+        self.measurement_status = ttk.Label(self.bottom_bar, text="", font=("Arial", 7))
         self.measurement_status.pack(side=tk.LEFT, padx=10)
 
-        # Right side - LSI Calculator
-        lsi_frame = ttk.Frame(bottom_bar)
-        lsi_frame.pack(side=tk.RIGHT)
+        self.lsi_indicator = tk.Label(self.bottom_bar, text="", font=("Arial", 7, "bold"),
+                                fg="#2c3e50", bg="#ecf0f1", relief=tk.SUNKEN, padx=5)
+        self.lsi_indicator.pack(side=tk.RIGHT, padx=5)
 
-        ttk.Label(lsi_frame, text="LSI:", font=("Arial", 7, "bold")).pack(side=tk.LEFT)
+    # ============================================================================
+    # AGE TAB — UI BUILDER
+    # ============================================================================
 
-        self.lsi_standard_var = tk.StringVar(value="zoolog")
-        lsi_combo = ttk.Combobox(lsi_frame, textvariable=self.lsi_standard_var,
-                                 values=["zoolog", "custom"], width=6)
-        lsi_combo.pack(side=tk.LEFT, padx=2)
+    def _build_age_tab_ui(self):
+        """Build the complete Age tab — all 6 methods, scrollable, species-isolated."""
+        age_canvas = tk.Canvas(self.age_frame, highlightthickness=0)
+        age_vsb    = ttk.Scrollbar(self.age_frame, orient='vertical',
+                                   command=age_canvas.yview)
+        age_canvas.configure(yscrollcommand=age_vsb.set)
+        age_vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        age_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        ttk.Button(lsi_frame, text="Calc", width=5,
-                  command=self._calculate_lsi).pack(side=tk.LEFT)
+        age_inner = ttk.Frame(age_canvas)
+        _win = age_canvas.create_window((0, 0), window=age_inner, anchor='nw')
+        age_inner.bind('<Configure>',
+            lambda e: age_canvas.configure(scrollregion=age_canvas.bbox('all')))
+        age_canvas.bind('<Configure>',
+            lambda e: age_canvas.itemconfig(_win, width=e.width))
 
-        self.lsi_result = tk.Label(lsi_frame, text="", font=("Arial", 6))
-        self.lsi_result.pack(side=tk.LEFT, padx=5)
+        age_main = ttk.Frame(age_inner)
+        age_main.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
 
-    def _load_reference_database(self):
-        """Load reference database from config folder for LSI calculations."""
-        try:
-            from pathlib import Path
-            plugin_dir = Path(__file__).parent
-            appbase_dir = plugin_dir.parent.parent
-            ref_path = appbase_dir / "config" / "zooarch_reference.json"
+        # ── Taxon row ──────────────────────────────────────────────────────────
+        top_row = ttk.Frame(age_main)
+        top_row.pack(fill=tk.X, pady=(0, 6))
+        ttk.Label(top_row, text='Taxon:', font=('Arial', 9, 'bold')).pack(side=tk.LEFT)
+        self.age_taxon_var   = tk.StringVar()
+        self.age_taxon_combo = ttk.Combobox(
+            top_row, textvariable=self.age_taxon_var, width=14, state='readonly',
+            values=['Cattle','Sheep','Goat','Pig','Horse','Red Deer','Fallow Deer',
+                    'Dog','Cat','Chicken','Goose','Duck','Other Bird','Fish','Other'])
+        self.age_taxon_combo.pack(side=tk.LEFT, padx=5)
+        self.age_taxon_combo.bind('<<ComboboxSelected>>', self._on_age_taxon_changed)
 
-            self.ref_db = ReferenceDatabase()
-            success, msg = self.ref_db.load_from_file(ref_path)
-            if success:
-                taxa_count = len(self.ref_db.get_taxa())
-                self.set_status(f"✅ Loaded {taxa_count} reference taxa for LSI", "success")
-                print(f"✅ IndividualTab loaded reference database: {msg}")
+        self._age_taxon_info = ttk.Label(top_row, text='',
+            font=('Arial', 8, 'italic'), foreground='gray')
+        self._age_taxon_info.pack(side=tk.LEFT, padx=8)
+
+        # ── Two-column grid ────────────────────────────────────────────────────
+        body = ttk.Frame(age_main)
+        body.pack(fill=tk.BOTH, expand=True)
+        body.columnconfigure(0, weight=1)
+        body.columnconfigure(1, weight=1)
+
+        left_col = ttk.Frame(body)
+        left_col.grid(row=0, column=0, sticky='nsew', padx=(0, 4))
+
+        right_col = ttk.Frame(body)
+        right_col.grid(row=0, column=1, sticky='nsew', padx=(4, 0))
+
+        # ── Section 1 — Dental Eruption ────────────────────────────────────────
+        s1_lf = ttk.LabelFrame(left_col,
+            text='1.  Dental Eruption & Replacement  (Silver 1969)', padding=5)
+        s1_lf.pack(fill=tk.X, pady=(0, 5))
+        self._s1_inner  = ttk.Frame(s1_lf)
+        self._s1_inner.pack(fill=tk.BOTH)
+        self._s1_result = tk.Label(s1_lf, text='', font=('Arial', 8, 'bold'),
+            foreground='#1a5276', wraplength=310, justify=tk.LEFT)
+        self._s1_result.pack(fill=tk.X, padx=2, pady=(3, 0))
+
+        # ── Section 3 — Epiphyseal Fusion ──────────────────────────────────────
+        s3_lf = ttk.LabelFrame(left_col,
+            text='3.  Epiphyseal Fusion  (Silver 1969)', padding=5)
+        s3_lf.pack(fill=tk.X, pady=(0, 5))
+        self._s3_inner  = ttk.Frame(s3_lf)
+        self._s3_inner.pack(fill=tk.BOTH)
+        self._s3_result = tk.Label(s3_lf, text='', font=('Arial', 8, 'bold'),
+            foreground='#1a5276', wraplength=310, justify=tk.LEFT)
+        self._s3_result.pack(fill=tk.X, padx=2, pady=(3, 0))
+
+        # ── Section 5 — Bone Histology ─────────────────────────────────────────
+        s5_lf = ttk.LabelFrame(left_col,
+            text='5.  Bone Histology  (Kerley 1965)  ⚗ destructive', padding=5)
+        s5_lf.pack(fill=tk.X, pady=(0, 5))
+        self._build_histology_section(s5_lf)
+
+        # ── Section 2 — Dental Wear ────────────────────────────────────────────
+        s2_lf = ttk.LabelFrame(right_col,
+            text='2.  Dental Wear  (species-specific)', padding=5)
+        s2_lf.pack(fill=tk.X, pady=(0, 5))
+        self._s2_inner  = ttk.Frame(s2_lf)
+        self._s2_inner.pack(fill=tk.BOTH)
+        # MWS result strip — named attrs kept for backward compat
+        mws_strip = ttk.Frame(s2_lf)
+        mws_strip.pack(fill=tk.X, pady=(4, 0))
+        ttk.Label(mws_strip, text='MWS:', font=('Arial', 9, 'bold')).pack(side=tk.LEFT)
+        self.mws_score_label   = ttk.Label(mws_strip, text='—',
+            font=('Arial', 11, 'bold'), foreground='#1a5276', width=5)
+        self.mws_score_label.pack(side=tk.LEFT, padx=(2, 10))
+        ttk.Label(mws_strip, text='Stage:', font=('Arial', 9, 'bold')).pack(side=tk.LEFT)
+        self.payne_stage_label = ttk.Label(mws_strip, text='—',
+            font=('Arial', 11, 'bold'), foreground='#1a5276', width=4)
+        self.payne_stage_label.pack(side=tk.LEFT, padx=(2, 0))
+        self.payne_desc_label  = tk.Label(s2_lf, text='Select a taxon to begin',
+            font=('Arial', 8, 'italic'), foreground='#1a5276',
+            wraplength=295, justify=tk.LEFT)
+        self.payne_desc_label.pack(fill=tk.X, padx=2, pady=2)
+        self._s2_result = tk.Label(s2_lf, text='', font=('Arial', 8, 'bold'),
+            foreground='#1a5276', wraplength=310, justify=tk.LEFT)
+        self._s2_result.pack(fill=tk.X, padx=2)
+
+        # ── Section 4 — Cementum Annuli ────────────────────────────────────────
+        self._s4_lf = ttk.LabelFrame(right_col,
+            text='4.  Cementum Annuli  ⚗ destructive / lab', padding=5)
+        self._s4_lf.pack(fill=tk.X, pady=(0, 5))
+        self._build_cementum_section(self._s4_lf)
+
+        # ── Section 6 — Gross Morphology ───────────────────────────────────────
+        s6_lf = ttk.LabelFrame(right_col,
+            text='6.  Gross Morphology', padding=5)
+        s6_lf.pack(fill=tk.X, pady=(0, 5))
+        self._build_gross_morph_section(s6_lf)
+
+        # ── Age Method Summary ──────────────────────────────────────────────────
+        summ_lf = ttk.LabelFrame(age_main, text='Age Method Summary', padding=6)
+        summ_lf.pack(fill=tk.X, pady=(6, 0))
+
+        self.age_summary_text = tk.Text(
+            summ_lf, height=9, font=('Arial', 8),
+            wrap=tk.WORD, state=tk.DISABLED, bg='#fafafa', relief=tk.FLAT)
+        self.age_summary_text.pack(fill=tk.BOTH, expand=True)
+
+        for tag, cfg in [
+            ('meth', {'font': ('Arial', 8, 'bold')}),
+            ('res',  {'foreground': '#1a5276'}),
+            ('good', {'foreground': '#2e7d32'}),
+            ('warn', {'foreground': '#e65100'}),
+            ('na',   {'foreground': '#aaa', 'font': ('Arial', 8, 'italic')}),
+            ('comb', {'font': ('Arial', 9, 'bold'), 'foreground': '#8B0000'}),
+            ('note', {'font': ('Arial', 8, 'italic'), 'foreground': '#555'}),
+        ]:
+            self.age_summary_text.tag_configure(tag, **cfg)
+
+        comb_row = ttk.Frame(summ_lf)
+        comb_row.pack(fill=tk.X, pady=(4, 0))
+        ttk.Label(comb_row, text='Combined estimate:',
+                  font=('Arial', 9, 'bold')).pack(side=tk.LEFT)
+        self.age_estimate    = tk.Label(comb_row, text='—',
+            font=('Arial', 11, 'bold'), foreground='#8B0000')
+        self.age_estimate.pack(side=tk.LEFT, padx=8)
+        self.grant_age_label = ttk.Label(comb_row, text='',
+            font=('Arial', 8, 'italic'), foreground='gray')
+        self.grant_age_label.pack(side=tk.LEFT)
+
+        # ── Backward-compat hidden widgets ─────────────────────────────────────
+        _h = tk.Frame(self.age_frame)   # never packed/shown
+        self.fusion_var          = tk.StringVar()
+        self.fusion_element_var  = tk.StringVar()
+        self.fusion_desc         = tk.Label(_h)
+        self.fusion_age          = tk.Label(_h)
+        self.fusion_source_label = tk.Label(_h)
+        self.dental_inner        = self._s2_inner   # alias
+
+        # Grant vars kept for save/load compatibility
+        self.grant_vars = {t: tk.StringVar() for t in ['dP4', 'P4', 'M1', 'M2', 'M3']}
+
+        # Section placeholder text until taxon is chosen
+        for inner in [self._s1_inner, self._s2_inner, self._s3_inner]:
+            ttk.Label(inner, text='Select a taxon above.',
+                      font=('Arial', 8, 'italic'), foreground='gray').pack(pady=5)
+
+    # ── Static section builders ────────────────────────────────────────────────
+
+    def _build_histology_section(self, parent):
+        ttk.Label(parent,
+            text='Record lab result below. Does not auto-calculate — enter age directly.',
+            font=('Arial', 7, 'italic'), foreground='gray',
+            wraplength=280).pack(anchor='w', pady=(0, 4))
+
+        r1 = ttk.Frame(parent); r1.pack(fill=tk.X, pady=1)
+        ttk.Label(r1, text='Method:', width=12).pack(side=tk.LEFT)
+        self._histo_method_var = tk.StringVar(value='')
+        ttk.Combobox(r1, textvariable=self._histo_method_var, width=22,
+            values=['', 'Kerley (1965)', 'Stout & Paine (1992)',
+                    'Robling & Stout (2008)', 'Other'],
+            state='readonly').pack(side=tk.LEFT)
+
+        r2 = ttk.Frame(parent); r2.pack(fill=tk.X, pady=1)
+        ttk.Label(r2, text='Age (years):', width=12).pack(side=tk.LEFT)
+        self._histo_age_var = tk.StringVar()
+        ttk.Entry(r2, textvariable=self._histo_age_var, width=8).pack(side=tk.LEFT)
+        ttk.Label(r2, text='yr  (from lab)',
+                  font=('Arial', 7), foreground='gray').pack(side=tk.LEFT, padx=4)
+
+        r3 = ttk.Frame(parent); r3.pack(fill=tk.X, pady=1)
+        ttk.Label(r3, text='Reference:', width=12).pack(side=tk.LEFT)
+        self._histo_ref_var = tk.StringVar()
+        ttk.Entry(r3, textvariable=self._histo_ref_var, width=22).pack(side=tk.LEFT)
+
+        for v in [self._histo_method_var, self._histo_age_var]:
+            v.trace_add('write', lambda *_: self._calculate_age_live())
+
+    def _build_cementum_section(self, parent):
+        self._s4_type_label = ttk.Label(parent, text='Tooth cementum rings:',
+            font=('Arial', 8, 'italic'), foreground='gray', wraplength=280)
+        self._s4_type_label.pack(anchor='w', pady=(0, 4))
+
+        r1 = ttk.Frame(parent); r1.pack(fill=tk.X, pady=1)
+        ttk.Label(r1, text='Ring count:', width=12).pack(side=tk.LEFT)
+        self._cement_rings_var = tk.StringVar()
+        ttk.Entry(r1, textvariable=self._cement_rings_var, width=6).pack(side=tk.LEFT)
+        ttk.Label(r1, text='rings',
+                  font=('Arial', 7), foreground='gray').pack(side=tk.LEFT, padx=4)
+
+        r2 = ttk.Frame(parent); r2.pack(fill=tk.X, pady=1)
+        ttk.Label(r2, text='Season of death:', width=12).pack(side=tk.LEFT)
+        self._cement_season_var = tk.StringVar(value='')
+        ttk.Combobox(r2, textvariable=self._cement_season_var, width=12,
+            values=['', 'Spring', 'Summer', 'Autumn', 'Winter', 'Unknown'],
+            state='readonly').pack(side=tk.LEFT)
+
+        self._s4_result = tk.Label(parent, text='',
+            font=('Arial', 8, 'bold'), foreground='#1a5276', wraplength=280)
+        self._s4_result.pack(fill=tk.X, padx=2, pady=(4, 0))
+
+        for v in [self._cement_rings_var, self._cement_season_var]:
+            v.trace_add('write', lambda *_: self._calculate_age_live())
+
+    def _build_gross_morph_section(self, parent):
+        r1 = ttk.Frame(parent); r1.pack(fill=tk.X, pady=1)
+        ttk.Label(r1, text='Age class:', width=12).pack(side=tk.LEFT)
+        self._gross_morph_var = tk.StringVar(value='')
+        ttk.Combobox(r1, textvariable=self._gross_morph_var, width=22,
+            values=list(self._GROSS_MORPH_LABELS.values()),
+            state='readonly').pack(side=tk.LEFT)
+
+        r2 = ttk.Frame(parent); r2.pack(fill=tk.X, pady=1)
+        ttk.Label(r2, text='Bone texture:', width=12).pack(side=tk.LEFT)
+        self._bone_texture_var = tk.StringVar(value='')
+        ttk.Combobox(r2, textvariable=self._bone_texture_var, width=22,
+            values=[v for _, v in self._BONE_TEXTURE_OPTS],
+            state='readonly').pack(side=tk.LEFT)
+
+        r3 = ttk.Frame(parent); r3.pack(fill=tk.X, pady=1)
+        ttk.Label(r3, text='Notes:', width=12).pack(side=tk.LEFT)
+        self._gross_notes_var = tk.StringVar()
+        ttk.Entry(r3, textvariable=self._gross_notes_var,
+                  width=22).pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        self._s6_result = tk.Label(parent, text='', font=('Arial', 8, 'bold'),
+            foreground='#1a5276', wraplength=280)
+        self._s6_result.pack(fill=tk.X, padx=2, pady=(3, 0))
+
+        self._gross_morph_var.trace_add('write', lambda *_: self._calculate_age_live())
+
+    # ============================================================================
+    # AGE TAB — METHODS
+    # ============================================================================
+
+    def _get_taxon_group(self, taxon):
+        return self._TAXON_GROUPS.get(taxon, 'unknown')
+
+    def _on_age_taxon_changed(self, event=None):
+        taxon = self.age_taxon_var.get()
+        group = self._get_taxon_group(taxon)
+
+        group_desc = {
+            'artiodactyl':   'Even-toed ungulate — dental + fusion + cementum applicable',
+            'perissodactyl': 'Odd-toed ungulate — dental + fusion + cementum applicable',
+            'carnivore':     'Carnivore — dental eruption + wear + fusion applicable',
+            'bird':          'Bird — NO teeth; fusion = pneumatization; rings = not standard',
+            'fish':          'Fish — NO teeth/fusion in standard sense; rings = otolith/vertebral',
+            'unknown':       '',
+        }
+        self._age_taxon_info.config(text=group_desc.get(group, ''))
+
+        self._rebuild_eruption_section(taxon, group)
+        self._rebuild_wear_section(taxon, group)
+        self._rebuild_fusion_section(taxon, group)
+
+        if hasattr(self, '_s4_type_label'):
+            if group == 'fish':
+                self._s4_type_label.config(
+                    text='Otolith / vertebral rings (record count from lab):')
             else:
-                self.set_status(f"⚠️ Reference database not found - using built‑in LSI standards", "warning")
-                print(f"⚠️ IndividualTab: {msg}")
-        except Exception as e:
-            self.set_status("⚠️ Could not load reference database - using built‑in standards", "warning")
-            print(f"⚠️ IndividualTab: could not load reference database: {e}")
-            self.ref_db = ReferenceDatabase()
+                self._s4_type_label.config(text='Tooth cementum rings:')
 
-    def _calculate_lsi(self):
-        """Calculate Log Size Index using reference DB if available, else built‑in standards."""
-        if not self.current_specimen_idx:
-            self.lsi_result.config(text="Select specimen first")
+        self._calculate_age_live()
+
+    # ── Section 1: Dental Eruption ────────────────────────────────────────────
+
+    def _rebuild_eruption_section(self, taxon, group):
+        for w in self._s1_inner.winfo_children():
+            w.destroy()
+        self._eruption_vars = {}
+        self._erupt_interp  = {}
+
+        if group in ('bird', 'fish'):
+            msg = ('Birds have no teeth — eruption/replacement\nnot applicable.'
+                   if group == 'bird' else
+                   'Fish have no teeth in the mammalian sense —\neruption not applicable.')
+            tk.Label(self._s1_inner, text=msg, font=('Arial', 8, 'italic'),
+                     foreground='gray', justify=tk.LEFT).pack(anchor='w', padx=4, pady=6)
+            self._s1_result.config(text='')
             return
 
-        sample = self.samples[self.current_specimen_idx]
-        taxon = sample.get('taxon', '').lower()
+        erupt_teeth = self._ERUPTION_DATA.get(taxon, {})
+        if not erupt_teeth:
+            tk.Label(self._s1_inner,
+                     text=f'No eruption reference data available for {taxon}.\nManual notes only.',
+                     font=('Arial', 8, 'italic'), foreground='gray',
+                     justify=tk.LEFT).pack(anchor='w', padx=4, pady=6)
+            self._s1_result.config(text='')
+            return
 
-        # --- Try reference database first ---
-        standards = {}
-        source = ""
-        if hasattr(self, 'ref_db') and self.ref_db and self.ref_db.loaded:
-            matched = None
-            for ref_taxon in self.ref_db.get_taxa():
-                if taxon in ref_taxon.lower():
-                    matched = ref_taxon
-                    break
-            if matched:
-                ref_data = self.ref_db.get_measurements_for_taxon(matched)
-                standards = {code: stats['mean'] for code, stats in ref_data.items() if stats.get('mean')}
-                if standards:
-                    source = f"reference ({matched})"
+        hdr = ttk.Frame(self._s1_inner)
+        hdr.pack(fill=tk.X, pady=(0, 2))
+        for col, (txt, w) in enumerate([('Tooth', 8), ('State', 22), ('Interpretation', 18)]):
+            ttk.Label(hdr, text=txt, font=('Arial', 8, 'bold'), width=w
+                      ).grid(row=0, column=col, padx=3, sticky='w')
 
-        # --- Fallback to built-in dictionary ---
-        if not standards:
-            ZOOLOG = {
-                'cattle': {'GL':280, 'Bp':75, 'Bd':68, 'SD':38, 'GLP':72, 'LG':58, 'BG':52, 'BT':82},
-                'sheep':  {'GL':150, 'Bp':40, 'Bd':35, 'SD':18, 'GLP':42, 'LG':32, 'BG':28, 'BT':32},
-                'goat':   {'GL':145, 'Bp':38, 'Bd':34, 'SD':17, 'GLP':40, 'LG':30, 'BG':26, 'BT':30},
-                'pig':    {'GL':130, 'Bp':42, 'Bd':40, 'SD':22, 'GLP':45, 'LG':35, 'BG':32, 'BT':38},
-                'red deer':{'GL':260, 'Bp':60, 'Bd':55, 'SD':30, 'GLP':58, 'LG':48, 'BG':42, 'BT':52},
-                'roe deer':{'GL':180, 'Bp':40, 'Bd':35, 'SD':20, 'GLP':38, 'LG':30, 'BG':26, 'BT':32},
-                'horse':  {'GL':320, 'Bp':85, 'Bd':75, 'SD':42, 'GLP':82, 'LG':65, 'BG':58, 'BT':72},
-                'dog':    {'GL':120, 'Bp':28, 'Bd':25, 'SD':12, 'GLP':30, 'LG':22, 'BG':18, 'BT':24}
-            }
-            for key, vals in ZOOLOG.items():
-                if key in taxon:
-                    standards = vals
-                    source = f"built‑in ({key})"
-                    break
-            if not standards:
-                self.lsi_result.config(text="No standard for this taxon")
-                return
+        ttk.Separator(self._s1_inner, orient='horizontal').pack(fill=tk.X, pady=1)
 
-        # --- Compute LSI ---
-        results = []
-        for code, var in self.measurement_vars.items():
-            val = var.get().strip()
-            if val and code in standards:
-                try:
-                    meas = float(val)
-                    lsi = math.log(meas / standards[code])
-                    results.append(f"{code}: {lsi:.3f}")
-                except ValueError:
-                    self.measurement_status.config(text=f"Invalid {code}: '{val}'", foreground="red")
-                    return
+        grid = ttk.Frame(self._s1_inner)
+        grid.pack(fill=tk.X)
 
-        if results:
-            self.lsi_result.config(text=" | ".join(results[:4]))
-            self.measurement_status.config(text=f"LSI ({len(results)} meas, {source})", foreground="green")
-        else:
-            self.lsi_result.config(text="No matching measurements")
+        for row_i, (tooth, timing) in enumerate(erupt_teeth.items()):
+            has_dec = tooth in self._TEETH_WITH_DEC
+            states  = self._ERUPT_STATES_WITH_DEC if has_dec else self._ERUPT_STATES_PERM_ONLY
 
-    # ============================================================================
-    # Age interpretation methods
-    # ============================================================================
+            ttk.Label(grid, text=tooth, font=('Arial', 8, 'bold'), width=8
+                      ).grid(row=row_i, column=0, padx=3, pady=2, sticky='w')
 
-    # Payne (1973) mandibular wear stages for sheep/goat
-    PAYNE_STAGES = {
-        'A': (0, 2, "Neonatal-infant", "M1 unworn/unerupted"),
-        'B': (2, 6, "Juvenile", "M1 in wear, M2 erupting"),
-        'C': (6, 12, "Juvenile", "M1/M2 in wear, M3 erupting"),
-        'D': (12, 24, "Subadult", "All molars in wear, M3 with 2 crescents"),
-        'E': (24, 36, "Prime adult", "M3 posterior cusp in wear"),
-        'F': (36, 48, "Adult", "Moderate wear, enamel islands forming"),
-        'G': (48, 72, "Mature adult", "Heavy wear, prominent enamel islands"),
-        'H': (72, 96, "Old adult", "Very heavy wear, most enamel gone"),
-        'I': (96, 120, "Senile", "Extreme wear, teeth worn to roots")
-    }
+            var = tk.StringVar(value='— not observed')
+            self._eruption_vars[tooth] = var
+            cb = ttk.Combobox(grid, textvariable=var, values=states, width=22,
+                              state='readonly')
+            cb.grid(row=row_i, column=1, padx=3, pady=2)
+            cb.bind('<<ComboboxSelected>>', self._on_eruption_changed)
 
-    # Grant (1982) wear stage to Payne conversion (simplified)
-    GRANT_TO_PAYNE = {
-        ('a','b','c'): 'A',
-        ('d','e'): 'B',
-        ('f','g'): 'C',
-        ('h'): 'D',
-        ('i'): 'E',
-        ('j'): 'F',
-        ('k'): 'G',
-        ('l'): 'H',
-        ('m','n'): 'I'
-    }
+            interp_lbl = tk.Label(grid, text='', font=('Arial', 7),
+                                  foreground='#5D4037', width=18, anchor='w')
+            interp_lbl.grid(row=row_i, column=2, padx=3, pady=2, sticky='w')
+            self._erupt_interp[tooth] = interp_lbl
 
-    # Epiphyseal fusion ages (months) by taxon (Silver 1969)
-    FUSION_AGES = {
-        'Cattle': {
-            'humerus_distal': 15, 'radius_proximal': 15, 'scapula_distal': 8,
-            'phalanges': 18, 'tibia_distal': 24, 'metacarpal_distal': 30,
-            'metatarsal_distal': 30, 'femur_proximal': 42, 'femur_distal': 48,
-            'humerus_proximal': 48, 'radius_distal': 48, 'tibia_proximal': 48
-        },
-        'Sheep': {
-            'scapula_distal': 6, 'humerus_distal': 10, 'radius_proximal': 10,
-            'phalanges': 13, 'tibia_distal': 18, 'metacarpal_distal': 20,
-            'metatarsal_distal': 20, 'femur_proximal': 30, 'femur_distal': 36,
-            'humerus_proximal': 36, 'radius_distal': 36, 'tibia_proximal': 36
-        },
-        'Goat': {
-            'scapula_distal': 6, 'humerus_distal': 10, 'radius_proximal': 10,
-            'phalanges': 13, 'tibia_distal': 18, 'metacarpal_distal': 20,
-            'metatarsal_distal': 20, 'femur_proximal': 30, 'femur_distal': 36,
-            'humerus_proximal': 36, 'radius_distal': 36, 'tibia_proximal': 36
-        },
-        'Pig': {
-            'scapula_distal': 12, 'humerus_distal': 12, 'radius_proximal': 12,
-            'phalanges': 24, 'tibia_distal': 24, 'metacarpal_distal': 24,
-            'calcaneus': 36, 'femur_proximal': 36, 'femur_distal': 42,
-            'humerus_proximal': 42, 'radius_distal': 42
-        },
-        'Horse': {
-            'scapula_distal': 12, 'humerus_distal': 15, 'radius_proximal': 15,
-            'phalanges': 18, 'tibia_distal': 24, 'metacarpal_distal': 18,
-            'femur_proximal': 36, 'femur_distal': 42, 'humerus_proximal': 36
-        }
-    }
+        ttk.Label(self._s1_inner,
+            text='Ref: Silver 1969 / species-specific literature',
+            font=('Arial', 7, 'italic'), foreground='gray').pack(anchor='w', padx=2, pady=(4, 0))
 
-    def _update_age_interpretation(self, event=None):
-        """Update age interpretations when taxon changes."""
-        taxon = self.age_taxon_var.get()
-        if taxon:
-            self._update_fusion_interpretation()
-            self._update_dental_interpretation()
+    def _on_eruption_changed(self, event=None):
+        taxon    = self.age_taxon_var.get()
+        erupt_db = self._ERUPTION_DATA.get(taxon, {})
+        for tooth, var in self._eruption_vars.items():
+            state_label = var.get()
+            state_key   = self._ERUPT_STATE_KEY.get(state_label)
+            interp_lbl  = self._erupt_interp.get(tooth)
+            if interp_lbl is None:
+                continue
+            timing = erupt_db.get(tooth, {})
+            if not state_key or state_key not in timing:
+                interp_lbl.config(text='')
+            else:
+                lo, hi = timing[state_key]
+                def _fmt(m):
+                    return f'{m/12:.0f} yr' if m >= 24 else f'{m} mo'
+                interp_lbl.config(text=f'{_fmt(lo)}–{_fmt(hi)}')
+        self._calculate_age_live()
+
+    def _get_eruption_age_range(self, taxon):
+        erupt_db = self._ERUPTION_DATA.get(taxon, {})
+        if not erupt_db or not self._eruption_vars:
+            return None, None
+        ranges = []
+        for tooth, var in self._eruption_vars.items():
+            state_label = var.get()
+            state_key   = self._ERUPT_STATE_KEY.get(state_label)
+            if not state_key:
+                continue
+            timing = erupt_db.get(tooth, {})
+            rng = timing.get(state_key)
+            if rng:
+                ranges.append(rng)
+        if not ranges:
+            return None, None
+        lo = max(r[0] for r in ranges)
+        hi = min(r[1] for r in ranges)
+        if hi < lo:
+            hi = lo
+        return lo, hi
+
+    # ── Section 2: Dental Wear ────────────────────────────────────────────────
+
+    def _rebuild_wear_section(self, taxon, group):
+        for w in self._s2_inner.winfo_children():
+            w.destroy()
+        self.mws_score_label.config(text='—')
+        self.payne_stage_label.config(text='—')
+        self.payne_desc_label.config(text='')
+        self._s2_result.config(text='')
+
+        if group in ('bird', 'fish'):
+            msg = ('Birds have no teeth — dental wear\nnot applicable.'
+                   if group == 'bird' else
+                   'Fish dental wear not applicable\nin standard zooarchaeological form.')
+            tk.Label(self._s2_inner, text=msg, font=('Arial', 8, 'italic'),
+                     foreground='gray', justify=tk.LEFT).pack(anchor='w', padx=4, pady=6)
+            return
+
+        if group == 'unknown':
+            tk.Label(self._s2_inner, text='Select a taxon to load wear reference.',
+                     font=('Arial', 8, 'italic'), foreground='gray').pack(pady=5)
+            return
+
+        if taxon == 'Pig':
+            self._build_pig_wear_ui()
+        elif group == 'artiodactyl':
+            self._build_grant_dental_ui(taxon)
+        elif group == 'perissodactyl':
+            self._build_horse_dental_ui()
+        elif group == 'carnivore':
+            self._build_dog_dental_ui()
+
+    def _build_pig_wear_ui(self):
+        ttk.Label(self._s2_inner,
+            text='Bull & Payne (1982) — mandibular wear stages',
+            font=('Arial', 7, 'italic'), foreground='gray').pack(anchor='w', pady=(0, 4))
+
+        self._pig_wear_var = tk.StringVar(value='')
+        for stage, (lo, hi, desc, color) in self._PIG_WEAR.items():
+            def _fmt(m): return f'{m/12:.0f} yr' if m >= 24 else f'{m} mo'
+            row_f = ttk.Frame(self._s2_inner)
+            row_f.pack(fill=tk.X, pady=1)
+            tk.Radiobutton(row_f, text=f'  {stage}', variable=self._pig_wear_var,
+                           value=stage, command=self._calculate_age_live,
+                           font=('Arial', 8, 'bold'), fg=color,
+                           activeforeground=color, selectcolor='#f0f0f0',
+                           width=3, anchor='w').pack(side=tk.LEFT)
+            tk.Label(row_f, text=f'{_fmt(lo)}–{_fmt(hi)}  |  {desc}',
+                     font=('Arial', 7), foreground='#555',
+                     wraplength=240, justify=tk.LEFT).pack(side=tk.LEFT, fill=tk.X)
+
+        nr = ttk.Frame(self._s2_inner)
+        nr.pack(fill=tk.X, pady=(4, 0))
+        tk.Radiobutton(nr, text='  Not recorded', variable=self._pig_wear_var,
+                       value='', command=self._calculate_age_live,
+                       font=('Arial', 8), foreground='gray').pack(side=tk.LEFT)
+
+    def _build_grant_dental_ui(self, taxon):
+        note = ('dP4 present before ~6 mo; replaced by P4 after ~6 mo'
+                if taxon in {'Sheep', 'Goat', 'Cattle'} else
+                'Red Deer: score each tooth present; absent → leave as —')
+        ttk.Label(self._s2_inner,
+                  text=f'Grant (1982) / Payne (1973) MWS   |   {note}',
+                  font=('Arial', 7, 'italic'), foreground='gray',
+                  wraplength=290).pack(anchor='w', pady=(0, 4))
+
+        grid = ttk.Frame(self._s2_inner)
+        grid.pack(fill=tk.X, padx=2)
+        for col, (hdr, w) in enumerate([('Tooth', 5), ('Stage', 5), ('Range', 18)]):
+            ttk.Label(grid, text=hdr, font=('Arial', 8, 'bold'), width=w
+                      ).grid(row=0, column=col, padx=4, pady=1, sticky='w')
+
+        tooth_info = {'dP4': 'a–i (9)', 'P4': 'a–h (8)',
+                      'M1': 'a–p (16)', 'M2': 'a–p (16)', 'M3': 'a–p (16)'}
+        for row_i, (tooth, valid_txt) in enumerate(tooth_info.items(), start=1):
+            ttk.Label(grid, text=tooth, font=('Arial', 9, 'bold'), width=5
+                      ).grid(row=row_i, column=0, padx=4, pady=2, sticky='w')
+            cb = ttk.Combobox(grid, textvariable=self.grant_vars[tooth],
+                              values=self._GRANT_TEETH[tooth], width=5, state='readonly')
+            cb.grid(row=row_i, column=1, padx=4, pady=2)
+            cb.bind('<<ComboboxSelected>>', self._on_tooth_stage_changed)
+            ttk.Label(grid, text=valid_txt, font=('Arial', 7), foreground='gray'
+                      ).grid(row=row_i, column=2, padx=4, pady=2, sticky='w')
+
+    def _build_horse_dental_ui(self):
+        self._horse_vars = {}
+        ttk.Label(self._s2_inner, text='Levine (1982) — check all indicators present:',
+                  font=('Arial', 8, 'bold')).pack(anchor='w', pady=(2, 4))
+        for key, label in [
+            ('m1_erupted',     'M1 erupted  (≥ 1 yr)'),
+            ('m2_erupted',     'M2 erupted  (≥ 2 yr)'),
+            ('i1_permanent',   'I1 permanent  (≥ 2.5 yr)'),
+            ('i2_permanent',   'I2 permanent  (≥ 3.5 yr)'),
+            ('i3_permanent',   'I3 permanent  (≥ 4.5 yr)'),
+            ('dental_star',    'Dental star on incisors  (≥ 5 yr)'),
+            ('galvayne_start', "Galvayne's groove at gumline  (≥ 10 yr)"),
+            ('galvayne_half',  "Galvayne's groove halfway  (≥ 15 yr)"),
+            ('galvayne_full',  "Galvayne's groove full length  (≥ 20 yr)"),
+        ]:
+            var = tk.BooleanVar()
+            self._horse_vars[key] = var
+            ttk.Checkbutton(self._s2_inner, text=label, variable=var,
+                            command=self._calculate_age_live).pack(anchor='w', padx=4)
+
+    def _build_dog_dental_ui(self):
+        self._dog_wear_var = tk.StringVar(value='— not recorded')
+        ttk.Label(self._s2_inner,
+                  text='König & Liebich (2004) — overall wear stage:',
+                  font=('Arial', 8, 'bold')).pack(anchor='w', pady=(2, 4))
+        for stage in ['— not recorded',
+                      'Deciduous teeth  (< 7 mo)',
+                      'Slight wear — enamel only  (1–3 yr)',
+                      'Moderate — dentine exposed  (3–5 yr)',
+                      'Heavy — pulp cavity exposed  (5–8 yr)',
+                      'Severe — worn to roots  (8+ yr)']:
+            ttk.Radiobutton(self._s2_inner, text=stage, variable=self._dog_wear_var,
+                            value=stage, command=self._calculate_age_live
+                            ).pack(anchor='w', padx=4, pady=1)
+
+    def _on_tooth_stage_changed(self, event=None):
+        self._calculate_age_live()
+
+    # ── Section 3: Epiphyseal Fusion ──────────────────────────────────────────
+
+    def _rebuild_fusion_section(self, taxon, group):
+        for w in self._s3_inner.winfo_children():
+            w.destroy()
+        self._s3_result.config(text='')
+
+        if group == 'fish':
+            tk.Label(self._s3_inner,
+                     text='Standard epiphyseal fusion not applicable to fish.',
+                     font=('Arial', 8, 'italic'), foreground='gray',
+                     justify=tk.LEFT).pack(anchor='w', padx=4, pady=6)
+            return
+
+        if group == 'bird':
+            tk.Label(self._s3_inner,
+                     text='Birds: no growth plate fusion in mammalian sense.\n'
+                          'Record pneumatization state in notes below.',
+                     font=('Arial', 8, 'italic'), foreground='gray',
+                     justify=tk.LEFT).pack(anchor='w', padx=4, pady=3)
+            r = ttk.Frame(self._s3_inner); r.pack(fill=tk.X, pady=2)
+            ttk.Label(r, text='Pneumatization:', width=14).pack(side=tk.LEFT)
+            self._bird_pneum_var = tk.StringVar(value='')
+            ttk.Combobox(r, textvariable=self._bird_pneum_var, width=20,
+                values=['', 'None (immature)', 'Partial', 'Full (adult)'],
+                state='readonly').pack(side=tk.LEFT)
+            self._bird_pneum_var.trace_add('write', lambda *_: self._calculate_age_live())
+            return
+
+        # Standard mammal fusion
+        fe_row = ttk.Frame(self._s3_inner); fe_row.pack(fill=tk.X, pady=(0, 3))
+        ttk.Label(fe_row, text='Element:', width=9).pack(side=tk.LEFT)
+        self.fusion_element_var = tk.StringVar()
+        self.fusion_element_combo = ttk.Combobox(
+            fe_row, textvariable=self.fusion_element_var, width=22, state='readonly')
+        self.fusion_element_combo.pack(side=tk.LEFT, padx=2)
+        self.fusion_element_combo.bind('<<ComboboxSelected>>',
+                                       self._update_fusion_interpretation)
+
+        fs_row = ttk.Frame(self._s3_inner); fs_row.pack(fill=tk.X, pady=(0, 3))
+        ttk.Label(fs_row, text='State:', width=9).pack(side=tk.LEFT)
+        self.fusion_var = tk.StringVar()
+        for code, label in [('uf', 'Unfused'), ('fu', 'Fusing'), ('fd', 'Fused')]:
+            ttk.Radiobutton(fs_row, text=label, variable=self.fusion_var,
+                            value=code,
+                            command=self._update_fusion_interpretation
+                            ).pack(side=tk.LEFT, padx=4)
+
+        self.fusion_desc = tk.Label(
+            self._s3_inner, text='Select element and state above',
+            font=('Arial', 8, 'italic'), foreground='#5D4037',
+            wraplength=290, justify=tk.LEFT)
+        self.fusion_desc.pack(fill=tk.X, padx=2, pady=(3, 0))
+
+        self.fusion_age = tk.Label(
+            self._s3_inner, text='', font=('Arial', 8), foreground='#5D4037',
+            wraplength=290, justify=tk.LEFT)
+        self.fusion_age.pack(fill=tk.X, padx=2)
+
+        self.fusion_source_label = tk.Label(
+            self._s3_inner, text='', font=('Arial', 7), foreground='gray',
+            wraplength=290, justify=tk.LEFT)
+        self.fusion_source_label.pack(fill=tk.X, padx=2)
+
+        self._refresh_fusion_elements(taxon)
+
+    def _refresh_fusion_elements(self, taxon):
+        elems_dict = self._parse_fusion_elements(taxon) if taxon else {}
+        elem_list  = list(elems_dict.keys())
+        if hasattr(self, 'fusion_element_combo'):
+            self.fusion_element_combo['values'] = [''] + elem_list
+            current = self.fusion_element_var.get()
+            if current and current not in elem_list:
+                self.fusion_element_var.set('')
+        self._update_fusion_interpretation()
 
     def _update_fusion_interpretation(self, event=None):
-        """Interpret fusion stage with age."""
-        fusion = self.fusion_var.get()
-        taxon = self.age_taxon_var.get()
-        # In a real app, we'd get the element from the specimen data
-        # For now, we'll show a generic message
-        element = "unknown"
-
-        if fusion == 'uf':
-            self.fusion_desc.config(text="Unfused (young animal)")
-        elif fusion == 'fu':
-            self.fusion_desc.config(text="Fusing (at fusion age)")
-        elif fusion == 'fd':
-            self.fusion_desc.config(text="Fused (adult)")
-        else:
-            self.fusion_desc.config(text="")
-            self.fusion_age.config(text="")
+        taxon  = self.age_taxon_var.get()
+        group  = self._get_taxon_group(taxon)
+        if group in ('bird', 'fish') or not hasattr(self, 'fusion_element_combo'):
+            self._calculate_age_live()
             return
 
-        # Show fusion age if we have data for this taxon
-        if taxon and taxon in self.FUSION_AGES:
-            # For demo, use a generic message
-            if fusion == 'uf':
-                self.fusion_age.config(text=f"→ Younger than fusion age (see element-specific data)")
-            elif fusion == 'fu':
-                self.fusion_age.config(text=f"→ Approximately at fusion age")
-            elif fusion == 'fd':
-                self.fusion_age.config(text=f"→ Older than fusion age")
+        element    = self.fusion_element_var.get()
+        state_code = self.fusion_var.get()
+        _labels    = {'uf': 'Unfused', 'fu': 'Fusing', 'fd': 'Fused'}
+        state_txt  = _labels.get(state_code, '')
+
+        if not state_code:
+            self.fusion_desc.config(text='Select element and state above')
+            self.fusion_age.config(text='')
+            self.fusion_source_label.config(text='')
+            self._calculate_age_live()
+            return
+
+        if not element:
+            self.fusion_desc.config(text=f'State: {state_txt} — select element for age range')
+            self.fusion_age.config(text='')
+            self.fusion_source_label.config(text='')
+            self._calculate_age_live()
+            return
+
+        elems_dict = self._parse_fusion_elements(taxon)
+        rng = elems_dict.get(element)
+        if rng:
+            lo, hi = rng
+            if state_code == 'uf':
+                self.fusion_desc.config(text=f'Unfused → younger than {lo}–{hi} mo')
+                self.fusion_age.config(text=f'{element} fuses at {lo}–{hi} mo')
+            elif state_code == 'fu':
+                self.fusion_desc.config(text=f'Fusing → approximately {lo}–{hi} mo')
+                self.fusion_age.config(text=f'Near fusion age for {element}')
+            else:
+                self.fusion_desc.config(text=f'Fused → older than {lo} mo')
+                self.fusion_age.config(text=f'{element} fusion age: {lo}–{hi} mo')
+            self.fusion_source_label.config(
+                text='Ref: Silver 1969 / morphological_keys.json')
         else:
-            self.fusion_age.config(text="")
+            self.fusion_desc.config(text=f'State: {state_txt}')
+            self.fusion_age.config(text='Age data not available for this element')
+            self.fusion_source_label.config(text='')
+        self._calculate_age_live()
 
-    def _update_dental_interpretation(self, event=None):
-        """Interpret dental wear stages as user types."""
-        m1 = self.wear_vars['M1'].get().lower()
-        m2 = self.wear_vars['M2'].get().lower()
-        m3 = self.wear_vars['M3'].get().lower()
+    # ── Main live calculator ───────────────────────────────────────────────────
 
-        # Try to determine Payne stage from Grant stages
-        for grant_combo, payne_stage in self.GRANT_TO_PAYNE.items():
-            if m1 in grant_combo and m2 in grant_combo and m3 in grant_combo:
-                stage_info = self.PAYNE_STAGES.get(payne_stage)
-                if stage_info:
-                    min_age, max_age, category, desc = stage_info
-                    self.payne_result.config(
-                        text=f"Payne Stage {payne_stage}: {category}\n{desc}\nAge: {min_age}-{max_age} months"
-                    )
-                return
+    def _calculate_age_live(self):
+        """
+        Independently calculate age from each of the 6 methods.
+        Each method updates its own result label.
+        Summary table and combined estimate rebuilt at the end.
+        Methods NEVER share calculations.
+        """
+        taxon = self.age_taxon_var.get()
+        group = self._get_taxon_group(taxon)
+        results = {}  # method_name → (lo_mo, hi_mo, display_str, ref_str, confidence)
 
-        self.payne_result.config(text="")
+        # ── Method 1: Dental Eruption ──────────────────────────────────────────
+        if group not in ('bird', 'fish') and hasattr(self, '_eruption_vars') and self._eruption_vars:
+            lo, hi = self._get_eruption_age_range(taxon)
+            if lo is not None:
+                def _fmt(m): return f'{m/12:.1f} yr' if m >= 24 else f'{m} mo'
+                txt = f'{_fmt(lo)} – {_fmt(hi)}'
+                results['eruption'] = (lo, hi, txt, 'Silver 1969', 'medium')
+                self._s1_result.config(text=f'→ {txt}')
+            else:
+                self._s1_result.config(text='')
+        else:
+            if hasattr(self, '_s1_result'):
+                self._s1_result.config(text='')
 
-    def _estimate_age_from_wear(self):
-        """Calculate age estimate from wear stages."""
-        m1 = self.wear_vars['M1'].get().lower()
-        m2 = self.wear_vars['M2'].get().lower()
-        m3 = self.wear_vars['M3'].get().lower()
+        # ── Method 2: Dental Wear ─────────────────────────────────────────────
+        wear_lo = wear_hi = None
+        wear_txt = ''
 
-        # Find best match
-        for grant_combo, payne_stage in self.GRANT_TO_PAYNE.items():
-            if m1 in grant_combo and m2 in grant_combo and m3 in grant_combo:
-                stage_info = self.PAYNE_STAGES.get(payne_stage)
-                if stage_info:
-                    min_age, max_age, category, desc = stage_info
-                    avg_age = (min_age + max_age) / 2
-                    self.age_estimate.config(
-                        text=f"{category}: {avg_age:.0f} months ({min_age}-{max_age} months)"
-                    )
-                return
+        if group == 'artiodactyl' and taxon == 'Pig':
+            stage = getattr(self, '_pig_wear_var', tk.StringVar()).get()
+            if stage and stage in self._PIG_WEAR:
+                lo, hi, desc, _ = self._PIG_WEAR[stage]
+                def _fmt(m): return f'{m/12:.1f} yr' if m >= 24 else f'{m} mo'
+                wear_lo, wear_hi = lo, hi
+                wear_txt = f'Stage {stage}: {_fmt(lo)}–{_fmt(hi)}'
+                self.mws_score_label.config(text=stage)
+                self.payne_stage_label.config(text='—')
+                self.payne_desc_label.config(text=desc)
+                self._s2_result.config(text=f'→ {wear_txt}')
 
-        self.age_estimate.config(text="Unable to determine age from wear stages")
+        elif group == 'artiodactyl' and taxon in self._ERUPTION_DATA:
+            mws_sum = n_teeth = 0
+            for tooth, var in self.grant_vars.items():
+                val = var.get().strip().lower()
+                if val and val != '—':
+                    num = self._GRANT_NUM.get(val)
+                    if num:
+                        mws_sum += num
+                        n_teeth += 1
+            if n_teeth > 0:
+                mws_total = mws_sum
+                self.mws_score_label.config(text=str(mws_total))
+                for mws_lo_b, mws_hi_b, stage, age_lo, age_hi in self._MWS_PAYNE:
+                    if mws_lo_b <= mws_total <= mws_hi_b:
+                        wear_lo, wear_hi = age_lo, age_hi
+                        def _fmt(m): return f'{m/12:.1f} yr' if m >= 24 else f'{m} mo'
+                        wear_txt = f'MWS {mws_total} → Stage {stage}: {_fmt(age_lo)}–{_fmt(age_hi)}'
+                        self.payne_stage_label.config(text=stage)
+                        desc = self._get_payne_stage_description(stage)
+                        self.payne_desc_label.config(text=desc or f'Payne stage {stage}')
+                        self._s2_result.config(text=f'→ {wear_txt}')
+                        break
+            else:
+                self.mws_score_label.config(text='—')
+                self.payne_stage_label.config(text='—')
+                self.payne_desc_label.config(text='Enter tooth stages to calculate MWS')
+                self._s2_result.config(text='')
+
+        elif group == 'perissodactyl':
+            rng = self._interpret_horse_age()
+            if rng:
+                wear_lo, wear_hi = rng
+                def _fmt(m): return f'{m/12:.1f} yr' if m >= 24 else f'{m} mo'
+                wear_txt = f'Levine indicators: {_fmt(wear_lo)}–{_fmt(wear_hi)}'
+                self._s2_result.config(text=f'→ {wear_txt}')
+            self.mws_score_label.config(text='n/a')
+            self.payne_stage_label.config(text='—')
+
+        elif group == 'carnivore':
+            rng = self._interpret_dog_age()
+            if rng:
+                wear_lo, wear_hi = rng
+                def _fmt(m): return f'{m/12:.1f} yr' if m >= 24 else f'{m} mo'
+                wear_txt = f'Wear stage: {_fmt(wear_lo)}–{_fmt(wear_hi)}'
+                self._s2_result.config(text=f'→ {wear_txt}')
+            self.mws_score_label.config(text='n/a')
+            self.payne_stage_label.config(text='—')
+
+        if wear_lo is not None:
+            ref2 = ('Bull & Payne 1982' if taxon == 'Pig' else
+                    'Levine 1982' if group == 'perissodactyl' else
+                    'König & Liebich 2004' if group == 'carnivore' else
+                    'Grant 1982 / Payne 1973')
+            results['wear'] = (wear_lo, wear_hi, wear_txt, ref2, 'high')
+
+        # ── Method 3: Epiphyseal Fusion ───────────────────────────────────────
+        if group not in ('bird', 'fish') and hasattr(self, 'fusion_var'):
+            state_code = self.fusion_var.get()
+            element    = self.fusion_element_var.get() if hasattr(self, 'fusion_element_var') else ''
+            if state_code and element and taxon:
+                elems = self._parse_fusion_elements(taxon)
+                rng   = elems.get(element)
+                if rng:
+                    lo, hi = rng
+                    if state_code == 'uf':
+                        fusion_lo, fusion_hi = 0, lo
+                    elif state_code == 'fu':
+                        fusion_lo, fusion_hi = lo, hi
+                    else:
+                        fusion_lo, fusion_hi = hi, 999
+                    def _fmt(m): return f'{m/12:.1f} yr' if m >= 24 else f'{m} mo'
+                    if state_code == 'uf':
+                        fus_txt = f'Unfused → < {_fmt(lo)}'
+                    elif state_code == 'fu':
+                        fus_txt = f'Fusing → ~{_fmt(lo)}–{_fmt(hi)}'
+                    else:
+                        fus_txt = f'Fused → > {_fmt(lo)}'
+                    self._s3_result.config(text=f'→ {fus_txt}')
+                    results['fusion'] = (fusion_lo, fusion_hi, fus_txt, 'Silver 1969', 'medium')
+                else:
+                    self._s3_result.config(text='')
+            else:
+                if hasattr(self, '_s3_result'):
+                    self._s3_result.config(text='')
+        elif group == 'bird' and hasattr(self, '_bird_pneum_var'):
+            state = self._bird_pneum_var.get()
+            if state == 'Full (adult)':
+                results['fusion'] = (12, 999, 'Fully pneumatized (adult)', 'Serjeantson 2009', 'low')
+
+        # ── Method 4: Cementum Annuli ──────────────────────────────────────────
+        if hasattr(self, '_cement_rings_var'):
+            rings_raw = self._cement_rings_var.get().strip()
+            season    = self._cement_season_var.get()
+            if rings_raw:
+                try:
+                    rings = int(rings_raw)
+                    season_frac = {'Spring': 0.25, 'Summer': 0.5,
+                                   'Autumn': 0.75, 'Winter': 0.0}.get(season, 0.0)
+                    age_yr  = rings + season_frac
+                    lo_mo   = int((age_yr - 0.5) * 12)
+                    hi_mo   = int((age_yr + 0.5) * 12)
+                    cement_lo, cement_hi = max(0, lo_mo), hi_mo
+                    label4  = 'Otolith/vertebral' if group == 'fish' else 'Cementum'
+                    season_txt = f' ({season})' if season and season != 'Unknown' else ''
+                    c_txt = f'{label4}: {rings} rings{season_txt} ≈ {age_yr:.1f} yr'
+                    self._s4_result.config(text=f'→ {c_txt}')
+                    results['cementum'] = (cement_lo, cement_hi, c_txt, 'Hillson 2005', 'high')
+                except ValueError:
+                    self._s4_result.config(text='')
+            else:
+                self._s4_result.config(text='')
+
+        # ── Method 5: Bone Histology ──────────────────────────────────────────
+        if hasattr(self, '_histo_age_var'):
+            histo_raw = self._histo_age_var.get().strip()
+            if histo_raw:
+                try:
+                    histo_yr = float(histo_raw)
+                    h_lo = max(0, int((histo_yr - 1) * 12))
+                    h_hi = int((histo_yr + 1) * 12)
+                    h_txt = f'Lab estimate: {histo_yr:.1f} yr'
+                    method = self._histo_method_var.get() or 'Histology'
+                    results['histology'] = (h_lo, h_hi, h_txt, method, 'high')
+                except ValueError:
+                    pass
+
+        # ── Method 6: Gross Morphology ────────────────────────────────────────
+        if hasattr(self, '_gross_morph_var'):
+            morph_label = self._gross_morph_var.get()
+            morph_key = next(
+                (k for k, v in self._GROSS_MORPH_LABELS.items() if v == morph_label), '')
+            lo_mo, hi_mo = self._GROSS_MORPH.get(morph_key, (None, None))
+            if lo_mo is not None:
+                def _fmt(m): return f'{m/12:.1f} yr' if m >= 24 else f'{m} mo'
+                g_txt = morph_label
+                if hi_mo and hi_mo < 999:
+                    g_txt += f' (~{_fmt(lo_mo)}–{_fmt(hi_mo)})'
+                else:
+                    g_txt += f' (≥ {_fmt(lo_mo)})'
+                self._s6_result.config(text=f'→ {g_txt}')
+                results['morphology'] = (lo_mo, hi_mo, g_txt, 'Gross observation', 'low')
+            else:
+                if hasattr(self, '_s6_result'):
+                    self._s6_result.config(text='')
+
+        self._update_age_summary(results)
+
+    def _update_age_summary(self, results):
+        """Rebuild the summary Text widget and combined estimate from all method results."""
+        METHOD_NAMES = {
+            'eruption':  '1. Dental Eruption  (Silver 1969)',
+            'wear':      '2. Dental Wear',
+            'fusion':    '3. Epiphyseal Fusion  (Silver 1969)',
+            'cementum':  '4. Cementum / Annuli',
+            'histology': '5. Bone Histology',
+            'morphology':'6. Gross Morphology',
+        }
+        ALL_METHODS = list(METHOD_NAMES.keys())
+
+        self.age_summary_text.config(state=tk.NORMAL)
+        self.age_summary_text.delete(1.0, tk.END)
+
+        for key in ALL_METHODS:
+            name = METHOD_NAMES[key]
+            if key in results:
+                lo, hi, txt, ref, conf = results[key]
+                conf_icon = {'high': '●', 'medium': '◑', 'low': '○'}.get(conf, '◑')
+                line = f'{conf_icon} {name:<42}  {txt}  [{ref}]'
+                tag  = 'good' if conf == 'high' else 'res'
+                self.age_summary_text.insert(tk.END, line + '\n', tag)
+            else:
+                self.age_summary_text.insert(tk.END,
+                    f'○ {name:<42}  not recorded\n', 'na')
+
+        if results:
+            self.age_summary_text.insert(tk.END, '─' * 78 + '\n', 'na')
+            hm = {k: v for k, v in results.items() if v[4] in ('high', 'medium')}
+            if not hm:
+                hm = results
+            if hm:
+                all_lo = [v[0] for v in hm.values() if v[0] is not None]
+                all_hi = [v[1] for v in hm.values() if v[1] is not None and v[1] < 999]
+                if all_lo and all_hi:
+                    best_lo = max(all_lo)
+                    best_hi = min(all_hi)
+                    def _fmt(m): return f'{m/12:.1f} yr' if m >= 24 else f'{m} mo'
+                    if best_hi >= best_lo:
+                        combined_txt = f'{_fmt(best_lo)} – {_fmt(best_hi)}'
+                        note = f'({len(hm)} method{"s" if len(hm)>1 else ""} consistent)'
+                    else:
+                        combined_txt = f'~{_fmt(best_lo)}'
+                        note = '(methods suggest slightly different ages — see above)'
+                    self.age_estimate.config(text=combined_txt)
+                    self.grant_age_label.config(text=note)
+                    self.age_summary_text.insert(tk.END,
+                        f'  Combined:  {combined_txt}   {note}\n', 'comb')
+                elif all_lo:
+                    lo_only = max(all_lo)
+                    def _fmt(m): return f'{m/12:.1f} yr' if m >= 24 else f'{m} mo'
+                    combined_txt = f'≥ {_fmt(lo_only)}'
+                    self.age_estimate.config(text=combined_txt)
+                    self.grant_age_label.config(text='(minimum age from fusion/morphology)')
+                    self.age_summary_text.insert(tk.END,
+                        f'  Combined:  {combined_txt}\n', 'comb')
+                else:
+                    self.age_estimate.config(text='—')
+                    self.grant_age_label.config(text='')
+            else:
+                self.age_estimate.config(text='—')
+                self.grant_age_label.config(text='')
+        else:
+            self.age_estimate.config(text='—')
+            self.grant_age_label.config(text='')
+            self.age_summary_text.insert(tk.END, 'No age data recorded.\n', 'na')
+
+        self.age_summary_text.config(state=tk.DISABLED)
+
+    def _interpret_horse_age(self):
+        if not hasattr(self, '_horse_vars') or not self._horse_vars:
+            return None
+        v = self._horse_vars
+        for key, rng in [
+            ('galvayne_full',  (240, 360)),
+            ('galvayne_half',  (180, 240)),
+            ('galvayne_start', (120, 180)),
+            ('dental_star',    (60,  120)),
+            ('i3_permanent',   (54,   72)),
+            ('i2_permanent',   (42,   54)),
+            ('i1_permanent',   (30,   42)),
+            ('m2_erupted',     (24,   36)),
+            ('m1_erupted',     (12,   24)),
+        ]:
+            var = v.get(key)
+            if var and var.get():
+                return rng
+        return None
+
+    def _interpret_dog_age(self):
+        if not hasattr(self, '_dog_wear_var') or not self._dog_wear_var:
+            return None
+        return {
+            'Deciduous teeth  (< 7 mo)':               (0,   7),
+            'Slight wear — enamel only  (1–3 yr)':      (12,  36),
+            'Moderate — dentine exposed  (3–5 yr)':     (36,  60),
+            'Heavy — pulp cavity exposed  (5–8 yr)':    (60,  96),
+            'Severe — worn to roots  (8+ yr)':          (96, 180),
+        }.get(self._dog_wear_var.get())
+
+    # Stubs for backward compat
+    def _calculate_mws(self):
+        self._calculate_age_live()
+
+    def _estimate_age_from_grant(self):
+        self._calculate_age_live()
+
+    def _update_age_interpretation(self, event=None):
+        self._on_age_taxon_changed(event)
 
     # ============================================================================
-    # Taphonomy interpretation methods
+    # MORPHOLOGICAL KEYS LOADER
     # ============================================================================
 
-    def _update_weather_interpretation(self):
-        """Update weather description based on selected stage."""
-        stage = self.weather_var.get()
-        self.weather_desc.config(text=self.behrensmeyer.get(stage, ""))
+    def _load_morph_keys(self):
+        try:
+            plugin_dir = Path(__file__).parent
+            appbase_dir = plugin_dir.parent.parent
+            path = appbase_dir / "config" / "morphological_keys.json"
+            if path.exists():
+                with open(path, 'r', encoding='utf-8') as f:
+                    self.morph_keys = json.load(f)
+                self.set_status("✅ Loaded morphological keys", "success")
+            else:
+                self.morph_keys = {}
+                self.set_status("⚠️ morphological_keys.json not found - using built-in fusion ages", "warning")
+        except Exception as e:
+            self.morph_keys = {}
+            self.set_status(f"⚠️ Error loading morphological keys: {e}", "warning")
+
+    def _parse_fusion_elements(self, taxon):
+        import re as _re
+        if not self.morph_keys:
+            taxon_ages = self.FUSION_AGES.get(taxon, {})
+            return {k.replace('_', ' ').title(): (v, v)
+                    for k, v in sorted(taxon_ages.items(), key=lambda x: x[1])}
+
+        key_map = {
+            'Cattle': 'Cattle epiphyseal fusion ages',
+            'Sheep':  'Sheep/goat epiphyseal fusion ages',
+            'Goat':   'Sheep/goat epiphyseal fusion ages',
+            'Pig':    'Pig epiphyseal fusion ages',
+        }
+        json_key = key_map.get(taxon)
+        if not json_key or json_key not in self.morph_keys:
+            taxon_ages = self.FUSION_AGES.get(taxon, {})
+            return {k.replace('_', ' ').title(): (v, v)
+                    for k, v in sorted(taxon_ages.items(), key=lambda x: x[1])}
+
+        text = self.morph_keys[json_key].get('text', '')
+        elements = {}
+        current_group_range = None
+
+        for line in text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            if 'FUSING' in line.upper() and '(' in line:
+                m = _re.search(r'(\d+)\s*[-\u2013]\s*(\d+)', line)
+                if m:
+                    current_group_range = (int(m.group(1)), int(m.group(2)))
+            elif line.startswith('\u2022'):
+                line_clean = line.lstrip('\u2022').strip()
+                m = _re.search(r'(\d+)\s*[-\u2013]\s*(\d+)\s*months', line_clean)
+                if m:
+                    age_range = (int(m.group(1)), int(m.group(2)))
+                else:
+                    m = _re.search(r'(\d+)\+?\s*months', line_clean)
+                    if m:
+                        v = int(m.group(1))
+                        age_range = (v, v + 12)
+                    elif current_group_range:
+                        age_range = current_group_range
+                    else:
+                        continue
+                elem = _re.sub(r'\s*[-\u2013]\s*\d+.*$', '', line_clean).strip()
+                if elem:
+                    elements[elem] = age_range
+
+        return dict(sorted(elements.items(), key=lambda x: x[1][0]))
+
+    def _get_payne_stage_description(self, stage):
+        import re as _re
+        text = (self.morph_keys
+                .get('Caprine mandibular wear stages (Payne 1973, 1987)', {})
+                .get('text', ''))
+        if not text or not stage or stage == '—':
+            return ''
+        pattern = r'STAGE ' + _re.escape(stage) + r'\s*\([^)]+\):\s*(.*?)(?=\nSTAGE [A-I]|\Z)'
+        m = _re.search(pattern, text, _re.DOTALL)
+        if not m:
+            return ''
+        lines = [l.strip().lstrip('\u2022').strip()
+                 for l in m.group(1).splitlines() if l.strip()]
+        return '  \u00b7  '.join(lines[:4])
+
+    # ============================================================================
+    # UNIFIED DATABASE LOADER
+    # ============================================================================
+
+    def _load_unified_database(self):
+        try:
+            plugin_dir = Path(__file__).parent
+            appbase_dir = plugin_dir.parent.parent
+            gz_path = appbase_dir / "config" / "zooarch_database.json.gz"
+
+            if not gz_path.exists():
+                self.set_status("⚠️ zooarch_database.json.gz not found in config folder", "warning")
+                self._legacy_database_load()
+                return False
+
+            with gzip.open(gz_path, 'rt', encoding='utf-8') as f:
+                self.full_db = json.load(f)
+
+            self.references = self.full_db.get('references', {})
+
+            self.taxon_references = {}
+            for ref_name, ref_data in self.references.items():
+                taxon = ref_data.get('taxon', 'Unknown')
+                self.taxon_references.setdefault(taxon, []).append(ref_name)
+
+            self.reference_standards = {}
+            for ref_name, ref_data in self.references.items():
+                taxon = ref_data.get('taxon', 'Unknown')
+                measurements = ref_data.get('measurements', [])
+                elem_dict = {}
+                for m in measurements:
+                    element = m.get('element', 'Unknown')
+                    measure = m.get('measure', '')
+                    value = m.get('standard')
+                    if measure and value is not None:
+                        elem_dict.setdefault(element, {})[measure] = float(value)
+                if elem_dict:
+                    self.reference_standards.setdefault(taxon, {})[ref_name] = elem_dict
+
+            self.taxonomy = {}
+            for taxon_entry in self.full_db.get('taxonomy', []):
+                species = taxon_entry.get('species')
+                if species:
+                    self.taxonomy[species] = {
+                        'genus': taxon_entry.get('genus'),
+                        'tribe': taxon_entry.get('tribe'),
+                        'subfamily': taxon_entry.get('subfamily'),
+                        'family': taxon_entry.get('family')
+                    }
+
+            thesaurus = self.full_db.get('thesaurus', {})
+            self.taxon_thesaurus = thesaurus.get('taxon', {})
+            self.element_thesaurus = thesaurus.get('element', {})
+
+            measure_lists = thesaurus.get('measure', [])
+            self.measure_thesaurus = {}
+            if len(measure_lists) >= 1:
+                for code in measure_lists[0]:
+                    self.measure_thesaurus[code] = code
+                for i, variant_list in enumerate(measure_lists[1:], 1):
+                    for j, variant in enumerate(variant_list):
+                        if variant and j < len(measure_lists[0]):
+                            self.measure_thesaurus[variant] = measure_lists[0][j]
+
+            self.reference_sets = self.full_db.get('reference_sets', {})
+            self.specimen_data = self.full_db.get('specimen_data', {})
+            self.example_specimens = self.specimen_data.get('records', [])
+
+            ref_count = len(self.references)
+            taxon_count = len(self.taxon_references)
+            specimen_count = len(self.example_specimens)
+            self.set_status(
+                f"✅ Loaded unified DB: {ref_count} references ({taxon_count} taxa), "
+                f"{specimen_count} example specimens", "success")
+            return True
+
+        except Exception as e:
+            self.set_status(f"⚠️ Error loading unified database: {e}", "warning")
+            import traceback
+            traceback.print_exc()
+            self._legacy_database_load()
+            return False
+
+    def _legacy_database_load(self):
+        try:
+            plugin_dir = Path(__file__).parent
+            appbase_dir = plugin_dir.parent.parent
+            gz_path = appbase_dir / "config" / "zooarch_database.json.gz"
+            old_path = appbase_dir / "config" / "zooarch_reference.json"
+
+            if gz_path.exists():
+                with gzip.open(gz_path, 'rt', encoding='utf-8') as f:
+                    full_db = json.load(f)
+                self.full_db = full_db
+                raw_refs = full_db.get('references', {})
+                for ref_name, ref_data in raw_refs.items():
+                    taxon = ref_data.get('taxon', '')
+                    if not taxon:
+                        continue
+                    elem_dict = {}
+                    for m in ref_data.get('measurements', []):
+                        el    = m.get('element', 'Unknown')
+                        mcode = m.get('measure', '')
+                        val   = m.get('standard')
+                        if not mcode or val is None:
+                            continue
+                        elem_dict.setdefault(el, {})[mcode] = float(val)
+                    if not elem_dict:
+                        continue
+                    self.taxon_references.setdefault(taxon, [])
+                    if ref_name not in self.taxon_references[taxon]:
+                        self.taxon_references[taxon].append(ref_name)
+                    self.reference_standards.setdefault(taxon, {})[ref_name] = elem_dict
+                taxa_count = len(self.taxon_references)
+                self.set_status(f"✅ Loaded {taxa_count} reference taxa (legacy mode)", "success")
+            else:
+                success, msg = self._load_simple_json(old_path)
+                if not success:
+                    self.set_status(f"⚠️ No database found. LSI will use built-in standards.", "warning")
+        except Exception as e:
+            self.set_status(f"⚠️ Legacy load failed: {e}", "warning")
+
+    def _load_simple_json(self, path):
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            for taxon, meas_dict in data.get('references', {}).items():
+                self.taxon_references[taxon] = [taxon]
+                elem_dict = {'All': {}}
+                for code, stats in meas_dict.items():
+                    if isinstance(stats, dict) and 'mean' in stats:
+                        elem_dict['All'][code] = stats['mean']
+                self.reference_standards.setdefault(taxon, {})[taxon] = elem_dict
+            return True, f"Loaded {len(self.taxon_references)} taxa"
+        except Exception as e:
+            return False, str(e)
+
+    # ============================================================================
+    # LSI TAB CONSTRUCTION
+    # ============================================================================
+
+    def _build_lsi_skeleton(self):
+        header = tk.Frame(self.lsi_frame, bg="#2c3e50", height=32)
+        header.pack(fill=tk.X)
+        header.pack_propagate(False)
+
+        self.lsi_header_label = tk.Label(header,
+                 text=f"📊 Log Size Index (LSI) Calculator — Loading database...",
+                 font=("Arial", 10, "bold"), bg="#2c3e50", fg="white")
+        self.lsi_header_label.pack(side=tk.LEFT, padx=10, pady=5)
+
+        mode_nb = ttk.Notebook(self.lsi_frame)
+        mode_nb.pack(fill=tk.BOTH, expand=True, padx=6, pady=4)
+
+        self.single_tab = ttk.Frame(mode_nb)
+        self.batch_tab  = ttk.Frame(mode_nb)
+        mode_nb.add(self.single_tab, text="  Single Specimen  ")
+        mode_nb.add(self.batch_tab,  text="  Batch Dataset (zoolog LogRatios)  ")
+
+        ttk.Label(self.single_tab,
+                  text="Loading reference database...\n\nPlease wait.",
+                  font=("Arial", 10)).pack(expand=True, pady=50)
+        ttk.Label(self.batch_tab,
+                  text="Loading reference database...\n\nPlease wait.",
+                  font=("Arial", 10)).pack(expand=True, pady=50)
+
+    def _populate_lsi_tab(self):
+        for widget in self.single_tab.winfo_children():
+            widget.destroy()
+        for widget in self.batch_tab.winfo_children():
+            widget.destroy()
+
+        self._build_single_tab(self.single_tab)
+        self._build_batch_tab(self.batch_tab)
+
+        if self.example_specimens:
+            example_frame = ttk.Frame(self.lsi_frame)
+            example_frame.pack(fill=tk.X, padx=8, pady=2)
+            ttk.Button(example_frame, text="📚 Load Example Specimen",
+                      command=self._load_example_specimen).pack(side=tk.LEFT)
+
+        self.lsi_header_label.config(
+            text=f"📊 Log Size Index (LSI) Calculator — zoolog methodology")
+
+        self._last_lsi_results  = {}
+        self._last_lsi_condensed = {}
+        self._batch_lsi_results  = []
+
+        self._auto_select_from_specimen()
+        if hasattr(self, 'lsi_taxon_var') and self.lsi_taxon_var.get():
+            self._on_taxon_selected()
+
+    def _build_single_tab(self, parent):
+        cfg = ttk.Frame(parent)
+        cfg.pack(fill=tk.X, padx=8, pady=(6, 2))
+
+        ttk.Label(cfg, text="Taxon:", font=("Arial", 9, "bold")).grid(row=0, column=0, sticky='w', padx=(0, 2))
+        self.lsi_taxon_var = tk.StringVar()
+        self.lsi_taxon_combo = ttk.Combobox(cfg, textvariable=self.lsi_taxon_var,
+                                             values=sorted(self.taxon_references.keys()) if self.taxon_references else [],
+                                             width=15, state="readonly")
+        self.lsi_taxon_combo.grid(row=0, column=1, sticky='ew', padx=(0, 5))
+        self.lsi_taxon_combo.bind('<<ComboboxSelected>>', self._on_taxon_selected)
+
+        ttk.Label(cfg, text="Reference:", font=("Arial", 9, "bold")).grid(row=0, column=2, sticky='w', padx=(0, 2))
+        self.lsi_ref_var = tk.StringVar()
+        self.lsi_ref_combo = ttk.Combobox(cfg, textvariable=self.lsi_ref_var, width=15, state="readonly")
+        self.lsi_ref_combo.grid(row=0, column=3, sticky='ew', padx=(0, 5))
+        self.lsi_ref_combo.bind('<<ComboboxSelected>>', self._on_reference_selected)
+
+        ttk.Label(cfg, text="Element:", font=("Arial", 9, "bold")).grid(row=0, column=4, sticky='w', padx=(0, 2))
+        self.lsi_element_var = tk.StringVar()
+        self.lsi_element_combo = ttk.Combobox(cfg, textvariable=self.lsi_element_var, width=12, state="readonly")
+        self.lsi_element_combo.grid(row=0, column=5, sticky='ew', padx=(0, 5))
+        self.lsi_element_combo.bind('<<ComboboxSelected>>', self._on_element_selected)
+
+        ttk.Label(cfg, text="Condense:").grid(row=0, column=6, sticky='w', padx=(0, 2))
+        self.lsi_condense_var = tk.StringVar(value="Priority")
+        ttk.Combobox(cfg, textvariable=self.lsi_condense_var,
+                     values=["Priority", "Average"], width=9, state="readonly"
+                     ).grid(row=0, column=7, padx=(0, 0))
+
+        self.ref_metadata = ttk.Label(parent, text="", font=("Arial", 7, "italic"), foreground="gray")
+        self.ref_metadata.pack(anchor='w', padx=10, pady=(0, 4))
+
+        body = ttk.PanedWindow(parent, orient=tk.HORIZONTAL)
+        body.pack(fill=tk.BOTH, expand=True, padx=8, pady=2)
+
+        left_pane  = ttk.Frame(body)
+        right_pane = ttk.Frame(body)
+        body.add(left_pane,  weight=55)
+        body.add(right_pane, weight=45)
+
+        tree_lf = ttk.LabelFrame(left_pane,
+                                  text="Reference measurements  (values auto-read from Biometrics tab)",
+                                  padding=3)
+        tree_lf.pack(fill=tk.BOTH, expand=True)
+
+        cols = ("axis", "specimen", "reference", "lsi", "flag")
+        self.lsi_tree = ttk.Treeview(tree_lf, columns=cols, show="tree headings", height=18)
+        self.lsi_tree.heading("#0",        text="Code",           anchor='w')
+        self.lsi_tree.heading("axis",      text="Axis",           anchor='center')
+        self.lsi_tree.heading("specimen",  text="Specimen (mm)",  anchor='center')
+        self.lsi_tree.heading("reference", text="Reference (mm)", anchor='center')
+        self.lsi_tree.heading("lsi",       text="LSI",            anchor='center')
+        self.lsi_tree.heading("flag",      text="",               anchor='center')
+        self.lsi_tree.column("#0",        width=55,  anchor='w',      stretch=False)
+        self.lsi_tree.column("axis",      width=58,  anchor='center', stretch=False)
+        self.lsi_tree.column("specimen",  width=110, anchor='center')
+        self.lsi_tree.column("reference", width=110, anchor='center')
+        self.lsi_tree.column("lsi",       width=80,  anchor='center', stretch=False)
+        self.lsi_tree.column("flag",      width=28,  anchor='center', stretch=False)
+
+        tree_sb = ttk.Scrollbar(tree_lf, orient="vertical", command=self.lsi_tree.yview)
+        self.lsi_tree.configure(yscrollcommand=tree_sb.set)
+        self.lsi_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        tree_sb.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.lsi_tree.tag_configure("positive",    foreground="#1a7a3c")
+        self.lsi_tree.tag_configure("negative",    foreground="#c0392b")
+        self.lsi_tree.tag_configure("near_zero",   foreground="#555")
+        self.lsi_tree.tag_configure("no_specimen", foreground="#bbb")
+        self.lsi_tree.tag_configure("sel_length",  background="#d5f5e3")
+        self.lsi_tree.tag_configure("sel_width",   background="#d6eaf8")
+        self.lsi_tree.tag_configure("sel_depth",   background="#fdebd0")
+
+        cond_lf = ttk.LabelFrame(right_pane,
+                                  text="CondenseLogs — one summary value per axis",
+                                  padding=8)
+        cond_lf.pack(fill=tk.X, pady=(0, 6))
+
+        AXIS_COLORS = {"Length": "#1a7a3c", "Width": "#2471a3", "Depth": "#ca6f1e"}
+        self.condense_labels = {}
+        for axis, color in AXIS_COLORS.items():
+            row = ttk.Frame(cond_lf)
+            row.pack(fill=tk.X, pady=3)
+            tk.Label(row, text=f"{axis}", font=("Arial", 9, "bold"),
+                     fg=color, width=7, anchor='w').pack(side=tk.LEFT)
+            lbl = tk.Label(row, text="—", font=("Courier", 9), anchor='w',
+                           fg="#2c3e50", bg="#f8f9fa", relief=tk.SUNKEN, padx=6)
+            lbl.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            self.condense_labels[axis] = lbl
+
+        prio_lf = ttk.LabelFrame(right_pane, text="Priority Order (zoolog default)", padding=5)
+        prio_lf.pack(fill=tk.X, pady=(0, 6))
+        for line in [
+            "Length:  GL > GLl > GLm > GLc > HTC",
+            "Width:   BT > Bd > Bp > SD > Bfd > Bfp",
+            "Depth:   Dd > DD > BG > Dp",
+        ]:
+            ttk.Label(prio_lf, text=line, font=("Courier", 8), foreground="#555").pack(anchor='w')
+        ttk.Label(prio_lf,
+                  text="★ Highlighted rows = selected condensed value",
+                  font=("Arial", 7, "italic"), foreground="gray").pack(anchor='w', pady=(4, 0))
+
+        if HAS_MPL:
+            chart_lf = ttk.LabelFrame(right_pane, text="LSI Chart", padding=3)
+            chart_lf.pack(fill=tk.BOTH, expand=True, pady=(0, 4))
+            self.lsi_fig = Figure(figsize=(3.6, 3.0), dpi=90)
+            self.lsi_ax  = self.lsi_fig.add_subplot(111)
+            self.lsi_fig.patch.set_facecolor('#f8f9fa')
+            self.lsi_canvas_widget = FigureCanvasTkAgg(self.lsi_fig, chart_lf)
+            self.lsi_canvas_widget.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        else:
+            ttk.Label(right_pane, text="Install matplotlib for charts",
+                      foreground="gray").pack(pady=20)
+
+        btn_bar = ttk.Frame(parent)
+        btn_bar.pack(fill=tk.X, padx=8, pady=(2, 6))
+
+        ttk.Button(btn_bar, text="⚡  CALCULATE LSI",
+                   command=self._calculate_lsi_zoolog).pack(side=tk.LEFT, padx=(0, 4))
+        ttk.Button(btn_bar, text="📋 Copy Results",
+                   command=self._copy_lsi_results).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_bar, text="💾 Export CSV",
+                   command=self._export_lsi_csv).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_bar, text="🔄 Refresh",
+                   command=self._refresh_lsi_data).pack(side=tk.LEFT, padx=2)
+
+        self.lsi_status_label = ttk.Label(
+            btn_bar,
+            text="Select taxon + reference, then click CALCULATE LSI",
+            font=("Arial", 7), foreground="gray")
+        self.lsi_status_label.pack(side=tk.LEFT, padx=10)
+
+    def _build_batch_tab(self, parent):
+        ctrl = ttk.Frame(parent)
+        ctrl.pack(fill=tk.X, padx=8, pady=6)
+
+        ctrl.columnconfigure(1, weight=2)
+        ctrl.columnconfigure(3, weight=2)
+        ctrl.columnconfigure(5, weight=1)
+        ctrl.columnconfigure(7, weight=1)
+
+        current_col = 0
+
+        ttk.Label(ctrl, text="Taxon:", font=("Arial", 8, "bold")).grid(
+            row=0, column=current_col, sticky='w', padx=(0, 2))
+        current_col += 1
+
+        self.batch_taxon_var = tk.StringVar()
+        self.batch_taxon_combo = ttk.Combobox(ctrl, textvariable=self.batch_taxon_var,
+                                               values=sorted(self.taxon_references.keys()) if self.taxon_references else [],
+                                               width=14, state="readonly")
+        self.batch_taxon_combo.grid(row=0, column=current_col, padx=(0, 8), sticky='ew')
+        self.batch_taxon_combo.bind('<<ComboboxSelected>>', self._on_batch_taxon_selected)
+        current_col += 1
+
+        ttk.Label(ctrl, text="Ref:", font=("Arial", 8, "bold")).grid(
+            row=0, column=current_col, sticky='w', padx=(0, 2))
+        current_col += 1
+
+        self.batch_ref_var = tk.StringVar()
+        self.batch_ref_combo = ttk.Combobox(ctrl, textvariable=self.batch_ref_var,
+                                             width=14, state="readonly")
+        self.batch_ref_combo.grid(row=0, column=current_col, padx=(0, 8), sticky='ew')
+        self.batch_ref_combo.bind('<<ComboboxSelected>>', self._on_batch_ref_selected)
+        current_col += 1
+
+        ttk.Label(ctrl, text="Condense:", font=("Arial", 8, "bold")).grid(
+            row=0, column=current_col, sticky='w', padx=(0, 2))
+        current_col += 1
+
+        self.batch_condense_var = tk.StringVar(value="Priority")
+        ttk.Combobox(ctrl, textvariable=self.batch_condense_var,
+                     values=["Priority", "Average"], width=8, state="readonly"
+                     ).grid(row=0, column=current_col, padx=(0, 8), sticky='ew')
+        current_col += 1
+
+        ttk.Label(ctrl, text="Group:", font=("Arial", 8, "bold")).grid(
+            row=0, column=current_col, sticky='w', padx=(0, 2))
+        current_col += 1
+
+        self.batch_group_var = tk.StringVar(value="(none)")
+        self.batch_group_combo = ttk.Combobox(ctrl, textvariable=self.batch_group_var, width=10)
+        self.batch_group_combo.grid(row=0, column=current_col, padx=0, sticky='ew')
+
+        self.batch_ref_meta_label = ttk.Label(parent, text="", font=("Arial", 7, "italic"), foreground="gray")
+        self.batch_ref_meta_label.pack(anchor='w', padx=10)
+
+        abf = ttk.Frame(parent)
+        abf.pack(fill=tk.X, padx=8, pady=(2, 4))
+        ttk.Button(abf, text="🔢 Calculate All (LogRatios)", width=24,
+                   command=self._calculate_lsi_batch).pack(side=tk.LEFT, padx=2)
+        ttk.Button(abf, text="📈 Plot Distribution", width=18,
+                   command=self._plot_batch_lsi).pack(side=tk.LEFT, padx=2)
+        ttk.Button(abf, text="💾 Export CSV", width=14,
+                   command=self._export_lsi_batch).pack(side=tk.LEFT, padx=2)
+        self.batch_status_label = ttk.Label(abf, text="", font=("Arial", 8), foreground="#1a7a1a")
+        self.batch_status_label.pack(side=tk.LEFT, padx=10)
+
+        tbl_lf = ttk.LabelFrame(parent,
+                                  text="Batch Results — CondenseLogs (one Length · Width · Depth per specimen)",
+                                  padding=3)
+        tbl_lf.pack(fill=tk.BOTH, expand=True, padx=8, pady=2)
+
+        bcols = ("ID", "Taxon", "Element", "Group", "Length", "Width", "Depth", "N")
+        self.batch_tree = ttk.Treeview(tbl_lf, columns=bcols, show='headings', height=10)
+        bwidths = (45, 140, 110, 90, 75, 75, 75, 40)
+        for col, w in zip(bcols, bwidths):
+            self.batch_tree.heading(col, text=col)
+            self.batch_tree.column(col, width=w, anchor='center')
+        vsb = ttk.Scrollbar(tbl_lf, orient="vertical",   command=self.batch_tree.yview)
+        hsb = ttk.Scrollbar(tbl_lf, orient="horizontal", command=self.batch_tree.xview)
+        self.batch_tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        self.batch_tree.grid(row=0, column=0, sticky='nsew')
+        vsb.grid(row=0, column=1, sticky='ns')
+        hsb.grid(row=1, column=0, sticky='ew')
+        tbl_lf.rowconfigure(0, weight=1)
+        tbl_lf.columnconfigure(0, weight=1)
+
+        self.batch_summary_text = tk.Text(parent, height=3, font=("Courier", 7),
+                                           wrap=tk.WORD, state=tk.DISABLED)
+        self.batch_summary_text.pack(fill=tk.X, padx=8, pady=(2, 4))
+
+        self._refresh_batch_group_options()
+
+    # ============================================================================
+    # THESAURUS-BASED NORMALIZATION
+    # ============================================================================
+
+    def _normalize_taxon(self, raw_taxon):
+        if not raw_taxon or not hasattr(self, 'taxon_thesaurus'):
+            return raw_taxon
+        raw_lower = raw_taxon.lower().strip()
+        if raw_lower in self.taxon_thesaurus:
+            return self.taxon_thesaurus[raw_lower]
+        for variant, standard in self.taxon_thesaurus.items():
+            if variant in raw_lower or raw_lower in variant:
+                return standard
+        return raw_taxon
+
+    def _normalize_element(self, raw_element):
+        if not raw_element or not hasattr(self, 'element_thesaurus'):
+            return raw_element
+        return self.element_thesaurus.get(raw_element.lower().strip(), raw_element)
+
+    def _normalize_measurement(self, raw_code):
+        if not raw_code or not hasattr(self, 'measure_thesaurus'):
+            return raw_code
+        return self.measure_thesaurus.get(raw_code, raw_code)
+
+    def _get_taxonomic_info(self, species):
+        if not hasattr(self, 'taxonomy'):
+            return {}
+        return self.taxonomy.get(species, {})
+
+    # ============================================================================
+    # EXAMPLE SPECIMEN LOADER
+    # ============================================================================
+
+    def _load_example_specimen(self):
+        if not self.example_specimens:
+            self.set_status("⚠️ No example specimens available", "warning")
+            return
+
+        import random
+        example = random.choice(self.example_specimens)
+
+        taxon_code = example.get('taxon_code', '')
+        taxon_name = self._normalize_taxon(taxon_code)
+        if taxon_name == taxon_code and taxon_code:
+            taxon_map = {
+                'bota': 'Bos taurus', 'ovar': 'Ovis aries', 'cahi': 'Capra hircus',
+                'sudo': 'Sus domesticus', 'ceel': 'Cervus elaphus', 'oc': 'Ovis/Capra'
+            }
+            taxon_name = taxon_map.get(taxon_code, taxon_code)
+
+        element_code = example.get('element', '')
+        element_name = self._normalize_element(element_code)
+
+        sample = {
+            'Sample_ID': f"{example.get('site', '')}-{example.get('inv_n', '')}",
+            'taxon': taxon_name, 'element': element_name,
+            'side': example.get('lateral', ''), 'portion': example.get('fragment', ''),
+            'fusion': example.get('epiphysis', ''), 'sex': example.get('sex', ''),
+            'context': example.get('ue', ''), 'period': example.get('period', ''),
+        }
+
+        measurements = example.get('measurements', {})
+        for code, value in measurements.items():
+            std_code = self._normalize_measurement(code)
+            sample[std_code] = value
+
+        if hasattr(self, 'samples') and hasattr(self.app, 'data_hub'):
+            self.app.data_hub.add_row(sample)
+            self._update_ui()
+            if self.specimen_list.size() > 0:
+                self.specimen_list.selection_set(self.specimen_list.size() - 1)
+                self._on_specimen_selected()
+            self.set_status(f"✅ Loaded example: {sample['Sample_ID']} ({taxon_name})", "success")
+        else:
+            msg = f"Example: {sample['Sample_ID']} - {taxon_name} - {element_name}\n"
+            msg += f"Measurements: {len(measurements)}"
+            messagebox.showinfo("Example Specimen", msg)
+
+    # ============================================================================
+    # LSI METHODS
+    # ============================================================================
+
+    def _ensure_database_loaded(self):
+        if not self.taxon_references:
+            self._load_unified_database()
+        return bool(self.taxon_references)
+
+    def _on_taxon_selected(self, event=None):
+        taxon = self.lsi_taxon_var.get()
+        if not taxon or taxon not in self.taxon_references:
+            return
+        refs = self.taxon_references[taxon]
+        self.lsi_ref_combo['values'] = refs
+        if refs:
+            self.lsi_ref_combo.set(refs[0])
+            self._on_reference_selected()
+
+    def _on_reference_selected(self, event=None):
+        taxon = self.lsi_taxon_var.get()
+        ref   = self.lsi_ref_var.get()
+        if not taxon or not ref or taxon not in self.reference_standards:
+            return
+        ref_data = self.reference_standards[taxon].get(ref, {})
+        available_elements = sorted(ref_data.keys())
+        self.lsi_element_combo['values'] = available_elements
+        if available_elements:
+            self.lsi_element_combo.set(available_elements[0])
+            self._on_element_selected()
+        if hasattr(self, 'ref_metadata') and self.full_db:
+            raw_ref  = self.full_db.get('references', {}).get(ref, {})
+            citation = raw_ref.get('citation', {})
+            if isinstance(citation, dict):
+                src = citation.get('source_text', '')
+                sci = citation.get('taxon_scientific', taxon)
+                self.ref_metadata.config(text=f"{sci} — {src[:80]}" if src else sci)
+            else:
+                self.ref_metadata.config(text=taxon)
+
+    def _on_element_selected(self, event=None):
+        pass
+
+    def _get_axis(self, code):
+        cu = code.upper()
+        for axis, codes in self._AXIS_PRIORITY.items():
+            if cu in [c.upper() for c in codes]:
+                return axis
+        return 'Width'
+
+    def _calculate_lsi_zoolog(self):
+        if self.current_specimen_idx is None:
+            messagebox.showwarning("Warning", "Select a specimen first (in the specimen list)")
+            return
+        taxon    = self.lsi_taxon_var.get()
+        ref_name = self.lsi_ref_var.get()
+        element  = self.lsi_element_var.get()
+        if not taxon or not ref_name:
+            messagebox.showwarning("Warning", "Select taxon and reference standard first")
+            return
+
+        ref_elem_data = self.reference_standards.get(taxon, {}).get(ref_name, {})
+        if element and element in ref_elem_data:
+            ref_meas = ref_elem_data[element]
+        else:
+            ref_meas = {}
+            for el_m in ref_elem_data.values():
+                for mc, v in el_m.items():
+                    if mc not in ref_meas:
+                        ref_meas[mc] = v
+
+        if not ref_meas:
+            messagebox.showwarning("Warning",
+                                   "No reference measurements found for this taxon/reference/element combo.")
+            return
+
+        spec_meas = {}
+        for code, var in self.measurement_vars.items():
+            raw = var.get().strip()
+            if raw:
+                try:
+                    spec_meas[code] = float(raw)
+                except ValueError:
+                    pass
+
+        for item in self.lsi_tree.get_children():
+            self.lsi_tree.delete(item)
+
+        lsi_vals   = {}
+        axis_order = {'Length': 0, 'Width': 1, 'Depth': 2}
+        sorted_codes = sorted(ref_meas.keys(),
+                              key=lambda c: (axis_order.get(self._get_axis(c), 3), c))
+
+        for code in sorted_codes:
+            ref_v  = ref_meas[code]
+            spec_v = spec_meas.get(code)
+            axis   = self._get_axis(code)
+
+            if spec_v is not None and ref_v and ref_v > 0:
+                try:
+                    lsi  = math.log10(spec_v / ref_v)
+                    lsi_vals[code] = lsi
+                    sign = "+" if lsi >= 0 else ""
+                    tag  = ("positive" if lsi > 0.001 else "negative" if lsi < -0.001 else "near_zero")
+                    self.lsi_tree.insert("", tk.END, text=code,
+                        values=(axis, f"{spec_v:.2f}", f"{ref_v:.2f}", f"{sign}{lsi:.4f}", "✓"),
+                        tags=(tag,))
+                except (ValueError, ZeroDivisionError):
+                    self.lsi_tree.insert("", tk.END, text=code,
+                        values=(axis, f"{spec_v:.2f}", f"{ref_v:.2f}", "err", ""),
+                        tags=("no_specimen",))
+            else:
+                spec_str = f"{spec_v:.2f}" if spec_v is not None else "—"
+                self.lsi_tree.insert("", tk.END, text=code,
+                    values=(axis, spec_str, f"{ref_v:.2f}", "—", ""),
+                    tags=("no_specimen",))
+
+        if not lsi_vals:
+            msg = ("⚠  No measurements match reference codes.\n\n"
+                   "Make sure you have entered measurements\n"
+                   "in the Biometrics tab, using Von den Driesch\n"
+                   "codes (GL, Bd, Bp, SD, etc.) as column names.")
+            if hasattr(self, 'lsi_status_label'):
+                self.lsi_status_label.config(text="⚠ No matching measurements", foreground="red")
+            self.lsi_indicator.config(text="No data")
+            messagebox.showinfo("No Data", msg)
+            return
+
+        method = getattr(self, 'lsi_condense_var', None)
+        condense_method = method.get() if method else "Priority"
+        condensed = {}
+        sel_tag = {"Length": "sel_length", "Width": "sel_width", "Depth": "sel_depth"}
+
+        for axis, priority in self._AXIS_PRIORITY.items():
+            axis_vals = {c: v for c, v in lsi_vals.items() if self._get_axis(c) == axis}
+            if not axis_vals:
+                condensed[axis] = None
+                continue
+            if condense_method == "Priority":
+                selected = None
+                for pc in priority:
+                    if pc in axis_vals:
+                        selected = (pc, axis_vals[pc])
+                        break
+                if selected is None:
+                    fb = sorted(axis_vals.keys())[0]
+                    selected = (fb, axis_vals[fb])
+            else:
+                avg = sum(axis_vals.values()) / len(axis_vals)
+                selected = (f"avg(n={len(axis_vals)})", avg)
+            condensed[axis] = selected
+
+        summary_parts = []
+        for axis, result in condensed.items():
+            lbl = self.condense_labels[axis]
+            if result is None:
+                lbl.config(text="— (no measurements)", fg="#bbb")
+            else:
+                code_lbl, val = result
+                sign = "+" if val >= 0 else ""
+                lbl.config(text=f"{code_lbl:10}  {sign}{val:.4f}", fg="#2c3e50")
+                summary_parts.append(f"{axis[:3]}: {sign}{val:.4f}")
+                for item in self.lsi_tree.get_children():
+                    if self.lsi_tree.item(item, "text") == code_lbl:
+                        existing = list(self.lsi_tree.item(item, "tags"))
+                        self.lsi_tree.item(item, tags=existing + [sel_tag[axis]])
+                        self.lsi_tree.see(item)
+
+        if summary_parts:
+            self.lsi_indicator.config(text="  ".join(summary_parts))
+            self.measurement_status.config(
+                text=f"LSI: {taxon} — {ref_name}  ({len(lsi_vals)} meas)",
+                foreground="#1a7a3c")
+
+        n_ref  = len(ref_meas)
+        n_calc = len(lsi_vals)
+        n_miss = n_ref - n_calc
+        miss_note = f"  ({n_miss} codes have no specimen value)" if n_miss else ""
+        if hasattr(self, 'lsi_status_label'):
+            self.lsi_status_label.config(
+                text=f"✓  {n_calc}/{n_ref} measurements computed  |  {condense_method}{miss_note}",
+                foreground="#1a7a3c")
+
+        self._last_lsi_results  = lsi_vals
+        self._last_lsi_condensed = condensed
+        self._last_lsi_ref      = (taxon, ref_name, element)
+
+        if HAS_MPL and hasattr(self, 'lsi_ax'):
+            self._plot_lsi_chart(lsi_vals, condensed)
+
+    def _plot_lsi_chart(self, lsi_vals, condensed):
+        ax = self.lsi_ax
+        ax.clear()
+        if not lsi_vals:
+            self.lsi_canvas_widget.draw()
+            return
+
+        AXIS_COLOR = {"Length": "#1a7a3c", "Width": "#2471a3", "Depth": "#ca6f1e"}
+        codes, values, colors = [], [], []
+        for code in sorted(lsi_vals.keys(),
+                           key=lambda c: ({"Length": 0, "Width": 1, "Depth": 2}.get(self._get_axis(c), 3), c)):
+            codes.append(code)
+            values.append(lsi_vals[code])
+            colors.append(AXIS_COLOR.get(self._get_axis(code), "#7f8c8d"))
+
+        xs = range(len(codes))
+        ax.bar(xs, values, color=colors, alpha=0.8, edgecolor='white', linewidth=0.5)
+        ax.axhline(0, color='#2c3e50', linewidth=1.2, linestyle='-')
+
+        for axis, result in condensed.items():
+            if result:
+                sel_code = result[0]
+                if sel_code in codes:
+                    i = codes.index(sel_code)
+                    ax.bar([i], [values[i]], color=AXIS_COLOR.get(axis, '#555'),
+                           alpha=1.0, edgecolor='black', linewidth=1.5)
+
+        ax.set_xticks(list(xs))
+        ax.set_xticklabels(codes, rotation=45, ha='right', fontsize=7)
+        ax.set_ylabel("LSI  (log₁₀)", fontsize=8)
+        ax.tick_params(axis='y', labelsize=7)
+        ax.set_facecolor('#f8f9fa')
+        self.lsi_fig.tight_layout()
+        self.lsi_canvas_widget.draw()
+
+    def _copy_lsi_results(self):
+        if not hasattr(self, '_last_lsi_condensed') or not self._last_lsi_condensed:
+            messagebox.showinfo("Nothing to copy", "Run CALCULATE LSI first.")
+            return
+        lines = []
+        taxon, ref, elem = getattr(self, '_last_lsi_ref', ('?', '?', '?'))
+        lines.append(f"LSI Results — {taxon} / {ref} / {elem}")
+        lines.append("-" * 50)
+        lines.append("CondenseLogs (one value per axis):")
+        for axis, result in self._last_lsi_condensed.items():
+            if result:
+                code_lbl, val = result
+                sign = "+" if val >= 0 else ""
+                lines.append(f"  {axis:<8} {code_lbl:<12} {sign}{val:.4f}")
+            else:
+                lines.append(f"  {axis:<8} —")
+        lines.append("")
+        lines.append("All measurements:")
+        for code, val in sorted(self._last_lsi_results.items()):
+            sign = "+" if val >= 0 else ""
+            lines.append(f"  {code:<6} {sign}{val:.4f}")
+        text = "\n".join(lines)
+        self.lsi_frame.clipboard_clear()
+        self.lsi_frame.clipboard_append(text)
+        if hasattr(self, 'lsi_status_label'):
+            self.lsi_status_label.config(text="✓ Results copied to clipboard", foreground="#1a7a3c")
+
+    def _export_lsi_csv(self):
+        if not hasattr(self, '_last_lsi_results') or not self._last_lsi_results:
+            messagebox.showinfo("Nothing to export", "Run CALCULATE LSI first.")
+            return
+        path = filedialog.asksaveasfilename(
+            defaultextension=".csv", filetypes=[("CSV", "*.csv")],
+            initialfile="lsi_results.csv")
+        if not path:
+            return
+        try:
+            taxon, ref, elem = getattr(self, '_last_lsi_ref', ('?', '?', '?'))
+            spec_id = ""
+            if self.current_specimen_idx is not None and self.current_specimen_idx < len(self.samples):
+                spec_id = self.samples[self.current_specimen_idx].get('Sample_ID', '')
+            with open(path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow(["Sample_ID", "Taxon", "Reference", "Element",
+                                 "Code", "Axis", "Specimen_mm", "Reference_mm", "LSI",
+                                 "Condensed_Length", "Condensed_Width", "Condensed_Depth"])
+                cond = getattr(self, '_last_lsi_condensed', {})
+                cl = cond.get('Length', (None, None))
+                cw = cond.get('Width',  (None, None))
+                cd = cond.get('Depth',  (None, None))
+                for code, lsi in sorted(self._last_lsi_results.items()):
+                    axis   = self._get_axis(code)
+                    spec_v = self.measurement_vars.get(code, tk.StringVar()).get()
+                    ref_data = self.reference_standards.get(taxon, {}).get(ref, {})
+                    ref_meas = {}
+                    if elem and elem in ref_data:
+                        ref_meas = ref_data[elem]
+                    else:
+                        for el_m in ref_data.values():
+                            for mc, v in el_m.items():
+                                if mc not in ref_meas:
+                                    ref_meas[mc] = v
+                    ref_v = ref_meas.get(code, "")
+                    writer.writerow([
+                        spec_id, taxon, ref, elem or "all", code, axis, spec_v, ref_v,
+                        f"{lsi:.6f}",
+                        f"{cl[1]:.6f}" if cl and cl[1] is not None else "",
+                        f"{cw[1]:.6f}" if cw and cw[1] is not None else "",
+                        f"{cd[1]:.6f}" if cd and cd[1] is not None else "",
+                    ])
+            messagebox.showinfo("Exported", f"LSI results saved to:\n{path}")
+        except Exception as e:
+            messagebox.showerror("Export Error", str(e))
+
+    def _refresh_lsi_data(self):
+        spec_info = ""
+        if self.current_specimen_idx is not None and self.current_specimen_idx < len(self.samples):
+            s = self.samples[self.current_specimen_idx]
+            spec_info = (f"  ·  Specimen: {s.get('Sample_ID', '—')}"
+                         f"  |  {s.get('taxon', '—')}"
+                         f"  |  {s.get('element', '—')}")
+        if hasattr(self, 'lsi_header_label'):
+            self.lsi_header_label.config(
+                text=f"📊 Log Size Index (LSI) Calculator — zoolog methodology{spec_info}")
+        self._auto_select_from_specimen()
+        if hasattr(self, 'lsi_taxon_var') and self.lsi_taxon_var.get() and \
+           hasattr(self, 'lsi_ref_var') and self.lsi_ref_var.get():
+            self._calculate_lsi_zoolog()
+
+    def _auto_select_from_specimen(self):
+        if self.current_specimen_idx is None:
+            return
+        if self.current_specimen_idx >= len(self.samples):
+            return
+        sample    = self.samples[self.current_specimen_idx]
+        raw_taxon = (sample.get('taxon') or sample.get('species') or '').lower()
+        normalized = self._normalize_taxon(raw_taxon)
+        if normalized != raw_taxon:
+            for db_taxon in self.taxon_references.keys():
+                if normalized in db_taxon or db_taxon.lower() in normalized.lower():
+                    if hasattr(self, 'lsi_taxon_var'):
+                        self.lsi_taxon_var.set(db_taxon)
+                        self._on_taxon_selected()
+                    if hasattr(self, 'batch_taxon_var'):
+                        self.batch_taxon_var.set(db_taxon)
+                        self._on_batch_taxon_selected()
+                    return
+        for db_taxon in self.taxon_references.keys():
+            if raw_taxon in db_taxon.lower() or db_taxon.lower() in raw_taxon:
+                if hasattr(self, 'lsi_taxon_var'):
+                    self.lsi_taxon_var.set(db_taxon)
+                    self._on_taxon_selected()
+                if hasattr(self, 'batch_taxon_var'):
+                    self.batch_taxon_var.set(db_taxon)
+                    self._on_batch_taxon_selected()
+                break
+
+    def _refresh_batch_group_options(self):
+        if not hasattr(self, 'batch_group_combo'):
+            return
+        options = ["(none)"]
+        if self.samples:
+            all_keys = set()
+            for s in self.samples:
+                all_keys.update(s.keys())
+            meas_codes_lower = {c.lower() for c in MEASUREMENT_CODES.keys()}
+            skip = meas_codes_lower | {'id', 'row', 'index', 'notes', 'comment', 'remarks',
+                                        'sample_id', 'log'}
+            options += sorted(k for k in all_keys if k.lower() not in skip)
+        self.batch_group_combo['values'] = options
+        if self.batch_group_var.get() not in options:
+            self.batch_group_var.set("(none)")
+
+    def _on_batch_taxon_selected(self, event=None):
+        if not hasattr(self, 'batch_taxon_var'):
+            return
+        taxon = self.batch_taxon_var.get()
+        if not taxon or taxon not in self.taxon_references:
+            return
+        refs = self.taxon_references[taxon]
+        if hasattr(self, 'batch_ref_combo'):
+            self.batch_ref_combo['values'] = refs
+            if refs:
+                self.batch_ref_combo.set(refs[0])
+                self._on_batch_ref_selected()
+
+    def _on_batch_ref_selected(self, event=None):
+        if not (hasattr(self, 'batch_taxon_var') and hasattr(self, 'batch_ref_var')):
+            return
+        taxon = self.batch_taxon_var.get()
+        ref   = self.batch_ref_var.get()
+        if hasattr(self, 'batch_ref_meta_label') and self.full_db and taxon and ref:
+            raw = self.full_db.get('references', {}).get(ref, {})
+            cit = raw.get('citation', {})
+            if isinstance(cit, dict):
+                src = cit.get('source_text', '')
+                sci = cit.get('taxon_scientific', taxon)
+                self.batch_ref_meta_label.config(text=f"{sci} — {src[:90]}" if src else sci)
+            else:
+                self.batch_ref_meta_label.config(text=taxon)
+
+    def _calculate_lsi_batch(self):
+        if not hasattr(self, 'batch_taxon_var'):
+            return
+        taxon_sel = self.batch_taxon_var.get()
+        ref_sel   = self.batch_ref_var.get()
+        if not taxon_sel or not ref_sel:
+            messagebox.showwarning("Batch LSI", "Select Taxon and Reference Standard first.")
+            return
+        if not self.samples:
+            messagebox.showwarning("Batch LSI", "No specimens loaded.")
+            return
+
+        ref_elem_data = self.reference_standards.get(taxon_sel, {}).get(ref_sel, {})
+        flat_ref = {}
+        for el_measures in ref_elem_data.values():
+            for mcode, val in el_measures.items():
+                if mcode not in flat_ref:
+                    flat_ref[mcode] = float(val)
+
+        if not flat_ref:
+            messagebox.showerror("Batch LSI",
+                                  f"No reference measurements found for {taxon_sel} / {ref_sel}.")
+            return
+
+        condense_method = self.batch_condense_var.get()
+        group_col = self.batch_group_var.get()
+        if group_col == "(none)":
+            group_col = None
+
+        self._refresh_batch_group_options()
+
+        def taxon_match(sp_taxon):
+            if not sp_taxon:
+                return False
+            st = sp_taxon.lower()
+            tt = taxon_sel.lower()
+            return (tt in st) or (st in tt)
+
+        results = []
+        n_proc = n_skip = 0
+
+        for i, sample in enumerate(self.samples):
+            sp_taxon = sample.get('taxon') or sample.get('species') or ''
+            if not taxon_match(sp_taxon):
+                n_skip += 1
+                continue
+
+            lsi_vals = {}
+            for code, ref_val in flat_ref.items():
+                raw = sample.get(code, '')
+                if raw == '' or raw is None:
+                    continue
+                try:
+                    meas = float(raw)
+                    lsi_vals[code] = math.log10(meas / ref_val)
+                except (ValueError, ZeroDivisionError):
+                    continue
+
+            if not lsi_vals:
+                n_skip += 1
+                continue
+
+            condensed = {}
+            for axis, priority_list in self._AXIS_PRIORITY.items():
+                axis_codes  = [c for c in priority_list if c in lsi_vals]
+                other_codes = [c for c in lsi_vals
+                               if c not in priority_list and self._get_axis(c) == axis]
+                all_axis = axis_codes + other_codes
+                if not all_axis:
+                    condensed[axis] = None
+                    continue
+                if condense_method == "Priority":
+                    condensed[axis] = lsi_vals[all_axis[0]]
+                else:
+                    vals = [lsi_vals[c] for c in all_axis]
+                    condensed[axis] = sum(vals) / len(vals)
+
+            results.append({
+                'idx': i, 'taxon': sp_taxon,
+                'element': sample.get('element') or sample.get('bone') or '',
+                'group': str(sample.get(group_col, '')) if group_col else '',
+                'Length': condensed.get('Length'), 'Width': condensed.get('Width'),
+                'Depth': condensed.get('Depth'), 'n_meas': len(lsi_vals),
+                'all_lsi': lsi_vals,
+            })
+            n_proc += 1
+
+        self._batch_lsi_results = results
+
+        for item in self.batch_tree.get_children():
+            self.batch_tree.delete(item)
+
+        def fmt(v):
+            return f"{v:+.4f}" if v is not None else "—"
+
+        for row in results:
+            self.batch_tree.insert('', tk.END, values=(
+                row['idx'] + 1, row['taxon'][:20], row['element'][:15],
+                str(row['group'])[:12], fmt(row['Length']), fmt(row['Width']),
+                fmt(row['Depth']), row['n_meas'],
+            ))
+
+        def axis_stats(axis):
+            vals = [r[axis] for r in results if r[axis] is not None]
+            if not vals:
+                return f"{axis}: — (n=0)"
+            mean = sum(vals) / len(vals)
+            sd   = (sum((v - mean)**2 for v in vals) / len(vals))**0.5 if len(vals) > 1 else 0.0
+            return f"{axis}: mean={mean:+.4f}  SD={sd:.4f}  n={len(vals)}"
+
+        summary = (
+            f"Reference: {taxon_sel} / {ref_sel}   CondenseLogs: {condense_method}\n"
+            f"Processed: {n_proc}  |  Skipped/no-match: {n_skip}\n"
+            + "  ".join(axis_stats(ax) for ax in ('Length', 'Width', 'Depth'))
+        )
+        self.batch_summary_text.config(state=tk.NORMAL)
+        self.batch_summary_text.delete(1.0, tk.END)
+        self.batch_summary_text.insert(1.0, summary)
+        self.batch_summary_text.config(state=tk.DISABLED)
+
+        if hasattr(self, 'batch_status_label'):
+            self.batch_status_label.config(
+                text=f"✅ {n_proc} specimens processed", foreground="#1a7a1a")
+        self.measurement_status.config(
+            text=f"Batch LSI: {n_proc} specimens | {ref_sel}", foreground="#1a7a1a")
+
+    def _plot_batch_lsi(self):
+        if not self._batch_lsi_results:
+            messagebox.showwarning("Plot", "Run 'Calculate All' first.")
+            return
+        if not HAS_MPL:
+            messagebox.showerror("Plot", "matplotlib not installed.")
+            return
+
+        group_col  = self.batch_group_var.get() if hasattr(self, 'batch_group_var') else "(none)"
+        use_groups = (group_col and group_col != "(none)"
+                      and any(r['group'] for r in self._batch_lsi_results))
+
+        axes_list = [ax for ax in ('Length', 'Width', 'Depth')
+                     if any(r[ax] is not None for r in self._batch_lsi_results)]
+        if not axes_list:
+            messagebox.showinfo("Plot", "No condensed values to plot.")
+            return
+
+        import matplotlib.pyplot as plt
+        import matplotlib.gridspec as gridspec
+
+        fig = plt.figure(figsize=(5 * len(axes_list), 5))
+        taxon_sel = self.batch_taxon_var.get() if hasattr(self, 'batch_taxon_var') else "?"
+        ref_sel   = self.batch_ref_var.get() if hasattr(self, 'batch_ref_var') else "?"
+        cond_meth = self.batch_condense_var.get() if hasattr(self, 'batch_condense_var') else "?"
+        fig.suptitle(f"LSI Distribution  ·  {taxon_sel} / {ref_sel}  [{cond_meth}]",
+                     fontsize=10, fontweight='bold')
+
+        gs = gridspec.GridSpec(1, len(axes_list), figure=fig)
+        AXIS_COLOR = {"Length": "#1a7a3c", "Width": "#2471a3", "Depth": "#ca6f1e"}
+
+        for col_i, axis in enumerate(axes_list):
+            ax = fig.add_subplot(gs[0, col_i])
+            ax.axhline(0, color='#c0392b', linewidth=1.2, linestyle='--', alpha=0.7)
+
+            if use_groups:
+                groups = sorted(set(r['group'] for r in self._batch_lsi_results
+                                    if r[axis] is not None and r['group']))
+                data_by_g = {g: [r[axis] for r in self._batch_lsi_results
+                                  if r[axis] is not None and r['group'] == g]
+                             for g in groups}
+                positions = list(range(1, len(groups) + 1))
+                ax.boxplot([data_by_g[g] for g in groups], positions=positions,
+                           notch=False, patch_artist=True,
+                           boxprops=dict(facecolor=AXIS_COLOR.get(axis, '#ccc'), alpha=0.5),
+                           medianprops=dict(color='#c0392b', linewidth=2))
+                for pos, g in zip(positions, groups):
+                    vals   = data_by_g[g]
+                    jitter = [pos + (hash(str(v*1e6)) % 100 - 50) / 600 for v in vals]
+                    ax.scatter(jitter, vals, alpha=0.55, s=18,
+                               color=AXIS_COLOR.get(axis, '#555'), zorder=3)
+                ax.set_xticks(positions)
+                ax.set_xticklabels(groups, rotation=35, ha='right', fontsize=7)
+                ax.set_xlabel(group_col, fontsize=8)
+            else:
+                vals = [r[axis] for r in self._batch_lsi_results if r[axis] is not None]
+                ax.boxplot(vals, notch=False, patch_artist=True,
+                           boxprops=dict(facecolor=AXIS_COLOR.get(axis, '#ccc'), alpha=0.5),
+                           medianprops=dict(color='#c0392b', linewidth=2))
+                jitter = [1 + (hash(str(v*1e6)) % 100 - 50) / 600 for v in vals]
+                ax.scatter(jitter, vals, alpha=0.55, s=18,
+                           color=AXIS_COLOR.get(axis, '#555'), zorder=3)
+                ax.set_xticks([])
+                ax.set_xlabel(f"n={len(vals)}", fontsize=8)
+
+            ax.set_ylabel("LSI value (log₁₀)", fontsize=8)
+            ax.set_title(axis, fontsize=9, fontweight='bold',
+                         color=AXIS_COLOR.get(axis, '#2c3e50'))
+            ax.grid(axis='y', linestyle=':', alpha=0.4)
+
+        plt.tight_layout()
+        plt.show()
+
+    def _export_lsi_batch(self):
+        if not self._batch_lsi_results:
+            messagebox.showwarning("Export", "Run 'Calculate All' first.")
+            return
+        taxon_sel = self.batch_taxon_var.get() if hasattr(self, 'batch_taxon_var') else "batch"
+        path = filedialog.asksaveasfilename(
+            defaultextension=".csv", filetypes=[("CSV", "*.csv")],
+            initialfile=f"LSI_{taxon_sel.replace(' ', '_')}.csv")
+        if not path:
+            return
+        try:
+            all_codes = sorted(set(
+                code for r in self._batch_lsi_results for code in r['all_lsi'].keys()))
+            with open(path, 'w', newline='', encoding='utf-8') as f:
+                fieldnames = (['Index', 'Taxon', 'Element', 'Group',
+                                'Length', 'Width', 'Depth', 'N_measurements']
+                               + [f"log{c}" for c in all_codes])
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                for r in self._batch_lsi_results:
+                    row = {
+                        'Index': r['idx'] + 1, 'Taxon': r['taxon'],
+                        'Element': r['element'], 'Group': r['group'],
+                        'Length': f"{r['Length']:+.6f}" if r['Length'] is not None else '',
+                        'Width':  f"{r['Width']:+.6f}"  if r['Width']  is not None else '',
+                        'Depth':  f"{r['Depth']:+.6f}"  if r['Depth']  is not None else '',
+                        'N_measurements': r['n_meas'],
+                    }
+                    for code in all_codes:
+                        val = r['all_lsi'].get(code)
+                        row[f"log{code}"] = f"{val:+.6f}" if val is not None else ''
+                    writer.writerow(row)
+            messagebox.showinfo("Export", f"Batch LSI results saved to:\n{path}")
+            if hasattr(self, 'batch_status_label'):
+                self.batch_status_label.config(
+                    text=f"✅ Exported {len(self._batch_lsi_results)} rows")
+        except Exception as e:
+            messagebox.showerror("Export Error", str(e))
+
+    # ============================================================================
+    # TAPHONOMY METHODS
+    # ============================================================================
+
+    def _load_taph_from_sample(self, sample):
+        if hasattr(self, 'debug_taph') and self.debug_taph:
+            print(f"\n--- Loading taphonomy from specimen ---")
+            for key, value in sample.items():
+                if any(x in key for x in ['weather','burn','butcher','gnaw','root','surface','frag','taph']):
+                    print(f"  {key}: {value}")
+
+        w = sample.get('weathering', sample.get('weathering_stage', -1))
+        try:
+            w = int(w)
+            if w not in range(6):
+                w = -1
+        except (TypeError, ValueError):
+            w = -1
+        self.weather_var.set(w)
+
+        burning = sample.get('burning_stage', '')
+        if not burning:
+            legacy = sample.get('burning', False)
+            if str(legacy).lower() in ('true','1','yes','scorched'):
+                burning = 'scorched'
+            elif str(legacy).lower() in ('carbonised','carbonized','charred'):
+                burning = 'carbonised'
+            elif str(legacy).lower() in ('calcined','white','burnt'):
+                burning = 'calcined'
+            else:
+                burning = 'none'
+        if burning not in self._BURNING:
+            burning = 'none'
+        self.burning_var.set(burning)
+        self.burn_var.set(burning != 'none')
+
+        legacy_butchery = bool(sample.get('butchery', False))
+        for key in self.butchery_vars:
+            val = sample.get(key, False)
+            if isinstance(val, str):
+                val = val.lower() in ('true','1','yes','present')
+            self.butchery_vars[key].set(bool(val))
+        if legacy_butchery and not any(v.get() for v in self.butchery_vars.values()):
+            self.butchery_vars['cut_marks'].set(True)
+        self.butchery_var.set(any(v.get() for v in self.butchery_vars.values()))
+        self.butchery_notes_var.set(sample.get('butchery_notes', ''))
+
+        gnawing = sample.get('gnawing_type', sample.get('gnawing', ''))
+        if isinstance(gnawing, bool) or str(gnawing).lower() in ('true','1','yes'):
+            gnawing = 'carnivore'
+        if gnawing not in ('none','carnivore','rodent','both'):
+            gnawing = 'none'
+        self.gnawing_var.set(gnawing)
+        self.gnaw_var.set(gnawing != 'none')
+        self.tooth_pits_var.set(bool(sample.get('tooth_pits', False)))
+
+        for key in self.surf_mod_vars:
+            val = sample.get(key, False)
+            if isinstance(val, str):
+                val = val.lower() in ('true','1','yes','present')
+            self.surf_mod_vars[key].set(bool(val))
+        if sample.get('root_etching', False):
+            self.surf_mod_vars['root_etching'].set(True)
+        self.root_var.set(self.surf_mod_vars['root_etching'].get())
+
+        sq = sample.get('surface_preservation', sample.get('surf_qual', 0))
+        try:
+            sq = int(sq)
+            if sq not in range(1, 6):
+                sq = 0
+        except (TypeError, ValueError):
+            sq = 0
+        self.surf_qual_var.set(sq)
+
+        self.fragmentation_var.set(sample.get('fragmentation', sample.get('portion', '')))
+        comp = sample.get('completeness', sample.get('completeness_pct', ''))
+        self.completeness_var.set(str(comp) if comp else '')
+        self.taph_notes_var.set(sample.get('taph_notes', sample.get('taphonomy_notes', '')))
+
+        self._update_taph_summary()
 
     def _update_taph_summary(self):
-        """Update taphonomic summary based on checkboxes."""
-        modifications = []
-        if self.burn_var.get():
-            modifications.append("🔥 Burned")
-        if self.butchery_var.get():
-            modifications.append("🥩 Butchery")
-        if self.gnaw_var.get():
-            modifications.append("🐕 Gnawed")
-        if self.root_var.get():
-            modifications.append("🌱 Root etching")
+        lines = []
 
-        if modifications:
-            self.taph_summary.config(text=" | ".join(modifications))
+        w = self.weather_var.get()
+        if w in self._BEHRENSMEYER:
+            label, desc, _ = self._BEHRENSMEYER[w]
+            tag = "good" if w <= 1 else "warn" if w <= 3 else "bad"
+            lines.append((f"Weathering: {label} — {desc}", tag))
         else:
-            self.taph_summary.config(text="No modifications recorded")
+            lines.append(("Weathering: not recorded", "neutral"))
+
+        b = self.burning_var.get()
+        if b != 'none':
+            label, desc, _ = self._BURNING[b]
+            lines.append((f"Burning: {label} — {desc}", "warn"))
+
+        sq = self.surf_qual_var.get()
+        if sq in self._SURF_QUAL:
+            sq_label, sq_desc, _ = self._SURF_QUAL[sq]
+            sq_tag = "good" if sq >= 4 else "warn" if sq >= 2 else "bad"
+            lines.append((f"Surface quality: {sq_label} — {sq_desc}", sq_tag))
+
+        active_butchery = [k for k, v in self.butchery_vars.items() if v.get()]
+        if active_butchery:
+            labels = {'cut_marks':'Cut marks','chop_marks':'Chop marks',
+                      'percussion_marks':'Percussion marks','scraping_marks':'Scraping marks'}
+            parts = [labels[k] for k in active_butchery]
+            note  = self.butchery_notes_var.get().strip()
+            txt   = "Butchery: " + ", ".join(parts)
+            if note:
+                txt += f"  [{note}]"
+            lines.append((txt, "warn"))
+
+        gnaw = self.gnawing_var.get()
+        if gnaw != 'none':
+            tp = "  + tooth pits" if self.tooth_pits_var.get() else ""
+            gnaw_labels = {'carnivore':'Carnivore gnawing',
+                           'rodent':'Rodent gnawing','both':'Carnivore & rodent gnawing'}
+            lines.append((f"Gnawing: {gnaw_labels.get(gnaw, gnaw)}{tp}", "warn"))
+
+        active_mods = [k for k, v in self.surf_mod_vars.items() if v.get()]
+        if active_mods:
+            mod_labels = {
+                'root_etching':'Root etching','abrasion':'Abrasion','rounding':'Rounding',
+                'bleaching':'Bleaching','manganese_staining':'Mn staining',
+                'iron_staining':'Fe/ochre staining','trampling':'Trampling',
+            }
+            parts = [mod_labels.get(k, k) for k in active_mods]
+            lines.append(("Surface mods: " + ", ".join(parts), "neutral"))
+
+        frag = self.fragmentation_var.get()
+        comp = self.completeness_var.get().strip()
+        frag_parts = []
+        if frag:
+            frag_parts.append(frag)
+        if comp:
+            frag_parts.append(f"{comp}% complete")
+        if frag_parts:
+            lines.append(("Fragmentation: " + "  ·  ".join(frag_parts), "neutral"))
+
+        note = self.taph_notes_var.get().strip()
+        if note:
+            lines.append((f"Notes: {note}", "neutral"))
+
+        self.taph_summary_text.config(state=tk.NORMAL)
+        self.taph_summary_text.delete(1.0, tk.END)
+        if not lines:
+            self.taph_summary_text.insert(tk.END, "No taphonomic data recorded.", "neutral")
+        else:
+            for i, (text, tag) in enumerate(lines):
+                self.taph_summary_text.insert(tk.END, text, tag)
+                if i < len(lines) - 1:
+                    self.taph_summary_text.insert(tk.END, "\n")
+        self.taph_summary_text.config(state=tk.DISABLED)
 
     # ============================================================================
-    # LSI Calculator
-    # ============================================================================
-
-    # Standard measurements from zoolog package (simplified)
-    ZOOLOG_STANDARDS = {
-        'Cattle': {'GL': 280, 'Bp': 75, 'Bd': 68, 'SD': 38},
-        'Sheep': {'GL': 150, 'Bp': 40, 'Bd': 35, 'SD': 18},
-        'Goat': {'GL': 145, 'Bp': 38, 'Bd': 34, 'SD': 17},
-        'Pig': {'GL': 130, 'Bp': 42, 'Bd': 40, 'SD': 22},
-        'Red Deer': {'GL': 260, 'Bp': 60, 'Bd': 55, 'SD': 30},
-        'Roe Deer': {'GL': 180, 'Bp': 40, 'Bd': 35, 'SD': 20}
-    }
-
-    # ============================================================================
-    # UI update methods
+    # UI METHODS
     # ============================================================================
 
     def _update_ui(self):
-        """Populate specimen list."""
         self.specimen_list.delete(0, tk.END)
-
         indices = self.selected_indices if self.selected_indices else range(len(self.samples))
-
-        for i in sorted(indices)[:50]:
+        for i in sorted(indices):
             if i >= len(self.samples):
                 continue
-            sample = self.samples[i]
-            label = f"{i}: {sample.get('Sample_ID', '')[:10]} - {sample.get('taxon', '?')[:15]}"
+            sample   = self.samples[i]
+            sample_id = sample.get('Sample_ID', f"Spec{i}")
+            taxon    = sample.get('taxon', '?')[:15]
+            element  = sample.get('element', sample.get('bone', '?'))[:10]
+            label    = f"{i:3d}: {sample_id[:10]:10} - {taxon:15} - {element:10}"
             self.specimen_list.insert(tk.END, label)
-
         if self.specimen_list.size() > 0:
             self.specimen_list.selection_set(0)
             self._on_specimen_selected()
 
     def _on_specimen_selected(self, event=None):
-        """Load selected specimen data."""
         selection = self.specimen_list.curselection()
         if not selection:
             return
 
         idx = selection[0]
-        actual_idx = list(sorted(self.selected_indices if self.selected_indices else range(len(self.samples))))[idx]
-        self.current_specimen_idx = actual_idx
+        if self.selected_indices:
+            actual_idx = list(sorted(self.selected_indices))[idx]
+        else:
+            actual_idx = idx
 
+        self.current_specimen_idx = actual_idx
         if actual_idx >= len(self.samples):
             return
 
         sample = self.samples[actual_idx]
 
-        # Update specimen summary
         self.specimen_summary.delete(1.0, tk.END)
         self.specimen_summary.insert(1.0,
             f"ID: {sample.get('Sample_ID', 'N/A')}\n"
@@ -1694,79 +4046,123 @@ class IndividualTab(AnalysisTab):
             f"Element: {sample.get('element', 'Unknown')} ({sample.get('side', '')})"
         )
 
-        # Set taxon for age
-        taxon = sample.get('taxon', '')
-        for t in ['Cattle', 'Sheep', 'Goat', 'Pig', 'Horse', 'Red Deer', 'Dog']:
-            if t.lower() in taxon.lower():
+        # ── Age tab: set taxon, rebuild all 6 sections, load data ─────────────
+        taxon_raw = sample.get('taxon', '')
+        for t in ['Cattle','Sheep','Goat','Pig','Horse','Red Deer','Fallow Deer',
+                  'Dog','Cat','Chicken','Goose','Duck','Other Bird','Fish','Other']:
+            if t.lower() in taxon_raw.lower():
                 self.age_taxon_var.set(t)
+                self._on_age_taxon_changed()
                 break
 
-        # Load fusion
+        # Fusion state + element
         fusion = sample.get('fusion', '')
-        if fusion in FUSION_STAGES:
-            self.fusion_var.set(fusion)
-            self._update_fusion_interpretation()
+        if hasattr(self, 'fusion_var'):
+            self.fusion_var.set(fusion if fusion in FUSION_STAGES else '')
+        fusion_elem = sample.get('fusion_element', '')
+        if hasattr(self, 'fusion_element_var'):
+            self.fusion_element_var.set(fusion_elem)
+        self._update_fusion_interpretation()
 
-        # Load taphonomy
-        self.weather_var.set(int(sample.get('weathering', 0)))
-        self._update_weather_interpretation()
+        # Grant wear stages
+        for tooth in ['dP4', 'P4', 'M1', 'M2', 'M3']:
+            val = sample.get(f'grant_{tooth}', '')
+            if tooth in self.grant_vars:
+                self.grant_vars[tooth].set(str(val) if val else '—')
 
-        self.burn_var.set(bool(sample.get('burning', False)))
-        self.butchery_var.set(bool(sample.get('butchery', False)))
-        self.gnaw_var.set(bool(sample.get('gnawing', False)))
-        self.root_var.set(bool(sample.get('root_etching', False)))
-        self._update_taph_summary()
+        # Pig wear
+        if hasattr(self, '_pig_wear_var') and self._pig_wear_var is not None:
+            self._pig_wear_var.set(sample.get('pig_wear_stage', ''))
 
-        # Load dental wear
-        for tooth in ['M1', 'M2', 'M3', 'P4']:
-            val = sample.get(f'wear_{tooth}', '')
-            self.wear_vars[tooth].set(str(val) if val else '')
-        self._update_dental_interpretation()
+        # Horse indicators
+        if hasattr(self, '_horse_vars') and self._horse_vars:
+            for key, var in self._horse_vars.items():
+                var.set(bool(sample.get(f'horse_{key}', False)))
 
-        # Load measurements
-        loaded_count = 0
+        # Dog wear
+        if hasattr(self, '_dog_wear_var') and self._dog_wear_var is not None:
+            self._dog_wear_var.set(sample.get('dog_wear_stage', '— not recorded'))
+
+        # Eruption states (section 1)
+        if hasattr(self, '_eruption_vars'):
+            for tooth, var in self._eruption_vars.items():
+                saved = sample.get(f'erupt_{tooth.replace("/","_")}', '— not observed')
+                var.set(saved)
+            self._on_eruption_changed()
+
+        # Cementum
+        if hasattr(self, '_cement_rings_var'):
+            self._cement_rings_var.set(str(sample.get('cement_rings', '')))
+            self._cement_season_var.set(sample.get('cement_season', ''))
+
+        # Histology
+        if hasattr(self, '_histo_age_var'):
+            self._histo_age_var.set(str(sample.get('histo_age_yr', '')))
+            self._histo_method_var.set(sample.get('histo_method', ''))
+            self._histo_ref_var.set(sample.get('histo_ref', ''))
+
+        # Gross morphology
+        if hasattr(self, '_gross_morph_var'):
+            morph_key   = sample.get('gross_morph', '')
+            morph_label = self._GROSS_MORPH_LABELS.get(morph_key, '')
+            self._gross_morph_var.set(morph_label)
+            texture_key   = sample.get('bone_texture', '')
+            texture_label = next((lbl for k, lbl in self._BONE_TEXTURE_OPTS if k == texture_key), '')
+            self._bone_texture_var.set(texture_label)
+            self._gross_notes_var.set(sample.get('gross_morph_notes', ''))
+
+        # Taphonomy
+        self._load_taph_from_sample(sample)
+
+        # Measurements
+        loaded = 0
         for code, var in self.measurement_vars.items():
             val = sample.get(code, '')
             if val:
                 var.set(str(val))
-                loaded_count += 1
+                loaded += 1
             else:
                 var.set('')
+        self.measurement_status.config(text=f"Loaded {loaded} measurements")
 
-        self.measurement_status.config(text=f"Loaded {loaded_count} measurements")
+        self._calculate_age_live()
 
-    def _update_fusion_desc(self, event=None):
-        fusion = self.fusion_var.get()
-        self.fusion_desc.config(text=FUSION_STAGES.get(fusion, ""))
+        self.frame.update_idletasks()
+        self.set_status(f"✅ Loaded specimen {actual_idx}", "success")
+
+        if hasattr(self, 'lsi_header_label'):
+            spec_info = (f"  ·  Specimen: {sample.get('Sample_ID', '—')}"
+                         f"  |  {sample.get('taxon', '—')}"
+                         f"  |  {sample.get('element', '—')}")
+            self.lsi_header_label.config(
+                text=f"📊 Log Size Index (LSI) Calculator — zoolog methodology{spec_info}")
+
+        self._auto_select_from_specimen()
 
     def _prev_specimen(self):
-        selection = self.specimen_list.curselection()
-        if selection and selection[0] > 0:
+        sel = self.specimen_list.curselection()
+        if sel and sel[0] > 0:
             self.specimen_list.selection_clear(0, tk.END)
-            self.specimen_list.selection_set(selection[0] - 1)
+            self.specimen_list.selection_set(sel[0] - 1)
             self._on_specimen_selected()
 
     def _next_specimen(self):
-        selection = self.specimen_list.curselection()
-        if selection and selection[0] < self.specimen_list.size() - 1:
+        sel = self.specimen_list.curselection()
+        if sel and sel[0] < self.specimen_list.size() - 1:
             self.specimen_list.selection_clear(0, tk.END)
-            self.specimen_list.selection_set(selection[0] + 1)
+            self.specimen_list.selection_set(sel[0] + 1)
             self._on_specimen_selected()
 
     def _save_to_specimen(self):
-        """Save current data back to the main data hub."""
         if self.current_specimen_idx is None:
             self.set_status("⚠️ No specimen selected", "warning")
             return
-
         all_samples = self.app.data_hub.get_all()
         if self.current_specimen_idx >= len(all_samples):
-            self.set_status("❌ Specimen index out of range", "error")
             return
-
         updated = all_samples[self.current_specimen_idx].copy()
 
-        # --- Save measurements ---
+        # Measurements
         meas_count = 0
         for code, var in self.measurement_vars.items():
             val = var.get().strip()
@@ -1777,46 +4173,190 @@ class IndividualTab(AnalysisTab):
                 except ValueError:
                     updated[code] = val
                     meas_count += 1
-            else:
-                if code in updated:
-                    del updated[code]
+            elif code in updated:
+                del updated[code]
 
-        # --- Save taphonomy ---
-        updated['weathering'] = self.weather_var.get()
-        updated['burning'] = self.burn_var.get()
-        updated['butchery'] = self.butchery_var.get()
-        updated['gnawing'] = self.gnaw_var.get()
-        updated['root_etching'] = self.root_var.get()
+        # ── Age fields ────────────────────────────────────────────────────────
+        # Fusion
+        if hasattr(self, 'fusion_var') and self.fusion_var.get():
+            updated['fusion'] = self.fusion_var.get()
+        if hasattr(self, 'fusion_element_var') and self.fusion_element_var.get():
+            updated['fusion_element'] = self.fusion_element_var.get()
 
-        # --- Save fusion ---
-        fusion = self.fusion_var.get()
-        if fusion:
-            updated['fusion'] = fusion
+        # Grant wear
+        for tooth, var in self.grant_vars.items():
+            val = var.get().strip()
+            key = f'grant_{tooth}'
+            if val and val != '—':
+                updated[key] = val
+            elif key in updated:
+                del updated[key]
 
-        # --- Save dental wear ---
-        for tooth in ['M1', 'M2', 'M3', 'P4']:
-            val = self.wear_vars[tooth].get().strip()
-            if val:
-                updated[f'wear_{tooth}'] = val
-            else:
-                if f'wear_{tooth}' in updated:
-                    del updated[f'wear_{tooth}']
+        mws_text = self.mws_score_label.cget('text')
+        if mws_text not in ('—', '?', 'n/a', ''):
+            try:
+                updated['grant_mws'] = int(mws_text)
+            except Exception:
+                pass
+
+        # Pig wear
+        if hasattr(self, '_pig_wear_var') and self._pig_wear_var is not None:
+            updated['pig_wear_stage'] = self._pig_wear_var.get()
+
+        # Horse indicators
+        if hasattr(self, '_horse_vars') and self._horse_vars:
+            for key, var in self._horse_vars.items():
+                updated[f'horse_{key}'] = var.get()
+
+        # Dog wear
+        if hasattr(self, '_dog_wear_var') and self._dog_wear_var is not None:
+            updated['dog_wear_stage'] = self._dog_wear_var.get()
+
+        # Eruption states
+        if hasattr(self, '_eruption_vars'):
+            for tooth, var in self._eruption_vars.items():
+                updated[f'erupt_{tooth.replace("/","_")}'] = var.get()
+
+        # Cementum
+        if hasattr(self, '_cement_rings_var'):
+            rings = self._cement_rings_var.get().strip()
+            if rings:
+                try:
+                    updated['cement_rings'] = int(rings)
+                except ValueError:
+                    pass
+            updated['cement_season'] = self._cement_season_var.get()
+
+        # Histology
+        if hasattr(self, '_histo_age_var'):
+            h = self._histo_age_var.get().strip()
+            if h:
+                try:
+                    updated['histo_age_yr'] = float(h)
+                except ValueError:
+                    pass
+            updated['histo_method'] = self._histo_method_var.get()
+            updated['histo_ref']    = self._histo_ref_var.get()
+
+        # Gross morphology
+        if hasattr(self, '_gross_morph_var'):
+            morph_label = self._gross_morph_var.get()
+            morph_key   = next(
+                (k for k, v in self._GROSS_MORPH_LABELS.items() if v == morph_label), '')
+            updated['gross_morph'] = morph_key
+            texture_label = self._bone_texture_var.get()
+            texture_key   = next(
+                (k for k, v in self._BONE_TEXTURE_OPTS if v == texture_label), '')
+            updated['bone_texture']      = texture_key
+            updated['gross_morph_notes'] = self._gross_notes_var.get().strip()
+
+        # ── Taphonomy ─────────────────────────────────────────────────────────
+        updated['weathering']           = self.weather_var.get()
+        updated['burning_stage']        = self.burning_var.get()
+        updated['burning']              = (self.burning_var.get() != 'none')
+
+        for key, var in self.butchery_vars.items():
+            updated[key] = var.get()
+        updated['butchery']             = any(v.get() for v in self.butchery_vars.values())
+        updated['butchery_notes']       = self.butchery_notes_var.get().strip()
+
+        updated['gnawing_type']         = self.gnawing_var.get()
+        updated['gnawing']              = (self.gnawing_var.get() != 'none')
+        updated['tooth_pits']           = self.tooth_pits_var.get()
+
+        for key, var in self.surf_mod_vars.items():
+            updated[key] = var.get()
+        updated['root_etching']         = self.surf_mod_vars['root_etching'].get()
+
+        updated['surface_preservation'] = self.surf_qual_var.get()
+        updated['fragmentation']        = self.fragmentation_var.get()
+
+        comp = self.completeness_var.get().strip()
+        if comp:
+            try:
+                updated['completeness'] = float(comp)
+            except ValueError:
+                updated['completeness'] = comp
+        elif 'completeness' in updated:
+            del updated['completeness']
+
+        updated['taph_notes'] = self.taph_notes_var.get().strip()
 
         try:
             self.app.data_hub.update_row(self.current_specimen_idx, updated)
             self.measurement_status.config(text=f"Saved {meas_count} measurements", foreground="green")
-            self.set_status(f"✅ Saved specimen {self.current_specimen_idx} ({meas_count} measurements)", "success")
+            self.set_status(f"✅ Saved specimen {self.current_specimen_idx}", "success")
         except Exception as e:
             self.set_status(f"❌ Save failed: {str(e)[:50]}", "error")
 
     def _clear_measurements(self):
-        """Clear all measurement fields."""
+        # Biometrics
         for var in self.measurement_vars.values():
             var.set("")
-        self.measurement_status.config(text="All fields cleared")
 
+        # Age fields
+        for var in self.grant_vars.values():
+            var.set('')
+        self.mws_score_label.config(text='—')
+        self.payne_stage_label.config(text='—')
+        self.age_estimate.config(text='—')
+        self.grant_age_label.config(text='')
+
+        if hasattr(self, 'fusion_var'):
+            self.fusion_var.set('')
+        if hasattr(self, 'fusion_element_var'):
+            self.fusion_element_var.set('')
+
+        if hasattr(self, '_pig_wear_var') and self._pig_wear_var is not None:
+            self._pig_wear_var.set('')
+
+        if hasattr(self, '_horse_vars') and self._horse_vars:
+            for v in self._horse_vars.values():
+                v.set(False)
+
+        if hasattr(self, '_dog_wear_var') and self._dog_wear_var is not None:
+            self._dog_wear_var.set('— not recorded')
+
+        if hasattr(self, '_eruption_vars'):
+            for v in self._eruption_vars.values():
+                v.set('— not observed')
+
+        if hasattr(self, '_cement_rings_var'):
+            self._cement_rings_var.set('')
+            self._cement_season_var.set('')
+
+        if hasattr(self, '_histo_age_var'):
+            self._histo_age_var.set('')
+            self._histo_method_var.set('')
+            self._histo_ref_var.set('')
+
+        if hasattr(self, '_gross_morph_var'):
+            self._gross_morph_var.set('')
+            self._bone_texture_var.set('')
+            self._gross_notes_var.set('')
+
+        # Taphonomy
+        self.weather_var.set(-1)
+        self.burning_var.set('none')
+        self.surf_qual_var.set(0)
+        for v in self.butchery_vars.values():
+            v.set(False)
+        self.butchery_notes_var.set('')
+        self.gnawing_var.set('none')
+        self.tooth_pits_var.set(False)
+        for v in self.surf_mod_vars.values():
+            v.set(False)
+        self.fragmentation_var.set('')
+        self.completeness_var.set('')
+        self.taph_notes_var.set('')
+        self._update_taph_summary()
+
+        self._calculate_age_live()
+
+        self.measurement_status.config(text="")
+        self.lsi_indicator.config(text="")
 # ============================================================================
-# TAB 3: IDENTITY - Morphological keys + measurement-based ID with reference DB
+# TAB 3: IDENTITY - Morphological keys + OsteoID Calculator with Results
 # ============================================================================
 
 class IdentityTab(AnalysisTab):
@@ -1824,6 +4364,19 @@ class IdentityTab(AnalysisTab):
         super().__init__(parent, app, ui_queue)
         self.ref_db = ReferenceDatabase()
         self._load_reference_database()
+        self.keys_database = {}
+        self._load_morphological_keys()
+
+        # OsteoID database (lazy loaded)
+        self.osteoid_data = None
+        self.osteoid_stats = None
+        self.osteoid_bone_types = []
+        self.osteoid_common_names = []
+        self.osteoid_scientific_names = []
+        self.osteoid_loaded = False
+        self.last_results = []
+        self.last_unknown = {}
+
         self._build_ui()
 
     def _set_equal_split(self, paned):
@@ -1836,161 +4389,804 @@ class IdentityTab(AnalysisTab):
             pass
 
     def refresh(self):
-        """Refresh tab with current data and load measurements from selected specimen."""
+        """Refresh tab with current data."""
         super().refresh()
-        self._load_measurements_from_selection()
-
-    def _update_live_preview(self, event=None):
-        """Update the quick match preview live as user types."""
-        # Collect measurements
-        unknown = {}
-        for code, var in self.id_measurements.items():
-            val = var.get().strip()
-            if val:
-                try:
-                    unknown[code] = float(val)
-                except ValueError:
-                    pass
-
-        if not unknown or not hasattr(self, 'ref_db') or not self.ref_db.loaded:
-            # Clear preview
-            for i in range(5):
-                self.preview_taxon_labels[i].config(text="—")
-                self.preview_percent_labels[i].config(text="0%")
-                self.preview_bars[i].delete("all")
-            self.preview_summary.config(text="Enter measurements to see live match preview")
-            return
-
-        # Get selected taxa
-        selected_taxa = [taxon for taxon, var in self.id_taxa_vars.items() if var.get()]
-        if not selected_taxa:
-            return
-
-        # Get live probabilities
-        results = self.ref_db.compare_unknown(unknown, selected_taxa)
-
-        # Update preview rows
-        for i, (taxon, prob) in enumerate(list(results.items())[:5]):
-            self.preview_taxon_labels[i].config(text=taxon[:20])
-            self.preview_percent_labels[i].config(text=f"{prob:.0%}")
-
-            # Update progress bar
-            bar = self.preview_bars[i]
-            bar.delete("all")
-            bar_width = bar.winfo_width()
-            if bar_width > 10:
-                fill_width = int(bar_width * prob)
-                bar.create_rectangle(0, 0, fill_width, 12, fill='#2ecc71', outline='')
-
-        # Clear remaining rows
-        for i in range(len(results), 5):
-            self.preview_taxon_labels[i].config(text="—")
-            self.preview_percent_labels[i].config(text="0%")
-            self.preview_bars[i].delete("all")
-
-        # Update summary with confidence indicator
-        if results:
-            best = list(results.keys())[0]
-            best_prob = results[best]
-
-            # Check how many measurements matched
-            matched_count = len(unknown)
-            confidence_note = ""
-            if matched_count < 3:
-                confidence_note = "⚠️ Low confidence (few measurements)"
-            elif matched_count < 5:
-                confidence_note = "⚠️ Moderate confidence"
-            else:
-                confidence_note = "✓ Good confidence"
-
-            self.preview_summary.config(
-                text=f"Most likely: {best} ({best_prob:.0%}) · {confidence_note}"
-            )
-        else:
-            self.preview_summary.config(text="No match data available")
-
-    def _go_to_results_tab(self, event=None):
-        """Switch to the Results & Visualization tab."""
-        if hasattr(self, 'right_notebook'):
-            self.right_notebook.select(1)  # Index 1 = Results tab
-
-    def _load_measurements_from_selection(self):
-        """Load measurements from the currently selected specimen."""
-        if not self.selected_indices:
-            return
-
-        # Get the first selected specimen
-        idx = next(iter(self.selected_indices))
-        if idx >= len(self.samples):
-            return
-
-        sample = self.samples[idx]
-
-        # Map of measurement codes
-        measurement_codes = ['GL', 'Bp', 'Bd', 'SD', 'Dp', 'GLP', 'LG', 'BG', 'BT']
-
-        # Fill in the measurement fields
-        filled_count = 0
-        for code in measurement_codes:
-            if code in self.id_measurements:
-                saved_value = sample.get(code, '')
-                if saved_value:
-                    self.id_measurements[code].set(str(saved_value))
-                    filled_count += 1
-                else:
-                    self.id_measurements[code].set('')
-
-        # Update status if we have a status label
-        if hasattr(self, 'measurement_status'):
-            self.measurement_status.config(text=f"Loaded {filled_count} measurements from selected specimen")
 
     def _load_reference_database(self):
-        """Load reference database from config folder."""
+        """Load the complete unified database."""
+        try:
+            plugin_dir = Path(__file__).parent
+            appbase_dir = plugin_dir.parent.parent
+            gz_path = appbase_dir / "config" / "zooarch_database.json.gz"
+
+            with gzip.open(gz_path, 'rt', encoding='utf-8') as f:
+                self.full_database = json.load(f)
+
+            # Extract references for LSI calculations
+            self.references = self.full_database.get('references', {})
+
+            # Build taxon_references structure
+            self.taxon_references = {}
+            for ref_name, ref_data in self.references.items():
+                taxon = ref_data.get('taxon', 'Unknown')
+                self.taxon_references.setdefault(taxon, []).append(ref_name)
+
+            # Build reference_standards for LSI (element-level grouping)
+            self.reference_standards = {}
+            for ref_name, ref_data in self.references.items():
+                taxon = ref_data.get('taxon', 'Unknown')
+                measurements = ref_data.get('measurements', [])
+
+                # Group by element
+                elem_dict = {}
+                for m in measurements:
+                    element = m.get('element', 'Unknown')
+                    measure = m.get('measure', '')
+                    standard = m.get('standard')
+                    if measure and standard is not None:
+                        elem_dict.setdefault(element, {})[measure] = float(standard)
+
+                if elem_dict:
+                    self.reference_standards.setdefault(taxon, {})[ref_name] = elem_dict
+
+            # Load taxonomy
+            self.taxonomy = {}
+            for taxon in self.full_database.get('taxonomy', []):
+                species = taxon.get('species')
+                if species:
+                    self.taxonomy[species] = {
+                        'genus': taxon.get('genus'),
+                        'tribe': taxon.get('tribe'),
+                        'subfamily': taxon.get('subfamily'),
+                        'family': taxon.get('family')
+                    }
+
+            # Load thesauri for data cleaning
+            thesaurus = self.full_database.get('thesaurus', {})
+            self.taxon_thesaurus = thesaurus.get('taxon', {})
+            self.element_thesaurus = thesaurus.get('element', {})
+
+            # Load specimen data for analysis examples
+            self.specimen_data = self.full_database.get('specimen_data', {})
+
+            taxa_count = len(self.taxon_references)
+            self.set_status(f"✅ Loaded unified database: {taxa_count} taxa, {len(self.references)} references", "success")
+
+            return True
+
+        except Exception as e:
+            self.set_status(f"⚠️ Error loading database: {e}", "warning")
+            return False
+
+    def _load_morphological_keys(self):
+        """Load morphological keys from config folder."""
         try:
             from pathlib import Path
             plugin_dir = Path(__file__).parent
             appbase_dir = plugin_dir.parent.parent
-            ref_path = appbase_dir / "config" / "zooarch_reference.json"
+            keys_path = appbase_dir / "config" / "morphological_keys.json"
 
-            success, msg = self.ref_db.load_from_file(ref_path)
-            if success:
-                taxa_count = len(self.ref_db.get_taxa())
-                self.set_status(f"✅ Loaded {taxa_count} reference taxa for identification", "success")
-                print(f"✅ Reference database loaded: {msg}")
+            with open(keys_path, 'r', encoding='utf-8') as f:
+                self.keys_database = json.load(f)
+
+            if "metadata" in self.keys_database:
+                metadata = self.keys_database.pop("metadata")
+                version = metadata.get("version", "unknown")
+                self.set_status(f"✅ Loaded morphological keys v{version}", "success")
+                print(f"✅ Loaded morphological keys v{version}")
             else:
-                self.set_status(f"⚠️ Reference database not found - using fallback", "warning")
-                print(f"⚠️ {msg}")
+                self.set_status(f"✅ Loaded {len(self.keys_database)} morphological keys", "success")
+                print(f"✅ Loaded morphological keys")
+
+            return True
+        except FileNotFoundError:
+            self.set_status("⚠️ morphological_keys.json not found", "warning")
+            print(f"⚠️ morphological_keys.json not found")
+            self.keys_database = {
+                "Sheep vs Goat (cranial)": "Sheep vs Goat cranial features - see references",
+                "Sheep vs Goat (postcranial)": "Sheep vs Goat postcranial features - see references",
+            }
+            return False
         except Exception as e:
-            self.set_status(f"⚠️ Could not load reference database", "warning")
-            print(f"⚠️ Could not load reference database: {e}")
+            self.set_status(f"⚠️ Error loading morphological keys: {e}", "warning")
+            print(f"⚠️ Error loading morphological keys: {e}")
+            self.keys_database = {}
+            return False
+
+    def _lazy_load_osteoid(self):
+        """Load OsteoID database only when needed."""
+        if self.osteoid_loaded:
+            return True
+
+        try:
+            from pathlib import Path
+            plugin_dir = Path(__file__).parent
+            appbase_dir = plugin_dir.parent.parent
+
+            # Try compressed version first, fall back to uncompressed
+            gz_path = appbase_dir / "config" / "osteoid_database.json.gz"
+            json_path = appbase_dir / "config" / "osteoid_database.json"
+
+            # Show loading indicator
+            if hasattr(self, 'osteoid_status'):
+                self.osteoid_status.config(text="🔄 Loading OsteoID database (20MB)...")
+                self.frame.update()
+
+            print("🔄 Loading OsteoID database...")
+
+            # Load from gzip if it exists
+            if gz_path.exists():
+                with gzip.open(gz_path, 'rt', encoding='utf-8') as f:
+                    data = json.load(f)
+                print(f"✅ Loaded from compressed file (saved space)")
+            else:
+                # Fall back to uncompressed
+                with open(json_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                print(f"✅ Loaded from uncompressed file")
+
+            # Rest of your loading code remains the same...
+            self.osteoid_data = data.get('data_by_specimen', [])
+
+            # Process into long format for statistics
+            df = self._process_specimen_data(self.osteoid_data)
+
+            if len(df) == 0:
+                print(f"⚠️ No valid bone measurements found")
+                return False
+
+            # Convert measurement columns to numeric
+            for col in ['MaxL', 'MaxPW', 'MaxDW', 'MaxPD', 'DiamFH']:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+
+            # Rename MaxPW to MaxCPW for compatibility
+            if 'MaxPW' in df.columns:
+                df['MaxCPW'] = df['MaxPW']
+
+            # Pre-calculate species statistics
+            self.osteoid_stats = df.groupby(['Bone', 'Common_Name', 'Genus', 'Species']).agg({
+                'MaxL': ['mean', 'std', 'min', 'max', 'count'],
+                'MaxCPW': ['mean', 'std', 'min', 'max'],
+                'MaxDW': ['mean', 'std', 'min', 'max']
+            }).dropna()
+
+            # Get bone types with counts
+            bone_counts = df['Bone'].value_counts()
+            self.osteoid_bone_types = [f"{bone}({count})" for bone, count in bone_counts.items()]
+
+            # Get unique common and scientific names for autocomplete
+            self.osteoid_common_names = sorted(df['Common_Name'].dropna().unique())
+
+            # Build scientific names list
+            sci_names = set()
+            for _, row in df.iterrows():
+                if pd.notna(row.get('Genus')) and pd.notna(row.get('Species')):
+                    sci_names.add(f"{row['Genus']} {row['Species']}")
+            self.osteoid_scientific_names = sorted(sci_names)
+
+            # Update UI components if they exist
+            if hasattr(self, 'bone_combo'):
+                self.bone_combo['values'] = self.osteoid_bone_types
+                if self.osteoid_bone_types:
+                    self.bone_combo.set(self.osteoid_bone_types[0])
+
+            if hasattr(self, 'common_combo'):
+                self.common_combo['values'] = self.osteoid_common_names
+
+            if hasattr(self, 'scientific_combo'):
+                self.scientific_combo['values'] = self.osteoid_scientific_names
+
+            self.osteoid_loaded = True
+
+            if hasattr(self, 'osteoid_status'):
+                self.osteoid_status.config(text=f"✅ Loaded {len(df)} bones from {len(self.osteoid_data)} specimens")
+
+            print(f"✅ OsteoID database loaded: {len(df)} bone records")
+            return True
+
+        except FileNotFoundError:
+            if hasattr(self, 'osteoid_status'):
+                self.osteoid_status.config(text="⚠️ osteoid_database.json not found")
+            print(f"⚠️ osteoid_database.json not found")
+            return False
+        except Exception as e:
+            if hasattr(self, 'osteoid_status'):
+                self.osteoid_status.config(text=f"⚠️ Error: {str(e)[:50]}")
+            print(f"⚠️ Error loading OsteoID database: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def _process_specimen_data(self, specimen_data):
+        """Convert specimen data to long bone format."""
+        rows = []
+
+        # Define bone codes to look for
+        bone_codes = ['Hum', 'Fem', 'Tib', 'Rad', 'Uln', 'Scap', 'OsCox', 'Fib', 'Metac', 'Metat']
+
+        for specimen in specimen_data:
+            common_name = specimen.get('Common_Name', '')
+            genus = specimen.get('Genus', '')
+            species = specimen.get('Species', '')
+
+            if not common_name and not (genus and species):
+                continue
+
+            for bone in bone_codes:
+                # Check for length measurement (minimum requirement)
+                len_key = f"{bone}_MaxL"
+                if len_key not in specimen or specimen[len_key] is None:
+                    continue
+
+                try:
+                    row = {
+                        'Bone': bone,
+                        'Common_Name': common_name,
+                        'Genus': genus,
+                        'Species': species,
+                        'MaxL': float(specimen[len_key]) if specimen[len_key] else None,
+                        'MaxPW': None,
+                        'MaxDW': None,
+                        'MaxPD': None,
+                        'DiamFH': None
+                    }
+
+                    # Check for other measurements
+                    pw_key = f"{bone}_MaxPW"
+                    if pw_key in specimen and specimen[pw_key]:
+                        row['MaxPW'] = float(specimen[pw_key])
+
+                    dw_key = f"{bone}_MaxDW"
+                    if dw_key in specimen and specimen[dw_key]:
+                        row['MaxDW'] = float(specimen[dw_key])
+
+                    pd_key = f"{bone}_MaxPD"
+                    if pd_key in specimen and specimen[pd_key]:
+                        row['MaxPD'] = float(specimen[pd_key])
+
+                    fh_key = f"{bone}_DiamFH"
+                    if fh_key in specimen and specimen[fh_key]:
+                        row['DiamFH'] = float(specimen[fh_key])
+
+                    rows.append(row)
+                except:
+                    continue
+
+        return pd.DataFrame(rows)
+
+    def _update_dropdowns_from_filter(self):
+        """Update dropdowns based on current filter values in both name fields."""
+        if not self.osteoid_data:
+            return
+
+        # Get current filter values
+        common_filter = self.common_name_var.get().strip().lower()
+        scientific_filter = self.scientific_name_var.get().strip().lower()
+
+        # If both filters are empty, reset everything
+        if not common_filter and not scientific_filter:
+            self._reset_all_dropdowns()
+            self._perform_search()  # Make sure this is here
+            return
+
+        # Collect matching specimens based on both filters
+        matching_specimens = []
+
+        for specimen in self.osteoid_data:
+            # Check common name match
+            common_match = True
+            if common_filter:
+                common_val = specimen.get('Common_Name', '').lower()
+                common_match = common_filter in common_val
+
+            # Check scientific name match
+            scientific_match = True
+            if scientific_filter:
+                genus = specimen.get('Genus', '').lower()
+                species = specimen.get('Species', '').lower()
+                sci_val = f"{genus} {species}".strip()
+                scientific_match = scientific_filter in sci_val
+
+            if common_match and scientific_match:
+                matching_specimens.append(specimen)
+
+        # Update common names dropdown
+        common_names = set()
+        for specimen in matching_specimens:
+            name = specimen.get('Common_Name', '')
+            if name:
+                common_names.add(name)
+
+        if hasattr(self, 'common_combo'):
+            self.common_combo['values'] = sorted(common_names)
+
+        # Update scientific names dropdown
+        sci_names = set()
+        for specimen in matching_specimens:
+            genus = specimen.get('Genus', '')
+            species = specimen.get('Species', '')
+            if genus and species:
+                sci_names.add(f"{genus} {species}")
+
+        if hasattr(self, 'scientific_combo'):
+            self.scientific_combo['values'] = sorted(sci_names)
+
+        # Update bone dropdown with counts
+        bone_counts = {}
+        for specimen in matching_specimens:
+            for bone_code in ['Hum', 'Fem', 'Tib', 'Rad', 'Uln', 'Scap', 'OsCox', 'Fib', 'Metac', 'Metat']:
+                if f"{bone_code}_MaxL" in specimen and specimen[f"{bone_code}_MaxL"]:
+                    bone_counts[bone_code] = bone_counts.get(bone_code, 0) + 1
+
+        bone_display = [f"{bone}({count})" for bone, count in sorted(bone_counts.items())]
+        if hasattr(self, 'bone_combo'):
+            # Store current bone selection
+            current_bone = self.bone_var.get()
+
+            # Update the dropdown options
+            self.bone_combo['values'] = bone_display
+
+            # If the current selection is not in the new options, clear it
+            if current_bone and current_bone not in bone_display:
+                self.bone_var.set("")  # Clear the selection
+            # Otherwise, if there's no selection and we have options, select the first one
+            elif not current_bone and bone_display:
+                self.bone_combo.set(bone_display[0])
+
+        # IMPORTANT: Trigger the search to update results
+        self._perform_search()
+
+    def _on_common_name_type(self, *args):
+        """Handle typing in common name field."""
+        if not self.osteoid_loaded:
+            self._lazy_load_osteoid()
+            return
+
+        common_text = self.common_name_var.get().strip()
+        sci_text = self.scientific_name_var.get().strip()
+
+        # If common field is cleared, also clear scientific field
+        if not common_text and sci_text:
+            self.scientific_name_var.set("")
+
+        self._update_dropdowns_from_filter()
+
+    def _on_scientific_name_type(self, *args):
+        """Handle typing in scientific name field."""
+        if not self.osteoid_loaded:
+            self._lazy_load_osteoid()
+            return
+
+        sci_text = self.scientific_name_var.get().strip()
+        common_text = self.common_name_var.get().strip()
+
+        # If scientific field is cleared, also clear common field
+        if not sci_text and common_text:
+            self.common_name_var.set("")
+
+        self._update_dropdowns_from_filter()
+
+    def _reset_all_dropdowns(self):
+        """Reset all dropdowns to show all available options."""
+        if not self.osteoid_data:
+            return
+
+        # Reset common names
+        all_common = set()
+        all_scientific = set()
+        bone_counts = {}
+
+        for specimen in self.osteoid_data:
+            # Common names
+            common = specimen.get('Common_Name', '')
+            if common:
+                all_common.add(common)
+
+            # Scientific names
+            genus = specimen.get('Genus', '')
+            species = specimen.get('Species', '')
+            if genus and species:
+                all_scientific.add(f"{genus} {species}")
+
+            # Bone counts
+            for bone_code in ['Hum', 'Fem', 'Tib', 'Rad', 'Uln', 'Scap', 'OsCox', 'Fib', 'Metac', 'Metat']:
+                if f"{bone_code}_MaxL" in specimen and specimen[f"{bone_code}_MaxL"]:
+                    bone_counts[bone_code] = bone_counts.get(bone_code, 0) + 1
+
+        # Update common combo
+        if hasattr(self, 'common_combo'):
+            self.common_combo['values'] = sorted(all_common)
+
+        # Update scientific combo
+        if hasattr(self, 'scientific_combo'):
+            self.scientific_combo['values'] = sorted(all_scientific)
+
+        # Update bone combo with counts
+        bone_display = [f"{bone}({count})" for bone, count in sorted(bone_counts.items())]
+        if hasattr(self, 'bone_combo'):
+            self.bone_combo['values'] = bone_display
+            if bone_display and not self.bone_var.get():
+                self.bone_combo.set(bone_display[0])
+
+    def search_osteoid(self, bone_type=None, common_name=None, scientific_name=None,
+                    length=None, prox_width=None, dist_width=None, top_n=15):
+        """
+        Search the OsteoID database with any combination of filters.
+        """
+        if not self.osteoid_loaded:
+            if not self._lazy_load_osteoid():
+                return []
+
+        # Filter stats by criteria
+        filtered_stats = self.osteoid_stats.copy()
+
+        # Filter by bone type if provided
+        if bone_type:
+            try:
+                filtered_stats = filtered_stats.loc[bone_type]
+            except KeyError:
+                return []
+
+            # Prepare results list for single bone type
+            results = []
+            for (common, genus, species), row in filtered_stats.iterrows():
+                # Filter by common name if provided
+                if common_name and common_name.lower() not in str(common).lower():
+                    continue
+
+                # Filter by scientific name if provided
+                if scientific_name:
+                    sci = f"{genus} {species}".lower()
+                    if scientific_name.lower() not in sci:
+                        continue
+
+                results.append((common, genus, species, row))
+
+            return self._score_results(results, length, prox_width, dist_width, top_n)
+
+        else:
+            # If no bone type, combine all bones
+            all_results = []
+            for bt in filtered_stats.index.get_level_values(0).unique():
+                try:
+                    bt_stats = filtered_stats.loc[bt]
+                    for (common, genus, species), row in bt_stats.iterrows():
+                        # Apply name filters here too
+                        if common_name and common_name.lower() not in str(common).lower():
+                            continue
+                        if scientific_name:
+                            sci = f"{genus} {species}".lower()
+                            if scientific_name.lower() not in sci:
+                                continue
+                        all_results.append((common, genus, species, row))
+                except:
+                    continue
+
+            return self._score_results(all_results, length, prox_width, dist_width, top_n)
+
+    def _score_results(self, results, length, prox_width, dist_width, top_n):
+        """Calculate scores for filtered results."""
+        scored = []
+
+        for common, genus, species, row in results:
+            z_scores = []
+            dimensions_used = 0
+
+            # Length
+            if length is not None and pd.notna(length) and row[('MaxL', 'std')] > 0:
+                z = (length - row[('MaxL', 'mean')]) / row[('MaxL', 'std')]
+                z_scores.append(z)
+                dimensions_used += 1
+
+            # Proximal Width
+            if prox_width is not None and pd.notna(prox_width) and row[('MaxCPW', 'std')] > 0:
+                z = (prox_width - row[('MaxCPW', 'mean')]) / row[('MaxCPW', 'std')]
+                z_scores.append(z)
+                dimensions_used += 1
+
+            # Distal Width
+            if dist_width is not None and pd.notna(dist_width) and row[('MaxDW', 'std')] > 0:
+                z = (dist_width - row[('MaxDW', 'mean')]) / row[('MaxDW', 'std')]
+                z_scores.append(z)
+                dimensions_used += 1
+
+            # If no measurements provided, still include but with score 0
+            if not z_scores:
+                final_score = 0
+            else:
+                final_score = np.sqrt(np.mean(np.square(z_scores)))
+
+            # Check range
+            in_range = True
+            range_issues = []
+
+            if length is not None and pd.notna(length):
+                if length < row[('MaxL', 'min')] or length > row[('MaxL', 'max')]:
+                    in_range = False
+                    range_issues.append('L')
+            if prox_width is not None and pd.notna(prox_width):
+                if prox_width < row[('MaxCPW', 'min')] or prox_width > row[('MaxCPW', 'max')]:
+                    in_range = False
+                    range_issues.append('P')
+            if dist_width is not None and pd.notna(dist_width):
+                if dist_width < row[('MaxDW', 'min')] or dist_width > row[('MaxDW', 'max')]:
+                    in_range = False
+                    range_issues.append('D')
+
+            # Sample size and confidence
+            sample_size = row[('MaxL', 'count')] if pd.notna(row[('MaxL', 'count')]) else 0
+            ci = 1.96 * (final_score / np.sqrt(sample_size)) if sample_size > 1 and final_score > 0 else 0
+
+            if sample_size >= 10 and final_score < 1.5:
+                confidence = "High"
+            elif sample_size >= 5 and final_score < 2.5:
+                confidence = "Medium"
+            else:
+                confidence = "Low"
+
+            scored.append({
+                'Common Name': common,
+                'Scientific Name': f"{genus} {species}",
+                'Match Score': round(final_score, 3),
+                'Within Range': "✓" if in_range else f"✗ ({','.join(range_issues)})",
+                'Confidence': confidence,
+                'Sample Size': int(sample_size) if pd.notna(sample_size) else 0,
+                'CI': round(ci, 3),
+                'Mean L': round(row[('MaxL', 'mean')], 1) if pd.notna(row[('MaxL', 'mean')]) else None,
+                'Mean PW': round(row[('MaxCPW', 'mean')], 1) if pd.notna(row[('MaxCPW', 'mean')]) else None,
+                'Mean DW': round(row[('MaxDW', 'mean')], 1) if pd.notna(row[('MaxDW', 'mean')]) else None,
+                'Std L': round(row[('MaxL', 'std')], 2) if pd.notna(row[('MaxL', 'std')]) else None,
+                'Std PW': round(row[('MaxCPW', 'std')], 2) if pd.notna(row[('MaxCPW', 'std')]) else None,
+                'Std DW': round(row[('MaxDW', 'std')], 2) if pd.notna(row[('MaxDW', 'std')]) else None,
+            })
+
+        # Sort by best match
+        if any(m['Match Score'] > 0 for m in scored):
+            scored.sort(key=lambda x: (0 if x['Within Range'].startswith('✓') else 1, x['Match Score']))
+        else:
+            # If no measurements, sort alphabetically
+            scored.sort(key=lambda x: x['Common Name'])
+
+        return scored[:top_n]
+
+    def _perform_search(self, *args):
+        """Perform the actual search and update results."""
+        # Lazy load if needed
+        if not self.osteoid_loaded:
+            if not self._lazy_load_osteoid():
+                return
+
+        # Get filter values
+        bone_selection = self.bone_var.get()
+        bone_type = bone_selection.split('(')[0] if '(' in bone_selection else bone_selection if bone_selection else None
+
+        common_name = self.common_name_var.get().strip() or None
+        scientific_name = self.scientific_name_var.get().strip() or None
+
+        # Get measurements
+        try:
+            length = float(self.length_var.get()) if self.length_var.get().strip() else None
+            prox = float(self.prox_var.get()) if self.prox_var.get().strip() else None
+            dist = float(self.dist_var.get()) if self.dist_var.get().strip() else None
+        except ValueError:
+            self.osteoid_status.config(text="⚠️ Invalid number format")
+            return
+
+        # Run search
+        results = self.search_osteoid(
+            bone_type=bone_type,
+            common_name=common_name,
+            scientific_name=scientific_name,
+            length=length,
+            prox_width=prox,
+            dist_width=dist
+        )
+
+        # Store results
+        self.last_results = results
+        self.last_unknown = {
+            'bone': bone_type,
+            'common': common_name,
+            'scientific': scientific_name,
+            'length': length,
+            'prox_width': prox,
+            'dist_width': dist
+        }
+
+        # Update results display
+        self._update_results_display(results)
+
+        # Update status
+        if results:
+            if results[0]['Match Score'] > 0:
+                self.osteoid_status.config(
+                    text=f"✓ Found {len(results)} matches. Best: {results[0]['Common Name']} (Z={results[0]['Match Score']:.2f})"
+                )
+            else:
+                self.osteoid_status.config(
+                    text=f"✓ Found {len(results)} matches. (No measurements for scoring)"
+                )
+        else:
+            self.osteoid_status.config(text="No matches found")
+
+    def _update_results_display(self, results):
+        """Update the results tab with search results."""
+        self.class_result.delete(1.0, tk.END)
+
+        if not results:
+            self.class_result.insert(1.0, "No matches found for the entered criteria.")
+            return
+
+        # Header
+        self.class_result.insert(1.0, "OSTEOID BONE IDENTIFICATION RESULTS\n")
+        self.class_result.insert(tk.END, "=" * 60 + "\n\n")
+
+        # Search criteria
+        self.class_result.insert(tk.END, "SEARCH CRITERIA:\n")
+        if self.last_unknown['common']:
+            self.class_result.insert(tk.END, f"Common Name: {self.last_unknown['common']}\n")
+        if self.last_unknown['scientific']:
+            self.class_result.insert(tk.END, f"Scientific Name: {self.last_unknown['scientific']}\n")
+        if self.last_unknown['bone']:
+            self.class_result.insert(tk.END, f"Bone Type: {self.last_unknown['bone']}\n")
+        if self.last_unknown['length']:
+            self.class_result.insert(tk.END, f"Max Length: {self.last_unknown['length']:.1f} mm\n")
+        if self.last_unknown['prox_width']:
+            self.class_result.insert(tk.END, f"Proximal Width: {self.last_unknown['prox_width']:.1f} mm\n")
+        if self.last_unknown['dist_width']:
+            self.class_result.insert(tk.END, f"Distal Width: {self.last_unknown['dist_width']:.1f} mm\n")
+
+        self.class_result.insert(tk.END, "\n" + "-" * 60 + "\n\n")
+        self.class_result.insert(tk.END, "MATCHING SPECIES:\n\n")
+
+        # Display results
+        for i, r in enumerate(results, 1):
+            self.class_result.insert(tk.END, f"{i}. {r['Common Name']} ({r['Scientific Name']})\n")
+
+            if r['Match Score'] > 0:
+                self.class_result.insert(tk.END, f"   Z-Score: {r['Match Score']:.2f}  |  Range: {r['Within Range']}  |  Confidence: {r['Confidence']}\n")
+                self.class_result.insert(tk.END, f"   Sample Size: n={r['Sample Size']}  |  95% CI: ±{r['CI']:.2f}\n")
+            else:
+                self.class_result.insert(tk.END, f"   (No measurements for scoring)\n")
+
+            # Show mean values
+            means = []
+            if r['Mean L']:
+                means.append(f"L: {r['Mean L']:.1f}")
+            if r['Mean PW']:
+                means.append(f"PW: {r['Mean PW']:.1f}")
+            if r['Mean DW']:
+                means.append(f"DW: {r['Mean DW']:.1f}")
+            if means:
+                self.class_result.insert(tk.END, f"   Reference means: {', '.join(means)} mm\n")
+
+            self.class_result.insert(tk.END, "\n")
+
+        # Generate plot if we have measurements
+        if HAS_MPL and any([self.last_unknown['length'], self.last_unknown['prox_width'], self.last_unknown['dist_width']]):
+            self._generate_comparison_plot(results)
+
+        self.result_status.config(
+            text="✓ Search complete! View results above",
+            foreground="#8B4513",
+            background="#f1c40f"
+        )
+
+    def _generate_comparison_plot(self, results):
+        """Generate comparison plot for top matches."""
+        if not HAS_MPL:
+            return
+
+        self.ax.clear()
+
+        # Get top 5 results with scores
+        top_results = [r for r in results if r['Match Score'] > 0][:5]
+        if not top_results:
+            return
+
+        # Set up dimensions
+        dimensions = []
+        if self.last_unknown['length']:
+            dimensions.append('Length')
+        if self.last_unknown['prox_width']:
+            dimensions.append('Prox Width')
+        if self.last_unknown['dist_width']:
+            dimensions.append('Dist Width')
+
+        if not dimensions:
+            return
+
+        x = np.arange(len(dimensions))
+        width = 0.15
+
+        # Plot each species
+        for i, result in enumerate(top_results):
+            means = []
+            if 'Length' in dimensions and result['Mean L']:
+                means.append(result['Mean L'])
+            elif 'Length' in dimensions:
+                means.append(0)
+
+            if 'Prox Width' in dimensions and result['Mean PW']:
+                means.append(result['Mean PW'])
+            elif 'Prox Width' in dimensions:
+                means.append(0)
+
+            if 'Dist Width' in dimensions and result['Mean DW']:
+                means.append(result['Mean DW'])
+            elif 'Dist Width' in dimensions:
+                means.append(0)
+
+            offset = width * (i - (len(top_results)-1)/2)
+            bars = self.ax.bar(x + offset, means, width, label=result['Common Name'][:15], alpha=0.7)
+
+            # Add error bars
+            errors = []
+            if 'Length' in dimensions and result['Std L']:
+                errors.append(result['Std L'])
+            elif 'Length' in dimensions:
+                errors.append(0)
+
+            if 'Prox Width' in dimensions and result['Std PW']:
+                errors.append(result['Std PW'])
+            elif 'Prox Width' in dimensions:
+                errors.append(0)
+
+            if 'Dist Width' in dimensions and result['Std DW']:
+                errors.append(result['Std DW'])
+            elif 'Dist Width' in dimensions:
+                errors.append(0)
+
+            self.ax.errorbar(x + offset, means, yerr=errors, fmt='none', ecolor='black', capsize=3)
+
+        # Plot unknown
+        unknown_vals = []
+        if 'Length' in dimensions and self.last_unknown['length']:
+            unknown_vals.append(self.last_unknown['length'])
+        elif 'Length' in dimensions:
+            unknown_vals.append(0)
+
+        if 'Prox Width' in dimensions and self.last_unknown['prox_width']:
+            unknown_vals.append(self.last_unknown['prox_width'])
+        elif 'Prox Width' in dimensions:
+            unknown_vals.append(0)
+
+        if 'Dist Width' in dimensions and self.last_unknown['dist_width']:
+            unknown_vals.append(self.last_unknown['dist_width'])
+        elif 'Dist Width' in dimensions:
+            unknown_vals.append(0)
+
+        self.ax.scatter(x, unknown_vals, color='red', s=100, marker='*', label='Your specimen', zorder=5)
+
+        # Customize
+        self.ax.set_xticks(x)
+        self.ax.set_xticklabels(dimensions)
+        self.ax.set_ylabel('Measurement (mm)')
+        self.ax.set_title('Top Matches vs Your Specimen')
+        self.ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+        self.ax.grid(True, alpha=0.3)
+
+        self.fig.tight_layout()
+        self.canvas.draw()
 
     def _build_ui(self):
         # === MAIN PANED WINDOW ===
         main = ttk.PanedWindow(self.frame, orient=tk.HORIZONTAL)
         main.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # LEFT PANEL
+        # LEFT PANEL - Morphological Keys
         left = ttk.Frame(main)
         main.add(left, weight=1)
 
-        # RIGHT PANEL
+        # RIGHT PANEL - OsteoID Calculator + Results
         right = ttk.Frame(main)
         main.add(right, weight=1)
 
-        # Force both panes to ignore natural width of children
-        left.update_idletasks()
-        right.update_idletasks()
         left.configure(width=1)
         right.configure(width=1)
 
-
-        # Equal minimum sizes
-        left.configure(width=1)
-        right.configure(width=1)
-
-
-
-        # === LEFT PANEL CONTENT ===
+        # === LEFT PANEL - MORPHOLOGICAL KEYS ===
         key_frame = ttk.LabelFrame(left, text="Morphological Key", padding=5)
         key_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -2032,135 +5228,105 @@ class IdentityTab(AnalysisTab):
         self.key_category_var.set("Mammals")
         self._update_key_list()
 
-        # === RIGHT PANEL CONTENT ===
+        # === RIGHT PANEL - NOTEBOOK WITH TWO TABS ===
         self.right_notebook = ttk.Notebook(right)
         self.right_notebook.pack(fill=tk.BOTH, expand=True)
 
-        # TAB 1: MEASUREMENTS
-        measure_frame = ttk.Frame(self.right_notebook)
-        self.right_notebook.add(measure_frame, text="Measurement Input")
+        # === TAB 1: OSTEOID CALCULATOR ===
+        calc_frame = ttk.Frame(self.right_notebook)
+        self.right_notebook.add(calc_frame, text="OsteoID Calculator")
 
-        input_frame = ttk.LabelFrame(measure_frame, text="Enter Unknown Specimen Measurements", padding=5)
+        # Title
+        title_frame = ttk.Frame(calc_frame)
+        title_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(title_frame, text="🦴 OsteoID Bone Calculator",
+                 font=("Arial", 12, "bold")).pack()
+        ttk.Label(title_frame, text="Search by name or measurements",
+                 font=("Arial", 8, "italic")).pack()
+
+        # Input Frame
+        input_frame = ttk.LabelFrame(calc_frame, text="Search Criteria", padding=10)
         input_frame.pack(fill=tk.X, pady=5, padx=5)
 
-        grid = ttk.Frame(input_frame)
-        grid.pack()
+        # Common Name search
+        common_frame = ttk.Frame(input_frame)
+        common_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(common_frame, text="Common Name:", width=15).pack(side=tk.LEFT)
+        self.common_name_var = tk.StringVar()
+        self.common_combo = ttk.Combobox(common_frame, textvariable=self.common_name_var,
+                                        values=[], width=30)
+        self.common_combo.pack(side=tk.LEFT, padx=2, fill=tk.X, expand=True)
+        self.common_name_var.trace_add('write', self._on_common_name_type)
+        self.common_combo.bind('<<ComboboxSelected>>', self._perform_search)
 
-        self.id_measurements = {}
-        all_measures = ['GL', 'Bp', 'Bd', 'SD', 'Dp', 'GLP', 'LG', 'BG', 'BT']
+        # Scientific Name search
+        scientific_frame = ttk.Frame(input_frame)
+        scientific_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(scientific_frame, text="Scientific Name:", width=15).pack(side=tk.LEFT)
+        self.scientific_name_var = tk.StringVar()
+        self.scientific_combo = ttk.Combobox(scientific_frame, textvariable=self.scientific_name_var,
+                                           values=[], width=30)
+        self.scientific_combo.pack(side=tk.LEFT, padx=2, fill=tk.X, expand=True)
+        self.scientific_name_var.trace_add('write', self._on_scientific_name_type)
+        self.scientific_combo.bind('<<ComboboxSelected>>', self._perform_search)
 
-        for i, code in enumerate(all_measures):
-            row, col = divmod(i, 3)
-            frame = ttk.Frame(grid, relief=tk.GROOVE, borderwidth=1)
-            frame.grid(row=row, column=col, padx=2, pady=2, sticky='nsew')
+        # Bone Type
+        bone_frame = ttk.Frame(input_frame)
+        bone_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(bone_frame, text="Bone Type:", width=15).pack(side=tk.LEFT)
+        self.bone_var = tk.StringVar()
+        self.bone_combo = ttk.Combobox(bone_frame, textvariable=self.bone_var,
+                                       values=[], width=20)
+        self.bone_combo.pack(side=tk.LEFT, padx=2)
+        self.bone_combo.bind('<<ComboboxSelected>>', self._perform_search)
 
-            ttk.Label(frame, text=code, font=("Arial", 8, "bold")).pack()
-            var = tk.StringVar()
-            entry = ttk.Entry(frame, textvariable=var, width=8)
-            entry.pack(padx=2, pady=2)
-            self.id_measurements[code] = var
+        # Separator
+        ttk.Separator(input_frame, orient='horizontal').pack(fill=tk.X, pady=10)
 
-            # Bind live update to each entry
-            entry.bind('<KeyRelease>', self._update_live_preview)
+        # Measurements
+        meas_label = ttk.Label(input_frame, text="Measurements (optional):", font=("Arial", 9, "bold"))
+        meas_label.pack(anchor='w', pady=2)
 
-        taxa_frame = ttk.LabelFrame(measure_frame, text="Compare Against Reference Collections", padding=5)
-        taxa_frame.pack(fill=tk.X, pady=5, padx=5)
+        # Length
+        len_frame = ttk.Frame(input_frame)
+        len_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(len_frame, text="Max Length (mm):", width=15).pack(side=tk.LEFT)
+        self.length_var = tk.StringVar()
+        self.length_var.trace_add('write', self._perform_search)
+        ttk.Entry(len_frame, textvariable=self.length_var, width=10).pack(side=tk.LEFT, padx=2)
 
-        taxa_canvas = tk.Canvas(taxa_frame, highlightthickness=0, height=120)
-        taxa_scrollbar = ttk.Scrollbar(taxa_frame, orient="vertical", command=taxa_canvas.yview)
-        taxa_scrollable = ttk.Frame(taxa_canvas)
+        # Proximal Width
+        prox_frame = ttk.Frame(input_frame)
+        prox_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(prox_frame, text="Proximal Width (mm):", width=15).pack(side=tk.LEFT)
+        self.prox_var = tk.StringVar()
+        self.prox_var.trace_add('write', self._perform_search)
+        ttk.Entry(prox_frame, textvariable=self.prox_var, width=10).pack(side=tk.LEFT, padx=2)
 
-        taxa_scrollable.bind("<Configure>",
-                            lambda e: taxa_canvas.configure(scrollregion=taxa_canvas.bbox("all")))
+        # Distal Width
+        dist_frame = ttk.Frame(input_frame)
+        dist_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(dist_frame, text="Distal Width (mm):", width=15).pack(side=tk.LEFT)
+        self.dist_var = tk.StringVar()
+        self.dist_var.trace_add('write', self._perform_search)
+        ttk.Entry(dist_frame, textvariable=self.dist_var, width=10).pack(side=tk.LEFT, padx=2)
 
-        taxa_canvas.create_window((0, 0), window=taxa_scrollable, anchor="nw")
-        taxa_canvas.configure(yscrollcommand=taxa_scrollbar.set)
+        # Status
+        self.osteoid_status = ttk.Label(calc_frame, text="Start typing to search...",
+                                       font=("Arial", 7))
+        self.osteoid_status.pack(anchor='w', padx=5, pady=2)
 
-        taxa_canvas.pack(side="left", fill="both", expand=True)
-        taxa_scrollbar.pack(side="right", fill="y")
+        # Instructions
+        note_frame = ttk.Frame(calc_frame)
+        note_frame.pack(fill=tk.X, padx=5, pady=2)
+        ttk.Label(note_frame,
+                 text="Type to filter - dropdowns update automatically. Results appear in the 'Results' tab.",
+                 font=("Arial", 7, "italic"), foreground="gray").pack()
 
-        if hasattr(self, 'ref_db') and self.ref_db.loaded:
-            all_taxa = self.ref_db.get_taxa()
-        else:
-            all_taxa = ["Sheep (Ovis aries)", "Goat (Capra hircus)", "Cattle (Bos taurus)",
-                        "Pig (Sus scrofa domesticus)", "Red Deer (Cervus elaphus)",
-                        "Roe Deer (Capreolus capreolus)", "Horse (Equus caballus)",
-                        "Dog (Canis familiaris)"]
-
-        self.id_taxa_vars = {}
-        for taxon in all_taxa:
-            var = tk.BooleanVar(value=True)
-            cb = ttk.Checkbutton(taxa_scrollable, text=taxon, variable=var)
-            cb.pack(anchor='w', padx=5)
-            self.id_taxa_vars[taxon] = var
-            # Bind live update to checkbox
-            cb.configure(command=self._update_live_preview)
-
-        button_frame = ttk.Frame(measure_frame)
-        button_frame.pack(fill=tk.X, pady=5, padx=5)
-
-        ttk.Button(button_frame, text="🔍 RUN DISCRIMINANT ANALYSIS",
-                command=self._run_discriminant).pack(side=tk.LEFT, padx=2)
-        ttk.Button(button_frame, text="🧹 Clear All",
-                command=self._clear_measurements).pack(side=tk.LEFT, padx=2)
-        ttk.Button(button_frame, text="📊 Export Report",
-                command=self._export_report).pack(side=tk.RIGHT, padx=2)
-
-        # === QUICK MATCH PREVIEW (LIVE UPDATING) ===
-        preview_frame = ttk.LabelFrame(measure_frame, text="🎯 Quick Match Preview", padding=5)
-        preview_frame.pack(fill=tk.X, pady=5, padx=5)
-
-        # Header
-        preview_header = ttk.Frame(preview_frame)
-        preview_header.pack(fill=tk.X)
-        ttk.Label(preview_header, text="Taxon", font=("Arial", 7, "bold"), width=15).pack(side=tk.LEFT)
-        ttk.Label(preview_header, text="Match", font=("Arial", 7, "bold"), width=8).pack(side=tk.LEFT)
-        ttk.Label(preview_header, text="Confidence Bar", font=("Arial", 7, "bold")).pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-        # Preview rows (will be updated live)
-        self.preview_taxon_labels = []
-        self.preview_percent_labels = []
-        self.preview_bars = []
-
-        for i in range(5):  # Show top 5 matches
-            row = ttk.Frame(preview_frame)
-            row.pack(fill=tk.X, pady=2)
-
-            taxon_label = ttk.Label(row, text="—", font=("Arial", 7), width=15, anchor='w')
-            taxon_label.pack(side=tk.LEFT)
-
-            percent_label = ttk.Label(row, text="0%", font=("Arial", 7, "bold"), width=8)
-            percent_label.pack(side=tk.LEFT)
-
-            # Canvas for custom progress bar
-            bar_canvas = tk.Canvas(row, height=12, bg='#f0f0f0', highlightthickness=0)
-            bar_canvas.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=2)
-
-            self.preview_taxon_labels.append(taxon_label)
-            self.preview_percent_labels.append(percent_label)
-            self.preview_bars.append(bar_canvas)
-
-        # Most likely summary
-        self.preview_summary = ttk.Label(preview_frame, text="Enter measurements to see live match preview",
-                                         font=("Arial", 7, "italic"))
-        self.preview_summary.pack(anchor='w', pady=2)
-
-        # === RESULTS STATUS NOTIFICATION ===
-        self.result_status = tk.Label(measure_frame,
-                                      text="",
-                                      font=("Arial", 8, "bold"),
-                                      cursor="hand2",  # Changes cursor to hand on hover
-                                      relief=tk.FLAT)
-        self.result_status.pack(anchor='w', padx=5, pady=2, fill=tk.X)
-        self.result_status.bind('<Button-1>', self._go_to_results_tab)
-
-        # Status label for loaded measurements
-        self.measurement_status = ttk.Label(measure_frame, text="", font=("Arial", 7))
-        self.measurement_status.pack(anchor='w', padx=5, pady=2)
-
-        # TAB 2: RESULTS
+        # === TAB 2: RESULTS & VISUALIZATION ===
         results_frame = ttk.Frame(self.right_notebook)
         self.right_notebook.add(results_frame, text="Results & Visualization")
+        self.results_frame = results_frame
 
         results_pane = ttk.PanedWindow(results_frame, orient=tk.VERTICAL)
         results_pane.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -2171,7 +5337,7 @@ class IdentityTab(AnalysisTab):
         class_frame = ttk.LabelFrame(stats_panel, text="Classification Results", padding=5)
         class_frame.pack(fill=tk.BOTH, expand=True, pady=2)
 
-        self.class_result = tk.Text(class_frame, height=15, font=("Courier", 9))
+        self.class_result = tk.Text(class_frame, wrap=tk.WORD, font=("Courier", 9))
         self.class_result.pack(fill=tk.BOTH, expand=True)
 
         viz_panel = ttk.Frame(results_pane)
@@ -2188,1234 +5354,102 @@ class IdentityTab(AnalysisTab):
         else:
             tk.Label(viz_panel, text="Install matplotlib for visualizations").pack(expand=True)
 
-        # === FINAL FIX: FORCE 50/50 SPLIT ===
+        # Status notification
+        self.result_status = tk.Label(results_frame,
+                                      text="",
+                                      font=("Arial", 8, "bold"),
+                                      relief=tk.FLAT)
+        self.result_status.pack(anchor='w', padx=5, pady=2, fill=tk.X)
+
+        # === FORCE EQUAL SPLIT ===
         def force_equal_split():
-            # Force both panes to ignore their children's requested width
             left.configure(width=1)
             right.configure(width=1)
-
             total = main.winfo_width()
             if total > 10:
                 main.sashpos(0, total // 2)
 
-        # Run twice: once after layout, once after matplotlib loads
         self.frame.after(50, force_equal_split)
         self.frame.after(300, force_equal_split)
 
+    def _clear_all(self):
+        """Clear all input fields."""
+        self.common_name_var.set("")
+        self.scientific_name_var.set("")
+        self.bone_var.set("")
+        self.length_var.set("")
+        self.prox_var.set("")
+        self.dist_var.set("")
+        self.class_result.delete(1.0, tk.END)
+        if HAS_MPL:
+            self.ax.clear()
+            self.ax.text(0.5, 0.5, "Enter search criteria", ha='center', va='center')
+            self.canvas.draw()
+        self.osteoid_status.config(text="Input cleared")
+
     def _update_ui(self):
-        """Update with current data - placeholder."""
+        """Required by base class."""
         pass
 
     def _update_key_list(self, event=None):
         """Update key list based on selected category."""
         category = self.key_category_var.get()
 
-        keys_by_category = {
-            "Mammals": [
-                "Sheep vs Goat (cranial)",
-                "Sheep vs Goat (postcranial)",
-                "Cattle vs Bison",
-                "Red Deer vs Fallow Deer",
-                "Roe Deer vs Sheep",
-                "Horse vs Donkey",
-                "Pig vs Wild Boar",
-                "Dog vs Wolf vs Fox",
-                "Hare vs Rabbit",
-                "Human vs Bear (paw bones)",
-                "Seal species identification"
-            ],
-            "Birds": [
-                "Chicken vs Pheasant vs Grouse",
-                "Duck vs Goose vs Swan",
-                "Turkey vs Peafowl",
-                "Raptor species (eagles, hawks, owls)",
-                "Corvid species (crow, raven, rook, jackdaw)"
-            ],
-            "Fish": [
-                "Cod vs Haddock vs Pollock",
-                "Salmon vs Trout vs Grayling",
-                "Herring vs Sprat vs Sardine",
-                "Flatfish species (plaice, flounder, sole, turbot)",
-                "Cyprinid identification (carp, roach, bream, chub, dace)"
-            ],
-            "Special Cases": [
-                "Canid tooth eruption & wear (ages)",
-                "Caprine mandibular wear stages (Payne 1973, 1987)",
-                "Cattle epiphyseal fusion ages",
-                "Sheep/goat epiphyseal fusion ages",
-                "Pig epiphyseal fusion ages",
-                "Horse dental eruption & wear",
-                "Bird tarsometatarsus sexing (spur presence)"
-            ]
-        }
+        all_keys = list(self.keys_database.keys())
 
-        self.key_combo['values'] = keys_by_category.get(category, [])
-        if self.key_combo['values']:
-            self.key_combo.set(self.key_combo['values'][0])
+        if category == "Mammals":
+            terms = ['Sheep', 'Goat', 'Cattle', 'Bison', 'Deer', 'Horse', 'Donkey',
+                    'Pig', 'Boar', 'Dog', 'Wolf', 'Fox', 'Hare', 'Rabbit', 'Bear', 'Seal']
+            filtered = [k for k in all_keys if any(t in k for t in terms)]
+        elif category == "Birds":
+            terms = ['Chicken', 'Pheasant', 'Grouse', 'Duck', 'Goose', 'Swan', 'Turkey',
+                    'Peafowl', 'Raptor', 'Eagle', 'Hawk', 'Owl', 'Corvid', 'Crow', 'Raven']
+            filtered = [k for k in all_keys if any(t in k for t in terms)]
+        elif category == "Fish":
+            terms = ['Cod', 'Haddock', 'Pollock', 'Salmon', 'Trout', 'Grayling', 'Herring',
+                    'Sprat', 'Sardine', 'Flatfish', 'Plaice', 'Flounder', 'Sole', 'Turbot',
+                    'Cyprinid', 'Carp', 'Roach', 'Bream', 'Chub', 'Dace']
+            filtered = [k for k in all_keys if any(t in k for t in terms)]
+        elif category == "Special Cases":
+            terms = ['eruption', 'wear', 'ages', 'fusion', 'epiphyseal', 'dental', 'sexing',
+                    'spur', 'Payne', 'Grant', 'Behrensmeyer', 'Butchery', 'Burning', 'Root',
+                    'Gnawing', 'Trampling', 'Digestion', 'Cementum', 'Oxygen', 'Strontium',
+                    'Carbon', 'Nitrogen', 'Sulfur', 'FTIR', 'Collagen', 'Trophic']
+            filtered = [k for k in all_keys if any(t in k.lower() for t in terms)]
+        else:
+            filtered = []
+
+        self.key_combo['values'] = filtered
+        if filtered:
+            self.key_combo.set(filtered[0])
             self._update_key()
 
     def _update_key(self, event=None):
-        """Update morphological key text."""
+        """Update morphological key text with citations."""
         key = self.key_var.get()
         if not key:
             return
 
-        keys_database = {
-            "Sheep vs Goat (cranial)": """SHEEP VS GOAT - CRANIAL FEATURES
-
-HORN CORES:
-• Sheep: Oval cross-section, curve laterally
-• Goat: Triangular cross-section, straight, keeled anteriorly
-
-FRONTAL BONE:
-• Sheep: Smooth, frontal suture straight
-• Goat: Raised boss, frontal suture curved
-
-ORBIT:
-• Sheep: Orbital rim smooth
-• Goat: Orbital rim with prominent supraorbital foramen
-
-MANDIBLE:
-• Sheep: Diastema longer, mental foramen under P2
-• Goat: Diastema shorter, mental foramen under P3
-
-TEETH:
-• Sheep: Smaller, simpler enamel folds
-• Goat: Larger, more complex enamel, prominent stylids
-
-PALATE:
-• Sheep: Palatal ridges more numerous
-• Goat: Palatal ridges fewer, more robust
-
-References: Boessneck 1969, Zeder & Lapham 2010, Halstead 2011""",
-
-            "Sheep vs Goat (postcranial)": """SHEEP VS GOAT - POSTCRANIAL FEATURES
-
-SCAPULA:
-• Sheep: Glenoid cavity oval, neck narrower
-• Goat: Glenoid cavity rounded, neck broader
-
-HUMERUS:
-• Sheep: Supracondylar fossa deeper, medial epicondyle less prominent
-• Goat: Supracondylar fossa shallower, medial epicondyle more prominent
-
-RADIUS:
-• Sheep: Proximal articulation more rectangular
-• Goat: Proximal articulation more square
-
-ULNA:
-• Sheep: Olecranon less curved medially
-• Goat: Olecranon more curved medially
-
-METACARPAL:
-• Sheep: Distal condyles symmetrical, intercondylar notch shallow
-• Goat: Distal condyles asymmetrical, intercondylar notch deep
-
-TIBIA:
-• Sheep: Distal articulation more rectangular
-• Goat: Distal articulation more square
-
-ASTRAGALUS:
-• Sheep: Lateral condyle less prominent
-• Goat: Lateral condyle more prominent
-
-CALCANEUM:
-• Sheep: Sustentaculum tali less prominent
-• Goat: Sustentaculum tali more prominent
-
-PHALANGES:
-• Sheep: Shorter, more symmetrical
-• Goat: Longer, more asymmetrical
-
-References: Boessneck 1969, Payne 1985, Prummel & Frisch 1986""",
-
-            "Cattle vs Bison": """CATTLE VS BISON - CRANIAL FEATURES
-
-HORN CORES:
-• Cattle: Round cross-section, curve forward
-• Bison: Triangular cross-section, curve up and back
-
-FRONTAL BONE:
-• Cattle: Flat between horn cores
-• Bison: Raised boss between horn cores
-
-OCCIPITAL:
-• Cattle: Occipital condyles closer together
-• Bison: Occipital condyles wider apart
-
-MANDIBLE:
-• Cattle: Angular process rounded
-• Bison: Angular process pointed
-
-POSTCRANIAL FEATURES
-
-ATLAS:
-• Cattle: Wings shorter, less curved
-• Bison: Wings longer, more curved
-
-AXIS:
-• Cattle: Odontoid process more pointed
-• Bison: Odontoid process more rounded
-
-SCAPULA:
-• Cattle: Glenoid cavity more oval
-• Bison: Glenoid cavity more rounded
-
-HUMERUS:
-• Cattle: Deltoid tuberosity less prominent
-• Bison: Deltoid tuberosity more prominent
-
-RADIUS:
-• Cattle: Shorter, more robust
-• Bison: Longer, more gracile
-
-METAPODIALS:
-• Cattle: Distal condyles symmetrical, shaft slender
-• Bison: Distal condyles asymmetrical, shaft robust
-
-PHALANGES:
-• Cattle: Shorter, broader
-• Bison: Longer, narrower
-
-References: Balkwill & Cumbaa 1992, Gee 1993""",
-
-            "Red Deer vs Fallow Deer": """RED DEER VS FALLOW DEER
-
-ANTLERS:
-• Red Deer: Round beam, multiple tines, brow tine near burr
-• Fallow Deer: Palmate in adults, flattened beam, bez tine present
-
-SKULL:
-• Red Deer: Nasals longer, lacrimal pit deep
-• Fallow Deer: Nasals shorter, lacrimal pit shallow
-
-MANDIBLE:
-• Red Deer: Diastema longer, mental foramen under P2
-• Fallow Deer: Diastema shorter, mental foramen under P3
-
-TEETH:
-• Red Deer: Larger, more robust enamel folds
-• Fallow Deer: Smaller, simpler enamel
-
-SCAPULA:
-• Red Deer: Glenoid cavity deeper
-• Fallow Deer: Glenoid cavity shallower
-
-HUMERUS:
-• Red Deer: More robust, deltoid tuberosity prominent
-• Fallow Deer: More gracile, deltoid tuberosity less prominent
-
-METAPODIALS:
-• Red Deer: More robust, distal condyles wider
-• Fallow Deer: More gracile, distal condyles narrower
-
-PHALANGES:
-• Red Deer: Longer, more robust
-• Fallow Deer: Shorter, more gracile
-
-References: Lister 1996, Hillson 2005""",
-
-            "Roe Deer vs Sheep": """ROE DEER VS SHEEP
-
-HORN CORES/ANTLERS:
-• Roe Deer: Short pedicles, antlers with 3 tines (in males)
-• Sheep: Horn cores permanent, curved, present in both sexes
-
-SKULL:
-• Roe Deer: Preorbital pit present, nasals narrow
-• Sheep: No preorbital pit, nasals broader
-
-MANDIBLE:
-• Roe Deer: Mental foramen under P2, diastema shorter
-• Sheep: Mental foramen under P3, diastema longer
-
-TEETH:
-• Roe Deer: Enamel thinner, more delicate
-• Sheep: Enamel thicker, more robust
-
-SCAPULA:
-• Roe Deer: More gracile, glenoid cavity smaller
-• Sheep: More robust, glenoid cavity larger
-
-HUMERUS:
-• Roe Deer: Supracondylar fossa shallower
-• Sheep: Supracondylar fossa deeper
-
-METAPODIALS:
-• Roe Deer: More gracile, distal condyles narrower
-• Sheep: More robust, distal condyles wider
-
-ASTRAGALUS:
-• Roe Deer: Smaller, lateral condyle less prominent
-• Sheep: Larger, lateral condyle more prominent
-
-References: Lister 1996, Hillson 2005""",
-
-            "Horse vs Donkey": """HORSE VS DONKEY
-
-SKULL:
-• Horse: Longer nasal bones (extends beyond premaxilla), straight profile
-• Donkey: Shorter nasals (doesn't extend beyond premaxilla), concave profile
-
-MANDIBLE:
-• Horse: Deeper, more robust, ventral border convex
-• Donkey: Shallower, more gracile, ventral border straight
-
-TEETH:
-• Horse: Larger, more complex enamel folds, longer crown
-• Donkey: Smaller, simpler enamel, shorter crown
-
-METAPODIALS:
-• Horse: More robust, proximal articulation wider
-• Donkey: More gracile, proximal articulation narrower
-
-PHALANGES:
-• Horse: Longer, broader, proximal end more expanded
-• Donkey: Shorter, narrower, proximal end less expanded
-
-ASTRAGALUS:
-• Horse: More symmetrical, trochlea deeper
-• Donkey: Less symmetrical, trochlea shallower
-
-References: Davis 1980, Eisenmann 1986, Peters 1998""",
-
-            "Pig vs Wild Boar": """PIG VS WILD BOAR
-
-SKULL:
-• Pig: Shorter rostrum (domestic form), domed profile
-• Wild Boar: Longer rostrum (60-70% of skull length), straight profile
-
-CANINES:
-• Pig: Smaller, less curved, oval cross-section
-• Wild Boar: Larger, more curved, triangular cross-section
-
-MANDIBLE:
-• Pig: Shallower, less robust, corpus height less
-• Wild Boar: Deeper, more robust, corpus height greater
-
-M3 (lower third molar):
-• Pig: Smaller, simpler, fewer accessory cusps
-• Wild Boar: Larger, more complex, multiple accessory cusps
-
-LIMB BONES:
-• Pig: More gracile, shorter relative to size
-• Wild Boar: More robust, longer relative to size
-
-METAPODIALS:
-• Pig: Shorter, more gracile
-• Wild Boar: Longer, more robust
-
-References: Mayer & Brisbin 1991, Albarella et al. 2005, Payne & Bull 1988""",
-
-            "Dog vs Wolf vs Fox": """DOG VS WOLF VS FOX
-
-SKULL SIZE:
-• Dog: Variable (100-250mm), domestic morphology
-• Wolf: Large (200-280mm), wild-type morphology
-• Fox: Small (120-160mm), delicate
-
-SNOUT:
-• Dog: Variable, often shorter, "stop" present
-• Wolf: Long, straight, no "stop"
-• Fox: Long, narrow, pointed
-
-TEETH:
-• Dog: Crowded, variable spacing, smaller relative to skull
-• Wolf: Evenly spaced, large, robust
-• Fox: Small, sharp, evenly spaced
-
-MANDIBLE:
-• Dog: Variable curvature, coronoid process variable
-• Wolf: Deep, slightly curved, coronoid process broad
-• Fox: Shallow, straight, coronoid process narrow
-
-LIMB BONES:
-• Dog: Variable proportions
-• Wolf: Long, robust, straight
-• Fox: Short, gracile, curved
-
-HUMERUS:
-• Dog: Supinator crest variable
-• Wolf: Supinator crest prominent
-• Fox: Supinator crest small
-
-FEMUR:
-• Dog: Third trochanter less prominent
-• Wolf: Third trochanter prominent
-• Fox: Third trochanter small
-
-References: Lawrence 1967, Benecke 1994, Olsen 2000""",
-
-            "Hare vs Rabbit": """HARE VS RABBIT
-
-SKULL SIZE:
-• Hare: Larger (80-110mm), more elongated
-• Rabbit: Smaller (70-85mm), more compact
-
-ORBIT:
-• Hare: Larger relative to skull, positioned higher
-• Rabbit: Smaller relative to skull, positioned lower
-
-PALATE:
-• Hare: Longer, extends beyond last molar by >3mm
-• Rabbit: Shorter, ends at or just beyond last molar
-
-MANDIBLE:
-• Hare: Deeper, more robust, angular process prominent
-• Rabbit: Shallower, more gracile, angular process less prominent
-
-INCISORS:
-• Hare: Grooved, more prominent
-• Rabbit: Smooth, less prominent
-
-LIMB BONES:
-• Hare: Longer, more gracile (adapted for running)
-• Rabbit: Shorter, more robust (adapted for hopping)
-
-FEMUR:
-• Hare: Third trochanter more proximal
-• Rabbit: Third trochanter more distal
-
-TIBIA:
-• Hare: Longer, more gracile
-• Rabbit: Shorter, more robust
-
-References: Callou 1997, 2003""",
-
-            "Human vs Bear (paw bones)": """HUMAN VS BEAR - PAW BONES
-Common confusion in cave sites!
-
-PHALANGES:
-• Human: Short, broad, smooth articular surfaces, flat ungual
-• Bear: Long, curved, robust, rougher surfaces, large curved ungual
-
-METACARPALS:
-• Human: Gracile, heads rounded, shaft straight
-• Bear: Robust, heads flattened, shaft curved, muscle attachments prominent
-
-METATARSALS:
-• Human: Similar to metacarpals but longer
-• Bear: Very robust, heavy, curved
-
-CARPALS/TARSALS:
-• Human: Small, delicate, smooth articular facets
-• Bear: Large, robust, rugose, heavy
-
-HAND VS FOOT:
-• Human: Hand bones more gracile than foot
-• Bear: Hand and foot similar in robusticity
-
-CLAWS:
-• Human: Flat nails (no ungual phalanges preserved archaeologically)
-• Bear: Large curved claw cores, deeply grooved
-
-References: Morse 1983, Schmid 1972""",
-
-            "Seal species identification": """SEAL SPECIES IDENTIFICATION
-
-COMMON/HARBOUR SEAL (Phoca vitulina):
-• Smaller size, slender bones
-• Skull: Shorter rostrum, less robust
-• Humerus: Less robust, deltopectoral crest less developed
-• Femur: Shorter, head smaller
-• Phalanges: More gracile
-
-GREY SEAL (Halichoerus grypus):
-• Larger size, robust bones
-• Skull: Longer rostrum, more robust, prominent occipital crest
-• Humerus: More robust, deltopectoral crest prominent
-• Femur: Longer, head larger, third trochanter prominent
-• Phalanges: More robust
-
-BEARDED SEAL (Erignathus barbatus):
-• Very large, extremely robust
-• Mandible: Deep, heavy, mental foramen large
-• Humerus: Massive, deltopectoral crest extremely developed
-• Limb bones: Massive, rugose
-
-RINGED SEAL (Pusa hispida):
-• Small size, gracile
-• All bones proportionally smaller and more delicate
-
-HARP SEAL (Pagophilus groenlandicus):
-• Medium size, distinctive nasal shape
-
-References: Hodgetts 1999, Olson & Walther 2007, Baryshnikov 2009""",
-
-            "Chicken vs Pheasant vs Grouse": """CHICKEN VS PHEASANT VS GROUSE
-
-CORACOID:
-• Chicken: Robust, sternal facet broad, scapular facet deep
-• Pheasant: Intermediate, sternal facet narrower, scapular facet moderate
-• Grouse: Gracile, sternal facet small, scapular facet shallow
-
-HUMERUS:
-• Chicken: Deltoid crest prominent, curved, pneumatic fossa deep
-• Pheasant: Deltoid crest moderate, straighter, pneumatic fossa moderate
-• Grouse: Deltoid crest small, straight, pneumatic fossa small
-
-ULNA:
-• Chicken: Robust, papillae for secondaries prominent
-• Pheasant: Moderate, papillae distinct
-• Grouse: Gracile, papillae faint
-
-CARPOMETACARPUS:
-• Chicken: Robust, metacarpal I prominent
-• Pheasant: Moderate, metacarpal I moderate
-• Grouse: Gracile, metacarpal I small
-
-FEMUR:
-• Chicken: Robust, head large, trochanter prominent
-• Pheasant: Intermediate, head moderate
-• Grouse: Gracile, head small
-
-TIBIOTARSUS:
-• Chicken: Robust, cnemial crest prominent
-• Pheasant: Moderate, cnemial crest moderate
-• Grouse: Gracile, cnemial crest small
-
-TARSOMETATARSUS:
-• Chicken: Robust, spur present in males (warty boss)
-• Pheasant: Intermediate, spur smaller or absent
-• Grouse: Gracile, no spur
-
-References: Cohen & Serjeantson 1996, Bacher 1967, Erbersdobler 1968""",
-
-            "Duck vs Goose vs Swan": """DUCK VS GOOSE VS SWAN
-
-SIZE:
-• Duck: Small to medium (Anas, Aythya spp.)
-• Goose: Medium to large (Anser, Branta spp.)
-• Swan: Very large (Cygnus spp.)
-
-CORACOID:
-• Duck: Gracile, short, scapular facet small
-• Goose: Robust, long, scapular facet moderate
-• Swan: Very robust, elongated, scapular facet large
-
-HUMERUS:
-• Duck: Shorter, less curved, deltoid crest small
-• Goose: Longer, curved, deltoid crest prominent
-• Swan: Very long, strongly curved, deltoid crest very prominent
-
-ULNA:
-• Duck: Short, quill knobs faint
-• Goose: Long, quill knobs distinct
-• Swan: Very long, quill knobs prominent
-
-CARPOMETACARPUS:
-• Duck: Short, broad, metacarpal II straight
-• Goose: Long, narrow, metacarpal II curved
-• Swan: Very long, very narrow, metacarpal II strongly curved
-
-FEMUR:
-• Duck: Short, robust, head small
-• Goose: Long, robust, head moderate
-• Swan: Very long, very robust, head large
-
-TIBIOTARSUS:
-• Duck: Short, cnemial crest small
-• Goose: Long, cnemial crest prominent
-• Swan: Very long, cnemial crest very prominent
-
-References: Cohen & Serjeantson 1996, Woelfle 1967, Bacher 1967""",
-
-            "Turkey vs Peafowl": """TURKEY VS PEAFOWL
-
-SIZE:
-• Turkey: Large (Meleagris gallopavo)
-• Peafowl: Large (Pavo cristatus)
-
-SKULL:
-• Turkey: Longer, narrower, nasal opening elongated
-• Peafowl: Shorter, broader, nasal opening round
-
-CORACOID:
-• Turkey: Robust, sternal facet broad, scapular facet deep
-• Peafowl: Similar size but differently proportioned
-
-HUMERUS:
-• Turkey: Deltoid crest prominent, shaft straighter
-• Peafowl: Deltoid crest moderate, shaft more curved
-
-TARSOMETATARSUS:
-• Turkey: Spur present in males (large conical spur), shaft robust
-• Peafowl: Spur present (smaller), shaft more gracile, often more ornate
-
-References: Cohen & Serjeantson 1996""",
-
-            "Raptor species (eagles, hawks, owls)": """RAPTOR SPECIES - EAGLES, HAWKS, OWLS
-
-EAGLES (Aquila, Haliaeetus):
-• Very large size, extremely robust
-• Beak: Massive, hooked, cere large
-• Talons: Large, strongly curved, powerful
-
-FALCONS (Falco):
-• Medium size, compact
-• Beak: Distinctive "tomial tooth" on upper mandible
-• Wings: Long, pointed
-
-HAWKS (Accipiter, Buteo):
-• Medium size, variable
-• Beak: Hooked, less specialized than falcons
-• Feet: Powerful, for grasping
-
-OWLS (Strix, Bubo, Tyto):
-• Large eyes (large orbits)
-• Beak: Short, hooked, cere prominent
-• Feet: Zygodactyl (two toes forward, two back)
-• Feathers: Silent flight adaptations (comb on leading edge of wing)
-
-SKELETAL DIFFERENCES:
-• Eagles: All bones extremely robust, muscle attachments massive
-• Falcons: Distinctive humerus with expanded brachial depression
-• Owls: Unique tarsometatarsus morphology, asymmetrical ear openings in skull
-
-References: Gilbert et al. 1981, Cohen & Serjeantson 1996""",
-
-            "Corvid species (crow, raven, rook, jackdaw)": """CORVID SPECIES - CROW, RAVEN, ROOK, JACKDAW
-
-RAVEN (Corvus corax):
-• Very large (similar to Buzzard size)
-• Skull: Massive, deep mandible
-• Beak: Very large, strongly curved, nasal bristles long
-• Bones: All elements very robust
-
-CARRION/HOODED CROW (Corvus corone/cornix):
-• Large (pigeon size +)
-• Skull: Moderate, less deep than raven
-• Beak: Moderate, curved
-• Bones: Robust but smaller than raven
-
-ROOK (Corvus frugilegus):
-• Similar to crow but more gracile
-• Skull: Distinctive bare face in life (not skeletal)
-• Beak: Longer, straighter, more pointed
-• Mandible: Mental foramen positioned differently
-
-JACKDAW (Corvus monedula):
-• Small (pigeon size)
-• Skull: Compact, rounded
-• Beak: Short, stout
-• Bones: Gracile, smaller than crow
-
-MAGPIE (Pica pica):
-• Medium size, distinctive long tail (caudal vertebrae)
-• Skull: More rounded
-• Beak: Stout, shorter
-
-References: Tomek & Bocheński 2000, Cohen & Serjeantson 1996""",
-
-            "Cod vs Haddock vs Pollock": """COD VS HADDOCK VS POLLOCK
-
-OTOLITHS (ear stones):
-• Cod: Oval, convex, smooth margin, rounded ends
-• Haddock: Rectangular, flat, serrated margin, square ends
-• Pollock: Elongate, thin, irregular, pointed ends
-
-PREMAXILLA:
-• Cod: Robust, teeth present, ascending process broad
-• Haddock: Less robust, teeth smaller, ascending process narrow
-• Pollock: Gracile, teeth absent, ascending process very narrow
-
-DENTARY:
-• Cod: Deep, teeth large in multiple rows
-• Haddock: Shallower, teeth moderate in single row
-• Pollock: Shallow, teeth small or absent
-
-MAXILLA:
-• Cod: Robust, posterior expansion prominent
-• Haddock: Moderate, posterior expansion less prominent
-• Pollock: Gracile, posterior expansion minimal
-
-CLEITHRUM:
-• Cod: Robust, curved, muscle attachment prominent
-• Haddock: Moderate, less curved
-• Pollock: Gracile, straight
-
-VERTEBRAE:
-• Cod: Large, robust processes, deep pits
-• Haddock: Medium, moderate processes
-• Pollock: Small, delicate processes
-
-References: Wheeler & Jones 1989, Watt et al. 1997, Cannon 1987""",
-
-            "Salmon vs Trout vs Grayling": """SALMON VS TROUT VS GRAYLING
-
-VOMER (bone in roof of mouth):
-• Salmon: Teeth on shaft, vomerine teeth present throughout life
-• Trout: Teeth on head only, vomerine teeth lost in adults
-• Grayling: No vomerine teeth
-
-PREMAXILLA:
-• Salmon: Robust, multiple tooth rows, ascending process broad
-• Trout: Moderate, single tooth row, ascending process moderate
-• Grayling: Gracile, small teeth, ascending process narrow
-
-DENTARY:
-• Salmon: Deep, teeth large, coronoid process prominent
-• Trout: Moderate, teeth medium, coronoid process moderate
-• Grayling: Shallow, teeth small, coronoid process low
-
-VERTEBRAE:
-• Salmon: 56-60, robust, neural spines tall
-• Trout: 57-60, moderate, neural spines moderate
-• Grayling: 58-62, gracile, neural spines short
-
-CAUDAL FIN (hypural bones):
-• Salmon: 16-19 rays
-• Trout: 17-19 rays
-• Grayling: 18-21 rays
-
-References: Cannon 1987, 1988, Wheeler & Jones 1989""",
-
-            "Herring vs Sprat vs Sardine": """HERRING VS SPRAT VS SARDINE
-
-ATLAS VERTEBRA:
-• Herring: Large, robust, neural arch high
-• Sprat: Smaller, neural arch lower
-• Sardine: Similar to herring but more delicate
-
-ABDOMINAL VERTEBRAE:
-• Herring: Deep pits, robust processes
-• Sprat: Shallower pits, delicate processes
-• Sardine: Intermediate
-
-CAUDAL VERTEBRAE:
-• Herring: 26-28, robust
-• Sprat: 24-26, delicate
-• Sardine: 25-27, intermediate
-
-OTOLITHS:
-• Herring: Thick, oval, smooth
-• Sprat: Thin, elongated, serrated margin
-• Sardine: Thick, rectangular, central depression
-
-SIZE:
-• Herring: Up to 40cm
-• Sprat: Up to 16cm
-• Sardine: Up to 25cm
-
-References: Wheeler & Jones 1989""",
-
-            "Flatfish species (plaice, flounder, sole, turbot)": """FLATFISH SPECIES - PLAICE, FLOUNDER, SOLE, TURBOT
-
-CRANIAL ASYMMETRY:
-All flatfish have asymmetrical skulls with both eyes on one side.
-The direction of asymmetry is species-specific.
-
-PREMAXILLA:
-• Plaice: Robust, teeth in multiple rows, crushing dentition
-• Flounder: Moderate, teeth smaller, less specialized
-• Sole: Gracile, teeth minute or absent, on blind side only
-• Turbot: Very robust, teeth conical, widely spaced
-
-DENTARY:
-• Plaice: Deep, molariform teeth
-• Flounder: Shallower, smaller teeth
-• Sole: Very shallow, no teeth
-• Turbot: Deep, large conical teeth
-
-CLEITHRUM:
-• Plaice: Robust, curved
-• Flounder: Moderate, straighter
-• Sole: Gracile, delicate
-• Turbot: Very robust, massive
-
-VERTEBRAE:
-• Plaice: 38-42, robust neural spines
-• Flounder: 34-36, moderate spines
-• Sole: 45-50, delicate spines
-• Turbot: 30-35, very robust
-
-References: Wheeler & Jones 1989, Watt et al. 1997""",
-
-            "Cyprinid identification (carp, roach, bream, chub, dace)": """CYPRINID IDENTIFICATION - CARP, ROACH, BREAM, CHUB, DACE
-
-PHARYNGEAL TEETH (most diagnostic):
-Located on the last gill arch, these are the BEST way to identify cyprinids.
-
-• Common Carp (Cyprinus carpio): Large, molariform (grinding), 3 rows (1.1.3-3.1.1 pattern)
-• Tench (Tinca tinca): Hooked, 1 row (4-5 pattern)
-• Roach (Rutilus rutilus): Compressed, 2 rows (2.5-5.2 pattern)
-• Bream (Abramis brama): Compressed, serrated, 2 rows (1.5-5.1 pattern)
-• Chub (Squalius cephalus): Robust, hooked, 2 rows (2.5-5.2 pattern)
-• Dace (Leuciscus leuciscus): Slender, hooked, 2 rows (2.5-5.2 pattern) - smaller than chub
-
-CLEITHRUM:
-• Carp: Very robust, massive, curved
-• Tench: Robust, less curved
-• Bream: Moderate, straight
-• Roach: Gracile, delicate
-• Chub: Intermediate
-
-OPERCULUM:
-• Carp: Large, with radiating ridges
-• Bream: Deep, with concentric ridges
-• Roach: Thin, smooth
-
-VERTEBRAE:
-• Carp: Massive, with deep lateral pits
-• Other cyprinids: Smaller, less specialized
-
-References: Wheeler & Jones 1989""",
-
-            "Canid tooth eruption & wear (ages)": """CANID TOOTH ERUPTION & WEAR AGES (Dog, Wolf, Fox)
-
-DECIDUOUS TEETH (Milk teeth):
-• Incisors erupt: 3-4 weeks
-• Canines erupt: 3-4 weeks
-• Premolars erupt: 4-12 weeks
-
-PERMANENT TEETH ERUPTION:
-
-Incisors:
-• I1: 3-4 months
-• I2: 3-4 months
-• I3: 4-5 months
-
-Canines:
-• C: 5-6 months
-
-Premolars:
-• P1: 4-5 months
-• P2: 5-6 months
-• P3: 5-6 months
-• P4: 5-6 months
-
-Molars:
-• M1: 5-6 months (lower first molar)
-• M2: 6-7 months
-• M3: 6-7 months
-
-All permanent teeth erupted by 7 months.
-
-WEAR STAGES (ages in years):
-• Slight wear (enamel only): 1-3 years
-• Moderate wear (dentine exposed): 3-5 years
-• Heavy wear (pulp cavity exposed): 5-8 years
-• Severe wear (teeth worn to roots): 8+ years
-
-References: Silver 1969, Habermehl 1975""",
-
-            "Caprine mandibular wear stages (Payne 1973, 1987)": """CAPRINE MANDIBULAR WEAR STAGES - SHEEP & GOAT (Payne 1973, 1987)
-
-STAGE A (0-2 months):
-• M1 unworn or just erupting
-• M2, M3 not erupted
-
-STAGE B (2-6 months):
-• M1 in wear
-• M2 erupting
-• M3 not erupted
-
-STAGE C (6-12 months):
-• M1, M2 in wear
-• M3 erupting
-• dP4 still present
-
-STAGE D (12-24 months):
-• All permanent molars in wear
-• dP4 replaced by P4
-• M3 with 2-3 crescents in wear
-
-STAGE E (24-36 months):
-• M3 posterior cusp (3rd crescent) in wear
-• Moderate wear on all molars
-
-STAGE F (36-48 months):
-• M3 posterior cusp well worn
-• Dentine exposed on all cusps
-• Enamel islands forming
-
-STAGE G (48-72 months):
-• Heavy wear on all teeth
-• Enamel islands prominent
-• Some cusps worn flat
-
-STAGE H (72-96 months):
-• Very heavy wear
-• Most enamel gone
-• Teeth worn to gum line
-
-STAGE I (96+ months):
-• Extreme wear
-• Teeth nearly worn away
-• Pulp cavities exposed
-
-References: Payne 1973, Payne 1987, Grant 1982""",
-
-            "Cattle epiphyseal fusion ages": """CATTLE EPIPHYSEAL FUSION AGES (in months)
-
-EARLY FUSING (7-10 months):
-• Scapula (distal)
-• Humerus (distal)
-• Radius (proximal)
-
-MID FUSING (15-20 months):
-• Phalanges 1 & 2 (proximal)
-• Metacarpal (distal)
-• Metatarsal (distal)
-• Tibia (distal)
-
-LATE FUSING (24-30 months):
-• Femur (proximal & distal)
-• Humerus (proximal)
-• Radius (distal)
-• Ulna (proximal & distal)
-• Calcaneus (proximal)
-
-VERY LATE FUSING (36-48 months):
-• Vertebral plates
-• Pelvis (ilium, ischium, pubis fusion)
-
-FUSION INTERPRETATION:
-• Unfused = younger than fusion age
-• Fusing = approximately at fusion age
-• Fused = older than fusion age
-
-References: Silver 1969, Reitz & Wing 2008""",
-
-            "Sheep/goat epiphyseal fusion ages": """SHEEP & GOAT EPIPHYSEAL FUSION AGES (in months)
-
-EARLY FUSING (3-10 months):
-• Scapula (distal) - 6-8 months
-• Humerus (distal) - 10 months
-• Radius (proximal) - 10 months
-
-MID FUSING (13-20 months):
-• Phalanges 1 & 2 (proximal) - 13-16 months
-• Tibia (distal) - 18-24 months
-• Metacarpal (distal) - 18-24 months
-• Metatarsal (distal) - 20-28 months
-
-LATE FUSING (30-42 months):
-• Femur (proximal) - 30-36 months
-• Femur (distal) - 36-42 months
-• Humerus (proximal) - 36-42 months
-• Radius (distal) - 36-42 months
-• Ulna (proximal) - 36-42 months
-• Calcaneus (proximal) - 36-40 months
-• Tibia (proximal) - 36-48 months
-
-VERY LATE FUSING (48-60 months):
-• Vertebral plates - 48-60 months
-• Pelvis (ilium, ischium, pubis) - 60+ months
-
-References: Silver 1969, Zeder 2006""",
-
-            "Pig epiphyseal fusion ages": """PIG EPIPHYSEAL FUSION AGES (in months)
-
-VERY EARLY FUSING (12 months):
-• Scapula (distal)
-• Humerus (distal)
-• Radius (proximal)
-• Pelvis (ilium, ischium, pubis fusion complete)
-
-EARLY FUSING (24-30 months):
-• Phalanges 1 & 2 (proximal)
-• Metacarpal (distal)
-• Metatarsal (distal)
-• Tibia (distal)
-• Fibula (distal)
-
-MID FUSING (36-42 months):
-• Calcaneus (proximal)
-• Femur (proximal)
-• Femur (distal)
-• Humerus (proximal)
-• Radius (distal)
-• Ulna (proximal & distal)
-• Tibia (proximal)
-• Fibula (proximal)
-
-LATE FUSING (48-60 months):
-• Vertebral plates
-• Sternebrae
-
-FUSION SEQUENCE NOTES:
-Pigs fuse earlier than ruminants of similar size.
-Most elements fused by 3.5 years.
-Vertebral plates last to fuse (5+ years).
-
-References: Silver 1969, Bull & Payne 1982""",
-
-            "Horse dental eruption & wear": """HORSE DENTAL ERUPTION & WEAR
-
-DECIDUOUS TEETH (Milk teeth):
-• Incisors: Birth to 2 weeks
-• Canines: Rarely present in deciduous set
-• Premolars: Birth to 2 weeks (dp2, dp3, dp4)
-
-PERMANENT TEETH ERUPTION:
-
-Incisors:
-• I1: 2.5 years
-• I2: 3.5 years
-• I3: 4.5 years
-
-Canines:
-• C: 4-5 years (males only, often absent in females)
-
-Premolars:
-• P2: 2.5 years
-• P3: 3 years
-• P4: 4 years
-
-Molars:
-• M1: 1 year
-• M2: 2 years
-• M3: 3.5-4 years
-
-All permanent teeth erupted by 5 years.
-
-WEAR-BASED AGE ESTIMATION (after 5 years):
-• Dental star (dentine exposure) appears: 5-6 years
-• Enamel cup disappears in I1: 6 years
-• Enamel cup disappears in I2: 7 years
-• Enamel cup disappears in I3: 8 years
-• Galvayne's groove appears at gumline: 10 years
-• Galvayne's groove halfway down tooth: 15 years
-• Galvayne's groove extends full tooth: 20 years
-• Galvayne's groove disappears from upper half: 25+ years
-
-References: Silver 1969, Levine 1982""",
-
-            "Bird tarsometatarsus sexing (spur presence)": """BIRD TARSOMETATARSUS SEXING - SPUR PRESENCE
-
-SPUR MORPHOLOGY:
-The tarsometatarsus can have a spur (males) or spur scar (females) in many galliforms (chicken, pheasant, turkey, peafowl).
-
-CHICKEN (Gallus gallus):
-• Male: Prominent conical spur, rough base, located on medial side of distal shaft
-• Female: Spur absent, sometimes small knob or smooth area
-• Castrated male: Small, blunt spur or absent
-
-PHEASANT (Phasianus colchicus):
-• Male: Short, blunt spur, less prominent than chicken
-• Female: Spur absent
-
-TURKEY (Meleagris gallopavo):
-• Male: Large conical spur, very prominent
-• Female: Spur absent or very small knob
-
-PEAFOWL (Pavo cristatus):
-• Male: Long, sharp spur
-• Female: Spur absent
-
-OTHER BIRDS:
-• Ducks: No spur (sexing by other bone morphology)
-• Geese: No spur
-• Raptors: Size dimorphism (females larger in many species)
-• Owls: Size dimorphism (females larger)
-
-SPUR SCARS:
-Even when spur is lost post-mortem, the attachment site (spur scar) remains visible as a roughened area on the bone.
-
-References: Cohen & Serjeantson 1996, Sadler 1991"""
-        }
-
-        text = keys_database.get(key, "Key not available")
         self.key_text.delete(1.0, tk.END)
-        self.key_text.insert(1.0, text)
 
-    def _clear_measurements(self):
-        """Clear all measurement input fields."""
-        for var in self.id_measurements.values():
-            var.set("")
+        if key in self.keys_database:
+            entry = self.keys_database[key]
 
-    def _run_discriminant(self):
-        """Run measurement-based discriminant analysis using reference database."""
-        if not HAS_SKLEARN:
-            self.class_result.delete(1.0, tk.END)
-            self.class_result.insert(1.0, "scikit-learn not installed\n\nPlease install with:\npip install scikit-learn")
-            return
+            if isinstance(entry, dict):
+                text = entry.get("text", "")
+                citations = entry.get("citations", [])
 
-        # Collect measurements from input fields
-        unknown = {}
-        for code, var in self.id_measurements.items():
-            val = var.get().strip()
-            if val:
-                try:
-                    unknown[code] = float(val)
-                except ValueError:
-                    pass
+                self.key_text.insert(1.0, text)
 
-        if not unknown:
-            self.class_result.delete(1.0, tk.END)
-            self.class_result.insert(1.0, "Enter at least one measurement")
-            return
-
-        # Get selected taxa from checkboxes
-        selected_taxa = [taxon for taxon, var in self.id_taxa_vars.items() if var.get()]
-        if not selected_taxa:
-            self.class_result.delete(1.0, tk.END)
-            self.class_result.insert(1.0, "Select at least one taxon to compare")
-            return
-
-        # Check if reference database is loaded
-        if not hasattr(self, 'ref_db') or not self.ref_db.loaded:
-            self.class_result.delete(1.0, tk.END)
-            self.class_result.insert(1.0, "Reference database not loaded.\n\nPlease ensure zooarch_reference.json exists in config folder.")
-            return
-
-        # Use reference database for comparison
-        results = self.ref_db.compare_unknown(unknown, selected_taxa)
-
-        if not results:
-            self.class_result.delete(1.0, tk.END)
-            self.class_result.insert(1.0, "No matching reference data found for these measurements")
-            return
-
-        # Display results
-        self.class_result.delete(1.0, tk.END)
-        self.class_result.insert(1.0, "DISCRIMINANT ANALYSIS RESULTS\n")
-        self.class_result.insert(tk.END, "=" * 50 + "\n\n")
-
-        self.class_result.insert(tk.END, f"Unknown specimen measurements:\n")
-        for code, value in sorted(unknown.items()):
-            self.class_result.insert(tk.END, f"  {code}: {value:.1f} mm\n")
-
-        self.class_result.insert(tk.END, f"\nCompared against: {', '.join(selected_taxa[:3])}")
-        if len(selected_taxa) > 3:
-            self.class_result.insert(tk.END, f" +{len(selected_taxa)-3} more\n\n")
+                if citations:
+                    self.key_text.insert(tk.END, "\n\n" + "="*50 + "\n")
+                    self.key_text.insert(tk.END, "REFERENCES:\n")
+                    for i, citation in enumerate(citations, 1):
+                        self.key_text.insert(tk.END, f"{i}. {citation}\n")
+            else:
+                self.key_text.insert(1.0, entry)
         else:
-            self.class_result.insert(tk.END, "\n\n")
-
-        self.class_result.insert(tk.END, "Classification probabilities:\n")
-        self.class_result.insert(tk.END, "-" * 40 + "\n")
-
-        # Display top matches
-        for taxon, prob in list(results.items())[:5]:
-            if prob > 0.01:  # Only show probabilities > 1%
-                # Simple confidence interval approximation
-                ci_low = max(0, prob - 0.1)
-                ci_high = min(1, prob + 0.1)
-                bar_length = int(prob * 30)
-                bar = "█" * bar_length + "░" * (30 - bar_length)
-                self.class_result.insert(tk.END, f"{taxon[:20]:20} {bar} {prob:.1%}\n")
-                self.class_result.insert(tk.END, f"{'':20}  95% CI: {ci_low:.1%}-{ci_high:.1%}\n\n")
-
-        if results:
-            best_taxon = list(results.keys())[0]
-            best_prob = results[best_taxon]
-            self.class_result.insert(tk.END, "=" * 50 + "\n")
-            self.class_result.insert(tk.END, f"→ MOST LIKELY: {best_taxon}\n")
-            self.class_result.insert(tk.END, f"  ({best_prob:.1%} confidence)\n")
-
-        # Generate PCA plot if we have at least 2 measurements
-        if HAS_MPL and len(unknown) >= 2:
-            self._generate_pca_plot(unknown, selected_taxa)
-
-        self.result_status.config(
-            text="✓ Analysis complete! Click 'Results & Visualization' tab to view",
-            foreground="#8B4513",
-            background="#f1c40f"
-        )
-
-    def _clear_measurements(self):
-        for var in self.id_measurements.values():
-            var.set("")
-
-        # Reset label to default system background
-        default_bg = tk.Label().cget("bg")
-
-        self.result_status.config(
-            text="",
-            fg="black",
-            bg=default_bg
-        )
-
-    def _generate_pca_plot(self, unknown, selected_taxa):
-        """Generate PCA plot of unknown vs reference."""
-        if not HAS_MPL or not hasattr(self, 'ref_db') or not self.ref_db.loaded:
-            return
-
-        self.ax.clear()
-
-        # Prepare data for PCA
-        all_measurements = []
-        all_labels = []
-        colors = []
-        markers = []
-
-        # Add reference data
-        color_map = plt.cm.tab10
-        for i, taxon in enumerate(selected_taxa):
-            if taxon not in self.ref_db.references:
-                continue
-            ref = self.ref_db.references[taxon]
-            # Create a synthetic point for each taxon (mean values)
-            point = []
-            valid = True
-            for code in unknown.keys():
-                if code in ref:
-                    point.append(ref[code]['mean'])
-                else:
-                    point.append(0)
-            if point and len(point) > 0:
-                all_measurements.append(point)
-                all_labels.append(taxon)
-                colors.append(color_map(i % 10))
-                markers.append('o')
-
-        # Add unknown
-        unknown_point = [unknown.get(code, 0) for code in unknown.keys()]
-        all_measurements.append(unknown_point)
-        all_labels.append('Unknown')
-        colors.append('red')
-        markers.append('*')
-
-        # Perform PCA
-        X = np.array(all_measurements)
-        X_centered = X - X.mean(axis=0)
-        U, s, Vt = np.linalg.svd(X_centered, full_matrices=False)
-        scores = U * s
-
-        # Plot
-        for i in range(len(all_labels)):
-            self.ax.scatter(scores[i, 0], scores[i, 1],
-                           c=[colors[i]], marker=markers[i],
-                           s=100 if markers[i] == '*' else 50,
-                           label=all_labels[i], alpha=0.7)
-
-        self.ax.set_xlabel(f'PC1 ({s[0]/sum(s):.1%})')
-        self.ax.set_ylabel(f'PC2 ({s[1]/sum(s):.1%})')
-        self.ax.set_title('PCA: Unknown vs Reference Collections')
-        self.ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-        self.ax.grid(True, alpha=0.3)
-
-        self.fig.tight_layout()
-        self.canvas.draw()
-
-    def _export_report(self):
-        """Export identification report as CSV."""
-        path = filedialog.asksaveasfilename(
-            defaultextension=".csv",
-            filetypes=[("CSV", "*.csv")],
-            initialfile="identification_report.csv"
-        )
-
-        if not path:
-            return
-
-        # Collect current results
-        report_data = []
-        for code, var in self.id_measurements.items():
-            val = var.get().strip()
-            if val:
-                report_data.append({
-                    'Measurement': code,
-                    'Value_mm': val,
-                    'Notes': ''
-                })
-
-        if HAS_PANDAS:
-            df = pd.DataFrame(report_data)
-            df.to_csv(path, index=False)
-            messagebox.showinfo("Export", f"Report saved to {path}")
-
+            self.key_text.insert(1.0, f"Key '{key}' not available")
 
 # ============================================================================
 # TAB 4: ECOLOGY - TDF + isotopes + FTIR (YOUR UNIQUE VALUE ADD)
@@ -3940,7 +5974,6 @@ class ZooarchaeologyAnalysisSuite:
 
     def _send_to_table(self):
         """Send selected data from current tab to main table."""
-        # Get current tab
         current_tab_id = self.notebook.index(self.notebook.select())
         tab_names = list(self.tabs.keys())
         if current_tab_id >= len(tab_names):
@@ -3965,7 +5998,6 @@ class ZooarchaeologyAnalysisSuite:
             self.set_status(f"✅ Updated {success} records in main table", "success")
         else:
             self.set_status(f"⚠️ Tab '{tab_names[current_tab_id]}' doesn't support sending data", "warning")
-
 
 # ============================================================================
 # PLUGIN REGISTRATION
