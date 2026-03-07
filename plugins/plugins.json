@@ -691,8 +691,8 @@
   {
     "id": "petrogenetic_modeling_suite",
     "name": "Petrogenetic Modeling Suite",
-    "version": "2.0.0",
-    "description": "Complete magma evolution: AFC \u00b7 Fractional \u00b7 Zone Refining \u00b7 Mixing \u00b7 Partial Melting \u00b7 Phase Diagrams \u00b7 MELTS",
+    "version": "2.1.0",
+    "description": "Complete magma evolution: AFC \u00b7 Fractional \u00b7 Zone Refining \u00b7 Mixing \u00b7 Partial Melting \u00b7 Phase Diagrams \u00b7 MELTS \u00b7 Comparison",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
     "field": "Petrology & Mineralogy",
@@ -703,7 +703,8 @@
       "matplotlib",
       "pandas",
       "petthermotools",
-      "juliapkg"
+      "juliapkg",
+      "openpyxl"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/petrogenetic_modeling_suite.py?ref_type=heads"
   },
@@ -961,9 +962,9 @@
   },
   {
     "id": "zooarchaeology_analysis_suite",
-    "name": "Zooarchaeology Suite",
-    "version": "1.1.0",
-    "description": "NISP/MNI \u00b7 Age-at-Death \u00b7 Taphonomy \u00b7 3D Morphometrics \u00b7 Species ID \u00b7 Mortality \u00b7 Log-Ratio \u00b7 FTIR \u2014 Complete Archaeofauna Analysis",
+    "name": "Zooarchaeology Suite v2.0",
+    "version": "2.0.0",
+    "description": "Assemblage \u00b7 Individual \u00b7 Identity \u00b7 Ecology \u2014 Complete Archaeofauna Analysis with TDF Integration",
     "author": "Sefy Levy & Claude",
     "category": "software",
     "field": "Zooarchaeology",
@@ -1030,8 +1031,8 @@
   {
     "id": "geophysics_analysis_suite",
     "name": "Geophysics Analysis Suite",
-    "version": "2.6.0",
-    "description": "Seismic \u00b7 ERT \u00b7 Gravity \u00b7 Magnetics \u00b7 MT \u00b7 GPR \u00b7 Attributes \u2014 with migration, GIS, time\u2011lapse, joint inversion",
+    "version": "3.0.0",
+    "description": "5-tab workflow: Import \u00b7 Process \u00b7 Grid \u00b7 Model \u00b7 Visualize",
     "author": "Sefy Levy & DeepSeek",
     "category": "software",
     "field": "Geophysics",
@@ -1042,12 +1043,16 @@
       "scipy",
       "matplotlib",
       "pygimli",
-      "pyproj",
-      "pyvista",
       "harmonica",
-      "h5py",
+      "pyproj",
       "folium",
-      "segyio"
+      "pyvista",
+      "scikit-learn",
+      "pykrige",
+      "rasterio",
+      "geopandas",
+      "xgboost",
+      "scikit-image"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/geophysics_analysis_suite.py?ref_type=heads"
   },
@@ -1100,6 +1105,24 @@
       "matplotlib"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/interactive_contouring.py?ref_type=heads"
+  },
+  {
+    "id": "isotope_mixing_models",
+    "name": "Isotope Mixing Models",
+    "version": "3.0.0",
+    "description": "Binary/ternary mixing, end-member estimation, Monte Carlo, Bayesian inversion, REE inversion",
+    "author": "Sefy Levy",
+    "category": "software",
+    "field": "Geochronology & Dating",
+    "icon": "\ud83e\uddea",
+    "requires": [
+      "numpy",
+      "scipy",
+      "matplotlib",
+      "pandas",
+      "emcee"
+    ],
+    "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/software/isotope_mixing_models.py?ref_type=heads"
   },
   {
     "id": "laicpms_pro",
@@ -1311,18 +1334,32 @@
   {
     "id": "geophysics_unified_suite",
     "name": "Geophysics Suite",
-    "version": "1.0.0",
-    "description": "Seismometers \u00b7 ERT \u00b7 EM \u00b7 MT \u00b7 Magnetometers \u00b7 Gravimeters \u00b7 GPR \u00b7 GNSS \u00b7 70+ devices",
-    "author": "Geophysics Team",
+    "version": "2.0.0",
+    "description": "38 devices \u00b7 Python 3.13 ready \u00b7 Real hardware \u00b7 No placeholders",
+    "author": "Sefy Levy & DeepSeek",
     "category": "hardware",
-    "field": "General",
+    "field": "Geophysics",
     "icon": "\ud83c\udf0d",
     "requires": [
       "numpy",
       "pandas",
-      "scipy",
-      "matplotlib",
-      "pyserial"
+      "pyserial",
+      "pynmea2",
+      "pysacio",
+      "cymseed3",
+      "xdas",
+      "gprstudio",
+      "reda",
+      "pygimli",
+      "aurora",
+      "martas",
+      "qzfm",
+      "lsm303d",
+      "pyrtklib",
+      "instrumentman",
+      "pymodbus",
+      "adafruit-circuitpython-ads1x15",
+      "adafruit-circuitpython-bno055"
     ],
     "download_url": "https://gitlab.com/sefy76/scientific-toolkit/-/raw/main/plugins/hardware/geophysics_unified_suite.py?ref_type=heads"
   },

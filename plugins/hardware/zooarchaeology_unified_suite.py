@@ -51,28 +51,61 @@ def check_dependencies():
         'pynmea2': False, 'pillow': False, 'matplotlib': False,
         'brukeropus': False, 'specio': False
     }
-    try: import numpy; deps['numpy'] = True
-    except: pass
-    try: import pandas; deps['pandas'] = True
-    except: pass
-    try: import serial; deps['pyserial'] = True
-    except: pass
-    try: import cv2; deps['opencv'] = True
-    except: pass
-    try: import hid; deps['hidapi'] = True
-    except: pass
-    try: import bleak; deps['bleak'] = True
-    except: pass
-    try: import pynmea2; deps['pynmea2'] = True
-    except: pass
-    try: from PIL import Image, ImageTk; deps['pillow'] = True
-    except: pass
-    try: import matplotlib; deps['matplotlib'] = True
-    except: pass
-    try: import brukeropus; deps['brukeropus'] = True
-    except: pass
-    try: import specio; deps['specio'] = True
-    except: pass
+    try:
+        import numpy
+        deps['numpy'] = True
+    except ImportError:
+        pass
+    try:
+        import pandas
+        deps['pandas'] = True
+    except ImportError:
+        pass
+    try:
+        import serial
+        deps['pyserial'] = True
+    except ImportError:
+        pass
+    try:
+        import cv2
+        deps['opencv'] = True
+    except ImportError:
+        pass
+    try:
+        import hid
+        deps['hidapi'] = True
+    except ImportError:
+        pass
+    try:
+        import bleak
+        deps['bleak'] = True
+    except ImportError:
+        pass
+    try:
+        import pynmea2
+        deps['pynmea2'] = True
+    except ImportError:
+        pass
+    try:
+        from PIL import Image, ImageTk
+        deps['pillow'] = True
+    except ImportError:
+        pass
+    try:
+        import matplotlib
+        deps['matplotlib'] = True
+    except ImportError:
+        pass
+    try:
+        import brukeropus
+        deps['brukeropus'] = True
+    except ImportError:
+        pass
+    try:
+        import specio
+        deps['specio'] = True
+    except ImportError:
+        pass
     return deps
 
 DEPS = check_dependencies()
@@ -289,11 +322,18 @@ def calculate_ftir_indices(wavenumbers, intensities) -> Dict:
     Crystallinity Index (IRSF, Weiner & Bar-Yosef 1990):
         IRSF = (A_605 + A_565) / A_590
         where A_x is absorbance at wavenumber x cm⁻¹.
-        Unaltered bone: ~2.9–3.5; modern bone: ~3.5+
+
+    Interpretation (Thompson et al. 2009, 2013):
+        - Unburned fresh bone: ~2.5–3.5
+        - Slightly burned (>300°C): ~4.0–5.0
+        - Heavily burned/calcined (>600°C): >5.0
+        - Diagenetically altered archaeological bone: can exceed 5.0
 
     Carbonate-to-Phosphate Ratio (C/P):
         C/P = A_1415 / A_1035
         Reflects diagenetic loss of carbonate.
+        Higher values (>0.3) indicate better preservation.
+        Lower values (<0.1) indicate severe diagenesis.
     """
     if np is None or len(wavenumbers) < 10:
         return {}
@@ -302,12 +342,14 @@ def calculate_ftir_indices(wavenumbers, intensities) -> Dict:
     ab = np.array(intensities, dtype=float)
 
     def absorbance_at(target, window=8):
+        """Get maximum absorbance near target wavenumber"""
         mask = (wn >= target - window) & (wn <= target + window)
         if not np.any(mask):
             return None
         return float(np.max(ab[mask]))
 
     def band_area(lo, hi):
+        """Calculate area under curve for wavenumber range"""
         mask = (wn >= lo) & (wn <= hi)
         if np.sum(mask) < 2:
             return None
@@ -315,27 +357,109 @@ def calculate_ftir_indices(wavenumbers, intensities) -> Dict:
 
     results = {}
 
-    # IRSF / Crystallinity
+    # IRSF / Crystallinity (Weiner & Bar-Yosef 1990)
     a605 = absorbance_at(605)
     a565 = absorbance_at(565)
     a590 = absorbance_at(590)
+
     if a605 is not None and a565 is not None and a590 is not None and a590 > 0:
         irsf = (a605 + a565) / a590
         results["crystallinity_IRSF"] = round(irsf, 3)
-        results["heating"] = "Heated (>600°C)" if irsf < 2.8 else (
-                             "Possibly heated" if irsf < 3.2 else "Unheated")
 
-    # Carbonate / Phosphate
-    c_area = band_area(1380, 1450)
-    p_area = band_area(1000, 1100)
+        # CORRECTED: Higher IRSF = heated/recrystallized
+        if irsf < 2.8:
+            results["heating"] = "Unburned/well-preserved (low crystallinity)"
+            results["heating_code"] = "unburned_low"
+        elif irsf < 3.5:
+            results["heating"] = "Unburned/normal bone mineral"
+            results["heating_code"] = "unburned_normal"
+        elif irsf < 4.5:
+            results["heating"] = "Slightly heated (>300°C) or diagenetic"
+            results["heating_code"] = "heated_slight"
+        elif irsf < 5.5:
+            results["heating"] = "Heated (>600°C) or highly crystalline"
+            results["heating_code"] = "heated_high"
+        else:
+            results["heating"] = "Heavily heated/calcined (>800°C) or diagenetic"
+            results["heating_code"] = "heated_calcined"
+
+    # Carbonate / Phosphate Ratio (C/P)
+    c_area = band_area(1380, 1450)  # Carbonate band
+    p_area = band_area(1000, 1100)  # Phosphate band
+
     if c_area is not None and p_area is not None and p_area > 0:
         cp = c_area / p_area
         results["carbonate_phosphate_ratio"] = round(cp, 4)
 
-    # Amide I / Phosphate (collagen preservation)
-    amide = band_area(1620, 1680)
+        # Interpret C/P ratio
+        if cp > 0.3:
+            results["carbonate_preservation"] = "Excellent carbonate preservation"
+        elif cp > 0.2:
+            results["carbonate_preservation"] = "Good carbonate preservation"
+        elif cp > 0.1:
+            results["carbonate_preservation"] = "Moderate carbonate preservation"
+        else:
+            results["carbonate_preservation"] = "Poor carbonate preservation (diagenetic loss)"
+
+    # Amide I / Phosphate Ratio (collagen preservation)
+    amide = band_area(1620, 1680)  # Amide I band
+
     if amide is not None and p_area is not None and p_area > 0:
-        results["amide_phosphate_ratio"] = round(amide / p_area, 4)
+        ap = amide / p_area
+        results["amide_phosphate_ratio"] = round(ap, 4)
+
+        # Interpret Amide/P ratio (collagen preservation)
+        if ap > 0.5:
+            results["collagen_preservation"] = "Excellent collagen preservation"
+        elif ap > 0.3:
+            results["collagen_preservation"] = "Good collagen preservation"
+        elif ap > 0.1:
+            results["collagen_preservation"] = "Poor collagen preservation"
+        else:
+            results["collagen_preservation"] = "No detectable collagen"
+
+    # BPI (Bone Preservation Index) - composite score
+    scores = []
+    if "crystallinity_IRSF" in results:
+        # Lower IRSF is better for preservation
+        irsf_score = max(0, min(10, (5.0 - results["crystallinity_IRSF"]) * 2))
+        scores.append(irsf_score)
+
+    if "carbonate_phosphate_ratio" in results:
+        # Higher C/P is better for preservation
+        cp_score = max(0, min(10, results["carbonate_phosphate_ratio"] * 30))
+        scores.append(cp_score)
+
+    if "amide_phosphate_ratio" in results:
+        # Higher Amide/P is better for preservation
+        ap_score = max(0, min(10, results["amide_phosphate_ratio"] * 20))
+        scores.append(ap_score)
+
+    if scores:
+        results["preservation_index"] = round(sum(scores) / len(scores), 1)
+
+        # Interpret preservation index
+        if results["preservation_index"] >= 8:
+            results["preservation_quality"] = "Excellent"
+        elif results["preservation_index"] >= 6:
+            results["preservation_quality"] = "Good"
+        elif results["preservation_index"] >= 4:
+            results["preservation_quality"] = "Fair"
+        else:
+            results["preservation_quality"] = "Poor"
+
+    # Additional diagnostic peaks
+    # OH stretch (~3570 cm⁻¹) - indicates recrystallization to hydroxyapatite
+    oh_stretch = absorbance_at(3570, window=15)
+    if oh_stretch is not None:
+        results["oh_stretch_3570"] = round(oh_stretch, 4)
+        if oh_stretch > 0.1:
+            results["hydroxyapatite"] = "Recrystallized (hydroxyapatite present)"
+
+    # Type B carbonate (870 cm⁻¹)
+    b_carbonate = absorbance_at(870, window=8)
+    if b_carbonate is not None:
+        results["type_b_carbonate"] = round(b_carbonate, 4)
 
     return results
 
@@ -576,12 +700,10 @@ MEASUREMENT_CODES = {
 }
 
 FUSION_STAGES = {
-    "proximal_unfused": "Proximal epiphysis unfused (young)",
-    "proximal_fusing": "Proximal epiphysis fusing",
-    "proximal_fused": "Proximal epiphysis fused (adult)",
-    "distal_unfused": "Distal epiphysis unfused (young)",
-    "distal_fusing": "Distal epiphysis fusing",
-    "distal_fused": "Distal epiphysis fused (adult)"
+    "uf": "Unfused (young)",
+    "fu": "Fusing",
+    "fd": "Fused (adult)",
+    "nu": "Not observable"
 }
 
 SIDES = ["Left", "Right", "Axial", "Unknown"]
@@ -1004,6 +1126,7 @@ class FowlerStarrettDriver:
                     self.ui.schedule(lambda d=data.copy(): callback(d))
                 else:
                     callback(data)
+            time.sleep(0.05)
 
     def stop_streaming(self):
         self.running = False
@@ -1735,10 +1858,9 @@ class GenericUSBMicroscopeDriver:
 class BrukerFTIRFileDriver:
     """Bruker ALPHA II/TENSOR — OPUS file import only"""
     def __init__(self, ui_scheduler=None):
-        self.connected = False
+        self.connected = True  # Set once correctly
         self.model = "Bruker FTIR (File Import)"
         self.ui = ui_scheduler
-        self.connected = True
 
     def connect(self, *args) -> Tuple[bool, str]:
         return True, "✅ File import mode - load OPUS files (.0/.1/.2)"
@@ -1773,10 +1895,9 @@ class BrukerFTIRFileDriver:
 class ThermoFTIRFileDriver:
     """Thermo Nicolet iS series — SPA file import only"""
     def __init__(self, ui_scheduler=None):
-        self.connected = False
+        self.connected = True  # Set once correctly
         self.model = "Thermo Nicolet (File Import)"
         self.ui = ui_scheduler
-        self.connected = True
 
     def connect(self, *args) -> Tuple[bool, str]:
         return True, "✅ File import mode - load SPA files"
@@ -1807,10 +1928,9 @@ class ThermoFTIRFileDriver:
 class PerkinElmerFTIRFileDriver:
     """PerkinElmer Spectrum — SP/PRF file import only"""
     def __init__(self, ui_scheduler=None):
-        self.connected = False
+        self.connected = True  # Set once correctly
         self.model = "PerkinElmer (File Import)"
         self.ui = ui_scheduler
-        self.connected = True
 
     def connect(self, *args) -> Tuple[bool, str]:
         return True, "✅ File import mode - load SP/PRF files"
@@ -1841,10 +1961,9 @@ class PerkinElmerFTIRFileDriver:
 class AgilentFTIRFileDriver:
     """Agilent Cary 630 — SP/PRF file import only"""
     def __init__(self, ui_scheduler=None):
-        self.connected = False
+        self.connected = True  # Set once correctly
         self.model = "Agilent (File Import)"
         self.ui = ui_scheduler
-        self.connected = True
 
     def connect(self, *args) -> Tuple[bool, str]:
         return True, "✅ File import mode - load SP/PRF files"
@@ -1875,10 +1994,9 @@ class AgilentFTIRFileDriver:
 class ShimadzuFTIRFileDriver:
     """Shimadzu IRSpirit/IRTracer — JWS file import only"""
     def __init__(self, ui_scheduler=None):
-        self.connected = False
+        self.connected = True  # Set once correctly
         self.model = "Shimadzu (File Import)"
         self.ui = ui_scheduler
-        self.connected = True
 
     def connect(self, *args) -> Tuple[bool, str]:
         return True, "✅ File import mode - load JWS files"
@@ -1909,10 +2027,9 @@ class ShimadzuFTIRFileDriver:
 class JascoFTIRFileDriver:
     """Jasco FT/IR series — JWS file import only"""
     def __init__(self, ui_scheduler=None):
-        self.connected = False
+        self.connected = True  # Set once correctly
         self.model = "Jasco (File Import)"
         self.ui = ui_scheduler
-        self.connected = True
 
     def connect(self, *args) -> Tuple[bool, str]:
         return True, "✅ File import mode - load JWS files"
@@ -1943,10 +2060,9 @@ class JascoFTIRFileDriver:
 class JCAMPFTIRFileDriver:
     """Universal JCAMP-DX file import"""
     def __init__(self, ui_scheduler=None):
-        self.connected = False
+        self.connected = True  # Set once correctly
         self.model = "JCAMP-DX (File Import)"
         self.ui = ui_scheduler
-        self.connected = True
 
     def connect(self, *args) -> Tuple[bool, str]:
         return True, "✅ File import mode - load JDX/DX files"
@@ -1976,6 +2092,16 @@ class JCAMPFTIRFileDriver:
 
 class CSVFTIRFileDriver:
     """Universal CSV file import"""
+    def __init__(self, ui_scheduler=None):
+        self.model = "CSV (File Import)"
+        self.connected = True  # Set once correctly
+        self.ui = ui_scheduler
+
+    def connect(self, *args) -> Tuple[bool, str]:
+        return True, "✅ File import mode - load CSV/TXT files"
+
+    def disconnect(self):
+        self.connected = False
 
     STANDARD_FORMAT = """
     STANDARD FTIR CSV FORMAT:
@@ -2191,7 +2317,8 @@ class BoneMeasurement:
             'Element': self.element,
             'Side': self.side,
             'Portion': self.portion,
-            'Fusion': self.fusion_stage,
+            'Fusion': self.fusion_stage,   # CSV export compat
+            'fusion': self.fusion_stage,   # analysis_suite lookup key
             'Tooth_Eruption': self.tooth_eruption,
             'Weight_g': f"{self.weight_g:.2f}" if self.weight_g else '',
             'Burning': self.burning,
@@ -2653,7 +2780,8 @@ class ZooarchaeologyUnifiedSuitePlugin:
         ]
 
         # Create a frame to hold the measurement grid
-        grid_container = tk.Frame(meas_panel, bg="white")
+        self.grid_container = tk.Frame(meas_panel, bg="white")
+        grid_container = self.grid_container
         grid_container.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
 
         # Create 3 rows of 5
@@ -2786,34 +2914,13 @@ class ZooarchaeologyUnifiedSuitePlugin:
         self.window.after(1500, lambda: self.panel_feedback.config(text=""))
 
     def _flash_right_panel(self):
-        """Quick green flash on measurement panel"""
-        # Find all entry frames
+        """Quick green flash on measurement panel."""
         frames = []
-        for code, var in self.measurement_entries.items():
-            if hasattr(var, '_trace_id'):  # Find the entry widget
-                for widget in self.window.winfo_children():
-                    if isinstance(widget, tk.Toplevel):
-                        continue
-                    for child in widget.winfo_children():
-                        if isinstance(child, tk.Frame) and hasattr(child, 'winfo_children'):
-                            for sub in child.winfo_children():
-                                if isinstance(sub, tk.Entry) and sub.cget('textvariable') == str(var):
-                                    if sub.master:
-                                        frames.append(sub.master)
-                                        break
-
-        if not frames:
-            # Fallback - find all frames in grid_container
-            for widget in self.window.winfo_children():
-                if isinstance(widget, tk.Toplevel):
-                    continue
-                try:
-                    if hasattr(self, 'grid_container') and self.grid_container.winfo_exists():
-                        for child in self.grid_container.winfo_children():
-                            if isinstance(child, tk.Frame):
-                                frames.append(child)
-                except:
-                    pass
+        # Use the grid container directly (reliable method)
+        if hasattr(self, 'grid_container') and self.grid_container.winfo_exists():
+            for child in self.grid_container.winfo_children():
+                if isinstance(child, tk.Frame):
+                    frames.append(child)
 
         # Store original colors
         orig_colors = {}
@@ -2835,18 +2942,32 @@ class ZooarchaeologyUnifiedSuitePlugin:
 
     def _add_bone_from_panel(self):
         """Add new bone from measurement panel to database"""
-        self._add_measurement()
+        # Collect measurements from panel
+        measurements = {}
+        for code, var in self.measurement_entries.items():
+            val = var.get().strip()
+            if val:
+                try:
+                    measurements[code] = float(val)
+                except ValueError:
+                    pass
+
+        # Create new bone measurement
+        self.current = BoneMeasurement(
+            timestamp=datetime.now(),
+            sample_id=self._generate_id(),
+            measurements=measurements
+        )
 
         # Add to tree
-        gl = self.current.measurements.get('GL', '')
-        bd = self.current.measurements.get('Bd', '')
-        sd = self.current.measurements.get('SD', '')
+        gl = measurements.get('GL', '')
+        bd = measurements.get('Bd', '')
+        sd = measurements.get('SD', '')
 
-        # Generate a simple ID
         next_id = len(self.tree.get_children()) + 1
 
         self.tree.insert('', 0, values=(
-            next_id,  # ID
+            next_id,
             self.current.sample_id,
             self.current.taxon,
             self.current.element,
@@ -2854,7 +2975,7 @@ class ZooarchaeologyUnifiedSuitePlugin:
             f"{gl:.1f}" if gl else '-',
             f"{bd:.1f}" if bd else '-',
             f"{sd:.1f}" if sd else '-',
-            f"{self.current.weight_g:.1f}" if self.current.weight_g else '-',
+            f"{self.current.weight_g:.1f}" if self.current.weight_g is not None else '-',
             self.current.context
         ))
 
@@ -3146,7 +3267,9 @@ class ZooarchaeologyUnifiedSuitePlugin:
         # Gather connection parameters
         conn_params = {'ui_scheduler': self.ui_queue}
         conn_params['port'] = self.port_var.get()
-        conn_params['camera_id'] = self.port_var.get()  # For microscopes
+        # camera_id is only meaningful for UVC microscopes; serial drivers ignore it
+        if category == "Digital Microscopes (UVC)":
+            conn_params['camera_id'] = self.port_var.get()  # user enters 0/1/2
 
         # Create driver
         self.current_driver = DeviceFactory.create_driver(category, model, conn_params)
@@ -3214,9 +3337,6 @@ class ZooarchaeologyUnifiedSuitePlugin:
             else:
                 self._update_status("❌ No data received")
                 messagebox.showwarning("Read Failed", "No data received")
-        elif hasattr(self.current_driver, 'acquire'):
-            data = self.current_driver.acquire()
-            self._handle_device_data(data)
 
     def _start_streaming(self):
         """Start streaming data from device"""
@@ -3449,7 +3569,7 @@ class ZooarchaeologyUnifiedSuitePlugin:
                     driver = AgilentFTIRFileDriver()
                     result = driver.import_file(path)
                     source = "Agilent"
-                    self.format_vars[3].config(text="✓ LOADED")  # Priority 3 alternative
+                    self.format_vars[2].config(text="✓ LOADED")  # Priority 3 (same row)
 
             elif ext in {'.csv', '.txt', '.dat', '.asc'}:
                 driver = CSVFTIRFileDriver()
@@ -3521,158 +3641,6 @@ class ZooarchaeologyUnifiedSuitePlugin:
 
         except Exception as e:
             messagebox.showerror("Import Error", f"Failed to parse file:\n{e}")
-
-    # ========================================================================
-    # Database Management Handlers
-    # ========================================================================
-
-    def _add_measurement(self):
-        """Add current measurements to bone"""
-        for code, var in self.measurement_entries.items():
-            if var.get().strip():
-                try:
-                    self.current.measurements[code] = float(var.get())
-                except ValueError:
-                    pass
-
-        count = len(self.current.measurements)
-        self._update_status(f"📏 {count} measurements staged")
-        self.status_var.set(f"📏 {count} measurements staged")
-
-    def _add_database_row(self):
-        """Add current panel data as a new row to the database."""
-        # Do NOT reset self.current here — _add_bone_from_panel reads from it
-        # and creates the next blank bone itself after saving.
-        self._add_bone_from_panel()
-
-    def _delete_selected_row(self):
-        """Delete selected row from database"""
-        selected = self.tree.selection()
-        if not selected:
-            messagebox.showwarning("No Selection", "Please select a row to delete")
-            return
-
-        if messagebox.askyesno("Confirm Delete", "Delete selected record?"):
-            for item in selected:
-                # Sync measurements list BEFORE removing from tree
-                values = self.tree.item(item, 'values')
-                if values:
-                    sample_id = values[1]  # column 1 is sample_id
-                    self.measurements = [b for b in self.measurements
-                                         if b.sample_id != sample_id]
-                self.tree.delete(item)
-            self._update_status("🗑️ Row deleted")
-
-    def _edit_cell(self):
-        """Edit selected cell"""
-        selected = self.tree.selection()
-        if not selected:
-            messagebox.showwarning("No Selection", "Please select a cell to edit")
-            return
-
-        # Get the row and column
-        item = selected[0]
-        column = self.tree.identify_column(self.tree.winfo_pointerx() - self.tree.winfo_rootx())
-
-        if column == '#0':  # Tree column
-            return
-
-        # Get current value
-        col_index = int(column[1:]) - 1
-        current_value = self.tree.item(item, 'values')[col_index]
-
-        # Create edit dialog
-        self._create_edit_dialog(item, col_index, current_value)
-
-    def _create_edit_dialog(self, item, col_index, current_value):
-        """Create dialog for editing cell"""
-        dialog = tk.Toplevel(self.window)
-        dialog.title("Edit Cell")
-        dialog.geometry("300x100")
-        dialog.transient(self.window)
-        dialog.grab_set()
-
-        tk.Label(dialog, text="New value:").pack(pady=5)
-        entry = tk.Entry(dialog, width=30)
-        entry.insert(0, current_value)
-        entry.pack(pady=5)
-
-        def save():
-            new_value = entry.get()
-            values = list(self.tree.item(item, 'values'))
-            values[col_index] = new_value
-            self.tree.item(item, values=values)
-            dialog.destroy()
-            self._update_status("✅ Cell updated")
-
-        ttk.Button(dialog, text="Save", command=save).pack()
-
-    def _save_database_changes(self):
-        """Save all database changes"""
-        # This would sync with self.measurements list
-        self._update_status("💾 Database changes saved")
-
-    def _apply_measurements_to_row(self):
-        """Apply measurement panel values to selected row"""
-        selected = self.tree.selection()
-        if not selected:
-            messagebox.showwarning("No Selection", "Please select a row")
-            return
-
-        item = selected[0]
-        values = list(self.tree.item(item, 'values'))
-
-        # Update GL, Bd, SD columns (indices 5,6,7)
-        if 'GL' in self.measurement_entries and self.measurement_entries['GL'].get():
-            values[5] = self.measurement_entries['GL'].get()
-        if 'Bd' in self.measurement_entries and self.measurement_entries['Bd'].get():
-            values[6] = self.measurement_entries['Bd'].get()
-        if 'SD' in self.measurement_entries and self.measurement_entries['SD'].get():
-            values[7] = self.measurement_entries['SD'].get()
-
-        self.tree.item(item, values=values)
-        self._update_status("📏 Measurements applied to row")
-
-    def _add_bone_from_panel(self):
-        """Add new bone from measurement panel to database"""
-        self._add_measurement()
-
-        # Add to tree
-        gl = self.current.measurements.get('GL', '')
-        bd = self.current.measurements.get('Bd', '')
-        sd = self.current.measurements.get('SD', '')
-
-        self.tree.insert('', 0, values=(
-            len(self.tree.get_children()) + 1,  # ID
-            self.current.sample_id,
-            self.current.taxon,
-            self.current.element,
-            self.current.side,
-            f"{gl:.1f}" if gl else '-',
-            f"{bd:.1f}" if bd else '-',
-            f"{sd:.1f}" if sd else '-',
-            f"{self.current.weight_g:.1f}" if self.current.weight_g else '-',
-            self.current.context
-        ))
-
-        # Save to list
-        self.measurements.append(self.current)
-
-        # Create new current bone
-        self.current = BoneMeasurement(
-            timestamp=datetime.now(),
-            sample_id=self._generate_id()
-        )
-
-        # Clear measurement entries
-        for var in self.measurement_entries.values():
-            var.set("")
-
-        self._update_status(f"✅ Added bone #{len(self.measurements)}")
-
-    def _on_tree_double_click(self, event):
-        """Handle double-click on tree for editing"""
-        self._edit_cell()
 
     def _clear_nisp_results(self):
         """Clear NISP results display"""
@@ -3757,10 +3725,6 @@ class ZooarchaeologyUnifiedSuitePlugin:
             total_mni += mni
 
         result += "="*55 + f"\n{'Total MNI':<40} {total_mni:3}"
-        self.nisp_text.insert(1.0, result)
-        self._update_status("📊 MNI calculation complete")
-
-        result += "="*50 + f"\n{'Total MNI':<40} {total_mni:2}"
         self.nisp_text.insert(1.0, result)
         self._update_status("📊 MNI calculation complete")
 

@@ -868,9 +868,14 @@ class RightPanel:
         "petrology":      ("Petrology",             "🔥", ["quartz", "plagioclase", "feldspar", "modal",
                                                             "normative", "cipw", "pressure", "kbar", "mineralpair"]),
         "structural":     ("Structural Geology",    "📐", ["strike", "dip", "plunge", "trend", "azimuth"]),
-        "geophysics":     ("Geophysics",            "🌍", ["resistivity", "velocity", "gravity", "mgal",
-                                                            "susceptibility", "bouguer", "igrf", "anom",
-                                                            "seismic", "refract", "tomograph", "magnetic"]),
+        "geophysics":     ("Geophysics",            "🌍", [
+            "resistivity", "velocity", "gravity", "mgal",
+            "susceptibility", "bouguer", "igrf", "anom",
+            "seismic", "refract", "tomograph", "magnetic",
+            "grav", "g_obs", "free_air", "elevation", "altitude",
+            "channel", "station", "sampling_rate", "samples", "duration",
+            "trace", "sac", "mseed", "seism"
+        ]),
         "spatial":        ("GIS & Spatial",         "🗺️", ["latitude", "longitude", "easting", "northing", "utm"]),
         "archaeology":    ("Archaeology",           "🏺", ["length_mm", "width_mm", "platform", "lithic", "artifact"]),
         "zooarch":        ("Zooarchaeology",        "🦴", ["taxon", "nisp", "mni", "faunal"]),

@@ -14,7 +14,7 @@ PLUGIN_INFO = {
     "id": "geophysics_unified_suite",
     "name": "Geophysics Suite",
     "category": "hardware",
-    "Field": "Geophysics",
+    "field": "Geophysics",
     "icon": "🌍",
     "version": "2.0.0",
     "author": "Sefy Levy & DeepSeek",
@@ -258,7 +258,7 @@ class SeismicTrace:
             'Timestamp': self.timestamp.isoformat(),
             'Latitude': self.latitude,
             'Longitude': self.longitude,
-            'File_Source': Path(self.file_source).name if self.file_source else '',
+            'File_Source': self.file_source if self.file_source else '',
             'Auto_Classification': 'SEISMIC',
             'Display_Color': '#1E3F66'
         }
@@ -286,7 +286,7 @@ class GPRData:
             'Samples_per_Trace': self.samples_per_trace,
             'Traces': self.traces,
             'Timestamp': self.timestamp.isoformat(),
-            'File_Source': Path(self.file_source).name if self.file_source else '',
+            'File_Source': self.file_source if self.file_source else '',
             'Auto_Classification': 'GPR',
             'Display_Color': '#3A6B4A'
         }
@@ -302,6 +302,14 @@ class ERTData:
     n_measurements: int = 0
     file_source: str = ""
 
+    # Add these for storing raw measurement data
+    raw_a: Optional[np.ndarray] = None
+    raw_b: Optional[np.ndarray] = None
+    raw_m: Optional[np.ndarray] = None
+    raw_n: Optional[np.ndarray] = None
+    raw_rhoa: Optional[np.ndarray] = None
+    raw_err: Optional[np.ndarray] = None
+
     def to_dict(self) -> Dict:
         return {
             'Sample_ID': f"{self.station}_{self.timestamp.strftime('%H%M%S')}",
@@ -311,7 +319,7 @@ class ERTData:
             'Measurements': self.n_measurements,
             'Electrode_Spacing_m': self.electrode_spacing,
             'Timestamp': self.timestamp.isoformat(),
-            'File_Source': Path(self.file_source).name if self.file_source else '',
+            'File_Source': self.file_source if self.file_source else '',
             'Auto_Classification': 'ERT',
             'Display_Color': '#8B4513'
         }
@@ -367,7 +375,7 @@ class MTData:
             'Station': self.station,
             'Frequencies': self.n_frequencies,
             'Timestamp': self.timestamp.isoformat(),
-            'File_Source': Path(self.file_source).name if self.file_source else '',
+            'File_Source': self.file_source if self.file_source else '',
             'Auto_Classification': 'MT',
             'Display_Color': '#4A6A8A'
         }
@@ -900,41 +908,6 @@ class DataHub:
 # SEISMIC PARSERS - Python 3.13 compatible
 # ============================================================================
 class SacParser:
-    """SAC file parser using pysacio (Python 3.13 compatible)"""
-
-    @staticmethod
-    def parse(filepath: str) -> List[SeismicTrace]:
-        if not HAS_PYSACIO:
-            return []
-
-        try:
-            import pysacio
-            # Use SacFile, not Sac
-            sac = pysacio.SacFile(filepath)
-
-            trace = SeismicTrace(
-                timestamp=datetime.now(),
-                station=sac.header.get('kstnm', 'UNKNOWN').strip(),
-                channel=sac.header.get('kcmpnm', 'UNKNOWN').strip(),
-                network=sac.header.get('knetwk', '').strip(),
-                data=sac.data,
-                sampling_rate=sac.header.get('delta', 1.0),
-                start_time=datetime.fromtimestamp(sac.header.get('nzyear', 1970)),
-                npts=len(sac.data),
-                instrument="SAC File",
-                latitude=sac.header.get('stla', 0.0),
-                longitude=sac.header.get('stlo', 0.0),
-                file_source=filepath
-            )
-            return [trace]
-        except Exception as e:
-            print(f"pysacio parse error: {e}")
-            return []
-
-# ============================================================================
-# SEISMIC PARSERS - Python 3.13 compatible
-# ============================================================================
-class SacParser:
     """SAC file parser using pure Python (no pysacio needed)"""
 
     @staticmethod
@@ -1124,7 +1097,7 @@ class BartingtonGrad601Parser:
             with open(filepath, 'r') as f:
                 first = f.read(500)
                 return 'Bartington' in first or 'Grad601' in first
-        except:
+        except Exception as e:
             return False
 
     @staticmethod
@@ -1162,7 +1135,7 @@ class GeometricsG858Parser:
             with open(filepath, 'r') as f:
                 first = f.read(500)
                 return 'Geometrics' in first or 'G-858' in first
-        except:
+        except Exception as e:
             return False
 
     @staticmethod
@@ -1190,7 +1163,7 @@ class GeometricsG858Parser:
                                 file_source=filepath
                             )
                             measurements.append(mag)
-                        except:
+                        except Exception as e:
                             pass
         except Exception as e:
             print(f"Geometrics parse error: {e}")
@@ -1209,7 +1182,7 @@ class ScintrexCGParser:
             with open(filepath, 'r') as f:
                 first = f.read(500)
                 return any(x in first for x in ['Scintrex', 'CG-5', 'CG-6', 'Autograv'])
-        except:
+        except Exception as e:
             return False
 
     @staticmethod
@@ -1245,7 +1218,7 @@ class ScintrexCGParser:
                                 file_source=filepath
                             )
                             measurements.append(grav)
-                        except:
+                        except Exception as e:
                             pass
         except Exception as e:
             print(f"Scintrex parse error: {e}")
@@ -1288,7 +1261,7 @@ class EDIParser:
                         for p in parts:
                             try:
                                 freq.append(float(p))
-                            except:
+                            except Exception as e:
                                 pass
 
                     elif section == 'ZXXR':
@@ -1296,7 +1269,7 @@ class EDIParser:
                         for p in parts:
                             try:
                                 zxxr.append(float(p))
-                            except:
+                            except Exception as e:
                                 pass
 
             if freq:
@@ -1431,7 +1404,7 @@ class GNSSDriver:
         try:
             line = self.serial.readline().decode('ascii', errors='ignore').strip()
             return line
-        except:
+        except Exception as e:
             return None
 
     def parse_position(self, nmea_line: str) -> Optional[GNSSPosition]:
@@ -1639,7 +1612,7 @@ class MARTASMagnetometerDriver:
         if self.device:
             try:
                 self.device.close()
-            except:
+            except Exception as e:
                 pass
         self.connected = False
 
@@ -1724,7 +1697,7 @@ class OpenADMSTotalStationDriver:
         if self.device:
             try:
                 self.device.disconnect()
-            except:
+            except Exception as e:
                 pass
         self.connected = False
 
@@ -1952,7 +1925,7 @@ class WaveMethodsTab:
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-        self.seismic_fig = Figure(figsize=(8, 5), dpi=90, facecolor='white')
+        self.seismic_fig = Figure(figsize=(8, 4), dpi=90, facecolor='white')
         self.seismic_ax = self.seismic_fig.add_subplot(111)
         self.seismic_canvas = FigureCanvasTkAgg(self.seismic_fig, seismic_view)
         self.seismic_canvas.draw()
@@ -1972,7 +1945,7 @@ class WaveMethodsTab:
         gpr_view = tk.Frame(self.view_notebook, bg="white")
         self.view_notebook.add(gpr_view, text="📡 GPR")
 
-        self.gpr_fig = Figure(figsize=(8, 5), dpi=90, facecolor='white')
+        self.gpr_fig = Figure(figsize=(8, 4), dpi=90, facecolor='white')
         self.gpr_ax = self.gpr_fig.add_subplot(111)
         self.gpr_canvas = FigureCanvasTkAgg(self.gpr_fig, gpr_view)
         self.gpr_canvas.draw()
@@ -1991,7 +1964,7 @@ class WaveMethodsTab:
         geo_view = tk.Frame(self.view_notebook, bg="white")
         self.view_notebook.add(geo_view, text="🎤 Geophone")
 
-        self.geo_fig = Figure(figsize=(8, 5), dpi=90, facecolor='white')
+        self.geo_fig = Figure(figsize=(8, 4), dpi=90, facecolor='white')
         self.geo_ax = self.geo_fig.add_subplot(111)
         self.geo_canvas = FigureCanvasTkAgg(self.geo_fig, geo_view)
         self.geo_canvas.draw()
@@ -2111,6 +2084,7 @@ class WaveMethodsTab:
             self.update_seismic_display(traces[0])
         else:
             self.app.center.set_status(f"❌ Failed to parse seismic file")
+
     def _import_gpr(self):
         path = filedialog.askopenfilename(
             title="Import GPR File",
@@ -2192,11 +2166,21 @@ class ElectricalMethodsTab:
         self.ui_queue = ui_queue
         self.data_hub = data_hub
 
+        # Register as observer
+        self.data_hub.register_observer(self)
+
         self.geonics = None
         self.em_connected = False
 
         self.frame = ttk.Frame(parent)
         self._build_ui()
+
+    def _default_parse(self, filepath):
+        """Fallback parser if none provided"""
+        raise Exception("ERT parser not available")
+
+    def _default_spacing(self, a, b, m, n):
+        return 5.0
 
     def _build_ui(self):
         left = tk.Frame(self.frame, bg="#f0f0f0", width=250)
@@ -2286,7 +2270,7 @@ class ElectricalMethodsTab:
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-        self.ert_fig = Figure(figsize=(8, 5), dpi=90, facecolor='white')
+        self.ert_fig = Figure(figsize=(8, 4), dpi=90, facecolor='white')
         self.ert_ax = self.ert_fig.add_subplot(111)
         self.ert_canvas = FigureCanvasTkAgg(self.ert_fig, ert_view)
         self.ert_canvas.draw()
@@ -2305,7 +2289,7 @@ class ElectricalMethodsTab:
         em_view = tk.Frame(self.view_notebook, bg="white")
         self.view_notebook.add(em_view, text="🧲 EM Induction")
 
-        self.em_fig = Figure(figsize=(8, 5), dpi=90, facecolor='white')
+        self.em_fig = Figure(figsize=(8, 4), dpi=90, facecolor='white')
         self.em_ax = self.em_fig.add_subplot(111)
         self.em_canvas = FigureCanvasTkAgg(self.em_fig, em_view)
         self.em_canvas.draw()
@@ -2324,7 +2308,7 @@ class ElectricalMethodsTab:
         mt_view = tk.Frame(self.view_notebook, bg="white")
         self.view_notebook.add(mt_view, text="📊 Magnetotellurics")
 
-        self.mt_fig = Figure(figsize=(8, 5), dpi=90, facecolor='white')
+        self.mt_fig = Figure(figsize=(8, 4), dpi=90, facecolor='white')
         self.mt_ax = self.mt_fig.add_subplot(111)
         self.mt_canvas = FigureCanvasTkAgg(self.mt_fig, mt_view)
         self.mt_canvas.draw()
@@ -2339,27 +2323,192 @@ class ElectricalMethodsTab:
             font=("Arial", 9), bg="white", fg="#666")
         self.mt_info.pack(pady=5)
 
+    def _parse_ertlab_file(self, filepath):
+        """
+        Parse ERTLab format .data files
+        Returns: (a, b, m, n, rhoa, err) arrays
+        """
+        import numpy as np
+        a, b, m, n = [], [], [], []
+        rhoa, err = [], []
+
+        # First, read electrode mapping
+        electrode_map = {}
+        absolute_electrode = 1
+
+        with open(filepath, 'r') as f:
+            lines = f.readlines()
+
+        # First pass: read electrode positions
+        in_electrode_section = False
+        for line in lines:
+            line = line.strip()
+
+            if line == '#elec_start':
+                in_electrode_section = True
+                continue
+            if line == '#elec_end':
+                in_electrode_section = False
+                continue
+
+            if in_electrode_section and line and not line.startswith('#'):
+                parts = line.split()
+                if len(parts) >= 6:
+                    cable_electrode = parts[0]
+                    electrode_map[cable_electrode] = absolute_electrode
+                    absolute_electrode += 1
+
+        # Second pass: read measurement data
+        in_data_section = False
+        for line in lines:
+            line = line.strip()
+
+            if line == '#data_start':
+                in_data_section = True
+                continue
+            if line == '#data_end':
+                in_data_section = False
+                continue
+
+            if not in_data_section or line.startswith('!') or line.startswith('#') or not line:
+                continue
+
+            parts = line.split()
+            if len(parts) >= 10:
+                try:
+                    a_key = parts[1]
+                    b_key = parts[2]
+                    m_key = parts[3]
+                    n_key = parts[4]
+
+                    if all(key in electrode_map for key in [a_key, b_key, m_key, n_key]):
+                        a_abs = electrode_map[a_key]
+                        b_abs = electrode_map[b_key]
+                        m_abs = electrode_map[m_key]
+                        n_abs = electrode_map[n_key]
+
+                        resistance = float(parts[5])
+                        std_dev = float(parts[6])
+
+                        # Geometry factor (simplified)
+                        spacing = 5.0
+                        current_distance = abs(a_abs - b_abs) * spacing
+                        potential_distance = abs(m_abs - n_abs) * spacing
+
+                        if current_distance > 0 and potential_distance > 0:
+                            k = 2 * np.pi * (current_distance * potential_distance) / (current_distance - potential_distance + 0.001)
+                        else:
+                            k = 2 * np.pi * spacing
+
+                        rho_apparent = resistance * k
+
+                        a.append(a_abs)
+                        b.append(b_abs)
+                        m.append(m_abs)
+                        n.append(n_abs)
+                        rhoa.append(rho_apparent)
+                        err.append(std_dev * 100 / resistance if resistance > 0 else 2.0)
+
+                except (ValueError, KeyError):
+                    continue
+
+        # Filter invalid measurements
+        a = np.array(a, dtype=int)
+        b = np.array(b, dtype=int)
+        m = np.array(m, dtype=int)
+        n = np.array(n, dtype=int)
+        rhoa = np.array(rhoa, dtype=float)
+        err = np.array(err, dtype=float)
+
+        valid_mask = (rhoa > 0) & (np.isfinite(rhoa)) & (rhoa < 1e8)
+        a = a[valid_mask]
+        b = b[valid_mask]
+        m = m[valid_mask]
+        n = n[valid_mask]
+        rhoa = rhoa[valid_mask]
+        err = err[valid_mask]
+
+        print(f"✅ Parsed {len(rhoa)} valid ERT measurements")
+        return a, b, m, n, rhoa, err
+
+
+    def on_data_changed(self):
+        """Called when data hub has new data - updates UI to show loaded status"""
+        # Update ERT display and status
+        if self.data_hub.ert_data:
+            self.update_ert_display(self.data_hub.ert_data[-1])
+            # Update the info label to show data is loaded
+            self.ert_info.config(
+                text=f"✅ LOADED: {len(self.data_hub.ert_data)} ERT datasets • "
+                    f"Latest: {self.data_hub.ert_data[-1].station} • "
+                    f"{self.data_hub.ert_data[-1].n_measurements} measurements"
+            )
+            # Update the tab title or indicator if needed
+            self.app.center.set_status(f"✅ ERT data loaded: {len(self.data_hub.ert_data)} files")
+
+        # Update EM display and status
+        if self.data_hub.em_data:
+            self.update_em_display(self.data_hub.em_data[-1])
+            self.em_info.config(
+                text=f"✅ LOADED: {len(self.data_hub.em_data)} EM datasets • "
+                    f"Latest: {self.data_hub.em_data[-1].conductivity_ms_m:.1f} mS/m"
+            )
+
+        # Update MT display and status
+        if self.data_hub.mt_data:
+            self.update_mt_display(self.data_hub.mt_data[-1])
+            self.mt_info.config(
+                text=f"✅ LOADED: {len(self.data_hub.mt_data)} MT datasets • "
+                    f"{self.data_hub.mt_data[-1].n_frequencies} frequencies"
+            )
+
     def _import_ert(self):
-        path = filedialog.askopenfilename(
-            title="Import ERT File",
+        paths = filedialog.askopenfilenames(
+            title="Select ERT Files (Ctrl+Click for multiple)",
             filetypes=[
                 ("Syscal binary", "*.bin"),
-                ("ABEM data", "*.dat"),
+                ("ABEM data", "*.dat *.data *.Data"),
                 ("ERT CSV", "*.csv"),
                 ("All files", "*.*")
             ]
         )
-        if path:
-            # Simplified - would use REDA here
-            ert = ERTData(
-                timestamp=datetime.now(),
-                station=Path(path).stem,
-                instrument="ERT Import",
-                n_measurements=100,
-                file_source=path
-            )
-            self.data_hub.add_data('ert', ert)
-            self.app.center.set_status(f"✅ Imported ERT data")
+
+        if not paths:
+            return
+
+        self.app.center.set_status(f"📥 Importing {len(paths)} ERT files...", "import")
+
+        for path in paths:
+            try:
+                # Use the passed parser method
+                a, b, m, n, rhoa, err = self.parse_ertlab_file(path)
+
+                ert = ERTData(
+                    timestamp=datetime.now(),
+                    station=Path(path).stem,
+                    instrument="ABEM Terrameter",
+                    apparent_rho=rhoa,
+                    n_measurements=len(rhoa),
+                    file_source=path
+                )
+
+                ert.raw_a = a
+                ert.raw_b = b
+                ert.raw_m = m
+                ert.raw_n = n
+                ert.raw_rhoa = rhoa
+                ert.raw_err = err
+
+                self.data_hub.add_data('ert', ert)
+                print(f"✅ Imported: {Path(path).name} - {len(rhoa)} measurements")
+
+            except Exception as e:
+                print(f"❌ Failed to parse {Path(path).name}: {str(e)}")
+
+        if self.data_hub.ert_data:
+            self.update_ert_display(self.data_hub.ert_data[-1])
+
+        self.app.center.set_status(f"✅ Imported {len(paths)} ERT files", "success")
 
     def _import_mt(self):
         path = filedialog.askopenfilename(
@@ -2413,37 +2562,52 @@ class ElectricalMethodsTab:
 
     def update_ert_display(self, ert):
         """Update ERT display with real data"""
-        if ert is None or ert.apparent_rho is None:
+        if ert is None or ert.apparent_rho is None or len(ert.apparent_rho) == 0:
+            self.ert_ax.clear()
+            self.ert_ax.text(0.5, 0.5, "No ERT data to display",
+                            ha='center', va='center', transform=self.ert_ax.transAxes)
+            self.ert_canvas.draw()
+            self.ert_info.config(text="No ERT data loaded")
             return
 
         self.ert_ax.clear()
 
-        # Create a simple pseudosection
-        n_levels = int(np.sqrt(len(ert.apparent_rho)))
-        if n_levels < 1:
-            n_levels = 1
+        # Create a histogram of resistivity values
+        rho = ert.apparent_rho
+        valid_rho = rho[rho > 0]
 
-        # Reshape data for display
-        n_data = len(ert.apparent_rho)
-        pseudo = np.zeros((n_levels, n_levels))
-        for i in range(min(n_data, n_levels * n_levels)):
-            level = i // n_levels
-            pos = i % n_levels
-            if level < n_levels:
-                pseudo[level, pos] = ert.apparent_rho[i]
+        if len(valid_rho) > 0:
+            # Plot histogram on log scale
+            self.ert_ax.hist(np.log10(valid_rho), bins=50, alpha=0.7,
+                            color='blue', edgecolor='black')
+            self.ert_ax.set_xlabel("Log10 Resistivity (Ω·m)")
+            self.ert_ax.set_ylabel("Frequency")
+            self.ert_ax.set_title(f"ERT Data Distribution - {ert.station}")
+            self.ert_ax.grid(True, alpha=0.3)
 
-        im = self.ert_ax.imshow(pseudo, aspect='auto', cmap='viridis',
-                                extent=[0, n_levels * 5, n_levels, 0])
-        self.ert_ax.set_xlabel("Electrode Position (m)", fontsize=9)
-        self.ert_ax.set_ylabel("n-level", fontsize=9)
-        self.ert_ax.set_title("Apparent Resistivity Pseudosection", fontsize=10, fontweight='bold')
+            # Add statistics as text
+            stats_text = f"Mean: {np.mean(valid_rho):.1f} Ω·m\n"
+            stats_text += f"Median: {np.median(valid_rho):.1f} Ω·m\n"
+            stats_text += f"Min: {np.min(valid_rho):.1f} Ω·m\n"
+            stats_text += f"Max: {np.max(valid_rho):.1f} Ω·m"
 
-        plt.colorbar(im, ax=self.ert_ax, label="Resistivity (Ω·m)")
+            self.ert_ax.text(0.02, 0.98, stats_text,
+                            transform=self.ert_ax.transAxes,
+                            verticalalignment='top',
+                            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        else:
+            self.ert_ax.text(0.5, 0.5, "No valid resistivity values",
+                            ha='center', va='center', transform=self.ert_ax.transAxes)
+
         self.ert_canvas.draw()
 
-        self.ert_info.config(
-            text=f"Measurements: {ert.n_measurements} · Spacing: {ert.electrode_spacing} m"
-        )
+        # UPDATE THE INFO LABEL HERE - this is what shows in the UI
+        info_text = f"✅ Measurements: {ert.n_measurements} · "
+        info_text += f"Valid: {len(valid_rho)} · "
+        info_text += f"Range: {np.min(valid_rho):.1f}-{np.max(valid_rho):.1f} Ω·m · "
+        info_text += f"File: {Path(ert.file_source).name if ert.file_source else 'Live'}"
+
+        self.ert_info.config(text=info_text)
 
     def update_em_display(self, em):
         """Update EM display with real data"""
@@ -2656,7 +2820,7 @@ class PotentialFieldsTab:
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-        self.mag_fig = Figure(figsize=(8, 5), dpi=90, facecolor='white')
+        self.mag_fig = Figure(figsize=(8, 4), dpi=90, facecolor='white')
         self.mag_ax = self.mag_fig.add_subplot(111)
         self.mag_canvas = FigureCanvasTkAgg(self.mag_fig, mag_view)
         self.mag_canvas.draw()
@@ -2675,7 +2839,7 @@ class PotentialFieldsTab:
         grav_view = tk.Frame(self.view_notebook, bg="white")
         self.view_notebook.add(grav_view, text="⚖️ Gravity")
 
-        self.grav_fig = Figure(figsize=(8, 5), dpi=90, facecolor='white')
+        self.grav_fig = Figure(figsize=(8, 4), dpi=90, facecolor='white')
         self.grav_ax = self.grav_fig.add_subplot(111)
         self.grav_canvas = FigureCanvasTkAgg(self.grav_fig, grav_view)
         self.grav_canvas.draw()
@@ -2694,7 +2858,7 @@ class PotentialFieldsTab:
         imu_view = tk.Frame(self.view_notebook, bg="white")
         self.view_notebook.add(imu_view, text="📊 IMU")
 
-        self.imu_fig = Figure(figsize=(8, 5), dpi=90, facecolor='white')
+        self.imu_fig = Figure(figsize=(8, 4), dpi=90, facecolor='white')
         self.imu_ax = self.imu_fig.add_subplot(111)
         self.imu_canvas = FigureCanvasTkAgg(self.imu_fig, imu_view)
         self.imu_canvas.draw()
@@ -2745,17 +2909,6 @@ class PotentialFieldsTab:
             for mag in measurements:
                 self.data_hub.add_data('magnetics', mag)
             self.app.center.set_status(f"✅ Imported {len(measurements)} readings")
-
-    def _import_scintrex(self):
-        path = filedialog.askopenfilename(
-            title="Import Scintrex CG",
-            filetypes=[("Text", "*.txt"), ("All files", "*.*")]
-        )
-        if path:
-            measurements = ScintrexCGParser.parse(path)
-            for grav in measurements:
-                self.data_hub.add_data('gravity', grav)
-            self.app.center.set_status(f"✅ Imported {len(measurements)} stations")
 
     def _connect_martas(self, instrument_type):
         """Connect to MARTAS magnetometer"""
@@ -3353,8 +3506,6 @@ class GeophysicsUnifiedSuitePlugin:
         self.ui_queue = ThreadSafeUI(self.window)
         self._build_ui()
 
-        self.data_hub.register_observer(self)
-
         self.window.lift()
         self.window.focus_force()
         self.window.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -3415,223 +3566,377 @@ class GeophysicsUnifiedSuitePlugin:
         ttk.Button(status, text="📤 Send to Table",
                   command=self.send_to_table).pack(side=tk.RIGHT, padx=10)
 
+
+    def _estimate_spacing(self, a, b, m, n):
+        """Estimate electrode spacing from indices"""
+        if len(a) > 1:
+            spacings = []
+            for i in range(min(10, len(a)-1)):
+                if a[i] != a[i+1]:
+                    spacings.append(abs(a[i+1] - a[i]))
+            if spacings:
+                return float(np.mean(spacings))
+        return 5.0
+
     # ============================================================================
     # UNIFIED FILE IMPORT - ONE BUTTON FOR ALL 38 DEVICES
     # ============================================================================
     def _import_files(self):
-        """Unified file import for ALL supported formats (38 devices)"""
+        """Unified file import for ALL supported formats"""
         filetypes = [
-            # All supported (catch-all first)
-            ("All supported files (38 devices)",
-             "*.sac *.SACD* *.mseed *.miniseed *.dzt *.dt1 *.bin *.dat *.csv *.edi *.txt *.nmea *.log *.dat"),
-
-            # Seismic
-            ("SAC files", "*.sac"),
-            ("SACD files (IRIS/SCEDC)", "*.SACD*"),
+            ("All supported files",
+            "*.sac *.SACD* *.mseed *.miniseed *.dzt *.dt1 *.dat *.data *.Data *.csv *.edi *.txt"),
+            ("Seismic SAC/SACD", "*.sac *.SACD*"),
             ("MiniSEED", "*.mseed *.miniseed"),
-
-            # GPR
-            ("GSSI DZT", "*.dzt"),
-            ("Sensors & Software DT1", "*.dt1"),
-
-            # ERT
-            ("Syscal binary", "*.bin"),
-            ("ABEM data", "*.dat"),
-            ("ERT CSV", "*.csv"),
-
-            # MT
-            ("EDI", "*.edi"),
-
-            # Magnetics
-            ("Bartington CSV", "*.csv"),
-            ("Geometrics G-858", "*.txt"),
-
-            # Gravity
-            ("Scintrex CG", "*.txt"),
-
-            # GNSS
-            ("NMEA logs", "*.nmea *.log"),
-
-            # Environmental
-            ("Campbell TOA5", "*.dat"),
-            ("Campbell CSV", "*.csv"),
-
-            # All files (fallback)
+            ("GPR DZT", "*.dzt"),
+            ("GPR DT1", "*.dt1"),
+            ("ERT Data", "*.dat *.data *.Data"),
+            ("MT EDI", "*.edi"),
+            ("Magnetics CSV", "*.csv"),
+            ("Gravity TXT", "*.txt"),
             ("All files", "*.*")
         ]
 
-        selected_paths = filedialog.askopenfilenames(filetypes=filetypes)
-        if not selected_paths:
+        paths = filedialog.askopenfilenames(parent=self.window, filetypes=filetypes)
+        if not paths:
             return
 
-        self.status_var.set(f"Importing {len(selected_paths)} files...")
-        self.app.center.set_status(f"📥 Importing {len(selected_paths)} files...", "import")
+        print(f"Selected {len(paths)} files")
+        self.status_var.set(f"Importing {len(paths)} files...")
+        self.window.update()
 
-        def import_thread(paths_to_import):
-            results = {
-                'seismic': 0, 'gpr': 0, 'ert': 0, 'mt': 0,
-                'magnetics': 0, 'gravity': 0, 'gnss': 0, 'environmental': 0
-            }
+        for path in paths:
+            print(f"Processing: {path}")
+            ext = Path(path).suffix.lower()
+            fname = path.lower()
 
-            for path in paths_to_import:
-                ext = Path(path).suffix.lower()
-                fname = path.lower()
+            try:
+                # ===== SEISMIC (SAC/SACD) =====
+                if '.sac' in fname or '.SAC' in fname:
+                    if HAS_PYSACIO:
+                        traces = SacParser.parse(path)
+                        for trace in traces:
+                            self.data_hub.add_data('seismic', trace)
+                        print(f"  Added {len(traces)} seismic traces")
 
-                # ===== SEISMIC SECTION =====
-                # SAC files with pysacio
-                if ext == '.sac' and HAS_PYSACIO:
-                    traces = SacParser.parse(path)
-                    for trace in traces:
-                        self.data_hub.add_data('seismic', trace)
-                        results['seismic'] += 1
+                        # Update the seismic display with the first trace
+                        if traces and self.wave_tab:
+                            self.wave_tab.update_seismic_display(traces[0])
+                            # Switch to seismic tab in the wave methods notebook
+                            self.wave_tab.view_notebook.select(0)
+                    else:
+                        print(f"  pysacio not installed, cannot parse SAC file")
 
-                # SACD files (IRIS/SCEDC format)
-                elif '.sacd' in fname:
-                    traces = SACDParser.parse(path)
-                    for trace in traces:
-                        self.data_hub.add_data('seismic', trace)
-                        results['seismic'] += 1
-
-                # MiniSEED files with cymseed3
+                # ===== SEISMIC (MiniSEED) =====
                 elif ext in ['.mseed', '.miniseed'] and HAS_CYMSEED3:
                     traces = MiniSEEDParser.parse(path)
                     for trace in traces:
                         self.data_hub.add_data('seismic', trace)
-                        results['seismic'] += 1
+                    print(f"  Added {len(traces)} seismic traces")
 
-                # ===== GPR SECTION =====
+                    # Update the seismic display with the first trace
+                    if traces and self.wave_tab:
+                        self.wave_tab.update_seismic_display(traces[0])
+                        self.wave_tab.view_notebook.select(0)
+
+                # ===== GPR =====
                 elif ext == '.dzt':
                     gpr = GSSIDZTParser.parse(path)
                     if gpr:
                         self.data_hub.add_data('gpr', gpr)
-                        results['gpr'] += 1
+                        print(f"  Added GPR: {gpr.traces} traces")
                 elif ext == '.dt1':
                     gpr = SensorsSoftwareDT1Parser.parse(path)
                     if gpr:
                         self.data_hub.add_data('gpr', gpr)
-                        results['gpr'] += 1
+                        print(f"  Added GPR: {gpr.traces} traces")
 
-                # ===== MT SECTION =====
+                # ===== ERT =====
+                elif ext in ['.dat', '.data', '.Data']:
+                    a, b, m, n, rhoa, err = self._parse_ertlab_file(path)
+                    ert = ERTData(
+                        timestamp=datetime.now(),
+                        station=Path(path).stem,
+                        instrument="ERT",
+                        apparent_rho=rhoa,
+                        n_measurements=len(rhoa),
+                        file_source=path
+                    )
+                    ert.raw_a = a
+                    ert.raw_b = b
+                    ert.raw_m = m
+                    ert.raw_n = n
+                    ert.raw_rhoa = rhoa
+                    ert.raw_err = err
+                    self.data_hub.add_data('ert', ert)
+                    print(f"  Added ERT: {len(rhoa)} measurements")
+
+                # ===== MT =====
                 elif ext == '.edi':
                     mt = EDIParser.parse(path)
                     if mt:
                         self.data_hub.add_data('mt', mt)
-                        results['mt'] += 1
+                        print(f"  Added MT: {mt.n_frequencies} frequencies")
 
-                # ===== MAGNETICS SECTION =====
+                # ===== MAGNETICS =====
                 elif ext == '.csv' and ('bartington' in fname or 'grad' in fname):
                     mags = BartingtonGrad601Parser.parse(path)
                     for mag in mags:
                         self.data_hub.add_data('magnetics', mag)
-                        results['magnetics'] += 1
+                    print(f"  Added {len(mags)} magnetic readings")
                 elif ext == '.txt' and ('geometrics' in fname or 'g-858' in fname):
                     mags = GeometricsG858Parser.parse(path)
                     for mag in mags:
                         self.data_hub.add_data('magnetics', mag)
-                        results['magnetics'] += 1
+                    print(f"  Added {len(mags)} magnetic readings")
 
-                # ===== GRAVITY SECTION =====
-                elif ext in ['.txt'] and ('scintrex' in fname or 'cg-5' in fname):
+                # ===== GRAVITY =====
+                elif ext == '.txt' and ('scintrex' in fname or 'cg-5' in fname):
                     gravs = ScintrexCGParser.parse(path)
                     for grav in gravs:
                         self.data_hub.add_data('gravity', grav)
-                        results['gravity'] += 1
-
-                # ===== ERT SECTION =====
-                elif ext in ['.bin', '.dat'] and ('syscal' in fname or 'abem' in fname):
-                    ert = ERTData(
-                        timestamp=datetime.now(),
-                        station=Path(path).stem,
-                        instrument="ERT Import",
-                        n_measurements=100,
-                        file_source=path
-                    )
-                    self.data_hub.add_data('ert', ert)
-                    results['ert'] += 1
-
-            def update_ui():
-                total = sum(results.values())
-                if total > 0:
-                    summary = " · ".join(f"{v} {k}" for k, v in results.items() if v > 0)
-                    self.status_var.set(f"✅ Imported {total} items: {summary}")
-                    self.app.center.set_status(f"✅ Imported {total} files", "success")
-
-                    # ===== UPDATE WAVE TAB DISPLAY =====
-                    if results['seismic'] > 0 and self.wave_tab:
-                        # Get the last imported seismic trace
-                        if self.data_hub.seismic_data:
-                            self.wave_tab.update_seismic_display(self.data_hub.seismic_data[-1])
-
-                    if results['gpr'] > 0 and self.wave_tab:
-                        if self.data_hub.gpr_data:
-                            self.wave_tab.update_gpr_display(self.data_hub.gpr_data[-1])
-
-                    if results['geophone'] > 0 and self.wave_tab:
-                        if self.data_hub.geophone_data:
-                            self.wave_tab.update_geophone_display(self.data_hub.geophone_data[-1])
-
-                    # ===== UPDATE ELECTRICAL TAB DISPLAY =====
-                    if results['em'] > 0 and self.electrical_tab:
-                        if self.data_hub.em_data:
-                            self.electrical_tab.update_em_display(self.data_hub.em_data[-1])
-
-                    if results['mt'] > 0 and self.electrical_tab:
-                        if self.data_hub.mt_data:
-                            self.electrical_tab.update_mt_display(self.data_hub.mt_data[-1])
-
-                    # ===== UPDATE POTENTIAL FIELDS TAB DISPLAY =====
-                    if results['magnetics'] > 0 and self.potential_tab:
-                        if self.data_hub.magnetic_data:
-                            self.potential_tab.update_magnetic_display(self.data_hub.magnetic_data[-1])
-
-                    if results['gravity'] > 0 and self.potential_tab:
-                        if self.data_hub.gravity_data:
-                            self.potential_tab.update_gravity_display(self.data_hub.gravity_data[-1])
-
-                    if results['imu'] > 0 and self.potential_tab:
-                        if self.data_hub.imu_data:
-                            self.potential_tab.update_imu_display(self.data_hub.imu_data[-1])
+                    print(f"  Added {len(gravs)} gravity stations")
 
                 else:
-                    self.status_var.set("❌ No supported files found")
-                    self.app.center.set_status("❌ No supported files found", "error")
-                self.on_data_changed()
+                    print(f"  Unsupported file type: {ext}")
+
+            except Exception as e:
+                print(f"  Error: {e}")
+
+        # Update UI
+        self.status_var.set(f"✅ Imported {len(paths)} files")
+        self.window.update()
+
+    def _poll_import_complete(self):
+        """Poll to see if import is complete and update displays directly"""
+        if self._import_complete_flag:
+            # Update displays directly, like the working import does
+            if self.data_hub.seismic_data and self.wave_tab:
+                self.wave_tab.update_seismic_display(self.data_hub.seismic_data[-1])
+            if self.data_hub.gpr_data and self.wave_tab:
+                self.wave_tab.update_gpr_display(self.data_hub.gpr_data[-1])
+            if self.data_hub.geophone_data and self.wave_tab:
+                self.wave_tab.update_geophone_display(self.data_hub.geophone_data[-1])
+            if self.data_hub.em_data and self.electrical_tab:
+                self.electrical_tab.update_em_display(self.data_hub.em_data[-1])
+            if self.data_hub.mt_data and self.electrical_tab:
+                self.electrical_tab.update_mt_display(self.data_hub.mt_data[-1])
+            if self.data_hub.magnetic_data and self.potential_tab:
+                self.potential_tab.update_magnetic_display(self.data_hub.magnetic_data[-1])
+            if self.data_hub.gravity_data and self.potential_tab:
+                self.potential_tab.update_gravity_display(self.data_hub.gravity_data[-1])
+            if self.data_hub.imu_data and self.potential_tab:
+                self.potential_tab.update_imu_display(self.data_hub.imu_data[-1])
+        else:
+            # Check again in 100ms
+            self.window.after(100, self._poll_import_complete)
+
+    def _parse_ertlab_file(self, filepath):
+        """
+        Parse ERTLab format .data files
+        Returns: (a, b, m, n, rhoa, err) arrays
+        """
+        import numpy as np
+        a, b, m, n = [], [], [], []
+        rhoa, err = [], []
+
+        # First, read electrode mapping
+        electrode_map = {}
+        absolute_electrode = 1
+
+        with open(filepath, 'r') as f:
+            lines = f.readlines()
+
+        # First pass: read electrode positions
+        in_electrode_section = False
+        for line in lines:
+            line = line.strip()
+
+            if line == '#elec_start':
+                in_electrode_section = True
+                continue
+            if line == '#elec_end':
+                in_electrode_section = False
+                continue
+
+            if in_electrode_section and line and not line.startswith('#'):
+                parts = line.split()
+                if len(parts) >= 6:
+                    cable_electrode = parts[0]
+                    electrode_map[cable_electrode] = absolute_electrode
+                    absolute_electrode += 1
+
+        # Second pass: read measurement data
+        in_data_section = False
+        for line in lines:
+            line = line.strip()
+
+            if line == '#data_start':
+                in_data_section = True
+                continue
+            if line == '#data_end':
+                in_data_section = False
+                continue
+
+            if not in_data_section or line.startswith('!') or line.startswith('#') or not line:
+                continue
+
+            parts = line.split()
+            if len(parts) >= 10:
+                try:
+                    a_key = parts[1]
+                    b_key = parts[2]
+                    m_key = parts[3]
+                    n_key = parts[4]
+
+                    if all(key in electrode_map for key in [a_key, b_key, m_key, n_key]):
+                        a_abs = electrode_map[a_key]
+                        b_abs = electrode_map[b_key]
+                        m_abs = electrode_map[m_key]
+                        n_abs = electrode_map[n_key]
+
+                        resistance = float(parts[5])
+                        std_dev = float(parts[6])
+
+                        # Geometry factor (simplified)
+                        spacing = 5.0
+                        current_distance = abs(a_abs - b_abs) * spacing
+                        potential_distance = abs(m_abs - n_abs) * spacing
+
+                        if current_distance > 0 and potential_distance > 0:
+                            k = 2 * np.pi * (current_distance * potential_distance) / (current_distance - potential_distance + 0.001)
+                        else:
+                            k = 2 * np.pi * spacing
+
+                        rho_apparent = resistance * k
+
+                        a.append(a_abs)
+                        b.append(b_abs)
+                        m.append(m_abs)
+                        n.append(n_abs)
+                        rhoa.append(rho_apparent)
+                        err.append(std_dev * 100 / resistance if resistance > 0 else 2.0)
+
+                except (ValueError, KeyError):
+                    continue
+
+        # Filter invalid measurements
+        a = np.array(a, dtype=int)
+        b = np.array(b, dtype=int)
+        m = np.array(m, dtype=int)
+        n = np.array(n, dtype=int)
+        rhoa = np.array(rhoa, dtype=float)
+        err = np.array(err, dtype=float)
+
+        valid_mask = (rhoa > 0) & (np.isfinite(rhoa)) & (rhoa < 1e8)
+        a = a[valid_mask]
+        b = b[valid_mask]
+        m = m[valid_mask]
+        n = n[valid_mask]
+        rhoa = rhoa[valid_mask]
+        err = err[valid_mask]
+
+        print(f"✅ Parsed {len(rhoa)} valid ERT measurements")
+        return a, b, m, n, rhoa, err
 
     def send_to_table(self):
-        """Send all data to main app table using DataHub.add_samples()"""
-        data = self.data_hub.get_all_for_table()
-        if not data:
+        """Send all data to main app table (metadata + raw data for ERT)"""
+        all_data = []
+
+        # Add seismic data - metadata only but KEEP file paths
+        for trace in self.data_hub.seismic_data:
+            row = trace.to_dict()
+            all_data.append(row)
+
+        # Add geophone data
+        for geo in self.data_hub.geophone_data:
+            row = geo.to_dict()
+            all_data.append(row)
+
+        # Add GPR data
+        for gpr in self.data_hub.gpr_data:
+            row = gpr.to_dict()
+            all_data.append(row)
+
+        # Add ERT data - INCLUDE RAW ARRAYS
+        for ert in self.data_hub.ert_data:
+            row = ert.to_dict()
+            # Add file source
+            if hasattr(ert, 'file_source') and ert.file_source:
+                row['File_Source'] = ert.file_source
+
+            # CRITICAL: Add raw measurement arrays to the row
+            if hasattr(ert, 'raw_a') and ert.raw_a is not None:
+                # Convert arrays to lists for JSON serialization
+                row['ert_raw_a'] = ert.raw_a.tolist()
+                row['ert_raw_b'] = ert.raw_b.tolist()
+                row['ert_raw_m'] = ert.raw_m.tolist()
+                row['ert_raw_n'] = ert.raw_n.tolist()
+                row['ert_raw_rhoa'] = ert.raw_rhoa.tolist()
+                row['ert_raw_err'] = ert.raw_err.tolist()
+
+            all_data.append(row)
+
+        # Add MT data
+        for mt in self.data_hub.mt_data:
+            row = mt.to_dict()
+            if hasattr(mt, 'file_source') and mt.file_source:
+                row['File_Source'] = mt.file_source
+            all_data.append(row)
+
+        # Add magnetic data
+        for mag in self.data_hub.magnetic_data:
+            row = mag.to_dict()
+            if hasattr(mag, 'file_source') and mag.file_source:
+                row['File_Source'] = mag.file_source
+            all_data.append(row)
+
+        # Add gravity data
+        for grav in self.data_hub.gravity_data:
+            row = grav.to_dict()
+            if hasattr(grav, 'file_source') and grav.file_source:
+                row['File_Source'] = grav.file_source
+            all_data.append(row)
+
+        # Add IMU data
+        for imu in self.data_hub.imu_data:
+            all_data.append(imu.to_dict())
+
+        # Add GNSS data
+        for gnss in self.data_hub.gnss_data:
+            all_data.append(gnss.to_dict())
+
+        # Add environmental data
+        for env in self.data_hub.environmental_data:
+            all_data.append(env.to_dict())
+
+        # Add custEM data
+        for custem in self.data_hub.custem_data:
+            row = custem.to_dict()
+            if hasattr(custem, 'file_source') and custem.file_source:
+                row['File_Source'] = custem.file_source
+            all_data.append(row)
+
+        if not all_data:
             messagebox.showwarning("No Data", "No data to send")
             return
 
         try:
-            # Use the same method as left_panel.py
-            self.app.data_hub.add_samples(data)
+            self.app.data_hub.add_samples(all_data)
 
             counts = self.data_hub.get_counts()
             summary = " · ".join(f"{v} {k}" for k, v in counts.items() if v > 0)
 
-            self.status_var.set(f"✅ Sent {len(data)} records: {summary}")
-            self.app.center.set_status(f"✅ Sent {len(data)} records to table", "success")
+            self.status_var.set(f"✅ Sent {len(all_data)} records: {summary}")
+            self.app.center.set_status(f"✅ Sent {len(all_data)} records to table", "success")
 
             messagebox.showinfo("Success",
-                f"Successfully sent {len(data)} records to main table:\n\n{summary}")
+                f"Successfully sent {len(all_data)} records to main table:\n\n{summary}")
 
         except Exception as e:
             messagebox.showerror("Error", str(e))
             import traceback
             traceback.print_exc()
-
-    def on_data_changed(self):
-        """Update count label when data changes"""
-        counts = self.data_hub.get_counts()
-        self.count_label.config(
-            text=f"📊 {counts['seismic']} seismic · {counts['geophone']} geophone · "
-                 f"{counts['gpr']} GPR · {counts['ert']} ERT · {counts['em']} EM · "
-                 f"{counts['mt']} MT · {counts['magnetics']} magnetics · "
-                 f"{counts['gravity']} gravity · {counts['imu']} IMU · "
-                 f"{counts['gnss']} GNSS"
-        )
 
     def _on_close(self):
         """Clean up on close"""

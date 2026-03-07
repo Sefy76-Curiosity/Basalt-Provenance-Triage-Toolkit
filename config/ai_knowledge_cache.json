@@ -63,9 +63,9 @@
     "geophysics_unified_suite": {
       "id": "geophysics_unified_suite",
       "name": "Geophysics Suite",
-      "description": "Seismometers \u00b7 ERT \u00b7 EM \u00b7 MT \u00b7 Magnetometers \u00b7 Gravimeters \u00b7 GPR \u00b7 GNSS \u00b7 70+ devices",
+      "description": "38 devices \u00b7 Python 3.13 ready \u00b7 Real hardware \u00b7 No placeholders",
       "icon": "\ud83c\udf0d",
-      "field": "",
+      "field": "Geophysics",
       "category": "hardware",
       "path": "plugins/hardware/geophysics_unified_suite.py",
       "stem": "geophysics_unified_suite"
@@ -553,7 +553,7 @@
     "geophysics_analysis_suite": {
       "id": "geophysics_analysis_suite",
       "name": "Geophysics Analysis Suite",
-      "description": "Seismic \u00b7 ERT \u00b7 Gravity \u00b7 Magnetics \u00b7 MT \u00b7 GPR \u00b7 Attributes \u2014 with migration, GIS, time\u2011lapse, joint inversion",
+      "description": "5-tab workflow: Import \u00b7 Process \u00b7 Grid \u00b7 Model \u00b7 Visualize",
       "icon": "\ud83c\udf0d",
       "field": "Geophysics",
       "category": "software",
@@ -589,6 +589,16 @@
       "category": "software",
       "path": "plugins/software/interactive_contouring.py",
       "stem": "interactive_contouring"
+    },
+    "isotope_mixing_models": {
+      "id": "isotope_mixing_models",
+      "name": "Isotope Mixing Models",
+      "description": "Binary/ternary mixing, end-member estimation, Monte Carlo, Bayesian inversion, REE inversion",
+      "icon": "\ud83e\uddea",
+      "field": "",
+      "category": "software",
+      "path": "plugins/software/isotope_mixing_models.py",
+      "stem": "isotope_mixing_models"
     },
     "laicpms_pro": {
       "id": "laicpms_pro",
@@ -4916,5 +4926,5 @@
     "scheme file pearce_mantle_array.json: 'list' object has no attribute 'values'",
     "scheme file soil_salinity_classification__ec_.json: 'list' object has no attribute 'values'"
   ],
-  "timestamp": 1772626456.5439482
+  "timestamp": 1772879124.1226096
 }

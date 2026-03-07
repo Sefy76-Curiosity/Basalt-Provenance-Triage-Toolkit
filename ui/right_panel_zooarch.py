@@ -788,12 +788,25 @@ class ZooarchPanel(FieldPanelBase):
         self._update_for_selection()
 
     def destroy(self):
-        """Clean up resources."""
-        if self.card_timer:
-            self.frame.after_cancel(self.card_timer)
-        for fig in self.figures:
+        """Clean up resources and prevent Tcl errors."""
+        # Stop carousel timer first
+        if hasattr(self, 'card_timer') and self.card_timer:
             try:
-                plt.close(fig)
+                self.frame.after_cancel(self.card_timer)
             except:
                 pass
-        super().destroy()
+            self.card_timer = None
+
+        # Close any matplotlib figures
+        if hasattr(self, 'figures'):
+            for fig in self.figures:
+                try:
+                    plt.close(fig)
+                except:
+                    pass
+
+        # Let parent class do its cleanup
+        try:
+            super().destroy()
+        except:
+            pass

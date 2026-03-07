@@ -23,7 +23,8 @@ class GeophysicsPanel(FieldPanelBase):
     PANEL_NAME = "Geophysics"
     PANEL_ICON = "🌍"
     DETECT_COLUMNS = ['gravity', 'g_obs', 'magnetic', 'mag_obs', 'total_field',
-                      'elevation', 'altitude', 'bouguer', 'igrf', 'free_air']
+                    'elevation', 'altitude', 'bouguer', 'igrf', 'free_air',
+                    'latitude', 'longitude', 'lat', 'lon']
     is_right_panel = True
 
     def __init__(self, parent, app):

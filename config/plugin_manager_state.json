@@ -6,7 +6,7 @@
     "Structural Geology": 1,
     "Geophysics": 1,
     "GIS & Spatial Science": 1,
-    "Archaeology & Archaeometry": 0,
+    "Archaeology & Archaeometry": 1,
     "Spectroscopy": 1,
     "Chromatography & Analytical Chemistry": 1,
     "Electrochemistry": 1,
@@ -17,7 +17,8 @@
     "General": 1,
     "Thermal Analysis & Calorimetry": 1,
     "Solution Chemistry & Water Quality": 1,
-    "Zooarchaeology": 1
+    "Zooarchaeology": 1,
+    "Clinical Diagnostics & Molecular Biology": 1
   },
   "plugin_source": {}
 }

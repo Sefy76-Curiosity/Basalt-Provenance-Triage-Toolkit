@@ -91,7 +91,7 @@
   "statistical_console": true,
   "advanced_spectroscopy_suite_single_user": true,
   "universal_exporter": false,
-  "advanced_spectroscopy_suite_compact": false,
+  "advanced_spectroscopy_suite_compact": true,
   "advanced_chem_ms_suite": true,
   "server_mode": false,
   "clinical_diagnostics_analysis_suite": true,
